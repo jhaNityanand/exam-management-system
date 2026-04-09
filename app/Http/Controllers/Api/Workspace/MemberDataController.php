@@ -12,8 +12,6 @@ class MemberDataController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('member.view'), 403);
-
         $orgId = current_organization_id();
         abort_if($orgId === null, 404);
 
@@ -29,10 +27,9 @@ class MemberDataController extends Controller
             $pivot = $user->organizations->firstWhere('id', $orgId)?->pivot;
 
             return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $pivot?->role,
+                'id'     => $user->id,
+                'name'   => $user->name,
+                'email'  => $user->email,
                 'status' => $pivot?->status,
             ];
         });
@@ -41,9 +38,9 @@ class MemberDataController extends Controller
             'data' => $data,
             'meta' => [
                 'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
             ],
         ]);
     }

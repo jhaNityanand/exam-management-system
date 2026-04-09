@@ -1,14 +1,8 @@
 <?php
 
-use App\Http\Middleware\EnsureAdminOrOrganization;
-use App\Http\Middleware\RequireOrganizationMembership;
-use App\Http\Middleware\SetCurrentOrganization;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Spatie\Permission\Middleware\PermissionMiddleware;
-use Spatie\Permission\Middleware\RoleMiddleware;
-use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,17 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->web(append: [
-            SetCurrentOrganization::class,
-        ]);
-        $middleware->alias([
-            'role' => RoleMiddleware::class,
-            'permission' => PermissionMiddleware::class,
-            'role_or_permission' => RoleOrPermissionMiddleware::class,
-            'set.org' => SetCurrentOrganization::class,
-            'org.role' => RequireOrganizationMembership::class,
-            'has.org' => EnsureAdminOrOrganization::class,
-        ]);
+        // No custom middleware aliases needed for single-role architecture
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

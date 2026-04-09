@@ -12,8 +12,6 @@ class QuestionDataController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('question.view'), 403);
-
         $orgId = current_organization_id();
         abort_if($orgId === null, 404);
 
@@ -32,9 +30,9 @@ class QuestionDataController extends Controller
             'data' => $paginator->items(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
             ],
         ]);
     }

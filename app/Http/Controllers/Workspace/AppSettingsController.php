@@ -22,13 +22,7 @@ class AppSettingsController extends Controller
         $profile = $user->profile ?? Profile::make(['id' => $user->id]);
         $organizations = $user->organizations()->orderBy('name')->get();
 
-        $panelLayout = match ($request->user()->pivotRoleForOrganization((int) current_organization_id())) {
-            'org_admin' => 'layouts.org-admin',
-            'editor' => 'layouts.editor',
-            default => 'layouts.viewer',
-        };
-
-        return view('workspace.settings.edit', compact('settings', 'profile', 'organizations', 'panelLayout'));
+        return view('workspace.settings.edit', compact('settings', 'profile', 'organizations'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -36,8 +30,8 @@ class AppSettingsController extends Controller
         $user = $request->user();
 
         $data = $request->validate([
-            'theme' => ['required', Rule::in(['light', 'dark', 'system'])],
-            'sidebar_collapsed' => ['sometimes', 'boolean'],
+            'theme'                   => ['required', Rule::in(['light', 'dark', 'system'])],
+            'sidebar_collapsed'       => ['sometimes', 'boolean'],
             'default_organization_id' => [
                 'nullable',
                 'integer',
@@ -45,14 +39,19 @@ class AppSettingsController extends Controller
             ],
         ]);
 
-        if (isset($data['default_organization_id']) && ! $user->belongsToOrganization((int) $data['default_organization_id'])) {
-            return back()->withErrors(['default_organization_id' => 'You do not belong to that organization.'])->withInput();
+        if (
+            isset($data['default_organization_id'])
+            && ! $user->belongsToOrganization((int) $data['default_organization_id'])
+        ) {
+            return back()
+                ->withErrors(['default_organization_id' => 'You do not belong to that organization.'])
+                ->withInput();
         }
 
         UserAppSetting::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'theme' => $data['theme'],
+                'theme'             => $data['theme'],
                 'sidebar_collapsed' => $request->boolean('sidebar_collapsed'),
             ]
         );
@@ -60,8 +59,8 @@ class AppSettingsController extends Controller
         Profile::updateOrCreate(
             ['id' => $user->id],
             [
-                'id' => $user->id,
-                'status' => 'active',
+                'id'                      => $user->id,
+                'status'                  => 'active',
                 'default_organization_id' => $data['default_organization_id'] ?? null,
             ]
         );

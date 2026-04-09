@@ -10,23 +10,24 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $users = [
-            ['name' => 'Super Admin', 'email' => 'admin@examms.test'],
-            ['name' => 'Org Admin User', 'email' => 'orgadmin@examms.test'],
-            ['name' => 'Editor User', 'email' => 'editor@examms.test'],
-            ['name' => 'Candidate User', 'email' => 'viewer@examms.test'],
-        ];
+        // Default admin user
+        User::firstOrCreate(
+            ['email' => 'admin@examms.test'],
+            [
+                'name'     => 'Admin',
+                'password' => Hash::make('password'),
+                'status'   => 'active',
+            ]
+        );
 
-        foreach ($users as $data) {
-            User::firstOrCreate(
-                ['email' => $data['email']],
-                [
-                    'name' => $data['name'],
-                    'password' => Hash::make('password'),
-                ]
-            );
-        }
-
-        User::where('email', 'admin@examms.test')->first()?->syncRoles(['admin']);
+        // Default student user
+        User::firstOrCreate(
+            ['email' => 'student@examms.test'],
+            [
+                'name'     => 'Student User',
+                'password' => Hash::make('password'),
+                'status'   => 'active',
+            ]
+        );
     }
 }

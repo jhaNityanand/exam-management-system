@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Editor;
+namespace App\Http\Controllers\Workspace;
 
-use App\Http\Controllers\Concerns\InteractsWithOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Editor\StoreQuestionRequest;
 use App\Http\Requests\Editor\UpdateQuestionRequest;
@@ -14,26 +13,29 @@ use Illuminate\View\View;
 
 class QuestionController extends Controller
 {
-    use InteractsWithOrganization;
-
     public function __construct(protected QuestionService $questionService)
     {
     }
 
+    protected function currentOrgId(): int
+    {
+        $id = current_organization_id();
+        abort_if($id === null, 404, 'No organization context.');
+        return $id;
+    }
+
     public function index(): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('question.view'), 403);
         $categories = $this->questionService->getCategoriesForOrg($this->currentOrgId());
 
-        return view('editor.questions.index', compact('categories'));
+        return view('workspace.questions.index', compact('categories'));
     }
 
     public function create(): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('question.create'), 403);
         $categories = $this->questionService->getCategoriesForOrg($this->currentOrgId());
 
-        return view('editor.questions.create', compact('categories'));
+        return view('workspace.questions.create', compact('categories'));
     }
 
     public function store(StoreQuestionRequest $request): RedirectResponse
@@ -52,30 +54,28 @@ class QuestionController extends Controller
 
         $this->questionService->create($data);
 
-        return redirect()->route('editor.questions.index')
+        return redirect()->route('workspace.questions.index')
             ->with('success', 'Question created successfully.');
     }
 
     public function show(Question $question): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('question.view'), 403);
-        $this->authorizeOrgModel($question);
+        abort_if((int) $question->organization_id !== $this->currentOrgId(), 403);
 
-        return view('editor.questions.show', compact('question'));
+        return view('workspace.questions.show', compact('question'));
     }
 
     public function edit(Question $question): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('question.update'), 403);
-        $this->authorizeOrgModel($question);
+        abort_if((int) $question->organization_id !== $this->currentOrgId(), 403);
         $categories = $this->questionService->getCategoriesForOrg($this->currentOrgId());
 
-        return view('editor.questions.edit', compact('question', 'categories'));
+        return view('workspace.questions.edit', compact('question', 'categories'));
     }
 
     public function update(UpdateQuestionRequest $request, Question $question): RedirectResponse
     {
-        $this->authorizeOrgModel($question);
+        abort_if((int) $question->organization_id !== $this->currentOrgId(), 403);
         $data = $request->validated();
         $data['allows_multiple'] = $request->boolean('allows_multiple');
 
@@ -89,17 +89,16 @@ class QuestionController extends Controller
 
         $this->questionService->update($question, $data);
 
-        return redirect()->route('editor.questions.index')
+        return redirect()->route('workspace.questions.index')
             ->with('success', 'Question updated successfully.');
     }
 
     public function destroy(Question $question): RedirectResponse
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('question.delete'), 403);
-        $this->authorizeOrgModel($question);
+        abort_if((int) $question->organization_id !== $this->currentOrgId(), 403);
         $this->questionService->delete($question);
 
-        return redirect()->route('editor.questions.index')
+        return redirect()->route('workspace.questions.index')
             ->with('success', 'Question deleted successfully.');
     }
 }

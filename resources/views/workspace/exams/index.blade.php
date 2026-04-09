@@ -5,7 +5,7 @@
 
 @section('header-actions')
     @orgCan('exam.create')
-        <a href="{{ route('org-admin.exams.create') }}" class="panel-button-primary">New exam</a>
+        <a href="{{ route('workspace.exams.create') }}" class="panel-button-primary">New exam</a>
     @endorgCan
 @endsection
 
@@ -19,7 +19,7 @@
 @section('content')
     @php
         $endpoint = route('workspace.internal-api.exams-table');
-        $baseUrl = rtrim(route('org-admin.exams.index'), '/');
+        $baseUrl = rtrim(route('workspace.exams.index'), '/');
     @endphp
 
     <x-page-card>
@@ -48,3 +48,4 @@
         <div id="exam-pagination" class="mt-4"></div>
     </x-page-card>
 @endsection
+

@@ -6,14 +6,14 @@
 @section('breadcrumbs')
     <x-breadcrumb :items="[
         ['label' => 'Home', 'url' => route('dashboard')],
-        ['label' => 'Questions', 'url' => route('editor.questions.index')],
+        ['label' => 'Questions', 'url' => route('workspace.questions.index')],
         ['label' => 'Edit'],
     ]" />
 @endsection
 
 @section('content')
     <x-page-card class="max-w-4xl">
-        <form action="{{ route('editor.questions.update', $question) }}" method="POST" class="space-y-5" data-question-form>
+        <form action="{{ route('workspace.questions.update', $question) }}" method="POST" class="space-y-5" data-question-form>
             @csrf
             @method('PUT')
             <div>
@@ -85,8 +85,9 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 <button type="submit" class="panel-button-primary">Save</button>
-                <a href="{{ route('editor.questions.index') }}" class="panel-button-secondary">Cancel</a>
+                <a href="{{ route('workspace.questions.index') }}" class="panel-button-secondary">Cancel</a>
             </div>
         </form>
     </x-page-card>
 @endsection
+

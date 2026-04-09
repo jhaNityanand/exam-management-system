@@ -5,7 +5,7 @@
 
 @section('header-actions')
     @orgCan('question.create')
-        <a href="{{ route('editor.questions.create') }}" class="panel-button-primary">New question</a>
+        <a href="{{ route('workspace.questions.create') }}" class="panel-button-primary">New question</a>
     @endorgCan
 @endsection
 
@@ -19,7 +19,7 @@
 @section('content')
     @php
         $endpoint = route('workspace.internal-api.questions-table');
-        $baseUrl = rtrim(route('editor.questions.index'), '/');
+        $baseUrl = rtrim(route('workspace.questions.index'), '/');
     @endphp
 
     <x-page-card>
@@ -55,3 +55,4 @@
         <div id="q-pagination" class="mt-4"></div>
     </x-page-card>
 @endsection
+

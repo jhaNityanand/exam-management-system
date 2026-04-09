@@ -7,47 +7,44 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
     public function index(): View
     {
-        $users = User::with('roles')->latest()->paginate(20);
+        $users = User::latest()->paginate(20);
 
         return view('admin.users.index', compact('users'));
     }
 
     public function show(User $user): View
     {
-        $user->load(['roles', 'organizations']);
+        $user->load(['organizations']);
 
         return view('admin.users.show', compact('user'));
     }
 
     public function edit(User $user): View
     {
-        $roles = Role::where('name', 'admin')->orderBy('name')->get();
-
-        return view('admin.users.edit', compact('user', 'roles'));
+        return view('admin.users.edit', compact('user'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
-        $request->validate([
-            'roles' => ['array'],
-            'roles.*' => ['string', 'exists:roles,name'],
+        $data = $request->validate([
+            'name'   => ['required', 'string', 'max:255'],
+            'status' => ['required', 'in:active,inactive'],
         ]);
 
-        $user->syncRoles($request->input('roles', []));
+        $user->update($data);
 
         return redirect()->route('admin.users.index')
-            ->with('success', 'User roles updated successfully.');
+            ->with('success', 'User updated successfully.');
     }
 
     public function destroy(User $user): RedirectResponse
     {
-        abort_if($user->hasRole('admin'), 403, 'Cannot delete a super admin.');
+        abort_if($user->id === auth()->id(), 403, 'Cannot delete your own account.');
 
         $user->delete();
 

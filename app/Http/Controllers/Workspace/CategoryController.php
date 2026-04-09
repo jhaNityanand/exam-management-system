@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Workspace;
 
-use App\Http\Controllers\Concerns\InteractsWithOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workspace\StoreCategoryRequest;
 use App\Http\Requests\Workspace\UpdateCategoryRequest;
@@ -13,39 +12,34 @@ use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
-    use InteractsWithOrganization;
-
     public function __construct(protected CategoryService $categoryService)
     {
     }
 
+    protected function currentOrgId(): int
+    {
+        $id = current_organization_id();
+        abort_if($id === null, 404, 'No organization context. Please select an organization.');
+        return $id;
+    }
+
     public function index(): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('category.view'), 403);
-
-        return view('workspace.categories.index', ['panelLayout' => $this->panelLayout()]);
+        return view('workspace.categories.index');
     }
 
     public function tree(): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('category.view'), 403);
         $tree = $this->categoryService->treeForOrg($this->currentOrgId(), true);
 
-        return view('workspace.categories.tree', [
-            'tree' => $tree,
-            'panelLayout' => $this->panelLayout(),
-        ]);
+        return view('workspace.categories.tree', ['tree' => $tree]);
     }
 
     public function create(): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('category.create'), 403);
         $parents = $this->categoryService->listForSelect($this->currentOrgId());
 
-        return view('workspace.categories.create', [
-            'parents' => $parents,
-            'panelLayout' => $this->panelLayout(),
-        ]);
+        return view('workspace.categories.create', ['parents' => $parents]);
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
@@ -60,21 +54,19 @@ class CategoryController extends Controller
 
     public function edit(Category $category): View
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('category.update'), 403);
-        $this->authorizeOrgModel($category);
+        abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
         $parents = $this->categoryService->listForSelect($this->currentOrgId())
             ->where('id', '!=', $category->id);
 
         return view('workspace.categories.edit', [
             'category' => $category,
-            'parents' => $parents,
-            'panelLayout' => $this->panelLayout(),
+            'parents'  => $parents,
         ]);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $this->authorizeOrgModel($category);
+        abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
         $this->categoryService->update($category, $request->validated());
 
         return redirect()->route('workspace.categories.index')
@@ -83,8 +75,7 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        abort_unless(auth()->user()?->canInCurrentOrg('category.delete'), 403);
-        $this->authorizeOrgModel($category);
+        abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
         $this->categoryService->delete($category);
 
         return redirect()->route('workspace.categories.index')

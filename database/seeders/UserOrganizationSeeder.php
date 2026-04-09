@@ -15,19 +15,12 @@ class UserOrganizationSeeder extends Seeder
             return;
         }
 
-        $map = [
-            'orgadmin@examms.test' => 'org_admin',
-            'editor@examms.test' => 'editor',
-            'viewer@examms.test' => 'viewer',
-        ];
-
-        foreach ($map as $email => $role) {
-            $user = User::where('email', $email)->first();
-            if ($user) {
-                $org->users()->syncWithoutDetaching([
-                    $user->id => ['role' => $role, 'status' => 'active'],
-                ]);
-            }
+        // Add the student user as a member of the demo organization
+        $student = User::where('email', 'student@examms.test')->first();
+        if ($student) {
+            $org->users()->syncWithoutDetaching([
+                $student->id => ['status' => 'active'],
+            ]);
         }
     }
 }

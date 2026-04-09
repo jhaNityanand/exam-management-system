@@ -1,4 +1,4 @@
-@extends($panelLayout)
+@extends('layouts.app')
 
 @section('title', 'Edit category')
 @section('page-title', 'Edit category')
@@ -49,3 +49,4 @@
         </form>
     </x-page-card>
 @endsection
+

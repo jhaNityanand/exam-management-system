@@ -1,4 +1,4 @@
-@extends($panelLayout)
+@extends('layouts.app')
 
 @section('title', 'Settings')
 @section('page-title', 'Application settings')
@@ -35,3 +35,4 @@
     <button type="submit" class="bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700">Save settings</button>
 </form>
 @endsection
+

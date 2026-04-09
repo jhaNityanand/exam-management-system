@@ -1,4 +1,4 @@
-@extends($panelLayout)
+@extends('layouts.app')
 
 @section('title', 'Categories')
 @section('page-title', 'Categories')
@@ -50,3 +50,4 @@
         <div id="cat-pagination" class="mt-4"></div>
     </x-page-card>
 @endsection
+

@@ -6,11 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, Notifiable;
 
     protected $fillable = ['name', 'email', 'password'];
 
@@ -44,20 +43,6 @@ class User extends Authenticatable
     public function belongsToOrganization(int $organizationId): bool
     {
         return $this->organizations()->where('organizations.id', $organizationId)->exists();
-    }
-
-    public function pivotRoleForOrganization(?int $organizationId): ?string
-    {
-        if ($organizationId === null) {
-            return null;
-        }
-
-        return $this->organizations()->where('organizations.id', $organizationId)->first()?->pivot?->role;
-    }
-
-    public function canInCurrentOrg(string $permission): bool
-    {
-        return org_context()->userCan($this, $permission);
     }
 
     public function questions()

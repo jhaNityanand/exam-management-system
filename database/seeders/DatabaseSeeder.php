@@ -9,7 +9,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RolePermissionSeeder::class,
             UserSeeder::class,
             ProfileSeeder::class,
             OrganizationSeeder::class,
@@ -21,12 +20,10 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info('Demo logins (password: password):');
         $this->command->table(
-            ['Email', 'Panel'],
+            ['Email', 'Access'],
             [
-                ['admin@examms.test', 'Super admin /admin'],
-                ['orgadmin@examms.test', 'Org admin /org-admin'],
-                ['editor@examms.test', 'Editor /editor'],
-                ['viewer@examms.test', 'Candidate /viewer'],
+                ['admin@examms.test', 'Admin panel  /admin'],
+                ['student@examms.test', 'Student / take exams'],
             ]
         );
     }

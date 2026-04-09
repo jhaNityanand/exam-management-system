@@ -10,14 +10,14 @@
 @section('breadcrumbs')
     <x-breadcrumb :items="[
         ['label' => 'Home', 'url' => route('dashboard')],
-        ['label' => 'Exams', 'url' => route('org-admin.exams.index')],
+        ['label' => 'Exams', 'url' => route('workspace.exams.index')],
         ['label' => 'Edit'],
     ]" />
 @endsection
 
 @section('content')
     <x-page-card class="max-w-5xl">
-        <form action="{{ route('org-admin.exams.update', $exam) }}" method="POST" class="space-y-5">
+        <form action="{{ route('workspace.exams.update', $exam) }}" method="POST" class="space-y-5">
             @csrf
             @method('PUT')
             <div>
@@ -101,8 +101,9 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 <button type="submit" class="panel-button-primary">Update</button>
-                <a href="{{ route('org-admin.exams.index') }}" class="panel-button-secondary">Cancel</a>
+                <a href="{{ route('workspace.exams.index') }}" class="panel-button-secondary">Cancel</a>
             </div>
         </form>
     </x-page-card>
 @endsection
+

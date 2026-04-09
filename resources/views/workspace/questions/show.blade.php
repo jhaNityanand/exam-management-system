@@ -5,7 +5,7 @@
 
 @section('header-actions')
     @orgCan('question.update')
-        <a href="{{ route('editor.questions.edit', $question) }}" class="text-sm text-emerald-600 font-medium">Edit</a>
+        <a href="{{ route('workspace.questions.edit', $question) }}" class="text-sm text-emerald-600 font-medium">Edit</a>
     @endorgCan
 @endsection
 
@@ -27,3 +27,4 @@
     @endif
 </div>
 @endsection
+

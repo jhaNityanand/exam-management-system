@@ -6,7 +6,7 @@
 @section('header-actions')
     @orgCan('exam.publish')
         @if($exam->status !== 'published')
-            <form action="{{ route('org-admin.exams.publish', $exam) }}" method="POST" class="inline">
+            <form action="{{ route('workspace.exams.publish', $exam) }}" method="POST" class="inline">
                 @csrf
                 @method('PATCH')
                 <button type="submit" class="text-sm font-medium bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700">Publish</button>
@@ -14,7 +14,7 @@
         @endif
     @endorgCan
     @orgCan('exam.update')
-        <a href="{{ route('org-admin.exams.edit', $exam) }}" class="text-sm font-medium text-blue-600">Edit</a>
+        <a href="{{ route('workspace.exams.edit', $exam) }}" class="text-sm font-medium text-blue-600">Edit</a>
     @endorgCan
 @endsection
 
@@ -56,3 +56,4 @@
     </div>
 </div>
 @endsection
+

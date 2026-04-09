@@ -1,4 +1,4 @@
-@extends($panelLayout)
+@extends('layouts.app')
 
 @section('title', 'Category tree')
 @section('page-title', 'Category tree')
@@ -27,3 +27,4 @@
         @endif
     </x-page-card>
 @endsection
+
