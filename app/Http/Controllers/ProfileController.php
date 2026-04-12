@@ -42,7 +42,7 @@ class ProfileController extends Controller
             array_merge(['id' => $user->id, 'status' => 'active'], $profileData)
         );
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::route('admin.profile.edit')->with('status', 'profile-updated');
     }
 
     public function destroy(Request $request): RedirectResponse

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\Question;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +40,7 @@ class QuestionService
         return $question->delete();
     }
 
-    public function getCategoriesForOrg(int $orgId): \Illuminate\Database\Eloquent\Collection
+    public function getCategoriesForOrg(int $orgId): Collection
     {
         return Category::where('organization_id', $orgId)->orderBy('name')->get();
     }

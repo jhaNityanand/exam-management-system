@@ -14,9 +14,9 @@ class UserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@examms.test'],
             [
-                'name'     => 'Admin',
+                'name' => 'Admin User',
                 'password' => Hash::make('password'),
-                'status'   => 'active',
+                'status' => 'active',
             ]
         );
 
@@ -24,9 +24,9 @@ class UserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'student@examms.test'],
             [
-                'name'     => 'Student User',
+                'name' => 'Student User',
                 'password' => Hash::make('password'),
-                'status'   => 'active',
+                'status' => 'active',
             ]
         );
     }

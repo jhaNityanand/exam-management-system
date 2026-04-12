@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Workspace;
 
+use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,7 @@ class UpdateCategoryRequest extends FormRequest
     public function rules(): array
     {
         $orgId = current_organization_id();
-        /** @var \App\Models\Category|null $category */
+        /** @var Category|null $category */
         $category = $this->route('category');
         $parentRules = [
             'nullable',
