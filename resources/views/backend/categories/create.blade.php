@@ -57,10 +57,10 @@
     </div>
 
     @push('styles')
-        <link rel="stylesheet" href="{{ asset('css/backend/category.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
     @endpush
 
     @push('scripts')
-        <script src="{{ asset('js/backend/category.js') }}"></script>
+        <script src="{{ asset('js/backend/category-manager.js') }}"></script>
     @endpush
 @endsection
