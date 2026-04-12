@@ -29,9 +29,8 @@ class CategoryController extends Controller
 
     public function create(): View
     {
-        $parents = $this->categoryService->listForSelect($this->currentOrgId());
-
-        return view('backend.categories.create', ['parents' => $parents]);
+        // For now, returning UI with dummy data as requested
+        return view('backend.categories.create', ['parents' => collect()]);
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse

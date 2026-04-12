@@ -110,7 +110,7 @@
         </header>
 
         <main class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-            <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-6">
+            <div class="mx-auto flex w-full flex-col gap-4 sm:gap-6 @yield('content-container-class', 'max-w-7xl')">
                 @hasSection('breadcrumbs')
                     <nav class="flex text-sm text-slate-500 dark:text-slate-400 font-medium mb-4" aria-label="Breadcrumb">
                         <ol class="inline-flex items-center space-x-1 md:space-x-2">

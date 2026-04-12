@@ -42,7 +42,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('internal-api/exams-table', ExamDataController::class)->name('internal-api.exams-table');
     Route::get('internal-api/questions-table', QuestionDataController::class)->name('internal-api.questions-table');
 
-    Route::resource('categories', CategoryController::class)->except(['show']);
+    Route::resource('categories', CategoryController::class);
     Route::resource('questions', QuestionController::class);
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
