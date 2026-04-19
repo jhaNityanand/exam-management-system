@@ -1,6 +1,10 @@
 @php
     $user = auth()->user();
     $userName = $user->name ?? 'User';
+    $notificationCount = 5;
+    $notificationBadge = $notificationCount > 99 ? '99+' : (string) $notificationCount;
+    $topbarIconButtonClasses = 'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white';
+    $topbarIconShellClasses = 'pointer-events-none flex h-8 w-8 items-center justify-center rounded-lg text-current';
     $nameParts = explode(' ', trim($userName));
     if (count($nameParts) >= 2) {
         $userInitials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
@@ -9,32 +13,39 @@
     }
 @endphp
 
-<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 sm:gap-3">
+    <!-- Theme Toggle -->
     <button id="theme-toggle-btn" type="button"
-        class="inline-flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl sm:rounded-2xl border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white">
+        class="{{ $topbarIconButtonClasses }} overflow-visible p-0.5"
+        aria-label="Toggle theme">
         <!-- Sun icon (shows in dark mode) -->
-        <svg class="hidden h-5 w-5 dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 3v1m0 16v1m8.66-10h-1M4.34 12h-1m15.02 6.36l-.7-.7M6.34 6.34l-.7-.7m12.72 0l-.7.7M6.34 17.66l-.7.7M12 7a5 5 0 100 10 5 5 0 000-10z" />
-        </svg>
+        <span class="{{ $topbarIconShellClasses }} hidden dark:flex">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] overflow-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+            </svg>
+        </span>
         <!-- Moon icon (shows in light mode) -->
-        <svg class="block h-5 w-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M20.354 15.354A9 9 0 018.646 3.646 9 9 0 1012 21a8.96 8.96 0 008.354-5.646z" />
-        </svg>
+        <span class="{{ $topbarIconShellClasses }} dark:hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] overflow-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+            </svg>
+        </span>
     </button>
 
+    <!-- Notifications -->
     <div data-dropdown data-open="0" class="relative">
         <button type="button" data-dropdown-trigger
-            class="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span class="absolute top-2.5 right-2.5 flex h-2.5 w-2.5">
-                <span
-                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
-                <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500"></span>
+            class="{{ $topbarIconButtonClasses }} overflow-visible"
+            aria-label="Open notifications">
+
+            <span class="{{ $topbarIconShellClasses }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2.25a4.5 4.5 0 0 0-4.5 4.5v.794a5.25 5.25 0 0 1-1.537 3.712l-.815.815a2.25 2.25 0 0 0 1.591 3.84h10.522a2.25 2.25 0 0 0 1.591-3.84l-.815-.815A5.25 5.25 0 0 1 16.5 7.544V6.75A4.5 4.5 0 0 0 12 2.25Zm0 19.5a3 3 0 0 0 2.815-1.965.75.75 0 0 0-.703-1.035H9.888a.75.75 0 0 0-.703 1.035A3 3 0 0 0 12 21.75Z" />
+                </svg>
+            </span>
+
+            <span class="pointer-events-none absolute bottom-0 right-0 inline-flex min-h-[1.15rem] min-w-[1.15rem] translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white shadow-sm dark:ring-slate-950">
+                {{ $notificationBadge }}
             </span>
         </button>
 
@@ -44,7 +55,7 @@
             <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
                 <span
-                    class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">5
+                    class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $notificationBadge }}
                     New</span>
             </div>
             <div class="mt-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
@@ -73,9 +84,10 @@
 
     <div data-dropdown data-open="0" class="relative">
         <button type="button" data-dropdown-trigger
-            class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-1 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-500">
+            class="{{ $topbarIconButtonClasses }} p-1"
+            aria-label="User menu">
             <span
-                class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold uppercase text-white dark:bg-white dark:text-slate-950">
+                class="flex h-full w-full items-center justify-center rounded-lg bg-slate-950 text-sm font-bold uppercase text-white dark:bg-white dark:text-slate-950">
                 {{ $userInitials }}
             </span>
         </button>

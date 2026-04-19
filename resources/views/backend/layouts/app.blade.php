@@ -46,8 +46,8 @@
 
     <aside id="app-sidebar"
            class="fixed inset-y-0 left-0 z-50 flex h-full -translate-x-full flex-col bg-slate-950 text-white transition-all duration-300 lg:static lg:translate-x-0 w-72">
-        <div id="sidebar-logo-container" class="flex items-center gap-3 border-b border-white/10 px-4 py-5 shrink-0 transition-all duration-300">
-            <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-sm font-bold uppercase tracking-[0.25em] text-white shrink-0">
+        <div id="sidebar-logo-container" class="flex items-center gap-3 border-b border-white/10 px-4 h-16 shrink-0 transition-all duration-300">
+            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-sm font-bold uppercase tracking-[0.25em] text-white shrink-0">
                 {{ $appInitials }}
             </div>
             <div class="min-w-0" data-sidebar-label>
@@ -86,11 +86,12 @@
 
     <div class="flex min-w-0 flex-1 flex-col">
         <header class="sticky top-0 z-30 shrink-0 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-            <div class="flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between gap-4 px-4 h-16 sm:px-6 lg:px-8">
                 <div class="flex min-w-0 items-center gap-3">
                     <button type="button"
                             data-sidebar-toggle
-                            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white">
+                            class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white"
+                            aria-label="Toggle sidebar">
                         <svg data-sidebar-toggle-icon class="h-5 w-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
                         </svg>
