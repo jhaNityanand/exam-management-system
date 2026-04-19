@@ -2,17 +2,13 @@
 
 @section('title', 'Admin Dashboard — ExamMS')
 @section('page-title', 'Dashboard')
+@section('content-container-class', 'max-w-none')
 
 @section('breadcrumbs')
-    <li class="inline-flex items-center">
-        <a href="{{ route('admin.dashboard') }}" class="hover:text-slate-900 dark:hover:text-white transition">Admin</a>
-    </li>
-    <li>
-        <div class="flex items-center">
-            <span class="mx-2">/</span>
-            <span class="text-slate-800 dark:text-slate-200">Dashboard</span>
-        </div>
-    </li>
+    <x-breadcrumb :items="[
+        ['label' => 'Admin', 'url' => route('admin.dashboard')],
+        ['label' => 'Dashboard'],
+    ]" />
 @endsection
 
 @section('content')

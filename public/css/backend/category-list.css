@@ -1,31 +1,29 @@
-.category-tree-node.is-hidden-by-search {
-    display: none;
-}
+/* ============================================================ */
+/*  Category List — Search Highlight                            */
+/* ============================================================ */
+
+.category-tree-node.is-hidden-by-search { display: none; }
 
 .category-tree-node.matching-node > .category-tree-item {
     border-color: rgb(125 211 252 / 0.9);
     box-shadow: 0 8px 24px -18px rgb(14 165 233 / 0.35);
 }
-
 .dark .category-tree-node.matching-node > .category-tree-item {
     border-color: rgb(56 189 248 / 0.45);
 }
-
 .category-tree-node.has-search-match > .category-tree-item {
     border-color: rgb(191 219 254 / 0.95);
 }
-
 .dark .category-tree-node.has-search-match > .category-tree-item {
     border-color: rgb(59 130 246 / 0.35);
 }
 
-.toggle-node-btn[aria-expanded="true"] svg {
-    transform: rotate(90deg);
-}
+.toggle-node-btn[aria-expanded="true"] svg { transform: rotate(90deg); }
+.category-tree-item { min-height: 0; }
 
-.category-tree-item {
-    min-height: 0;
-}
+/* ============================================================ */
+/*  Toast                                                        */
+/* ============================================================ */
 
 #category-toast.is-visible {
     display: block;
@@ -33,19 +31,366 @@
     transform: translateY(0);
 }
 
+/* ============================================================ */
+/*  Bootstrap Modal Minimal Base                                 */
+/*  (Bootstrap JS needs these — we removed Bootstrap CSS to     */
+/*   avoid Tailwind conflicts, so we restore only what's needed) */
+/* ============================================================ */
+
+/* Backdrop injected by Bootstrap JS */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgb(15 23 42 / 0.55);
+}
+.modal-backdrop.fade  { opacity: 0; transition: opacity 0.15s linear; }
+.modal-backdrop.show  { opacity: 1; }
+
+/* Overlay shell — Bootstrap JS toggles display + .show on this */
+.cat-modal-overlay {
+    display: none;          /* hidden by default */
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: 0;
+    /* flex layout so dialog centres */
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.75rem 1rem;
+}
+/* Bootstrap adds .show to make it visible */
+.cat-modal-overlay.show { display: flex; }
+
+/* Fade animation (Bootstrap adds .fade to the overlay) */
+.cat-modal-overlay.fade          { opacity: 0; transition: opacity 0.15s ease; }
+.cat-modal-overlay.fade.show     { opacity: 1; }
+
+/* Centred inner dialog wrapper */
+.cat-modal-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 36rem;
+    margin: auto;
+    pointer-events: none;
+    /* slide-in */
+    transition: transform 0.3s ease-out;
+    transform: translateY(-3rem);
+}
+.cat-modal-overlay.show .cat-modal-dialog { transform: translateY(0); pointer-events: auto; }
+
+/* ============================================================ */
+/*  Description Modal — Visual Skin                             */
+/* ============================================================ */
+
+.cat-modal-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: #fff;
+    border-radius: 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.18);
+    overflow: hidden;
+    outline: 0;
+}
+
+.cat-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+}
+
+.category-desc-modal-eyebrow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin: 0 0 0.2rem;
+}
+
+.category-desc-modal-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.35;
+}
+
+.category-desc-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+.category-desc-modal-close:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.cat-modal-body {
+    padding: 1.5rem;
+    background: #fff;
+}
+
+.category-desc-modal-text {
+    font-size: 0.9rem;
+    line-height: 1.75;
+    color: #475569;
+    margin: 0;
+}
+
+.cat-modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid #e2e8f0;
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+}
+
+.category-desc-modal-btn-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.category-desc-modal-btn-close:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+/* ============================================================ */
+/*  SweetAlert2 Delete Confirmation — Premium Skin              */
+/* ============================================================ */
+
+/* ── Entrance / exit animations ── */
+@keyframes swalCatIn {
+    from { opacity: 0; transform: scale(0.92) translateY(12px); }
+    to   { opacity: 1; transform: scale(1)   translateY(0);     }
+}
+@keyframes swalCatOut {
+    from { opacity: 1; transform: scale(1)   translateY(0);     }
+    to   { opacity: 0; transform: scale(0.94) translateY(8px);  }
+}
+.swal-cat-show { animation: swalCatIn  0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.swal-cat-hide { animation: swalCatOut 0.2s  ease-in both; }
+
+/* ── Popup shell ── */
+.swal-cat-popup {
+    border-radius: 1.75rem !important;
+    padding: 0 !important;
+    box-shadow: 0 32px 64px -16px rgb(15 23 42 / 0.26),
+                0 0 0 1px rgb(226 232 240 / 0.8) !important;
+    font-family: inherit !important;
+    width: 26rem !important;
+    max-width: 92vw !important;
+    overflow: hidden !important;
+}
+
+/* ── Title bar ── */
+.swal-cat-title {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    padding: 1.5rem 1.5rem 0 !important;
+    margin: 0 !important;
+    text-align: left !important;
+    letter-spacing: -0.01em !important;
+}
+
+/* ── HTML container ── */
+.swal-cat-html {
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: left !important;
+}
+
+/* ── Body wrapper inside html ── */
+.swal-cat-body {
+    padding: 0.75rem 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* ── Custom icon ring ── */
+.swal-cat-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 0.25rem;
+}
+.swal-cat-icon-ring {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1.1rem;
+    background: linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%);
+    border: 1.5px solid #fecdd3;
+    color: #f43f5e;
+    box-shadow: 0 6px 20px -6px rgb(244 63 94 / 0.3);
+}
+
+/* ── Helper text ── */
+.swal-cat-message {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* ── Category name chip ── */
+.swal-cat-name-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    align-self: center;
+    max-width: 100%;
+    padding: 0.45rem 0.9rem;
+    border-radius: 99px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f172a;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.swal-cat-name-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.swal-cat-name-chip svg { color: #4f46e5; flex-shrink: 0; }
+
+/* ── Danger warning note ── */
+.swal-cat-warning {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.6;
+    padding: 0.65rem 0.85rem;
+    background: #fff7f7;
+    border-radius: 0.75rem;
+    border: 1px solid #fee2e2;
+    text-align: center;
+}
+.swal-cat-warning strong { color: #f43f5e; font-weight: 700; }
+
+/* ── Actions row ── */
+.swal-cat-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+    margin: 1.25rem 0 0 !important;
+    padding: 1rem 1.5rem !important;
+    border-top: 1px solid #f1f5f9 !important;
+    width: 100% !important;
+    background: #fafafa !important;
+}
+
+/* ── Confirm button ── */
+.swal-cat-confirm-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.6rem 1.3rem !important;
+    border-radius: 0.8rem !important;
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+    color: #fff !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    border: none !important;
+    cursor: pointer !important;
+    letter-spacing: 0.01em !important;
+    transition: opacity 0.15s, box-shadow 0.15s, transform 0.12s !important;
+    box-shadow: 0 4px 16px -4px rgb(244 63 94 / 0.55) !important;
+}
+.swal-cat-confirm-btn:hover  { opacity: 0.92 !important; box-shadow: 0 6px 20px -4px rgb(244 63 94 / 0.6) !important; transform: translateY(-1px) !important; }
+.swal-cat-confirm-btn:active { transform: translateY(0) !important; opacity: 1 !important; }
+.swal-cat-confirm-btn:focus-visible { outline: none !important; box-shadow: 0 0 0 3px rgb(244 63 94 / 0.35) !important; }
+
+/* ── Cancel button ── */
+.swal-cat-cancel-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 0.8rem !important;
+    background: #fff !important;
+    color: #475569 !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    border: 1.5px solid #e2e8f0 !important;
+    cursor: pointer !important;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s !important;
+}
+.swal-cat-cancel-btn:hover  { background: #f8fafc !important; border-color: #cbd5e1 !important; color: #0f172a !important; transform: translateY(-1px) !important; }
+.swal-cat-cancel-btn:active { transform: translateY(0) !important; }
+.swal-cat-cancel-btn:focus-visible { outline: none !important; box-shadow: 0 0 0 3px rgb(100 116 139 / 0.25) !important; }
+
+/* ── Success toast ── */
+.swal-cat-toast-popup {
+    border-radius: 1rem !important;
+    font-family: inherit !important;
+    box-shadow: 0 8px 24px -6px rgb(15 23 42 / 0.15),
+                0 0 0 1px rgb(226 232 240 / 0.8) !important;
+    padding-right: 1rem !important;
+}
+.swal-cat-toast-title { font-size: 0.875rem !important; font-weight: 600 !important; color: #0f172a !important; }
+.swal-cat-toast-bar   { background: #10b981 !important; }
+
+/* ============================================================ */
+/*  Responsive                                                   */
+/* ============================================================ */
+
 @media (max-width: 1023px) {
-    .category-tree-item {
-        padding: 1rem;
-    }
+    .category-tree-item { padding: 1rem; }
 }
 
 @media (max-width: 640px) {
-    .category-tree-children {
-        margin-left: 0.75rem;
-        padding-left: 0.85rem;
-    }
+    .category-tree-children { margin-left: 0.75rem; padding-left: 0.85rem; }
+    .category-tree-item     { border-radius: 1.25rem; }
 
-    .category-tree-item {
-        border-radius: 1.25rem;
-    }
+    .cat-modal-overlay { padding: 1rem 0.75rem; align-items: flex-end; }
+    .cat-modal-dialog  { max-width: 100%; margin: 0; }
+    .cat-modal-card    { border-radius: 1.25rem 1.25rem 0 0; }
+
+    .swal-cat-popup    { width: 92vw !important; }
+    .swal-cat-title    { padding: 1.25rem 1.25rem 0 !important; }
+    .swal-cat-body     { padding: 0.65rem 1.25rem 0; }
+    .swal-cat-actions  { flex-direction: column-reverse !important; padding: 0.85rem 1.25rem !important; }
+    .swal-cat-confirm-btn,
+    .swal-cat-cancel-btn { width: 100% !important; justify-content: center !important; }
 }
