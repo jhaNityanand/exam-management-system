@@ -199,22 +199,23 @@
                 </div>
 
                 <!-- ONE ROW: Search + Buttons -->
-                <div class="flex items-center gap-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
                     <!-- Search (flex grow) -->
-                    <div class="relative flex-1">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
-                            <svg class="h-5 w-5 mr-2 pr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="relative w-full sm:max-w-md">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
-                        </span>
+                        </div>
 
                         <input
                             id="category-search"
                             type="search"
-                            placeholder="&nbsp;&nbsp;Search categories, descriptions, or hierarchy labels..."
-                            class="w-full max-w-md rounded-xl border border-slate-200 bg-white py-2.5 pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                            placeholder="Search categories, descriptions, or labels..."
+                            class="panel-input w-full pr-4"
+                            style="padding-left: 2.5rem;"
                         >
                     </div>
 
