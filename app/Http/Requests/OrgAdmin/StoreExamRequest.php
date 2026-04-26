@@ -14,15 +14,13 @@ class StoreExamRequest extends FormRequest
 
     public function rules(): array
     {
-        $orgId = current_organization_id();
-
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'category_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('categories', 'id')->where(fn ($q) => $q->where('organization_id', $orgId)),
+                Rule::exists('categories', 'id'),
             ],
             'duration' => ['required', 'integer', 'min:1', 'max:480'],
             'pass_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
@@ -38,7 +36,7 @@ class StoreExamRequest extends FormRequest
             'question_ids' => ['nullable', 'array'],
             'question_ids.*' => [
                 'integer',
-                Rule::exists('questions', 'id')->where(fn ($q) => $q->where('organization_id', $orgId)),
+                Rule::exists('questions', 'id'),
             ],
         ];
     }

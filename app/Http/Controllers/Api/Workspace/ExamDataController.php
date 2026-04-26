@@ -12,10 +12,7 @@ class ExamDataController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $orgId = current_organization_id();
-        abort_if($orgId === null, 404);
-
-        $query = Exam::query()->forOrg($orgId)->with(['category', 'createdBy']);
+        $query = Exam::query()->with(['category', 'createdBy']);
 
         DatatableQuery::apply($query, $request, ['title', 'description', 'status'], 'id');
 

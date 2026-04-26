@@ -3,29 +3,18 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\OrgAdmin\StoreExamRequest;
-use App\Http\Requests\OrgAdmin\UpdateExamRequest;
+use App\Models\Category;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Services\ExamService;
-use App\Services\QuestionService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class ExamController extends Controller
 {
-    public function __construct(
-        protected ExamService $examService,
-        protected QuestionService $questionService
-    ) {}
-
-    protected function currentOrgId(): int
-    {
-        $id = current_organization_id();
-        abort_if($id === null, 404, 'No organization context.');
-
-        return $id;
-    }
+    public function __construct(protected ExamService $examService) {}
 
     public function index(): View
     {
@@ -34,72 +23,100 @@ class ExamController extends Controller
 
     public function create(): View
     {
-        $categories = $this->questionService->getCategoriesForOrg($this->currentOrgId());
-        $questions = Question::forOrg($this->currentOrgId())->orderBy('body')->limit(500)->get(['id', 'body', 'category_id']);
+        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        $questions = Question::query()
+            ->orderBy('body')
+            ->limit(500)
+            ->get(['id', 'body', 'category_id', 'marks', 'difficulty', 'type']);
 
         return view('backend.exams.create', compact('categories', 'questions'));
     }
 
-    public function store(StoreExamRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $data = $request->validated();
-        $data['organization_id'] = $this->currentOrgId();
-        $data['shuffle_questions'] = $request->boolean('shuffle_questions');
-        $data['shuffle_options'] = $request->boolean('shuffle_options');
-
-        $this->examService->create($data);
-
         return redirect()->route('admin.exams.index')
-            ->with('success', 'Exam created successfully.');
+            ->with('success', 'Exam created (Dummy Mode).');
     }
 
-    public function show(Exam $exam): View
+    public function show($id): View
     {
-        abort_if((int) $exam->organization_id !== $this->currentOrgId(), 403);
-        $exam->load(['questions', 'category']);
-        $stats = $this->examService->getAttemptStats($exam);
+        $exam = $this->resolveExam((int) $id);
+        $stats = $exam->exists
+            ? $this->examService->getAttemptStats($exam)
+            : [
+                'total' => 0,
+                'passed' => 0,
+                'failed' => 0,
+                'avg_score' => 0,
+            ];
 
         return view('backend.exams.show', compact('exam', 'stats'));
     }
 
-    public function edit(Exam $exam): View
+    public function edit($id): View
     {
-        abort_if((int) $exam->organization_id !== $this->currentOrgId(), 403);
-        $categories = $this->questionService->getCategoriesForOrg($this->currentOrgId());
-        $questions = Question::forOrg($this->currentOrgId())->orderBy('body')->limit(500)->get(['id', 'body', 'category_id']);
-        $exam->load('questions');
+        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        $questions = Question::query()
+            ->orderBy('body')
+            ->limit(500)
+            ->get(['id', 'body', 'category_id', 'marks', 'difficulty', 'type']);
+        $exam = $this->resolveExam((int) $id);
 
         return view('backend.exams.edit', compact('exam', 'categories', 'questions'));
     }
 
-    public function update(UpdateExamRequest $request, Exam $exam): RedirectResponse
+    public function update(Request $request, $id): RedirectResponse
     {
-        abort_if((int) $exam->organization_id !== $this->currentOrgId(), 403);
-        $data = $request->validated();
-        $data['shuffle_questions'] = $request->boolean('shuffle_questions');
-        $data['shuffle_options'] = $request->boolean('shuffle_options');
-
-        $this->examService->update($exam, $data);
-
         return redirect()->route('admin.exams.index')
-            ->with('success', 'Exam updated successfully.');
+            ->with('success', 'Exam updated (Dummy Mode).');
     }
 
-    public function destroy(Exam $exam): RedirectResponse
+    public function destroy($id): RedirectResponse
     {
-        abort_if((int) $exam->organization_id !== $this->currentOrgId(), 403);
-        $this->examService->delete($exam);
-
         return redirect()->route('admin.exams.index')
-            ->with('success', 'Exam deleted successfully.');
+            ->with('success', 'Exam deleted (Dummy Mode).');
     }
 
-    public function publish(Exam $exam): RedirectResponse
+    public function publish($id): RedirectResponse
     {
-        abort_if((int) $exam->organization_id !== $this->currentOrgId(), 403);
-        $this->examService->publish($exam);
+        return redirect()->route('admin.exams.show', $id)
+            ->with('success', 'Exam published (Dummy Mode).');
+    }
 
-        return redirect()->route('admin.exams.show', $exam)
-            ->with('success', 'Exam published successfully.');
+    protected function resolveExam(int $id): Exam
+    {
+        $exam = Exam::query()->with(['questions', 'category'])->find($id);
+
+        if ($exam) {
+            return $exam;
+        }
+
+        return $this->makeFallbackExam($id);
+    }
+
+    protected function makeFallbackExam(int $id): Exam
+    {
+        $exam = new Exam([
+            'title' => "Demo Exam #{$id}",
+            'description' => '<p>This is a demo exam record rendered for UI preview mode.</p>',
+            'duration' => 60,
+            'pass_percentage' => 50,
+            'max_attempts' => 1,
+            'status' => 'draft',
+            'negative_mark_per_question' => 0,
+            'shuffle_questions' => false,
+            'shuffle_options' => false,
+            'exam_mode' => 'standard',
+            'category_id' => null,
+            'scheduled_start' => null,
+            'scheduled_end' => null,
+        ]);
+
+        $exam->id = $id;
+        $exam->exists = false;
+        $exam->setRelation('questions', new Collection());
+        $exam->setRelation('category', null);
+
+        return $exam;
     }
 }
