@@ -14,7 +14,7 @@
 
 @section('content')
 <div class="w-full relative">
-    <x-page-card class="category-builder-card overflow-visible relative z-10 w-full mb-8">
+    <x-page-card class="category-builder-card overflow-visible relative z-10 w-full">
         <form action="{{ route('admin.questions.store') }}" method="POST" id="question-form" enctype="multipart/form-data" class="category-builder">
             @csrf
 

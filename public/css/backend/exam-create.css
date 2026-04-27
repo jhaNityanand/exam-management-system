@@ -7,7 +7,6 @@
 .exam-builder {
     display: flex;
     flex-direction: column;
-    min-height: 100%;
     background:
         radial-gradient(circle at top left, rgb(14 165 233 / 0.08), transparent 28%),
         radial-gradient(circle at top right, rgb(34 197 94 / 0.08), transparent 26%),
@@ -175,6 +174,38 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Behaviour flag summary in aside */
+.exam-flag-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.exam-flag-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgb(51 65 85);
+}
+
+.dark .exam-flag-item {
+    color: rgb(203 213 225);
+}
+
+.exam-flag-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+}
+
+.exam-flag-dot.is-on  { background: rgb(34 197 94); }
+.exam-flag-dot.is-off { background: rgb(203 213 225); }
+.dark .exam-flag-dot.is-off { background: rgb(51 65 85); }
+
 .exam-toggle {
     display: flex;
     align-items: flex-start;
@@ -242,11 +273,11 @@
 }
 
 .exam-question-list {
-    max-height: 26rem;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
     display: grid;
     gap: 0.6rem;
-    padding-right: 0.2rem;
+    padding-right: 0;
 }
 
 .exam-question-item {
@@ -496,44 +527,48 @@
     padding-bottom: 1.25rem;
 }
 
+/* TomSelect — matches question-create style */
 .ts-control {
-    border: 1px solid rgb(226 232 240);
-    border-radius: 1rem;
-    min-height: 44px;
-    padding: 0.4rem 0.8rem;
-    box-shadow: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    min-height: 2.65rem;
+    background-color: #fff;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    font-size: 0.875rem;
 }
 
 .ts-control.focus {
     border-color: rgb(100 116 139);
-    box-shadow: 0 0 0 4px rgb(226 232 240 / 0.6);
+    box-shadow: 0 0 0 3px rgb(226 232 240 / 0.65);
 }
 
 .ts-dropdown {
-    border-radius: 0.9rem;
-    border: 1px solid rgb(226 232 240);
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 16px -4px rgb(0 0 0 / 0.12);
 }
 
 .dark .ts-control {
-    border-color: rgb(51 65 85);
-    background-color: rgb(15 23 42);
-    color: rgb(248 250 252);
+    border-color: #334155;
+    background-color: #0f172a;
+    color: #f8fafc;
 }
 
 .dark .ts-control.focus {
-    border-color: rgb(71 85 105);
-    box-shadow: 0 0 0 4px rgb(30 41 59 / 0.6);
+    border-color: #475569;
+    box-shadow: 0 0 0 3px rgb(30 41 59 / 0.65);
 }
 
 .dark .ts-dropdown,
 .dark .ts-dropdown .option {
-    border-color: rgb(51 65 85);
-    background-color: rgb(15 23 42);
-    color: rgb(241 245 249);
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
 }
 
 .dark .ts-dropdown .option.active {
-    background-color: rgb(30 41 59);
+    background-color: #1e293b;
 }
 
 @media (min-width: 1100px) {

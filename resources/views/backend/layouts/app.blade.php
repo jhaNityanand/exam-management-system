@@ -22,6 +22,26 @@
 
 @section('body')
 <style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+    }
+
+    #panel-root {
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
+    }
+
+    #panel-content {
+        min-height: 0;
+    }
+
+    #panel-main {
+        min-height: 0;
+        overflow-y: auto;
+    }
+
     /* Precision Sidebar Transitions */
     #app-sidebar { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     /* Hide scrollbar but keep functionality */
@@ -84,7 +104,7 @@
         </div>
     </aside>
 
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div id="panel-content" class="flex min-h-0 min-w-0 flex-1 flex-col">
         <header class="sticky top-0 z-30 shrink-0 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
             <div class="flex items-center justify-between gap-4 px-4 h-16 sm:px-6 lg:px-8">
                 <div class="flex min-w-0 items-center gap-3">
@@ -110,7 +130,7 @@
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <main id="panel-main" class="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
             <div class="mx-auto flex w-full flex-col gap-4 sm:gap-6 @yield('content-container-class', 'max-w-7xl')">
                 @hasSection('breadcrumbs')
                     <nav class="flex text-sm text-slate-500 dark:text-slate-400 font-medium mb-4" aria-label="Breadcrumb">
