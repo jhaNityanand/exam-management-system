@@ -300,6 +300,17 @@ document.addEventListener('DOMContentLoaded', () => {
         importedCandidatesHidden: document.getElementById('imported_candidates'),
         importedCandidatePreview: document.getElementById('imported-candidate-preview'),
 
+        freeCandidatesWrap: document.getElementById('free-candidates-wrap'),
+        freeCandidateTabButtons: [...document.querySelectorAll('[data-free-candidate-tab]')],
+        freeCandidatePanels: [...document.querySelectorAll('[data-free-candidate-panel]')],
+        freeManualEmailChip: document.querySelector('[data-chip-input="free-emails"]'),
+        freeManualEmailsHidden: document.getElementById('free_manual_candidate_emails'),
+        freeManualEmailFeedback: document.getElementById('free-manual-email-feedback'),
+        freeDropZone: document.getElementById('free-candidate-drop-zone'),
+        freeCandidateFile: document.getElementById('free_candidate_excel_file'),
+        freeImportedCandidatesHidden: document.getElementById('free_imported_candidates'),
+        freeImportedCandidatePreview: document.getElementById('free-imported-candidate-preview'),
+
         totalQuestions: document.getElementById('total_questions'),
         totalCategories: document.getElementById('total_categories'),
         totalMarks: document.getElementById('total_marks'),
@@ -336,14 +347,22 @@ document.addEventListener('DOMContentLoaded', () => {
         marksFilter: document.getElementById('question-marks-filter'),
         marksHidden: document.getElementById('question_marks_filter'),
         marksCount: document.getElementById('selected-marks-count'),
+        mixedMarksQuestions: document.getElementById('mixed_marks_questions'),
 
         pricingSection: document.getElementById('pricing-section'),
         pricingOptions: document.getElementById('pricing-options'),
         pricingOptionHidden: document.getElementById('pricing_option'),
         pricingImportedNote: document.getElementById('pricing-imported-note'),
+        pricingDetailsWrap: document.getElementById('pricing-details-wrap'),
+        examCurrency: document.getElementById('exam_currency'),
+        discountRulesWrap: document.getElementById('discount-rules-wrap'),
         discountRules: document.getElementById('discount-rules'),
         discountHidden: document.getElementById('selected_discounts'),
+        discountSummaryWrap: document.getElementById('discount-summary-wrap'),
         discountSummary: document.getElementById('discount-summary'),
+        customDiscountsBtn: document.getElementById('add-custom-discount-btn'),
+        customDiscountsContainer: document.getElementById('custom-discounts-container'),
+        customDiscountsHidden: document.getElementById('custom_discounts'),
 
         questionSearch: document.getElementById('question-search'),
         questionBankFeedback: document.getElementById('question-bank-feedback'),
@@ -390,19 +409,25 @@ document.addEventListener('DOMContentLoaded', () => {
             pricingOptions: [],
             distributionTypes: [],
             instructionTemplates: [],
+            currencies: [],
         },
         questionBank: [],
         categoryAvailability: {},
         selectedCategories: new Set(),
         selectedMarks: new Set(),
         selectedDiscounts: new Set(),
-        selectedPricing: '',
+        discountPercentages: {},
+        customDiscounts: [],
+        selectedPricing: 'free',
         selectedDistributionType: '',
         selectedVisibility: '',
         selectedMode: '',
         activeCandidateTab: 'import',
         importedCandidates: [],
         manualEmails: [],
+        activeFreeCandidateTab: 'import',
+        freeImportedCandidates: [],
+        freeManualEmails: [],
         tags: [],
         expandedCards: new Set(),
         categoryTree: [],
@@ -433,13 +458,34 @@ document.addEventListener('DOMContentLoaded', () => {
         normalize: (value) => cleanText(value.toLowerCase()),
         onInvalid: (value) => {
             refs.manualEmailFeedback.textContent = `${value} is not a valid email format.`;
+            refs.manualEmailFeedback.classList.add('is-invalid');
         },
         onChange: (values) => {
+            refs.manualEmailFeedback.classList.remove('is-invalid');
             refs.manualEmailFeedback.textContent = values.length
                 ? `${values.length} manual candidate email(s) added.`
                 : 'Type email and press Enter to add.';
             state.manualEmails = values;
             refs.manualEmailsHidden.value = JSON.stringify(values);
+            updateWorkflowAndSnapshot();
+        },
+    });
+
+    const freeEmailInput = new ChipInput(refs.freeManualEmailChip, {
+        chipClass: 'is-email',
+        validate: isValidEmail,
+        normalize: (value) => cleanText(value.toLowerCase()),
+        onInvalid: (value) => {
+            refs.freeManualEmailFeedback.textContent = `${value} is not a valid email format.`;
+            refs.freeManualEmailFeedback.classList.add('is-invalid');
+        },
+        onChange: (values) => {
+            refs.freeManualEmailFeedback.classList.remove('is-invalid');
+            refs.freeManualEmailFeedback.textContent = values.length
+                ? `${values.length} manual free candidate email(s) added.`
+                : 'Type email and press Enter to add.';
+            state.freeManualEmails = values;
+            refs.freeManualEmailsHidden.value = JSON.stringify(values);
             updateWorkflowAndSnapshot();
         },
     });
@@ -476,9 +522,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 pricingOptions: Array.isArray(configData.pricingOptions) ? configData.pricingOptions : [],
                 distributionTypes: Array.isArray(configData.distributionTypes) ? configData.distributionTypes : [],
                 instructionTemplates: Array.isArray(configData.instructionTemplates) ? configData.instructionTemplates : [],
+                currencies: Array.isArray(configData.currencies) ? configData.currencies : [],
             };
             state.categoryTree = categoryTree;
             state.categoryHierarchyIndex = buildCategoryHierarchyIndex(state.config.categories);
+            
+            state.config.discountRules.forEach(rule => {
+                state.discountPercentages[rule.id] = rule.default_percentage || 0;
+            });
 
             state.questionBank = state.config.questionBank.slice();
             state.categoryAvailability = state.config.categories.reduce((carry, category) => {
@@ -554,6 +605,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQuestionMarks();
         renderPricingOptions();
         renderDiscountRules();
+
+        const defaultCustomDiscounts = jsonSafeParse(refs.customDiscountsHidden.value);
+        if (Array.isArray(defaultCustomDiscounts) && defaultCustomDiscounts.length) {
+            state.customDiscounts = defaultCustomDiscounts;
+        }
+        renderCustomDiscounts();
+
         renderInstructionTemplates();
         renderModalSelects();
         refs.manualEmailFeedback.textContent = 'Type email and press Enter to add.';
@@ -566,6 +624,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultEmails = jsonSafeParse(refs.manualEmailsHidden.value);
         if (Array.isArray(defaultEmails) && defaultEmails.length) {
             emailInput.setValues(defaultEmails);
+        }
+
+        refs.freeManualEmailFeedback.textContent = 'Type email and press Enter to add.';
+        const defaultFreeEmails = jsonSafeParse(refs.freeManualEmailsHidden.value);
+        if (Array.isArray(defaultFreeEmails) && defaultFreeEmails.length) {
+            freeEmailInput.setValues(defaultFreeEmails);
         }
     }
 
@@ -746,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderQuestionMarks() {
         if (!state.selectedMarks.size) {
-            [1, 2, 4].forEach((mark) => state.selectedMarks.add(mark));
+            [1].forEach((mark) => state.selectedMarks.add(mark));
         }
 
         refs.marksFilter.innerHTML = state.config.questionMarks
@@ -762,14 +826,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPricingOptions() {
-        const isPrivate = state.selectedVisibility === 'private';
-
         refs.pricingOptions.innerHTML = state.config.pricingOptions
             .map((option) => {
-                const hidden = isPrivate && option.id === 'free_for_imported';
                 const selected = state.selectedPricing === option.id ? 'is-selected' : '';
                 return `
-                    <article class="option-card ${selected} ${hidden ? 'is-hidden' : ''}" data-pricing-option="${escapeHtml(option.id)}">
+                    <article class="option-card ${selected}" data-pricing-option="${escapeHtml(option.id)}">
                         <h4>${escapeHtml(option.label)}</h4>
                         <p>${escapeHtml(option.description)}</p>
                     </article>
@@ -777,16 +838,19 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .join('');
 
-        const visibleOptions = state.config.pricingOptions
-            .filter((option) => !(isPrivate && option.id === 'free_for_imported'))
-            .map((option) => option.id);
+        const allOptions = state.config.pricingOptions.map((option) => option.id);
 
-        if (!visibleOptions.includes(state.selectedPricing)) {
-            state.selectedPricing = visibleOptions[0] || '';
+        if (!allOptions.includes(state.selectedPricing)) {
+            state.selectedPricing = allOptions.includes('free') ? 'free' : (allOptions[0] || '');
         }
 
         refs.pricingOptionHidden.value = state.selectedPricing;
         highlightPricingOptions();
+        
+        if (refs.examCurrency && refs.examCurrency.options.length === 0) {
+            populateSelect(refs.examCurrency, state.config.currencies, 'Select currency');
+            setSelectDefault(refs.examCurrency, 'USD');
+        }
     }
 
     function highlightPricingOptions() {
@@ -794,22 +858,206 @@ document.addEventListener('DOMContentLoaded', () => {
             card.classList.toggle('is-selected', card.dataset.pricingOption === state.selectedPricing);
         });
         refs.pricingOptionHidden.value = state.selectedPricing;
+        
+        const showPricingDetails = state.selectedPricing === 'paid' || state.selectedPricing === 'free_for_imported';
+        if (refs.pricingDetailsWrap) refs.pricingDetailsWrap.hidden = !showPricingDetails;
+        if (refs.discountRulesWrap) refs.discountRulesWrap.hidden = !showPricingDetails;
+        if (refs.discountSummaryWrap) refs.discountSummaryWrap.hidden = !showPricingDetails;
     }
 
     function renderDiscountRules() {
         refs.discountRules.innerHTML = state.config.discountRules
             .map((rule) => {
                 const selected = state.selectedDiscounts.has(rule.id) ? 'is-selected' : '';
+                const percentage = state.discountPercentages[rule.id] || rule.default_percentage || 0;
+                
                 return `
                     <article class="option-card ${selected}" data-discount-id="${escapeHtml(rule.id)}">
                         <h4>${escapeHtml(rule.label)}</h4>
                         <p>${escapeHtml(rule.summary)}</p>
+                        <div class="mt-2" ${selected ? '' : 'hidden'}>
+                            <label class="text-xs font-semibold text-gray-700">Discount Percentage (%)</label>
+                            <input type="number" class="panel-input discount-percentage-input" data-rule-id="${escapeHtml(rule.id)}" value="${percentage}" min="0" max="100" style="margin-top: 4px; padding: 4px 8px;">
+                            <p class="exam-help is-invalid mt-1 text-xs" id="err-predefined-${rule.id}" hidden></p>
+                        </div>
                     </article>
                 `;
             })
             .join('');
 
-        refs.discountHidden.value = JSON.stringify([...state.selectedDiscounts]);
+        refs.discountHidden.value = JSON.stringify(
+            [...state.selectedDiscounts].map(id => ({ id, percentage: state.discountPercentages[id] }))
+        );
+        bindDiscountInputs();
+    }
+
+    function bindDiscountInputs() {
+        refs.discountRules.querySelectorAll('.discount-percentage-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const ruleId = e.target.dataset.ruleId;
+                const errEl = document.getElementById(`err-predefined-${ruleId}`);
+                const rawVal = e.target.value;
+                const val = rawVal === '' ? NaN : parseInt(rawVal, 10);
+                
+                let isInvalid = false;
+                let errMsg = '';
+                
+                if (isNaN(val)) {
+                    isInvalid = true;
+                    errMsg = 'Percentage value is required.';
+                } else if (val < 0) {
+                    isInvalid = true;
+                    errMsg = 'Discount percentage cannot be less than 0%.';
+                } else if (val > 100) {
+                    isInvalid = true;
+                    errMsg = 'Discount percentage cannot exceed 100%.';
+                }
+                
+                state.discountPercentages[ruleId] = isNaN(val) ? 0 : val;
+                
+                if (errEl) {
+                    if (isInvalid) {
+                        errEl.textContent = errMsg;
+                        errEl.hidden = false;
+                    } else {
+                        errEl.hidden = true;
+                    }
+                }
+                
+                refs.discountHidden.value = JSON.stringify(
+                    [...state.selectedDiscounts].map(id => ({ id, percentage: state.discountPercentages[id] }))
+                );
+                updateWorkflowAndSnapshot();
+            });
+        });
+    }
+
+    /* ── Custom Discount Management ── */
+    function renderCustomDiscounts() {
+        if (!refs.customDiscountsContainer) return;
+
+        if (state.customDiscounts.length === 0) {
+            refs.customDiscountsContainer.innerHTML = `
+                <div class="text-center py-4 px-3 border border-dashed border-slate-200 rounded-lg text-slate-400 text-xs bg-slate-50/50">
+                    No custom discount offers added yet. Click "+ Add Custom Offer" to create one.
+                </div>
+            `;
+            refs.customDiscountsHidden.value = '[]';
+            return;
+        }
+
+        refs.customDiscountsContainer.innerHTML = state.customDiscounts
+            .map((item, index) => {
+                const name = escapeHtml(item.name || '');
+                const desc = escapeHtml(item.description || '');
+                const pct = isNaN(item.percentage) || item.percentage === null ? '' : item.percentage;
+
+                return `
+                    <div class="custom-discount-row" data-row-index="${index}">
+                        <button type="button" class="remove-custom-discount-btn" data-row-index="${index}" title="Remove Offer">
+                            <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.15rem; height: 1.15rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+
+                        <div class="custom-discount-grid">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Offer Name <span class="text-red-500">*</span></label>
+                                <input type="text" class="panel-input custom-discount-name" data-row-index="${index}" placeholder="e.g. Summer Sale" value="${name}">
+                                <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-name-${index}" hidden></p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                                <input type="text" class="panel-input custom-discount-desc" data-row-index="${index}" placeholder="e.g. Valid for standard exams" value="${desc}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Discount Percentage (%) <span class="text-red-500">*</span></label>
+                                <input type="number" class="panel-input custom-discount-pct" data-row-index="${index}" placeholder="e.g. 15" value="${pct}" min="0" max="100">
+                                <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-pct-${index}" hidden></p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+
+        refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+        bindCustomDiscountRowEvents();
+        updateWorkflowAndSnapshot();
+    }
+
+    function bindCustomDiscountRowEvents() {
+        if (!refs.customDiscountsContainer) return;
+
+        // Trash buttons
+        refs.customDiscountsContainer.querySelectorAll('.remove-custom-discount-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const btnActual = e.currentTarget;
+                const index = parseInt(btnActual.dataset.rowIndex, 10);
+                state.customDiscounts.splice(index, 1);
+                renderCustomDiscounts();
+            });
+        });
+
+        // Name inputs
+        refs.customDiscountsContainer.querySelectorAll('.custom-discount-name').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.rowIndex, 10);
+                const val = e.target.value;
+                state.customDiscounts[index].name = val;
+                
+                // Validate name
+                const errEl = document.getElementById(`err-custom-name-${index}`);
+                if (errEl) {
+                    if (!val.trim()) {
+                        errEl.textContent = 'Offer name is required.';
+                        errEl.hidden = false;
+                    } else {
+                        errEl.hidden = true;
+                    }
+                }
+                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+                updateWorkflowAndSnapshot();
+            });
+        });
+
+        // Desc inputs
+        refs.customDiscountsContainer.querySelectorAll('.custom-discount-desc').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.rowIndex, 10);
+                state.customDiscounts[index].description = e.target.value;
+                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+            });
+        });
+
+        // Percentage inputs
+        refs.customDiscountsContainer.querySelectorAll('.custom-discount-pct').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.rowIndex, 10);
+                const rawVal = e.target.value;
+                const val = rawVal === '' ? NaN : parseInt(rawVal, 10);
+                state.customDiscounts[index].percentage = val;
+
+                // Validate percentage
+                const errEl = document.getElementById(`err-custom-pct-${index}`);
+                if (errEl) {
+                    if (isNaN(val)) {
+                        errEl.textContent = 'Discount percentage is required.';
+                        errEl.hidden = false;
+                    } else if (val < 0) {
+                        errEl.textContent = 'Discount percentage cannot be less than 0%.';
+                        errEl.hidden = false;
+                    } else if (val > 100) {
+                        errEl.textContent = 'Discount percentage cannot exceed 100%.';
+                        errEl.hidden = false;
+                    } else {
+                        errEl.hidden = true;
+                    }
+                }
+                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+                updateWorkflowAndSnapshot();
+            });
+        });
     }
 
     function renderInstructionTemplates() {
@@ -892,15 +1140,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!button) return;
 
             const mark = Number(button.dataset.markValue);
-            if (state.selectedMarks.has(mark)) {
-                state.selectedMarks.delete(mark);
+            
+            if (refs.mixedMarksQuestions && refs.mixedMarksQuestions.checked) {
+                if (state.selectedMarks.has(mark)) {
+                    state.selectedMarks.delete(mark);
+                } else {
+                    state.selectedMarks.add(mark);
+                }
             } else {
+                state.selectedMarks.clear();
                 state.selectedMarks.add(mark);
             }
 
             renderQuestionMarks();
             updateAll();
         });
+
+        if (refs.mixedMarksQuestions) {
+            refs.mixedMarksQuestions.addEventListener('change', () => {
+                if (!refs.mixedMarksQuestions.checked && state.selectedMarks.size > 1) {
+                    const firstMark = Array.from(state.selectedMarks)[0];
+                    state.selectedMarks.clear();
+                    if (firstMark) state.selectedMarks.add(firstMark);
+                }
+                renderQuestionMarks();
+                updateAll();
+            });
+        }
 
         refs.pricingOptions.addEventListener('click', (event) => {
             const card = event.target.closest('[data-pricing-option]');
@@ -911,6 +1177,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         refs.discountRules.addEventListener('click', (event) => {
+            if (event.target.closest('input')) return;
+            
             const card = event.target.closest('[data-discount-id]');
             if (!card) return;
             const id = card.dataset.discountId;
@@ -1004,12 +1272,59 @@ document.addEventListener('DOMContentLoaded', () => {
             await handleCandidateFile(file);
         });
 
+        refs.freeCandidateTabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                state.activeFreeCandidateTab = button.dataset.freeCandidateTab;
+                renderFreeCandidateTabs();
+            });
+        });
+
+        if (refs.freeDropZone) {
+            refs.freeDropZone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                refs.freeDropZone.classList.add('is-active');
+            });
+
+            refs.freeDropZone.addEventListener('dragleave', () => {
+                refs.freeDropZone.classList.remove('is-active');
+            });
+
+            refs.freeDropZone.addEventListener('drop', async (event) => {
+                event.preventDefault();
+                refs.freeDropZone.classList.remove('is-active');
+                const file = event.dataTransfer?.files?.[0];
+                if (file) {
+                    refs.freeCandidateFile.files = event.dataTransfer.files;
+                    await handleFreeCandidateFile(file);
+                }
+            });
+        }
+
+        if (refs.freeCandidateFile) {
+            refs.freeCandidateFile.addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                await handleFreeCandidateFile(file);
+            });
+        }
+
         refs.openAddQuestionModal.addEventListener('click', () => openAddQuestionModal(''));
         refs.modalCloseButtons.forEach((button) => button.addEventListener('click', closeAddQuestionModal));
         refs.addQuestionForm.addEventListener('submit', (event) => {
             event.preventDefault();
             addQuestionFromModal();
         });
+
+        if (refs.customDiscountsBtn) {
+            refs.customDiscountsBtn.addEventListener('click', () => {
+                state.customDiscounts.push({
+                    name: '',
+                    description: '',
+                    percentage: 10
+                });
+                renderCustomDiscounts();
+            });
+        }
 
         refs.applyInstructionTemplate.addEventListener('click', applyInstructionTemplate);
 
@@ -1073,6 +1388,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderFreeCandidateTabs() {
+        refs.freeCandidateTabButtons.forEach((button) => {
+            const active = button.dataset.freeCandidateTab === state.activeFreeCandidateTab;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-selected', String(active));
+        });
+
+        refs.freeCandidatePanels.forEach((panel) => {
+            const active = panel.dataset.freeCandidatePanel === state.activeFreeCandidateTab;
+            panel.hidden = !active;
+            panel.classList.toggle('is-active', active);
+        });
+    }
+
     async function handleCandidateFile(file) {
         const extension = (file.name.split('.').pop() || '').toLowerCase();
         let parsed = [];
@@ -1090,6 +1419,26 @@ document.addEventListener('DOMContentLoaded', () => {
         state.importedCandidates = parsed.filter((candidate) => isValidEmail(candidate.email));
         refs.importedCandidatesHidden.value = JSON.stringify(state.importedCandidates);
         renderImportedCandidatePreview(file.name);
+        updateWorkflowAndSnapshot();
+    }
+
+    async function handleFreeCandidateFile(file) {
+        const extension = (file.name.split('.').pop() || '').toLowerCase();
+        let parsed = [];
+
+        if (extension === 'csv') {
+            parsed = parseCandidateCsv(await file.text());
+        } else {
+            parsed = [
+                { name: 'Imported Candidate 1', email: 'candidate1@example.com' },
+                { name: 'Imported Candidate 2', email: 'candidate2@example.com' },
+                { name: 'Imported Candidate 3', email: 'candidate3@example.com' },
+            ];
+        }
+
+        state.freeImportedCandidates = parsed.filter((candidate) => isValidEmail(candidate.email));
+        refs.freeImportedCandidatesHidden.value = JSON.stringify(state.freeImportedCandidates);
+        renderFreeImportedCandidatePreview(file.name);
         updateWorkflowAndSnapshot();
     }
 
@@ -1136,14 +1485,69 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function renderFreeImportedCandidatePreview(fileName) {
+        if (!state.freeImportedCandidates.length) {
+            refs.freeImportedCandidatePreview.hidden = true;
+            refs.freeImportedCandidatePreview.textContent = '';
+            return;
+        }
+
+        const topItems = state.freeImportedCandidates
+            .slice(0, 5)
+            .map((candidate) => `${escapeHtml(candidate.name)} (${escapeHtml(candidate.email)})`)
+            .join('<br>');
+
+        refs.freeImportedCandidatePreview.hidden = false;
+        refs.freeImportedCandidatePreview.innerHTML = `
+            <strong>${state.freeImportedCandidates.length}</strong> candidates loaded from <strong>${escapeHtml(fileName)}</strong>.<br>
+            ${topItems}
+        `;
+    }
+
+    function updateSectionNumbers() {
+        const sections = [
+            { id: 'exam-basic-information', defaultTitle: 'Exam Basic Information' },
+            { id: 'candidate-access-section', defaultTitle: 'Candidate Access Management' },
+            { id: 'exam-configuration-section', defaultTitle: 'Exam Configuration' },
+            { id: 'question-rules-section', defaultTitle: 'Question Rules and Filters' },
+            { id: 'pricing-section', defaultTitle: 'Pricing and Discount Rules' },
+            { id: 'question-bank-section', defaultTitle: 'Question Bank Management' },
+            { id: 'instructions-section', defaultTitle: 'Instructions for Candidates' }
+        ];
+
+        let visibleCount = 0;
+        sections.forEach(sec => {
+            const el = document.getElementById(sec.id);
+            if (el) {
+                if (!el.hidden) {
+                    visibleCount++;
+                    const h2 = el.querySelector('.exam-section__head h2');
+                    if (h2) {
+                        h2.textContent = `${visibleCount}. ${sec.defaultTitle}`;
+                    }
+                }
+            }
+        });
+    }
+
     function updateConditionalSections() {
         const isPrivate = state.selectedVisibility === 'private';
         const importedFree = state.selectedPricing === 'free_for_imported';
-        refs.candidateSection.hidden = !(isPrivate || importedFree);
+        
+        // Hide Section 2 by default. Only show if visibility is private (Private candidates different concept!)
+        refs.candidateSection.hidden = !isPrivate;
+        
+        // Show/hide Free Candidate List section depending on selected pricing option
+        refs.freeCandidatesWrap.hidden = !importedFree;
+        
         refs.pricingImportedNote.hidden = !importedFree;
         renderCandidateTabs();
+        renderFreeCandidateTabs();
 
         refs.pricingSection.hidden = state.selectedMode === 'practice';
+        
+        // Update the visible sections dynamic numbering
+        updateSectionNumbers();
     }
 
     function computeCategoryTarget() {
@@ -1694,7 +2098,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const selected = state.config.discountRules.filter((rule) => state.selectedDiscounts.has(rule.id));
         refs.discountSummary.innerHTML = selected
-            .map((rule) => `<li>${escapeHtml(rule.label)} - ${escapeHtml(rule.summary)}</li>`)
+            .map((rule) => {
+                const pct = state.discountPercentages[rule.id] || rule.default_percentage || 0;
+                return `<li><strong>${pct}%</strong> ${escapeHtml(rule.label)} — ${escapeHtml(rule.summary)}</li>`;
+            })
             .join('');
     }
 
@@ -1707,7 +2114,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const configComplete = state.selectedCategories.size === categoryLimit && toInt(refs.totalQuestions.value, 0) > 0 &&
             (!refs.fixCategoryQuestions.checked || computeFixedCategoryDistribution().totalAllocated === computeFixedCategoryDistribution().remainder);
         const marksComplete = state.selectedMarks.size > 0;
-        const pricingComplete = refs.pricingSection.hidden || Boolean(state.selectedPricing);
+        
+        const freeCount = state.freeImportedCandidates.length + state.freeManualEmails.length;
+        const pricingComplete = refs.pricingSection.hidden || (Boolean(state.selectedPricing) && (state.selectedPricing !== 'free_for_imported' || freeCount > 0));
+        
         const fixedDistribution = computeFixedCategoryDistribution();
         const distributionMap = new Map(fixedDistribution.rows.map((row) => [row.categoryId, row.count]));
         const shortages = refs.fixCategoryQuestions.checked
@@ -1725,23 +2135,37 @@ document.addEventListener('DOMContentLoaded', () => {
         const questionBankComplete = state.selectedCategories.size > 0 && shortages === 0;
         const instructionsComplete = getInstructionTextLength() > 20;
 
-        refs.workflowStatusList.innerHTML = [
-            { label: '1. Basic Information', complete: basicComplete },
-            { label: '2. Candidate Access', complete: candidateComplete },
-            { label: '3. Exam Configuration', complete: configComplete },
-            { label: '4. Question Rules', complete: marksComplete },
-            { label: '5. Pricing and Discount', complete: pricingComplete },
-            { label: '6. Question Bank', complete: questionBankComplete },
-            { label: '7. Instructions', complete: instructionsComplete },
-        ]
-            .map((item) => `<li class="${item.complete ? 'status-ok' : 'status-warning'}">${escapeHtml(item.label)} - ${item.complete ? 'Complete' : 'Pending'}</li>`)
+        const checklist = [
+            { label: 'Basic Information', complete: basicComplete, show: true },
+            { label: 'Candidate Access', complete: candidateComplete, show: candidateVisible },
+            { label: 'Exam Configuration', complete: configComplete, show: true },
+            { label: 'Question Rules', complete: marksComplete, show: true },
+            { label: 'Pricing and Discount', complete: pricingComplete, show: !refs.pricingSection.hidden },
+            { label: 'Question Bank', complete: questionBankComplete, show: true },
+            { label: 'Instructions', complete: instructionsComplete, show: true }
+        ];
+
+        let checklistIndex = 0;
+        refs.workflowStatusList.innerHTML = checklist
+            .filter(item => item.show)
+            .map((item) => {
+                checklistIndex++;
+                return `<li class="${item.complete ? 'status-ok' : 'status-warning'}">${checklistIndex}. ${escapeHtml(item.label)} - ${item.complete ? 'Complete' : 'Pending'}</li>`;
+            })
             .join('');
 
         refs.snapshotVisibility.textContent = refs.visibility.options[refs.visibility.selectedIndex]?.textContent || '-';
         refs.snapshotMode.textContent = refs.mode.options[refs.mode.selectedIndex]?.textContent || '-';
         refs.snapshotCategories.textContent = String(state.selectedCategories.size);
         refs.snapshotMarks.textContent = String(state.selectedMarks.size);
-        refs.snapshotCandidates.textContent = String(state.importedCandidates.length + state.manualEmails.length);
+        
+        const privateCount = state.importedCandidates.length + state.manualEmails.length;
+        if (state.selectedPricing === 'free_for_imported') {
+            refs.snapshotCandidates.textContent = `${privateCount} (Private) / ${freeCount} (Free)`;
+        } else {
+            refs.snapshotCandidates.textContent = String(privateCount);
+        }
+        
         refs.snapshotDiscounts.textContent = String(state.selectedDiscounts.size);
     }
 
@@ -1940,7 +2364,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!state.selectedMarks.size) errors.push('Select at least one question marks filter.');
         if (!refs.candidateSection.hidden && state.importedCandidates.length + state.manualEmails.length === 0) errors.push('Add at least one candidate email for the current access configuration.');
-        if (!refs.pricingSection.hidden && !state.selectedPricing) errors.push('Select one pricing option.');
+        if (!refs.pricingSection.hidden && !state.selectedPricing) {
+            errors.push('Select one pricing option.');
+        } else if (!refs.pricingSection.hidden && (state.selectedPricing === 'paid' || state.selectedPricing === 'free_for_imported')) {
+            // If Free for Imported Candidates is selected, validate that they added at least one free candidate email
+            if (state.selectedPricing === 'free_for_imported' && state.freeImportedCandidates.length + state.freeManualEmails.length === 0) {
+                errors.push('Add at least one candidate email to the Free Candidate List for the free access configuration.');
+            }
+
+            // Validate Predefined Discounts
+            state.selectedDiscounts.forEach(id => {
+                const pct = state.discountPercentages[id];
+                if (pct === undefined || isNaN(pct) || pct < 0 || pct > 100) {
+                    errors.push('All selected predefined discounts must have a percentage value between 0% and 100%.');
+                }
+            });
+
+            // Validate Custom Discounts
+            state.customDiscounts.forEach((item, index) => {
+                if (!item.name || !item.name.trim()) {
+                    errors.push(`Custom Discount Offer #${index + 1}: Offer name is required.`);
+                }
+                if (item.percentage === undefined || isNaN(item.percentage) || item.percentage < 0 || item.percentage > 100) {
+                    errors.push(`Custom Discount Offer #${index + 1}: Discount percentage must be between 0% and 100%.`);
+                }
+            });
+        }
 
         refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
         refs.marksHidden.value = JSON.stringify([...state.selectedMarks]);
@@ -1949,6 +2398,10 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.tagsHidden.value = JSON.stringify(state.tags);
         refs.manualEmailsHidden.value = JSON.stringify(state.manualEmails);
         refs.importedCandidatesHidden.value = JSON.stringify(state.importedCandidates);
+        
+        refs.freeManualEmailsHidden.value = JSON.stringify(state.freeManualEmails);
+        refs.freeImportedCandidatesHidden.value = JSON.stringify(state.freeImportedCandidates);
+        
         syncExtraQuestionsHidden();
 
         return errors;

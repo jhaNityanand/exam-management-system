@@ -87,7 +87,7 @@
                         </div>
                     </section>
 
-                    <section class="exam-section" id="candidate-access-section" hidden>
+                    <section class="exam-section" id="candidate-access-section">
                         <div class="exam-section__head">
                             <h2>2. Candidate Access Management</h2>
                             <p>Import or manually add candidate emails for controlled access.</p>
@@ -115,7 +115,7 @@
                             </div>
 
                             <div class="candidate-panel" data-candidate-panel="manual" hidden>
-                                <label for="manual-email-input" class="exam-label">Add candidate emails</label>
+                                <label for="manual-email-input" class="exam-label">Add candidate emails <span class="info-tip" tabindex="0" role="button" aria-label="Add candidate emails info" data-tooltip="Type an email address and press Enter to add it. You can add multiple emails one by one.">i</span></label>
                                 <div class="chip-input" data-chip-input="emails">
                                     <input id="manual-email-input" type="text" placeholder="Type email and press Enter">
                                 </div>
@@ -239,6 +239,15 @@
                         </div>
                         <div class="exam-section__body space-y-4">
                             <div>
+                                <label class="exam-label">Question Marks Type</label>
+                                <label class="switch-control" style="cursor: pointer;">
+                                    <input id="mixed_marks_questions" name="mixed_marks_questions" type="checkbox" value="1">
+                                    <span class="switch-control__track"></span>
+                                    <span class="switch-control__label">Enable mixed marks questions (allows selecting multiple marks)</span>
+                                </label>
+                            </div>
+
+                            <div>
                                 <label class="exam-label">Question Marks Filter</label>
                                 <div id="question-marks-filter" class="pill-group"></div>
                                 <input type="hidden" name="question_marks_filter" id="question_marks_filter" value="[]">
@@ -261,13 +270,89 @@
                                 <p id="pricing-imported-note" class="exam-help" hidden>Imported candidates will get free access. Candidate import tools are now available.</p>
                             </div>
 
-                            <div>
+                            <div id="pricing-details-wrap" hidden>
+                                <label class="exam-label">Exam Fee</label>
+                                <div class="pricing-amount-group">
+                                    <select id="exam_currency" name="exam_currency" class="panel-input pricing-amount-group__currency"></select>
+                                    <input type="number" id="exam_amount" name="exam_amount" class="pricing-amount-group__input" min="0" step="0.01" placeholder="Enter amount">
+                                </div>
+                                <p class="exam-help mt-1" style="color: #d97706;"><strong>&#9888;</strong> A 5% platform charge applies to all paid exams.</p>
+                            </div>
+
+                            <div id="free-candidates-wrap" class="mt-4 pt-4 border-t border-slate-200" hidden>
+                                <div class="mb-3">
+                                    <h4 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                        <span>Free Candidate List</span> &nbsp;
+                                        <span class="info-tip" tabindex="0" role="button" aria-label="Free Candidate List info" data-tooltip="Candidates added to this list will not be charged any fee to attempt the exam, while other candidates pay the default fee.">i</span>
+                                    </h4>
+                                    <p class="text-xs text-slate-500">Import or manually add candidate emails who will receive free access to this paid exam.</p>
+                                </div>
+
+                                <div class="segmented-control" role="tablist" aria-label="Free candidate access method">
+                                    <button type="button" class="segmented-control__button is-active" data-free-candidate-tab="import" role="tab" aria-selected="true">Import Excel</button>
+                                    <button type="button" class="segmented-control__button" data-free-candidate-tab="manual" role="tab" aria-selected="false">Manual Entry</button>
+                                </div>
+
+                                <div class="candidate-panel is-active" data-free-candidate-panel="import">
+                                    <div class="candidate-panel__row mb-2">
+                                        <p class="exam-help">Use a spreadsheet with <strong>Name</strong> and <strong>Email</strong> columns.</p>
+                                        <a class="panel-button-secondary" href="{{ asset('data/exam-create/sample-candidates.csv') }}" download style="padding: 0.5rem 0.75rem; font-size: 0.75rem; height: auto;">Download Sample Excel Format</a>
+                                    </div>
+
+                                    <label class="drop-zone" id="free-candidate-drop-zone">
+                                        <input id="free_candidate_excel_file" type="file" name="free_candidate_excel_file" class="sr-only" accept=".csv,.xls,.xlsx">
+                                        <strong>Drag and drop Excel/CSV file</strong>
+                                        <span>or click to choose file</span>
+                                    </label>
+
+                                    <input type="hidden" name="free_imported_candidates" id="free_imported_candidates" value="[]">
+                                    <div id="free-imported-candidate-preview" class="candidate-preview mt-2" hidden></div>
+                                </div>
+
+                                <div class="candidate-panel" data-free-candidate-panel="manual" hidden>
+                                    <label for="free-manual-email-input" class="exam-label">Add free candidate emails <span class="info-tip" tabindex="0" role="button" aria-label="Add free candidate emails info" data-tooltip="Type an email address and press Enter to add it. You can add multiple emails one by one.">i</span></label>
+                                    <div class="chip-input" data-chip-input="free-emails">
+                                        <input id="free-manual-email-input" type="text" placeholder="Type email and press Enter">
+                                    </div>
+                                    <input type="hidden" name="free_manual_candidate_emails" id="free_manual_candidate_emails" value="[]">
+                                    <p id="free-manual-email-feedback" class="exam-help"></p>
+                                </div>
+                            </div>
+
+                            <div id="discount-rules-wrap" hidden>
                                 <label class="exam-label">Discount Rules</label>
                                 <div id="discount-rules" class="option-card-grid option-card-grid--compact"></div>
                                 <input type="hidden" name="selected_discounts" id="selected_discounts" value="[]">
+
+                                <!-- Custom Discount Section -->
+                                <div class="custom-discounts-section mt-4 pt-4 border-t border-slate-200">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <div>
+                                            <h4 class="text-sm font-bold text-slate-800">Custom Discount Offers</h4>
+                                            <p class="text-xs text-slate-500">Create custom discount incentives for specific events or campaigns.</p>
+                                        </div>
+                                        <button type="button" id="add-custom-discount-btn" class="panel-button-secondary py-1.5 px-3 text-xs flex items-center gap-1.5" style="border-radius: var(--field-radius); padding: 0.5rem 0.75rem; height: auto;">
+                                            <span>+ Add Custom Offer</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Guide Info Box -->
+                                    <div class="custom-discount-guide bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-4 flex items-start gap-2">
+                                        <span style="font-size: 1.1rem; line-height: 1;">💡</span>
+                                        <div>
+                                            <strong>Guide:</strong> Provide an offer name (e.g., "Early Bird Offer"), a brief description (e.g., "Save 15% before June 1st"), and a percentage value (between 0% and 100%). You can add multiple offers. Click the trash icon to remove any offer.
+                                        </div>
+                                    </div>
+
+                                    <!-- List Container -->
+                                    <div id="custom-discounts-container" class="space-y-3">
+                                        <!-- Custom discount rows will be injected here -->
+                                    </div>
+                                    <input type="hidden" name="custom_discounts" id="custom_discounts" value="[]">
+                                </div>
                             </div>
 
-                            <div class="summary-box">
+                            <div class="summary-box" id="discount-summary-wrap" hidden>
                                 <h4>Discount Summary Preview</h4>
                                 <ul id="discount-summary" class="preview-list"></ul>
                             </div>
@@ -390,15 +475,15 @@
 
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    <script src="{{ asset('js/components/editor.js') }}"></script>
-    <script src="{{ asset('js/components/select.js') }}"></script>
+    <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
     <script>
         window.examCreateConfig = {
             endpoints: {
@@ -412,9 +497,10 @@
                 questionBank: "{{ asset('data/exam-create/question-bank.json') }}",
                 pricingOptions: "{{ asset('data/exam-create/pricing-options.json') }}",
                 distributionTypes: "{{ asset('data/exam-create/distribution-types.json') }}",
-                instructionTemplates: "{{ asset('data/exam-create/instruction-templates.json') }}"
+                instructionTemplates: "{{ asset('data/exam-create/instruction-templates.json') }}",
+                currencies: "{{ asset('data/exam-create/currencies.json') }}"
             }
         };
     </script>
-    <script src="{{ asset('js/backend/exam-create.js') }}"></script>
+    <script src="{{ asset('js/backend/exam-create.js') }}?v={{ time() }}"></script>
 @endpush

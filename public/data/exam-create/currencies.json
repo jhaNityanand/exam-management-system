@@ -1,0 +1,8 @@
+[
+    { "id": "USD", "label": "USD ($)" },
+    { "id": "EUR", "label": "EUR (€)" },
+    { "id": "GBP", "label": "GBP (£)" },
+    { "id": "INR", "label": "INR (₹)" },
+    { "id": "AUD", "label": "AUD (A$)" },
+    { "id": "CAD", "label": "CAD (C$)" }
+]

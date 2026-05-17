@@ -109,7 +109,6 @@
 
 .exam-page-header p {
     margin: 0.48rem 0 0;
-    max-width: 70ch;
     color: var(--exam-muted);
     font-size: 0.92rem;
     line-height: 1.55;
@@ -410,13 +409,13 @@
     background: #fff;
 }
 
-.ts-wrapper.ems-select-wrapper .ts-control > input {
+.ts-wrapper.ems-select-wrapper .ts-control>input {
     color: #1e293b;
     font-size: 0.85rem;
     line-height: 1.35;
 }
 
-.ts-wrapper.ems-select-wrapper .ts-control > input::placeholder {
+.ts-wrapper.ems-select-wrapper .ts-control>input::placeholder {
     color: #8b9ab0;
 }
 
@@ -544,6 +543,7 @@
         opacity: 0;
         transform: translateY(-4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -737,11 +737,11 @@
     transition: transform 0.2s ease;
 }
 
-.switch-control input:checked + .switch-control__track {
+.switch-control input:checked+.switch-control__track {
     background: #0284c7;
 }
 
-.switch-control input:checked + .switch-control__track::after {
+.switch-control input:checked+.switch-control__track::after {
     transform: translateX(1.23rem);
 }
 
@@ -871,7 +871,7 @@
 }
 
 .option-card-grid--compact {
-    grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
 }
 
 .option-card {
@@ -906,6 +906,109 @@
     display: none;
 }
 
+/* ── Pricing Amount Group (Combined Currency + Amount) ── */
+.pricing-amount-group {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--field-border, #d8e2ee);
+    border-radius: var(--field-radius, 0.82rem);
+    overflow: hidden;
+    background: #fff;
+    box-shadow: var(--field-shadow, 0 1px 2px rgba(15, 23, 42, 0.06));
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pricing-amount-group:focus-within {
+    border-color: var(--field-focus, #2563eb);
+    box-shadow: var(--field-focus-shadow, 0 0 0 3px rgba(37, 99, 235, 0.16));
+}
+
+.pricing-amount-group__currency {
+    border: none;
+    border-right: 1px solid var(--field-border, #d8e2ee);
+    border-radius: 0;
+    background: #f1f5f9;
+    padding: 0 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+    width: 130px;
+    flex-shrink: 0;
+    height: var(--field-height, 2.75rem);
+    cursor: pointer;
+    outline: none;
+}
+
+.pricing-amount-group .ts-wrapper.pricing-amount-group__currency {
+    width: 140px !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #f1f5f9 !important;
+    border-right: 1px solid var(--field-border, #d8e2ee) !important;
+    border-radius: 0 !important;
+}
+
+.pricing-amount-group .ts-wrapper.pricing-amount-group__currency .ts-control {
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    height: var(--field-height, 2.75rem) !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 0.88rem !important;
+    cursor: pointer !important;
+}
+
+.pricing-amount-group .ts-wrapper.pricing-amount-group__currency .ts-control::after {
+    right: 12px !important;
+}
+
+.pricing-amount-group .ts-wrapper.pricing-amount-group__currency.focus .ts-control,
+.pricing-amount-group .ts-wrapper.pricing-amount-group__currency.input-active .ts-control {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.pricing-amount-group__input {
+    border: none;
+    border-radius: 0;
+    flex: 1;
+    padding: 0 var(--field-padding-x, 0.88rem);
+    font-size: 0.9rem;
+    height: var(--field-height, 2.75rem);
+    outline: none;
+    background: transparent;
+    min-width: 0;
+}
+
+.pricing-amount-group__input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.pricing-amount-group__input::placeholder {
+    color: #94a3b8;
+}
+
+/* ── Info Tooltip Icon ── */
+.info-tooltip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    color: #64748b;
+    font-size: 0.95rem;
+    position: relative;
+    transition: color 0.2s ease;
+    vertical-align: middle;
+}
+
+.info-tooltip:hover {
+    color: var(--exam-primary, #0f5d89);
+}
+
 .question-bank-toolbar {
     display: flex;
     align-items: flex-end;
@@ -918,7 +1021,7 @@
     flex: 1;
 }
 
-.question-search > span {
+.question-search>span {
     display: block;
     margin-bottom: 0.3rem;
     color: var(--exam-text);
@@ -1001,7 +1104,7 @@
     overflow: hidden;
 }
 
-.question-progress-bar > span {
+.question-progress-bar>span {
     display: block;
     height: 100%;
     background: linear-gradient(90deg, #0ea5e9, #0f766e);
@@ -1081,7 +1184,7 @@
     background: #f8fbff;
 }
 
-.rich-editor-shell .ck.ck-editor__main > .ck-editor__editable {
+.rich-editor-shell .ck.ck-editor__main>.ck-editor__editable {
     min-height: 180px;
     border: 1px solid #cbd5e1;
     border-top: 0;
@@ -1096,7 +1199,7 @@
 }
 
 .rich-editor-shell.is-focused .ck.ck-toolbar,
-.rich-editor-shell.is-focused .ck.ck-editor__main > .ck-editor__editable {
+.rich-editor-shell.is-focused .ck.ck-editor__main>.ck-editor__editable {
     border-color: #0f5d89;
 }
 
@@ -1281,12 +1384,27 @@
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     }
 
+    .option-card-grid--compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pricing-amount-group {
+        flex-direction: column;
+    }
+
+    .pricing-amount-group__currency {
+        border-right: none;
+        border-bottom: 1px solid var(--field-border, #d8e2ee);
+        min-width: unset;
+    }
+
     .exam-create-aside {
         grid-template-columns: minmax(0, 1fr);
     }
 }
 
 @media (max-width: 640px) {
+
     .exam-page-header,
     .exam-create-layout,
     .exam-page-footer {
@@ -1306,7 +1424,7 @@
         flex-direction: column-reverse;
     }
 
-    .exam-page-footer > * {
+    .exam-page-footer>* {
         width: 100%;
         justify-content: center;
     }
@@ -1318,5 +1436,59 @@
     .instruction-tools {
         flex-direction: column;
         align-items: stretch;
+    }
+}
+
+.exam-help.is-invalid {
+    color: var(--exam-danger, #b91c1c) !important;
+}
+
+/* ── Custom Discounts Section ── */
+.custom-discount-row {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s ease;
+}
+
+.custom-discount-row:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+}
+
+.remove-custom-discount-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-custom-discount-btn:hover {
+    color: #ef4444;
+    background: #fee2e2;
+}
+
+.custom-discount-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-right: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .custom-discount-grid {
+        grid-template-columns: 1fr;
     }
 }
