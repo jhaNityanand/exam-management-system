@@ -1,0 +1,5 @@
+[
+  { "id": "standard", "label": "Standard", "description": "Timed evaluation with standard rules" },
+  { "id": "practice", "label": "Practice", "description": "Practice mode with no pricing section" },
+  { "id": "proctored", "label": "Proctored", "description": "Strict supervision and compliance mode" }
+]

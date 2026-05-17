@@ -1,362 +1,2007 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const form  = document.getElementById('exam-create-form');
-    const utils = window.EmsFormUtils;
+class ChipInput {
+    constructor(container, options = {}) {
+        this.container = container;
+        this.input = container ? container.querySelector('input') : null;
+        this.values = [];
+        this.options = Object.assign(
+            {
+                validate: () => true,
+                normalize: (value) => value.trim(),
+                duplicateKey: (value) => value.toLowerCase(),
+                chipClass: '',
+                onChange: () => {},
+                onInvalid: () => {},
+            },
+            options
+        );
 
-    if (!form || !utils) return;
-
-    /* ── Field refs ───────────────────────────────────────── */
-    const titleInput       = document.getElementById('title');
-    const descriptionInput = document.getElementById('description');
-    const instructionsInput= document.getElementById('instructions');
-    const categorySelect   = document.getElementById('category_id');
-    const modeSelect       = document.getElementById('exam_mode');
-    const statusSelect     = document.getElementById('status');
-    const difficultySelect = document.getElementById('difficulty_level');
-    const visibilitySelect = document.getElementById('visibility');
-    const durationInput    = document.getElementById('duration');
-    const passInput        = document.getElementById('pass_percentage');
-    const attemptsInput    = document.getElementById('max_attempts');
-    const negativeInput    = document.getElementById('negative_mark_per_question');
-    const startInput       = document.getElementById('scheduled_start');
-    const endInput         = document.getElementById('scheduled_end');
-
-    const questionSearch         = document.getElementById('question-bank-search');
-    const questionCategoryFilter = document.getElementById('question-bank-category');
-    const questionList           = document.getElementById('question-bank-list');
-    const questionEmpty          = document.getElementById('question-bank-empty');
-    const selectedCountBadge     = document.getElementById('question-selected-count');
-    const questionRows           = [...document.querySelectorAll('[data-question-item]')];
-
-    /* ── Aside summary refs ───────────────────────────────── */
-    const summary = {
-        title:       document.querySelector('[data-summary-title]'),
-        status:      document.querySelector('[data-summary-status]'),
-        category:    document.querySelector('[data-summary-category]'),
-        mode:        document.querySelector('[data-summary-mode]'),
-        difficulty:  document.querySelector('[data-summary-difficulty]'),
-        visibility:  document.querySelector('[data-summary-visibility]'),
-        duration:    document.querySelector('[data-summary-duration]'),
-        pass:        document.querySelector('[data-summary-pass]'),
-        attempts:    document.querySelector('[data-summary-attempts]'),
-        selected:    document.querySelector('[data-summary-selected]'),
-        totalMarks:  document.querySelector('[data-summary-total-marks]'),
-        schedule:    document.querySelector('[data-summary-schedule]'),
-    };
-
-    const flagSummaryEl  = document.getElementById('flag-summary');
-    const presetButtons  = [...document.querySelectorAll('[data-exam-preset]')];
-    const errorBag       = utils.createErrorManager(form);
-    const isDemoQBank    = Boolean(window.examCreateConfig?.demoQuestionBank);
-
-    /* ── Toggle checkboxes ────────────────────────────────── */
-    const toggleFields = [
-        { name: 'shuffle_questions',      label: 'Shuffle questions' },
-        { name: 'shuffle_options',        label: 'Shuffle options' },
-        { name: 'show_result_immediately', label: 'Show result immediately' },
-        { name: 'allow_review',           label: 'Allow answer review' },
-        { name: 'certificate_enabled',    label: 'Issue certificate on pass' },
-    ];
-
-    /* ── Presets ──────────────────────────────────────────── */
-    const presets = {
-        practice: {
-            exam_mode: 'practice', status: 'active', difficulty_level: 'beginner',
-            visibility: 'public', duration: 45, pass_percentage: 45, max_attempts: 6,
-            shuffle_questions: true, shuffle_options: true,
-            show_result_immediately: true, allow_review: true, certificate_enabled: false,
-        },
-        screening: {
-            exam_mode: 'standard', status: 'draft', difficulty_level: 'intermediate',
-            visibility: 'invite', duration: 60, pass_percentage: 60, max_attempts: 2,
-            shuffle_questions: true, shuffle_options: false,
-            show_result_immediately: false, allow_review: true, certificate_enabled: false,
-        },
-        certification: {
-            exam_mode: 'proctored', status: 'published', difficulty_level: 'advanced',
-            visibility: 'invite', duration: 120, pass_percentage: 70, max_attempts: 1,
-            shuffle_questions: true, shuffle_options: true,
-            show_result_immediately: false, allow_review: false, certificate_enabled: true,
-        },
-    };
-
-    let descriptionEditor  = null;
-    let instructionsEditor = null;
-
-    /* ── Helpers ──────────────────────────────────────────── */
-    const getSelectedText = (select, fallback) => {
-        if (!select) return fallback;
-        const opt = select.options[select.selectedIndex];
-        if (!opt || opt.value === '') return fallback;
-        return utils.clean(opt.textContent) || fallback;
-    };
-
-    const updateQuestionHighlights = () => {
-        questionRows.forEach((row) => {
-            const cb = row.querySelector('input[type="checkbox"]');
-            row.classList.toggle('is-selected', Boolean(cb?.checked));
-        });
-    };
-
-    const getSelectedQuestionStats = () => {
-        let count = 0, marks = 0;
-        questionRows.forEach((row) => {
-            const cb = row.querySelector('input[type="checkbox"]');
-            if (!cb?.checked) return;
-            count++;
-            marks += utils.toNumber(row.dataset.questionMarks || '0') || 0;
-        });
-        return { count, marks };
-    };
-
-    const applyQuestionFilter = () => {
-        const q    = utils.clean(questionSearch?.value).toLowerCase();
-        const cat  = utils.clean(questionCategoryFilter?.value);
-        let visible = 0;
-        questionRows.forEach((row) => {
-            const text     = utils.clean(row.dataset.questionText).toLowerCase();
-            const rowCat   = utils.clean(row.dataset.questionCategory);
-            const show     = (!q || text.includes(q)) && (!cat || rowCat === cat);
-            row.classList.toggle('is-hidden', !show);
-            if (show) visible++;
-        });
-        questionEmpty?.classList.toggle('hidden', visible > 0);
-    };
-
-    /* ── Flag summary in aside ────────────────────────────── */
-    const renderFlagSummary = () => {
-        if (!flagSummaryEl) return;
-        flagSummaryEl.innerHTML = toggleFields.map(({ name, label }) => {
-            const checkbox = form.querySelector(`input[name="${name}"]`);
-            const isOn     = Boolean(checkbox?.checked);
-            return `
-                <div class="exam-flag-item">
-                    <span class="exam-flag-dot ${isOn ? 'is-on' : 'is-off'}"></span>
-                    <span>${label}</span>
-                </div>
-            `;
-        }).join('');
-    };
-
-    /* ── Live summary ─────────────────────────────────────── */
-    const updateSummary = () => {
-        const stats          = getSelectedQuestionStats();
-        const formattedStart = utils.formatHumanDateTime(startInput?.value);
-        const formattedEnd   = utils.formatHumanDateTime(endInput?.value);
-
-        if (summary.title)      summary.title.textContent      = utils.clean(titleInput?.value) || 'Untitled exam';
-        if (summary.status)     summary.status.textContent     = getSelectedText(statusSelect, 'Draft');
-        if (summary.category)   summary.category.textContent   = getSelectedText(categorySelect, 'No category');
-        if (summary.mode)       summary.mode.textContent       = getSelectedText(modeSelect, 'Standard');
-        if (summary.difficulty) summary.difficulty.textContent = getSelectedText(difficultySelect, 'Intermediate');
-        if (summary.visibility) summary.visibility.textContent = getSelectedText(visibilitySelect, 'Public');
-        if (summary.duration)   summary.duration.textContent   = `${utils.clean(durationInput?.value) || 0} min`;
-        if (summary.pass)       summary.pass.textContent       = `${utils.clean(passInput?.value) || 0}%`;
-        if (summary.attempts)   summary.attempts.textContent   = utils.clean(attemptsInput?.value) || '1';
-        if (summary.selected)   summary.selected.textContent   = String(stats.count);
-        if (summary.totalMarks) summary.totalMarks.textContent = String(stats.marks);
-
-        if (summary.schedule) {
-            if (!formattedStart && !formattedEnd) summary.schedule.textContent = 'Not scheduled';
-            else if (formattedStart && formattedEnd) summary.schedule.textContent = `${formattedStart} → ${formattedEnd}`;
-            else summary.schedule.textContent = formattedStart || formattedEnd;
+        if (this.container && this.input) {
+            this.bindEvents();
         }
+    }
 
-        if (selectedCountBadge) selectedCountBadge.textContent = String(stats.count);
-
-        renderFlagSummary();
-    };
-
-    /* ── Preset helpers ───────────────────────────────────── */
-    const setField = (id, value) => {
-        const f = document.getElementById(id);
-        if (!f) return;
-        f.value = String(value);
-        f.dispatchEvent(new Event('change', { bubbles: true }));
-    };
-
-    const setToggle = (name, checked) => {
-        const t = form.querySelector(`input[name="${name}"]`);
-        if (!t) return;
-        t.checked = Boolean(checked);
-        t.dispatchEvent(new Event('change', { bubbles: true }));
-    };
-
-    const applyPreset = (name) => {
-        const preset = presets[name];
-        if (!preset) return;
-        setField('exam_mode',        preset.exam_mode);
-        setField('status',           preset.status);
-        setField('difficulty_level', preset.difficulty_level);
-        setField('visibility',       preset.visibility);
-        setField('duration',         preset.duration);
-        setField('pass_percentage',  preset.pass_percentage);
-        setField('max_attempts',     preset.max_attempts);
-        setToggle('shuffle_questions',       preset.shuffle_questions);
-        setToggle('shuffle_options',         preset.shuffle_options);
-        setToggle('show_result_immediately', preset.show_result_immediately);
-        setToggle('allow_review',            preset.allow_review);
-        setToggle('certificate_enabled',     preset.certificate_enabled);
-        updateSummary();
-    };
-
-    /* ── Editors ──────────────────────────────────────────── */
-    const initEditors = async () => {
-        const initOne = async (containerId, hiddenInput, placeholder) => {
-            const host = document.getElementById(containerId);
-            if (!host || typeof window.ClassicEditor === 'undefined') return null;
-            try {
-                const editor = await window.ClassicEditor.create(host, {
-                    toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'undo', 'redo'],
-                    placeholder,
-                });
-                editor.setData(hiddenInput?.value || '');
-                return editor;
-            } catch {
-                if (hiddenInput) { hiddenInput.classList.remove('hidden'); hiddenInput.classList.add('panel-input'); }
-                host.classList.add('hidden');
-                return null;
+    bindEvents() {
+        this.input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.addValue(this.input.value);
             }
-        };
-
-        descriptionEditor  = await initOne('editor-description',  descriptionInput,   'Write exam overview, instructions, and context…');
-        instructionsEditor = await initOne('editor-instructions',  instructionsInput,  'Write guidelines shown to the candidate before the exam begins…');
-    };
-
-    /* ── TomSelect & DatePickers ──────────────────────────── */
-    const initEnhancedSelects = () => {
-        utils.initTomSelect('#category_id', { placeholder: 'Search for a category…' });
-        utils.initTomSelect('#question-bank-category', { allowEmptyOption: true, placeholder: 'All categories' });
-    };
-
-    const startPicker = utils.initDateTimePicker(startInput, { allowInput: true });
-    const endPicker   = utils.initDateTimePicker(endInput,   { allowInput: false, clickOpens: false });
-
-    if (endInput) { endInput.readOnly = true; endInput.classList.add('is-readonly'); }
-
-    const syncEnd = utils.bindAutoEndDateTime({
-        startInput, endInput, durationInput,
-        onSync: (endDate) => {
-            if (endPicker) endPicker.setDate(endDate || null, false, 'Y-m-d H:i');
-            updateSummary();
-        },
-    });
-
-    /* ── Validation ───────────────────────────────────────── */
-    const validateForm = () => {
-        errorBag.clearAll();
-        let ok = true;
-
-        const title       = utils.clean(titleInput?.value);
-        const mode        = utils.clean(modeSelect?.value);
-        const status      = utils.clean(statusSelect?.value);
-        const duration    = utils.toNumber(durationInput?.value);
-        const passPercent = utils.toNumber(passInput?.value);
-        const maxAttempts = utils.toNumber(attemptsInput?.value);
-        const negMark     = utils.clean(negativeInput?.value);
-        const startDate   = utils.parseDateTime(startInput?.value);
-        const endDate     = utils.parseDateTime(endInput?.value);
-
-        if (!title)               { errorBag.set('title', 'Exam title is required.');                         ok = false; }
-        else if (title.length < 3) { errorBag.set('title', 'Exam title must be at least 3 characters.');      ok = false; }
-        if (!mode)                { errorBag.set('exam_mode', 'Exam mode is required.');                      ok = false; }
-        if (!status)              { errorBag.set('status', 'Status is required.');                            ok = false; }
-        if (!Number.isFinite(duration) || duration < 1)   { errorBag.set('duration', 'Duration must be at least 1 minute.'); ok = false; }
-        else if (duration > 480)  { errorBag.set('duration', 'Duration cannot exceed 480 minutes.');          ok = false; }
-        if (!Number.isFinite(passPercent) || passPercent < 0 || passPercent > 100)
-            { errorBag.set('pass_percentage', 'Pass percentage must be between 0 and 100.'); ok = false; }
-        if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 50)
-            { errorBag.set('max_attempts', 'Max attempts must be a whole number between 1 and 50.'); ok = false; }
-        if (negMark !== '') {
-            const nv = utils.toNumber(negMark);
-            if (!Number.isFinite(nv) || nv < 0 || nv > 100)
-                { errorBag.set('negative_mark_per_question', 'Must be a value between 0 and 100.'); ok = false; }
-        }
-        if (utils.clean(startInput?.value) && !startDate) { errorBag.set('scheduled_start', 'Select a valid start date and time.'); ok = false; }
-        if (utils.clean(endInput?.value)   && !endDate)   { errorBag.set('scheduled_end',   'End date is invalid.'); ok = false; }
-        if (startDate && !endDate)    { errorBag.set('scheduled_end', 'End date will auto-fill from start and duration.'); ok = false; }
-        if (startDate && endDate && endDate < startDate)
-            { errorBag.set('scheduled_end', 'End date cannot be earlier than start date.'); ok = false; }
-        if (!isDemoQBank && questionRows.length > 0 && getSelectedQuestionStats().count === 0)
-            { errorBag.set('question_ids', 'Select at least one question for this exam.'); ok = false; }
-
-        return ok;
-    };
-
-    const wireLiveValidation = () => {
-        [
-            ['title',                    titleInput],
-            ['exam_mode',                modeSelect],
-            ['status',                   statusSelect],
-            ['duration',                 durationInput],
-            ['pass_percentage',          passInput],
-            ['max_attempts',             attemptsInput],
-            ['negative_mark_per_question', negativeInput],
-            ['scheduled_start',          startInput],
-            ['scheduled_end',            endInput],
-        ].forEach(([key, field]) => {
-            field?.addEventListener('input',  () => errorBag.clear(key));
-            field?.addEventListener('change', () => errorBag.clear(key));
-        });
-        questionList?.addEventListener('change', () => errorBag.clear('question_ids'));
-    };
-
-    /* ── Wire events ──────────────────────────────────────── */
-    questionSearch?.addEventListener('input', applyQuestionFilter);
-    questionCategoryFilter?.addEventListener('change', applyQuestionFilter);
-
-    questionList?.addEventListener('change', (e) => {
-        if (e.target?.type !== 'checkbox') return;
-        updateQuestionHighlights();
-        updateSummary();
-    });
-
-    // Toggle checkboxes → live flag update
-    toggleFields.forEach(({ name }) => {
-        const checkbox = form.querySelector(`input[name="${name}"]`);
-        checkbox?.addEventListener('change', renderFlagSummary);
-    });
-
-    [titleInput, categorySelect, modeSelect, statusSelect, difficultySelect, visibilitySelect, durationInput, passInput, attemptsInput, startInput, endInput]
-        .forEach((field) => {
-            field?.addEventListener('input',  updateSummary);
-            field?.addEventListener('change', updateSummary);
         });
 
-    presetButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-            applyPreset(btn.dataset.examPreset);
-            presetButtons.forEach((b) => b.classList.remove('is-active'));
-            btn.classList.add('is-active');
+        this.container.addEventListener('click', (event) => {
+            const removeButton = event.target.closest('[data-chip-remove]');
+            if (!removeButton) {
+                this.input.focus();
+                return;
+            }
+
+            const key = removeButton.getAttribute('data-chip-remove');
+            this.removeByKey(key);
         });
-    });
+    }
 
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
+    setValues(values) {
+        this.values = Array.isArray(values) ? values.slice() : [];
+        this.render();
+        this.options.onChange(this.values.slice());
+    }
 
-        // Flush rich editors into hidden textareas
-        if (descriptionEditor  && descriptionInput)  descriptionInput.value  = descriptionEditor.getData();
-        if (instructionsEditor && instructionsInput)  instructionsInput.value = instructionsEditor.getData();
-
-        syncEnd.sync();
-
-        if (!validateForm()) {
-            form.querySelector('.form-field-error.is-visible')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    addValue(rawValue) {
+        const normalized = this.options.normalize(String(rawValue || ''));
+        if (!normalized) {
+            this.input.value = '';
             return;
         }
 
-        form.submit();
+        if (!this.options.validate(normalized)) {
+            this.options.onInvalid(normalized);
+            return;
+        }
+
+        const duplicate = this.values.some(
+            (item) => this.options.duplicateKey(item) === this.options.duplicateKey(normalized)
+        );
+
+        if (!duplicate) {
+            this.values.push(normalized);
+            this.render();
+            this.options.onChange(this.values.slice());
+        }
+
+        this.input.value = '';
+    }
+
+    removeByKey(key) {
+        this.values = this.values.filter((value) => this.options.duplicateKey(value) !== key);
+        this.render();
+        this.options.onChange(this.values.slice());
+    }
+
+    render() {
+        this.container.querySelectorAll('.chip').forEach((chip) => chip.remove());
+
+        const fragment = document.createDocumentFragment();
+        this.values.forEach((value) => {
+            const key = this.options.duplicateKey(value);
+            const chip = document.createElement('span');
+            chip.className = ['chip', this.options.chipClass].filter(Boolean).join(' ');
+            chip.innerHTML = `${escapeHtml(value)} <button type="button" data-chip-remove="${escapeHtml(key)}" aria-label="Remove">x</button>`;
+            fragment.appendChild(chip);
+        });
+
+        this.container.insertBefore(fragment, this.input);
+    }
+}
+
+function toInt(value, fallback = 0) {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function cleanText(value) {
+    return String(value || '').trim();
+}
+
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function jsonSafeParse(value) {
+    try {
+        return JSON.parse(value);
+    } catch {
+        return [];
+    }
+}
+
+async function loadJsonMap(endpoints) {
+    const entries = await Promise.all(
+        Object.entries(endpoints).map(async ([key, endpoint]) => {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
+            try {
+                const response = await fetch(endpoint, {
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                });
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${key}`);
+                }
+                return [key, await response.json()];
+            } finally {
+                window.clearTimeout(timeoutId);
+            }
+        })
+    );
+
+    return Object.fromEntries(entries);
+}
+
+async function loadJsonMapWithTimeout(endpoints, timeoutMs = 15000) {
+    return Promise.race([
+        loadJsonMap(endpoints),
+        new Promise((_, reject) => {
+            window.setTimeout(() => reject(new Error('Exam configuration load timed out')), timeoutMs);
+        }),
+    ]);
+}
+
+function flattenCategoryTree(nodes, level = 0, parentId = null, path = []) {
+    const source = Array.isArray(nodes) ? nodes : [];
+    const flattened = [];
+
+    source.forEach((node) => {
+        const currentName = cleanText(node?.name);
+        const currentPath = path.concat(currentName);
+        const children = Array.isArray(node?.children) ? node.children : [];
+
+        flattened.push({
+            id: String(node?.id || ''),
+            name: currentName,
+            availableQuestions: toInt(node?.availableQuestions, 0),
+            parentId: parentId ? String(parentId) : null,
+            level,
+            path: currentPath,
+            isLeaf: children.length === 0,
+        });
+
+        flattened.push(...flattenCategoryTree(children, level + 1, node?.id, currentPath));
     });
 
-    /* ── Boot ─────────────────────────────────────────────── */
-    initEditors();
-    initEnhancedSelects();
-    wireLiveValidation();
-    updateQuestionHighlights();
-    applyQuestionFilter();
-    syncEnd.sync();
-    updateSummary();
+    return flattened.filter((item) => item.id && item.name);
+}
 
-    if (startPicker && utils.clean(startInput?.value)) {
-        startPicker.setDate(startInput.value, false, 'Y-m-d H:i');
+function getCategoryParent(category, categories) {
+    if (!category?.parentId) {
+        return null;
+    }
+    return categories.find((item) => item.id === category.parentId) || null;
+}
+
+function buildCategoryHierarchyIndex(categories) {
+    const childrenByParent = new Map();
+
+    categories.forEach((category) => {
+        if (!category.parentId) {
+            return;
+        }
+        if (!childrenByParent.has(category.parentId)) {
+            childrenByParent.set(category.parentId, []);
+        }
+        childrenByParent.get(category.parentId).push(category.id);
+    });
+
+    return { childrenByParent };
+}
+
+function getAllDescendantIds(categoryId, hierarchyIndex) {
+    const descendants = [];
+    const queue = [...(hierarchyIndex.childrenByParent.get(categoryId) || [])];
+    const seen = new Set(queue);
+
+    while (queue.length) {
+        const id = queue.shift();
+        descendants.push(id);
+        const children = hierarchyIndex.childrenByParent.get(id) || [];
+        for (const childId of children) {
+            if (!seen.has(childId)) {
+                seen.add(childId);
+                queue.push(childId);
+            }
+        }
+    }
+
+    return descendants;
+}
+
+function pruneDescendantSelections(selectedIds, hierarchyIndex) {
+    const pruned = new Set(selectedIds);
+
+    [...pruned].forEach((id) => {
+        getAllDescendantIds(id, hierarchyIndex).forEach((descendantId) => {
+            pruned.delete(descendantId);
+        });
+    });
+
+    return pruned;
+}
+
+function isCategoryVisibleInDropdown(categoryId, selectedIds, categories) {
+    const selectedSet = selectedIds instanceof Set ? selectedIds : new Set(selectedIds);
+    let current = categories.find((category) => category.id === categoryId);
+    const seen = new Set();
+
+    while (current?.parentId) {
+        if (seen.has(current.parentId)) break;
+        seen.add(current.parentId);
+        
+        if (selectedSet.has(current.parentId)) {
+            return false;
+        }
+        current = categories.find((category) => category.id === current.parentId);
+    }
+
+    return true;
+}
+
+function buildCategoryOptionMarkup(category, categories, selected = false) {
+    const availability = toInt(category.availableQuestions, 0);
+    const selectedAttr = selected ? 'selected' : '';
+    const categoryName = escapeHtml(category.name);
+    const level = category.level;
+    const plainLabel = `${category.name} (${availability})`;
+
+    return `
+        <option
+            value="${escapeHtml(category.id)}"
+            ${selectedAttr}
+            data-category-name="${categoryName}"
+            data-availability="${availability}"
+            data-level="${level}"
+        >${escapeHtml(plainLabel)}</option>
+    `;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const refs = {
+        page: document.getElementById('exam-create-page'),
+        loader: document.getElementById('exam-page-loader'),
+        form: document.getElementById('exam-create-form'),
+        errorBanner: document.getElementById('form-error-banner'),
+
+        title: document.getElementById('exam_title'),
+        description: document.getElementById('exam_description'),
+        difficulty: document.getElementById('difficulty_level'),
+        status: document.getElementById('exam_status'),
+        mode: document.getElementById('exam_mode'),
+        visibility: document.getElementById('exam_visibility'),
+
+        tagsHidden: document.getElementById('exam_tags'),
+        tagsChip: document.querySelector('[data-chip-input="tags"]'),
+
+        candidateSection: document.getElementById('candidate-access-section'),
+        candidateTabButtons: [...document.querySelectorAll('[data-candidate-tab]')],
+        candidatePanels: [...document.querySelectorAll('[data-candidate-panel]')],
+        manualEmailChip: document.querySelector('[data-chip-input="emails"]'),
+        manualEmailsHidden: document.getElementById('manual_candidate_emails'),
+        manualEmailFeedback: document.getElementById('manual-email-feedback'),
+        dropZone: document.getElementById('candidate-drop-zone'),
+        candidateFile: document.getElementById('candidate_excel_file'),
+        importedCandidatesHidden: document.getElementById('imported_candidates'),
+        importedCandidatePreview: document.getElementById('imported-candidate-preview'),
+
+        totalQuestions: document.getElementById('total_questions'),
+        totalCategories: document.getElementById('total_categories'),
+        totalMarks: document.getElementById('total_marks'),
+        passingMarks: document.getElementById('passing_marks'),
+        paperSets: document.getElementById('paper_sets'),
+        fixCategoryQuestions: document.getElementById('fix_category_questions'),
+        paperSetsHelper: document.getElementById('paper-sets-helper'),
+        categoryTargetHelper: document.getElementById('category-target-helper'),
+
+        distributionTypeGroup: document.getElementById('distribution-type-group'),
+        categorySelectorWrap: document.getElementById('category-selector-wrap'),
+        categorySelectionComplete: document.getElementById('category-selection-complete'),
+        categorySelectionCompleteText: document.getElementById('category-selection-complete-text'),
+        selectedCategoriesSelect: document.getElementById('selected_categories_select'),
+        selectedCategoriesHidden: document.getElementById('selected_categories'),
+        categoryFeedback: document.getElementById('category-selection-feedback'),
+        fixedDistributionCard: document.getElementById('fixed-category-distribution'),
+        fixedDistributionHelper: document.getElementById('fixed-distribution-helper'),
+        fixedDistributionList: document.getElementById('fixed-category-distribution-list'),
+        extraQuestionsWrap: document.getElementById('extra-questions-wrap'),
+        extraQuestionsLabel: document.getElementById('extra-questions-label'),
+        extraQuestionsHelp: document.getElementById('extra-questions-help'),
+        extraQuestionsCategory: document.getElementById('extra_questions_category'),
+        extraQuestionsCategoriesHidden: document.getElementById('extra_questions_categories'),
+        extraQuestionsAllocationsWrap: document.getElementById('extra-questions-allocations-wrap'),
+        extraQuestionsAllocationList: document.getElementById('extra-questions-allocation-list'),
+        extraQuestionsAllocationsHidden: document.getElementById('extra_questions_allocations'),
+        allocatedCount: document.getElementById('allocated-count'),
+        remainingCount: document.getElementById('remaining-count'),
+
+        configPreviewList: document.getElementById('config-preview-list'),
+        configValidationList: document.getElementById('config-validation-list'),
+
+        marksFilter: document.getElementById('question-marks-filter'),
+        marksHidden: document.getElementById('question_marks_filter'),
+        marksCount: document.getElementById('selected-marks-count'),
+
+        pricingSection: document.getElementById('pricing-section'),
+        pricingOptions: document.getElementById('pricing-options'),
+        pricingOptionHidden: document.getElementById('pricing_option'),
+        pricingImportedNote: document.getElementById('pricing-imported-note'),
+        discountRules: document.getElementById('discount-rules'),
+        discountHidden: document.getElementById('selected_discounts'),
+        discountSummary: document.getElementById('discount-summary'),
+
+        questionSearch: document.getElementById('question-search'),
+        questionBankFeedback: document.getElementById('question-bank-feedback'),
+        questionCategoryCards: document.getElementById('question-category-cards'),
+        openAddQuestionModal: document.getElementById('open-add-question-modal'),
+
+        instructionTemplate: document.getElementById('instruction_template'),
+        applyInstructionTemplate: document.getElementById('apply-instruction-template'),
+        instructions: document.getElementById('candidate_instructions'),
+        instructionsCount: document.getElementById('instructions-char-count'),
+
+        workflowStatusList: document.getElementById('workflow-status-list'),
+
+        snapshotVisibility: document.getElementById('snapshot-visibility'),
+        snapshotMode: document.getElementById('snapshot-mode'),
+        snapshotCategories: document.getElementById('snapshot-categories'),
+        snapshotMarks: document.getElementById('snapshot-marks'),
+        snapshotCandidates: document.getElementById('snapshot-candidates'),
+        snapshotDiscounts: document.getElementById('snapshot-discounts'),
+
+        modal: document.getElementById('add-question-modal'),
+        modalCloseButtons: [...document.querySelectorAll('[data-modal-close]')],
+        addQuestionForm: document.getElementById('add-question-form'),
+        newQuestionCategory: document.getElementById('new_question_category'),
+        newQuestionText: document.getElementById('new_question_text'),
+        newQuestionMarks: document.getElementById('new_question_marks'),
+        newQuestionDifficulty: document.getElementById('new_question_difficulty'),
+    };
+
+    if (!refs.page || !refs.form) {
+        return;
+    }
+
+    const state = {
+        config: {
+            difficultyLevels: [],
+            examStatus: [],
+            examModes: [],
+            visibilityOptions: [],
+            categories: [],
+            discountRules: [],
+            questionMarks: [],
+            questionBank: [],
+            pricingOptions: [],
+            distributionTypes: [],
+            instructionTemplates: [],
+        },
+        questionBank: [],
+        categoryAvailability: {},
+        selectedCategories: new Set(),
+        selectedMarks: new Set(),
+        selectedDiscounts: new Set(),
+        selectedPricing: '',
+        selectedDistributionType: '',
+        selectedVisibility: '',
+        selectedMode: '',
+        activeCandidateTab: 'import',
+        importedCandidates: [],
+        manualEmails: [],
+        tags: [],
+        expandedCards: new Set(),
+        categoryTree: [],
+        extraQuestionsCategoryIds: [],
+        extraQuestionsAllocations: {},
+        extraQuestionsOptionsKey: '',
+        extraQuestionsSelectBound: false,
+        mainCategorySelectBound: false,
+        categoryHierarchyIndex: { childrenByParent: new Map() },
+        isSyncingCategories: false,
+        isSyncingExtraQuestions: false,
+        suppressCategorySelectEvents: false,
+        suppressExtraSelectEvents: false,
+        richEditors: new Map(),
+    };
+
+    const tagInput = new ChipInput(refs.tagsChip, {
+        normalize: (value) => cleanText(value.replace(/,/g, ' ')).replace(/\s+/g, ' '),
+        onChange: (values) => {
+            state.tags = values;
+            refs.tagsHidden.value = JSON.stringify(values);
+        },
+    });
+
+    const emailInput = new ChipInput(refs.manualEmailChip, {
+        chipClass: 'is-email',
+        validate: isValidEmail,
+        normalize: (value) => cleanText(value.toLowerCase()),
+        onInvalid: (value) => {
+            refs.manualEmailFeedback.textContent = `${value} is not a valid email format.`;
+        },
+        onChange: (values) => {
+            refs.manualEmailFeedback.textContent = values.length
+                ? `${values.length} manual candidate email(s) added.`
+                : 'Type email and press Enter to add.';
+            state.manualEmails = values;
+            refs.manualEmailsHidden.value = JSON.stringify(values);
+            updateWorkflowAndSnapshot();
+        },
+    });
+
+    initialize().catch((error) => {
+        console.error(error);
+        showFormErrors(['Unable to load exam configuration. Please refresh the page and try again.']);
+        hideLoader();
+    });
+
+    async function initialize() {
+        let emergencyHide = window.setTimeout(() => {
+            console.warn('Exam create page init exceeded time limit; revealing form.');
+            hideLoader();
+        }, 5000);
+
+        showLoader();
+
+        try {
+            const endpoints = window.examCreateConfig?.endpoints || {};
+            const configData = await loadJsonMapWithTimeout(endpoints, 15000);
+            const categoryTree = Array.isArray(configData.categories) ? configData.categories : [];
+            const flatCategories = flattenCategoryTree(categoryTree);
+
+            state.config = {
+                difficultyLevels: Array.isArray(configData.difficultyLevels) ? configData.difficultyLevels : [],
+                examStatus: Array.isArray(configData.examStatus) ? configData.examStatus : [],
+                examModes: Array.isArray(configData.examModes) ? configData.examModes : [],
+                visibilityOptions: Array.isArray(configData.visibilityOptions) ? configData.visibilityOptions : [],
+                categories: flatCategories,
+                discountRules: Array.isArray(configData.discountRules) ? configData.discountRules : [],
+                questionMarks: Array.isArray(configData.questionMarks) ? configData.questionMarks : [],
+                questionBank: Array.isArray(configData.questionBank) ? configData.questionBank : [],
+                pricingOptions: Array.isArray(configData.pricingOptions) ? configData.pricingOptions : [],
+                distributionTypes: Array.isArray(configData.distributionTypes) ? configData.distributionTypes : [],
+                instructionTemplates: Array.isArray(configData.instructionTemplates) ? configData.instructionTemplates : [],
+            };
+            state.categoryTree = categoryTree;
+            state.categoryHierarchyIndex = buildCategoryHierarchyIndex(state.config.categories);
+
+            state.questionBank = state.config.questionBank.slice();
+            state.categoryAvailability = state.config.categories.reduce((carry, category) => {
+                carry[category.id] = toInt(category.availableQuestions, 0);
+                return carry;
+            }, {});
+
+            renderInitialControls();
+            initEnhancedSelects();
+            renderCategorySelector();
+            bindEvents();
+            bindMainCategorySelect();
+            bindExtraQuestionsCategorySelect();
+
+            window.clearTimeout(emergencyHide);
+            emergencyHide = null;
+            hideLoader();
+
+            initRichTextEditors().catch((error) => {
+                console.warn(error);
+            });
+            safeUpdateAll();
+        } catch (error) {
+            console.error(error);
+            showFormErrors(['Unable to load exam configuration. Please refresh the page and try again.']);
+            throw error;
+        } finally {
+            if (emergencyHide) {
+                window.clearTimeout(emergencyHide);
+            }
+            hideLoader();
+        }
+    }
+
+    function safeUpdateAll() {
+        try {
+            updateAll();
+        } catch (error) {
+            console.error(error);
+            showFormErrors(['Something went wrong while updating the exam form. Please refresh the page.']);
+        }
+    }
+
+    function initEnhancedSelects() {
+        if (!window.EmsSelect || typeof window.EmsSelect.initAll !== 'function') {
+            return;
+        }
+
+        // Category selects are mounted via replaceOptions after options HTML is ready.
+        window.EmsSelect.initAll(
+            document,
+            'select.panel-input:not(#selected_categories_select):not(#extra_questions_category)'
+        );
+    }
+
+    function renderInitialControls() {
+        populateSelect(refs.difficulty, state.config.difficultyLevels, 'Select difficulty');
+        populateSelect(refs.status, state.config.examStatus, 'Select status');
+        populateSelect(refs.mode, state.config.examModes, 'Select mode');
+        populateSelect(refs.visibility, state.config.visibilityOptions, 'Select visibility');
+
+        setSelectDefault(refs.difficulty, 'medium');
+        setSelectDefault(refs.status, 'draft');
+        setSelectDefault(refs.mode, 'standard');
+        setSelectDefault(refs.visibility, 'public');
+
+        state.selectedMode = refs.mode.value;
+        state.selectedVisibility = refs.visibility.value;
+
+        renderTotalCategoryOptions();
+        renderDistributionTypes();
+        populateCategorySelectElement();
+        renderQuestionMarks();
+        renderPricingOptions();
+        renderDiscountRules();
+        renderInstructionTemplates();
+        renderModalSelects();
+        refs.manualEmailFeedback.textContent = 'Type email and press Enter to add.';
+
+        const defaultTags = jsonSafeParse(refs.tagsHidden.value);
+        if (Array.isArray(defaultTags) && defaultTags.length) {
+            tagInput.setValues(defaultTags);
+        }
+
+        const defaultEmails = jsonSafeParse(refs.manualEmailsHidden.value);
+        if (Array.isArray(defaultEmails) && defaultEmails.length) {
+            emailInput.setValues(defaultEmails);
+        }
+    }
+
+    function populateSelect(select, items, placeholder) {
+        if (!select) return;
+
+        const html = [`<option value="">${escapeHtml(placeholder)}</option>`]
+            .concat(items.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`))
+            .join('');
+
+        select.innerHTML = html;
+    }
+
+    function setSelectDefault(select, expectedValue) {
+        if (!select) return;
+        const hasExpected = [...select.options].some((option) => option.value === expectedValue);
+        if (hasExpected) {
+            select.value = expectedValue;
+            return;
+        }
+        if (select.options.length > 1) {
+            select.value = select.options[1].value;
+        }
+    }
+
+    function getAssignableCategories() {
+        return state.config.categories;
+    }
+
+    function renderTotalCategoryOptions() {
+        const categories = getAssignableCategories();
+        const max = Math.max(1, categories.length);
+        const preferred = Math.min(3, max);
+
+        refs.totalCategories.min = '1';
+        refs.totalCategories.max = String(max);
+
+        const currentValue = toInt(refs.totalCategories.value, preferred);
+        refs.totalCategories.value = String(Math.min(Math.max(1, currentValue), max));
+
+        state.selectedCategories = new Set(categories.slice(0, preferred).map((category) => category.id));
+        refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
+
+        state.extraQuestionsCategoryIds = categories[0]?.id ? [categories[0].id] : [];
+    }
+
+    function renderDistributionTypes() {
+        if (!state.selectedDistributionType && state.config.distributionTypes.length) {
+            state.selectedDistributionType = state.config.distributionTypes[0].id;
+        }
+
+        refs.distributionTypeGroup.innerHTML = state.config.distributionTypes
+            .map((type) => {
+                const active = type.id === state.selectedDistributionType ? 'is-active' : '';
+                return `<button type="button" class="pill ${active}" data-distribution-id="${escapeHtml(type.id)}">${escapeHtml(type.label)}</button>`;
+            })
+            .join('');
+    }
+
+    function applyMainCategorySelectionRules(rawIds, limit) {
+        const validIds = new Set(getAssignableCategories().map((category) => category.id));
+        const filtered = [...rawIds].filter((id) => validIds.has(id));
+        const pruned = [...pruneDescendantSelections(filtered, state.categoryHierarchyIndex)];
+        return pruned.slice(0, Math.max(1, limit));
+    }
+
+    function buildCategorySelectOptionsHtml(selectedSet) {
+        const categories = getAssignableCategories();
+        const visibleCategories = categories.filter((category) => isCategoryVisibleInDropdown(
+            category.id,
+            selectedSet,
+            state.config.categories
+        ));
+
+        return visibleCategories
+            .map((category) => buildCategoryOptionMarkup(
+                category,
+                state.config.categories,
+                selectedSet.has(category.id)
+            ))
+            .join('');
+    }
+
+    function updateCategorySelectorFeedback() {
+        const limit = toInt(refs.totalCategories.value, 0);
+        const selectedCount = state.selectedCategories.size;
+
+        refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
+        refs.categoryFeedback.textContent = `Selected ${selectedCount} of ${limit} required categories.`;
+
+        const isSelectionComplete = limit > 0 && selectedCount >= limit;
+        if (refs.categorySelectorWrap) {
+            refs.categorySelectorWrap.hidden = false;
+        }
+        if (refs.categorySelectionComplete) {
+            refs.categorySelectionComplete.hidden = !isSelectionComplete;
+        }
+        if (refs.categorySelectionCompleteText) {
+            refs.categorySelectionCompleteText.textContent = isSelectionComplete
+                ? `${selectedCount} categories selected. Category selection is complete.`
+                : '';
+        }
+    }
+
+    function populateCategorySelectElement() {
+        const limit = toInt(refs.totalCategories.value, 0);
+        const normalized = applyMainCategorySelectionRules([...state.selectedCategories], limit);
+        state.selectedCategories = new Set(normalized);
+        refs.selectedCategoriesSelect.dataset.maxItems = String(Math.max(1, limit));
+        refs.selectedCategoriesSelect.innerHTML = buildCategorySelectOptionsHtml(state.selectedCategories);
+        updateCategorySelectorFeedback();
+    }
+
+    function bindMainCategorySelect() {
+        if (state.mainCategorySelectBound || !window.EmsSelect || typeof window.EmsSelect.onChange !== 'function') {
+            return;
+        }
+
+        window.EmsSelect.onChange('selected_categories_select', () => {
+            if (state.isSyncingCategories || state.suppressCategorySelectEvents) {
+                return;
+            }
+
+            const limit = Math.max(1, toInt(refs.totalCategories.value, 1));
+            const rawValue = window.EmsSelect.getValue('selected_categories_select');
+            const selectedValues = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
+            const normalized = applyMainCategorySelectionRules(selectedValues, limit);
+
+            state.selectedCategories = new Set(normalized);
+            state.extraQuestionsOptionsKey = '';
+            renderCategorySelector();
+            safeUpdateAll();
+        });
+
+        state.mainCategorySelectBound = true;
+    }
+
+    function renderCategorySelector() {
+        if (state.isSyncingCategories) {
+            return;
+        }
+
+        state.isSyncingCategories = true;
+        state.suppressCategorySelectEvents = true;
+
+        try {
+            const limit = toInt(refs.totalCategories.value, 0);
+            const normalized = applyMainCategorySelectionRules([...state.selectedCategories], limit);
+            state.selectedCategories = new Set(normalized);
+            const html = buildCategorySelectOptionsHtml(state.selectedCategories);
+            const values = [...state.selectedCategories];
+            const maxItems = Math.max(1, limit);
+
+            const isSelectionComplete = limit > 0 && state.selectedCategories.size >= limit;
+
+            refs.selectedCategoriesSelect.dataset.maxItems = String(maxItems);
+
+            if (window.EmsSelect && typeof window.EmsSelect.replaceOptions === 'function') {
+                const prevInstance = window.EmsSelect.get('selected_categories_select');
+                const wasOpen = prevInstance ? prevInstance.isOpen : false;
+
+                window.EmsSelect.replaceOptions('selected_categories_select', html, values, maxItems);
+
+                const newInstance = window.EmsSelect.get('selected_categories_select');
+                if (newInstance && wasOpen && !isSelectionComplete) {
+                    newInstance.open();
+                }
+            } else {
+                refs.selectedCategoriesSelect.innerHTML = html;
+            }
+
+            updateCategorySelectorFeedback();
+        } finally {
+            state.suppressCategorySelectEvents = false;
+            state.isSyncingCategories = false;
+        }
+    }
+
+    function renderQuestionMarks() {
+        if (!state.selectedMarks.size) {
+            [1, 2, 4].forEach((mark) => state.selectedMarks.add(mark));
+        }
+
+        refs.marksFilter.innerHTML = state.config.questionMarks
+            .map((item) => {
+                const mark = Number(item.value);
+                const active = state.selectedMarks.has(mark) ? 'is-active' : '';
+                return `<button type="button" class="pill ${active}" data-mark-value="${mark}">${escapeHtml(item.label)}</button>`;
+            })
+            .join('');
+
+        refs.marksHidden.value = JSON.stringify([...state.selectedMarks]);
+        refs.marksCount.textContent = String(state.selectedMarks.size);
+    }
+
+    function renderPricingOptions() {
+        const isPrivate = state.selectedVisibility === 'private';
+
+        refs.pricingOptions.innerHTML = state.config.pricingOptions
+            .map((option) => {
+                const hidden = isPrivate && option.id === 'free_for_imported';
+                const selected = state.selectedPricing === option.id ? 'is-selected' : '';
+                return `
+                    <article class="option-card ${selected} ${hidden ? 'is-hidden' : ''}" data-pricing-option="${escapeHtml(option.id)}">
+                        <h4>${escapeHtml(option.label)}</h4>
+                        <p>${escapeHtml(option.description)}</p>
+                    </article>
+                `;
+            })
+            .join('');
+
+        const visibleOptions = state.config.pricingOptions
+            .filter((option) => !(isPrivate && option.id === 'free_for_imported'))
+            .map((option) => option.id);
+
+        if (!visibleOptions.includes(state.selectedPricing)) {
+            state.selectedPricing = visibleOptions[0] || '';
+        }
+
+        refs.pricingOptionHidden.value = state.selectedPricing;
+        highlightPricingOptions();
+    }
+
+    function highlightPricingOptions() {
+        refs.pricingOptions.querySelectorAll('[data-pricing-option]').forEach((card) => {
+            card.classList.toggle('is-selected', card.dataset.pricingOption === state.selectedPricing);
+        });
+        refs.pricingOptionHidden.value = state.selectedPricing;
+    }
+
+    function renderDiscountRules() {
+        refs.discountRules.innerHTML = state.config.discountRules
+            .map((rule) => {
+                const selected = state.selectedDiscounts.has(rule.id) ? 'is-selected' : '';
+                return `
+                    <article class="option-card ${selected}" data-discount-id="${escapeHtml(rule.id)}">
+                        <h4>${escapeHtml(rule.label)}</h4>
+                        <p>${escapeHtml(rule.summary)}</p>
+                    </article>
+                `;
+            })
+            .join('');
+
+        refs.discountHidden.value = JSON.stringify([...state.selectedDiscounts]);
+    }
+
+    function renderInstructionTemplates() {
+        refs.instructionTemplate.innerHTML = [`<option value="">Choose template</option>`]
+            .concat(
+                state.config.instructionTemplates.map(
+                    (template) => `<option value="${escapeHtml(template.id)}">${escapeHtml(template.label)}</option>`
+                )
+            )
+            .join('');
+    }
+
+    function renderModalSelects() {
+        const categories = getAssignableCategories();
+
+        refs.newQuestionCategory.innerHTML = categories
+            .map((category) => buildCategoryOptionMarkup(category, state.config.categories))
+            .join('');
+
+        refs.newQuestionMarks.innerHTML = state.config.questionMarks
+            .map((mark) => `<option value="${Number(mark.value)}">${escapeHtml(mark.label)}</option>`)
+            .join('');
+
+        refs.newQuestionDifficulty.innerHTML = state.config.difficultyLevels
+            .map((level) => `<option value="${escapeHtml(level.id)}">${escapeHtml(level.label)}</option>`)
+            .join('');
+
+        if (!state.extraQuestionsCategoryIds.length && categories.length) {
+            state.extraQuestionsCategoryIds = [categories[0].id];
+        }
+        syncExtraQuestionsHidden();
+    }
+
+    function bindEvents() {
+        refs.mode.addEventListener('change', () => {
+            state.selectedMode = refs.mode.value;
+            updateAll();
+        });
+
+        refs.visibility.addEventListener('change', () => {
+            state.selectedVisibility = refs.visibility.value;
+            renderPricingOptions();
+            updateAll();
+        });
+
+        const handleTotalCategoriesInput = () => {
+            normalizeTotalCategoriesInput();
+            enforceCategoryLimit();
+            renderCategorySelector();
+            updateAll();
+        };
+        refs.totalCategories.addEventListener('input', handleTotalCategoriesInput);
+        refs.totalCategories.addEventListener('change', handleTotalCategoriesInput);
+
+        bindExtraQuestionsCategorySelect();
+
+        [
+            refs.totalQuestions,
+            refs.totalMarks,
+            refs.passingMarks,
+            refs.paperSets,
+            refs.fixCategoryQuestions,
+        ].forEach((field) => {
+            field.addEventListener('input', updateAll);
+            field.addEventListener('change', updateAll);
+        });
+
+        refs.distributionTypeGroup.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-distribution-id]');
+            if (!button) return;
+            state.selectedDistributionType = button.dataset.distributionId;
+            renderDistributionTypes();
+            updateAll();
+        });
+
+        bindMainCategorySelect();
+
+        refs.marksFilter.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-mark-value]');
+            if (!button) return;
+
+            const mark = Number(button.dataset.markValue);
+            if (state.selectedMarks.has(mark)) {
+                state.selectedMarks.delete(mark);
+            } else {
+                state.selectedMarks.add(mark);
+            }
+
+            renderQuestionMarks();
+            updateAll();
+        });
+
+        refs.pricingOptions.addEventListener('click', (event) => {
+            const card = event.target.closest('[data-pricing-option]');
+            if (!card || card.classList.contains('is-hidden')) return;
+            state.selectedPricing = card.dataset.pricingOption;
+            highlightPricingOptions();
+            updateAll();
+        });
+
+        refs.discountRules.addEventListener('click', (event) => {
+            const card = event.target.closest('[data-discount-id]');
+            if (!card) return;
+            const id = card.dataset.discountId;
+            if (state.selectedDiscounts.has(id)) {
+                state.selectedDiscounts.delete(id);
+            } else {
+                state.selectedDiscounts.add(id);
+            }
+            renderDiscountRules();
+            updateAll();
+        });
+
+        refs.questionSearch.addEventListener('input', updateQuestionBankCards);
+
+        refs.questionCategoryCards.addEventListener('click', (event) => {
+            const expandButton = event.target.closest('[data-action="toggle-expand"]');
+            const addButton = event.target.closest('[data-action="add-question"]');
+
+            if (expandButton) {
+                const categoryId = expandButton.dataset.categoryId;
+                if (state.expandedCards.has(categoryId)) {
+                    state.expandedCards.delete(categoryId);
+                } else {
+                    state.expandedCards.add(categoryId);
+                }
+                updateQuestionBankCards();
+                return;
+            }
+
+            if (addButton) {
+                openAddQuestionModal(addButton.dataset.categoryId || '');
+            }
+        });
+
+        refs.questionCategoryCards.addEventListener('change', (event) => {
+            const checkbox = event.target.closest('[data-role="category-toggle"]');
+            if (!checkbox) return;
+
+            const categoryId = checkbox.dataset.categoryId;
+            const limit = toInt(refs.totalCategories.value, 0);
+
+            if (checkbox.checked) {
+                if (!state.selectedCategories.has(categoryId) && state.selectedCategories.size >= limit) {
+                    checkbox.checked = false;
+                    refs.categoryFeedback.textContent = `Cannot select more than ${limit} categories.`;
+                    return;
+                }
+                const nextSelection = applyMainCategorySelectionRules(
+                    [...state.selectedCategories, categoryId],
+                    limit
+                );
+                state.selectedCategories = new Set(nextSelection);
+            } else {
+                state.selectedCategories.delete(categoryId);
+            }
+
+            state.extraQuestionsOptionsKey = '';
+            renderCategorySelector();
+            updateAll();
+        });
+
+        refs.candidateTabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                state.activeCandidateTab = button.dataset.candidateTab;
+                renderCandidateTabs();
+            });
+        });
+
+        refs.dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            refs.dropZone.classList.add('is-active');
+        });
+
+        refs.dropZone.addEventListener('dragleave', () => {
+            refs.dropZone.classList.remove('is-active');
+        });
+
+        refs.dropZone.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            refs.dropZone.classList.remove('is-active');
+            const file = event.dataTransfer?.files?.[0];
+            if (file) {
+                refs.candidateFile.files = event.dataTransfer.files;
+                await handleCandidateFile(file);
+            }
+        });
+
+        refs.candidateFile.addEventListener('change', async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            await handleCandidateFile(file);
+        });
+
+        refs.openAddQuestionModal.addEventListener('click', () => openAddQuestionModal(''));
+        refs.modalCloseButtons.forEach((button) => button.addEventListener('click', closeAddQuestionModal));
+        refs.addQuestionForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            addQuestionFromModal();
+        });
+
+        refs.applyInstructionTemplate.addEventListener('click', applyInstructionTemplate);
+
+        refs.form.addEventListener('submit', (event) => {
+            syncRichTextFields();
+            const errors = collectSubmissionErrors();
+            if (errors.length) {
+                event.preventDefault();
+                showFormErrors(errors);
+                refs.errorBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            clearFormErrors();
+        });
+
+        [
+            refs.title,
+            refs.description,
+            refs.difficulty,
+            refs.status,
+            refs.mode,
+            refs.visibility,
+            refs.totalQuestions,
+            refs.totalMarks,
+            refs.passingMarks,
+            refs.paperSets,
+        ].forEach((field) => {
+            field.addEventListener('input', updateWorkflowAndSnapshot);
+            field.addEventListener('change', updateWorkflowAndSnapshot);
+        });
+    }
+
+    function enforceCategoryLimit() {
+        const limit = normalizeTotalCategoriesInput();
+        state.selectedCategories = new Set([...state.selectedCategories].slice(0, limit));
+        refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
+    }
+
+    function normalizeTotalCategoriesInput() {
+        const max = Math.max(1, getAssignableCategories().length);
+        const min = 1;
+        const value = toInt(refs.totalCategories.value, min);
+        const clamped = Math.min(Math.max(min, value), max);
+        refs.totalCategories.min = String(min);
+        refs.totalCategories.max = String(max);
+        refs.totalCategories.value = String(clamped);
+        return clamped;
+    }
+
+    function renderCandidateTabs() {
+        refs.candidateTabButtons.forEach((button) => {
+            const active = button.dataset.candidateTab === state.activeCandidateTab;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-selected', String(active));
+        });
+
+        refs.candidatePanels.forEach((panel) => {
+            const active = panel.dataset.candidatePanel === state.activeCandidateTab;
+            panel.hidden = !active;
+            panel.classList.toggle('is-active', active);
+        });
+    }
+
+    async function handleCandidateFile(file) {
+        const extension = (file.name.split('.').pop() || '').toLowerCase();
+        let parsed = [];
+
+        if (extension === 'csv') {
+            parsed = parseCandidateCsv(await file.text());
+        } else {
+            parsed = [
+                { name: 'Imported Candidate 1', email: 'candidate1@example.com' },
+                { name: 'Imported Candidate 2', email: 'candidate2@example.com' },
+                { name: 'Imported Candidate 3', email: 'candidate3@example.com' },
+            ];
+        }
+
+        state.importedCandidates = parsed.filter((candidate) => isValidEmail(candidate.email));
+        refs.importedCandidatesHidden.value = JSON.stringify(state.importedCandidates);
+        renderImportedCandidatePreview(file.name);
+        updateWorkflowAndSnapshot();
+    }
+
+    function parseCandidateCsv(content) {
+        const lines = content.split(/\r?\n/).filter((line) => cleanText(line));
+        if (lines.length <= 1) return [];
+
+        const items = lines.slice(1).map((line) => {
+            const [namePart, emailPart] = line.split(',');
+            return {
+                name: cleanText(namePart || 'Candidate'),
+                email: cleanText(emailPart || '').toLowerCase(),
+            };
+        });
+
+        const deduped = [];
+        const seen = new Set();
+
+        items.forEach((item) => {
+            if (!item.email || seen.has(item.email)) return;
+            seen.add(item.email);
+            deduped.push(item);
+        });
+
+        return deduped;
+    }
+
+    function renderImportedCandidatePreview(fileName) {
+        if (!state.importedCandidates.length) {
+            refs.importedCandidatePreview.hidden = true;
+            refs.importedCandidatePreview.textContent = '';
+            return;
+        }
+
+        const topItems = state.importedCandidates
+            .slice(0, 5)
+            .map((candidate) => `${escapeHtml(candidate.name)} (${escapeHtml(candidate.email)})`)
+            .join('<br>');
+
+        refs.importedCandidatePreview.hidden = false;
+        refs.importedCandidatePreview.innerHTML = `
+            <strong>${state.importedCandidates.length}</strong> candidates loaded from <strong>${escapeHtml(fileName)}</strong>.<br>
+            ${topItems}
+        `;
+    }
+
+    function updateConditionalSections() {
+        const isPrivate = state.selectedVisibility === 'private';
+        const importedFree = state.selectedPricing === 'free_for_imported';
+        refs.candidateSection.hidden = !(isPrivate || importedFree);
+        refs.pricingImportedNote.hidden = !importedFree;
+        renderCandidateTabs();
+
+        refs.pricingSection.hidden = state.selectedMode === 'practice';
+    }
+
+    function computeCategoryTarget() {
+        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
+        const totalCategories = Math.max(1, toInt(refs.totalCategories.value, 1));
+        return Math.ceil(totalQuestions / totalCategories);
+    }
+
+    function getCategoryById(categoryId) {
+        return state.config.categories.find((category) => category.id === categoryId) || null;
+    }
+
+    function getCategoryLabelById(categoryId) {
+        const category = getCategoryById(categoryId);
+        if (!category) {
+            return categoryId;
+        }
+        const parent = getCategoryParent(category, state.config.categories);
+        if (!parent) {
+            return category.name;
+        }
+        return `${parent.name} / ${category.name}`;
+    }
+
+    function getCategoryDisplayHtml(categoryId) {
+        const category = getCategoryById(categoryId);
+        if (!category) {
+            return escapeHtml(categoryId);
+        }
+        return `<span class="category-display-name">${escapeHtml(category.name)}</span>`;
+    }
+
+    function syncExtraQuestionsHidden() {
+        if (refs.extraQuestionsCategoriesHidden) {
+            refs.extraQuestionsCategoriesHidden.value = JSON.stringify(state.extraQuestionsCategoryIds);
+        }
+    }
+
+    function syncExtraQuestionsAllocations() {
+        if (refs.extraQuestionsAllocationsHidden) {
+            refs.extraQuestionsAllocationsHidden.value = JSON.stringify(state.extraQuestionsAllocations);
+        }
+    }
+
+    function normalizeExtraQuestionCategoryIds(selectedIds, remainder) {
+        const maxExtra = Math.max(1, remainder);
+        let extraIds = state.extraQuestionsCategoryIds.filter((id) => selectedIds.includes(id));
+
+        if (!remainder) {
+            state.extraQuestionsCategoryIds = [];
+            syncExtraQuestionsHidden();
+            return;
+        }
+
+        if (!extraIds.length) {
+            extraIds = [selectedIds[0]];
+        }
+
+        state.extraQuestionsCategoryIds = applyExtraCategorySelectionRules(extraIds, maxExtra, selectedIds);
+        syncExtraQuestionsHidden();
+    }
+
+    function computeFixedCategoryDistribution() {
+        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
+        const selectedIds = [...state.selectedCategories];
+        const selectedCount = selectedIds.length;
+
+        if (!selectedCount) {
+            return {
+                totalQuestions,
+                selectedCount: 0,
+                base: 0,
+                remainder: 0,
+                extraCategoryIds: [],
+                rows: [],
+                totalAllocated: 0,
+            };
+        }
+
+        const base = Math.floor(totalQuestions / selectedCount);
+        const remainder = totalQuestions % selectedCount;
+
+        const extraCountMap = new Map();
+        const extraCategoryIds = state.extraQuestionsCategoryIds
+            .filter((id) => selectedIds.includes(id))
+            .slice(0, Math.max(1, remainder));
+
+        let totalAllocated = 0;
+
+        if (remainder > 0 && extraCategoryIds.length > 0) {
+            const S = extraCategoryIds.length;
+            const E = remainder;
+
+            if (S === 1) {
+                extraCountMap.set(extraCategoryIds[0], E);
+                totalAllocated = E;
+            } else if (S === E) {
+                extraCategoryIds.forEach((categoryId) => {
+                    extraCountMap.set(categoryId, 1);
+                });
+                totalAllocated = E;
+            } else if (1 < S && S < E) {
+                let hasInitializedAny = false;
+                extraCategoryIds.forEach((categoryId) => {
+                    if (typeof state.extraQuestionsAllocations[categoryId] === 'undefined') {
+                        state.extraQuestionsAllocations[categoryId] = 1;
+                        hasInitializedAny = true;
+                    }
+                });
+
+                Object.keys(state.extraQuestionsAllocations).forEach(key => {
+                    if (!extraCategoryIds.includes(key)) {
+                        delete state.extraQuestionsAllocations[key];
+                    }
+                });
+
+                if (hasInitializedAny && extraCategoryIds.length > 0) {
+                    let currentSum = extraCategoryIds.reduce((sum, id) => sum + state.extraQuestionsAllocations[id], 0);
+                    if (currentSum < E) {
+                        state.extraQuestionsAllocations[extraCategoryIds[0]] += (E - currentSum);
+                    }
+                }
+
+                let manualAllocated = 0;
+                extraCategoryIds.forEach((categoryId) => {
+                    const allocatedCount = toInt(state.extraQuestionsAllocations[categoryId], 1);
+                    extraCountMap.set(categoryId, allocatedCount);
+                    manualAllocated += allocatedCount;
+                });
+                totalAllocated = manualAllocated;
+            }
+        }
+
+        const rows = selectedIds.map((categoryId) => ({
+            categoryId,
+            count: base + (extraCountMap.get(categoryId) || 0),
+        }));
+
+        return {
+            totalQuestions,
+            selectedCount,
+            base,
+            remainder,
+            extraCategoryIds,
+            rows,
+            totalAllocated,
+        };
+    }
+
+    function getExtraQuestionsOptionsKey(selectedIds, remainder) {
+        return `${remainder}|${selectedIds.slice().sort().join(',')}`;
+    }
+
+    function applyExtraCategorySelectionRules(rawIds, maxExtra, allowedIds) {
+        const allowed = new Set(allowedIds);
+        const filtered = [...rawIds].filter((id) => allowed.has(id));
+        const pruned = [...pruneDescendantSelections(filtered, state.categoryHierarchyIndex)];
+        return pruned.slice(0, Math.max(1, maxExtra));
+    }
+
+    function bindExtraQuestionsCategorySelect() {
+        if (state.extraQuestionsSelectBound || !window.EmsSelect || typeof window.EmsSelect.onChange !== 'function') {
+            return;
+        }
+
+        window.EmsSelect.onChange('extra_questions_category', () => {
+            if (state.isSyncingExtraQuestions || state.suppressExtraSelectEvents) {
+                return;
+            }
+
+            const selectedIds = [...state.selectedCategories];
+            const remainder = selectedIds.length
+                ? Math.max(0, toInt(refs.totalQuestions.value, 1) % selectedIds.length)
+                : 0;
+            const maxExtra = Math.max(1, remainder);
+            const rawValue = window.EmsSelect.getValue('extra_questions_category');
+            const selectedValues = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
+            const normalized = applyExtraCategorySelectionRules(selectedValues, maxExtra, selectedIds);
+
+            state.extraQuestionsCategoryIds = normalized;
+            syncExtraQuestionsHidden();
+
+            state.isSyncingExtraQuestions = true;
+            try {
+                refreshExtraQuestionsDropdownOptions(maxExtra);
+            } finally {
+                state.isSyncingExtraQuestions = false;
+            }
+
+            const distribution = computeFixedCategoryDistribution();
+            renderExtraQuestionsAllocations(distribution);
+            renderFixedDistributionListOnly();
+            updateConfigPreview();
+            updateWorkflowAndSnapshot();
+            updateQuestionBankCards();
+        });
+
+        state.extraQuestionsSelectBound = true;
+    }
+
+    function buildExtraQuestionsOptionsHtml() {
+        const selectedIds = [...state.selectedCategories];
+        const visibleIds = selectedIds.filter((categoryId) => isCategoryVisibleInDropdown(
+            categoryId,
+            state.extraQuestionsCategoryIds,
+            state.config.categories
+        ));
+
+        return visibleIds
+            .map((categoryId) => {
+                const category = getCategoryById(categoryId);
+                return category
+                    ? buildCategoryOptionMarkup(
+                        category,
+                        state.config.categories,
+                        state.extraQuestionsCategoryIds.includes(categoryId)
+                    )
+                    : '';
+            })
+            .join('');
+    }
+
+    function refreshExtraQuestionsDropdownOptions(maxExtra) {
+        const html = buildExtraQuestionsOptionsHtml();
+        const values = state.extraQuestionsCategoryIds.slice();
+        const limit = Math.max(1, maxExtra);
+
+        refs.extraQuestionsCategory.dataset.maxItems = String(limit);
+
+        if (window.EmsSelect && typeof window.EmsSelect.replaceOptions === 'function') {
+            const prevInstance = window.EmsSelect.get('extra_questions_category');
+            const wasOpen = prevInstance ? prevInstance.isOpen : false;
+
+            window.EmsSelect.replaceOptions('extra_questions_category', html, values, limit);
+
+            const newInstance = window.EmsSelect.get('extra_questions_category');
+            const isComplete = limit > 0 && values.length >= limit;
+            if (newInstance && wasOpen && !isComplete) {
+                newInstance.open();
+            }
+        } else {
+            refs.extraQuestionsCategory.innerHTML = html;
+        }
+    }
+
+    function renderExtraQuestionsCategorySelect(distribution, options = {}) {
+        const selectedIds = [...state.selectedCategories];
+        const optionsKey = getExtraQuestionsOptionsKey(selectedIds, distribution.remainder);
+        const maxExtra = Math.max(1, distribution.remainder);
+        const forceRefresh = options.forceOptionsRefresh === true;
+
+        if (refs.extraQuestionsLabel) {
+            refs.extraQuestionsLabel.textContent = distribution.remainder > 1
+                ? `Categories for Extra Questions (${distribution.remainder} max)`
+                : 'Category for Extra Questions';
+        }
+        if (refs.extraQuestionsHelp) {
+            refs.extraQuestionsHelp.textContent = distribution.remainder > 1
+                ? `Select up to ${distribution.remainder} categories. Allocate the extra questions manually if fewer than ${distribution.remainder} categories are chosen.`
+                : 'The remainder question will be assigned to this category.';
+        }
+
+        state.extraQuestionsCategoryIds = applyExtraCategorySelectionRules(
+            state.extraQuestionsCategoryIds,
+            maxExtra,
+            selectedIds
+        );
+
+        state.isSyncingExtraQuestions = true;
+
+        try {
+            if (forceRefresh || state.extraQuestionsOptionsKey !== optionsKey) {
+                state.extraQuestionsOptionsKey = optionsKey;
+                normalizeExtraQuestionCategoryIds(selectedIds, distribution.remainder);
+            }
+
+            state.extraQuestionsCategoryIds = applyExtraCategorySelectionRules(
+                state.extraQuestionsCategoryIds,
+                maxExtra,
+                selectedIds
+            );
+
+            refreshExtraQuestionsDropdownOptions(maxExtra);
+            syncExtraQuestionsHidden();
+        } finally {
+            state.isSyncingExtraQuestions = false;
+        }
+    }
+
+    function renderFixedDistributionListOnly() {
+        const distribution = computeFixedCategoryDistribution();
+        refs.fixedDistributionList.innerHTML = distribution.rows
+            .map((row) => `<li>${escapeHtml(getCategoryLabelById(row.categoryId))}: <strong>${row.count}</strong> questions</li>`)
+            .join('');
+    }
+
+    function renderExtraQuestionsAllocations(distribution) {
+        const S = distribution.extraCategoryIds.length;
+        const E = distribution.remainder;
+
+        if (S > 1 && S < E) {
+            refs.extraQuestionsAllocationsWrap.hidden = false;
+            refs.remainingCount.textContent = String(E);
+            refs.allocatedCount.textContent = String(distribution.totalAllocated);
+
+            const maxAllowed = E - S + 1;
+
+            const allocationsHtml = distribution.extraCategoryIds.map((categoryId) => {
+                const categoryName = escapeHtml(getCategoryLabelById(categoryId));
+                const count = state.extraQuestionsAllocations[categoryId] || 1;
+                return `
+                    <div>
+                        <label class="exam-label">${categoryName}</label>
+                        <input type="number" class="panel-input extra-question-allocation-input" data-category-id="${escapeHtml(categoryId)}" value="${count}" min="1" max="${maxAllowed}">
+                    </div>
+                `;
+            }).join('');
+
+            const structureKey = distribution.extraCategoryIds.join(',');
+            if (refs.extraQuestionsAllocationList.dataset.structureKey !== structureKey) {
+                refs.extraQuestionsAllocationList.innerHTML = allocationsHtml;
+                refs.extraQuestionsAllocationList.dataset.structureKey = structureKey;
+
+                refs.extraQuestionsAllocationList.querySelectorAll('.extra-question-allocation-input').forEach((input) => {
+                    input.addEventListener('input', (e) => {
+                        const cid = e.target.dataset.categoryId;
+                        let rawVal = parseInt(e.target.value, 10);
+                        const maxVal = parseInt(e.target.getAttribute('max'), 10) || 1;
+
+                        if (isNaN(rawVal) || rawVal < 1) {
+                            rawVal = 1;
+                            e.target.value = rawVal;
+                        } else if (rawVal > maxVal) {
+                            rawVal = maxVal;
+                            e.target.value = rawVal;
+                        }
+
+                        state.extraQuestionsAllocations[cid] = rawVal;
+                        syncExtraQuestionsAllocations();
+                        updateAll();
+                    });
+                });
+            } else {
+                refs.extraQuestionsAllocationList.querySelectorAll('.extra-question-allocation-input').forEach((input) => {
+                    if (document.activeElement === input) return;
+                    const cid = input.dataset.categoryId;
+                    const val = state.extraQuestionsAllocations[cid] || 1;
+                    if (String(input.value) !== String(val)) {
+                        input.value = val;
+                    }
+                });
+            }
+
+            syncExtraQuestionsAllocations();
+
+        } else {
+            refs.extraQuestionsAllocationsWrap.hidden = true;
+            refs.extraQuestionsAllocationList.innerHTML = '';
+            refs.extraQuestionsAllocationList.dataset.structureKey = '';
+            
+            refs.allocatedCount.textContent = String(distribution.totalAllocated || 0);
+            refs.remainingCount.textContent = String(E);
+        }
+    }
+
+    function renderFixedCategoryDistribution() {
+        if (!refs.fixCategoryQuestions.checked || state.selectedCategories.size === 0) {
+            refs.fixedDistributionCard.hidden = true;
+            refs.fixedDistributionList.innerHTML = '';
+            refs.extraQuestionsWrap.hidden = true;
+            if (refs.extraQuestionsAllocationsWrap) refs.extraQuestionsAllocationsWrap.hidden = true;
+            state.extraQuestionsOptionsKey = '';
+            return;
+        }
+
+        const distribution = computeFixedCategoryDistribution();
+
+        refs.fixedDistributionCard.hidden = false;
+        
+        let helperText = `Exact allocation is ${distribution.base} questions per selected category.`;
+        if (distribution.remainder > 0) {
+            if (distribution.remainder > 1) {
+                helperText = `Base allocation is ${distribution.base} per category. Choose up to ${distribution.remainder} categories to receive extra questions.`;
+            } else {
+                helperText = `Base allocation is ${distribution.base} per category. Choose one category to receive the extra question.`;
+            }
+        }
+        refs.fixedDistributionHelper.textContent = helperText;
+
+        if (distribution.remainder > 0) {
+            refs.extraQuestionsWrap.hidden = false;
+            renderExtraQuestionsCategorySelect(distribution);
+        } else {
+            refs.extraQuestionsWrap.hidden = true;
+            state.extraQuestionsOptionsKey = '';
+        }
+
+        renderExtraQuestionsAllocations(distribution);
+        renderFixedDistributionListOnly();
+    }
+
+    function updateConfigPreview() {
+        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
+        const totalCategories = Math.max(1, toInt(refs.totalCategories.value, 1));
+        const selectedCount = state.selectedCategories.size;
+        const paperSets = Math.max(1, toInt(refs.paperSets.value, 1));
+        const totalMarks = Math.max(0, toInt(refs.totalMarks.value, 0));
+        const passingMarks = Math.max(0, toInt(refs.passingMarks.value, 0));
+        const fixedPerCategory = refs.fixCategoryQuestions.checked;
+        const perCategoryTarget = computeCategoryTarget();
+        const distribution = state.config.distributionTypes.find((item) => item.id === state.selectedDistributionType);
+
+        refs.paperSets.min = '1';
+        refs.paperSets.max = String(totalQuestions);
+        refs.paperSetsHelper.textContent = `Allowed range: 1 to ${totalQuestions} set(s).`;
+        refs.categoryTargetHelper.textContent = `Target category count: ${totalCategories}. Current selection: ${selectedCount}.`;
+
+        const fixedDistribution = computeFixedCategoryDistribution();
+        const fixedInfo = fixedPerCategory
+            ? (
+                fixedDistribution.selectedCount > 0
+                    ? `Fixed allocation: ${fixedDistribution.base} each${fixedDistribution.remainder ? ` + ${fixedDistribution.remainder} extra distributed among ${fixedDistribution.extraCategoryIds.map((id) => getCategoryLabelById(id)).join(', ')}` : ''}`
+                    : 'Fixed allocation enabled. Select categories to calculate distribution.'
+            )
+            : 'Fixed allocation disabled';
+
+        refs.configPreviewList.innerHTML = [
+            `<li>Total questions planned: <strong>${totalQuestions}</strong></li>`,
+            `<li>Distribution mode: <strong>${escapeHtml(distribution?.label || '-')}</strong></li>`,
+            `<li>Paper sets: <strong>${paperSets}</strong> / ${totalQuestions}</li>`,
+            `<li>Category requirement: <strong>${selectedCount}</strong> selected of ${totalCategories}</li>`,
+            `<li>Passing threshold: <strong>${passingMarks}</strong> of ${totalMarks} marks</li>`,
+            `<li>${escapeHtml(fixedInfo)}</li>`,
+        ].join('');
+
+        const validations = [];
+        validations.push(
+            selectedCount === totalCategories
+                ? '<li class="status-ok">Category selection count is exact.</li>'
+                : '<li class="status-warning">Select exactly the configured number of categories.</li>'
+        );
+        validations.push(
+            paperSets >= 1 && paperSets <= totalQuestions
+                ? '<li class="status-ok">Paper sets are within allowed limits.</li>'
+                : '<li class="status-error">Paper sets must be between 1 and total questions.</li>'
+        );
+        validations.push(
+            passingMarks <= totalMarks
+                ? '<li class="status-ok">Passing marks do not exceed total marks.</li>'
+                : '<li class="status-error">Passing marks cannot exceed total marks.</li>'
+        );
+        if (fixedPerCategory) {
+            if (fixedDistribution.remainder > 0) {
+                if (fixedDistribution.extraCategoryIds.length === 0) {
+                    validations.push(`<li class="status-warning">Select ${fixedDistribution.remainder === 1 ? 'a category' : 'categories'} for extra questions.</li>`);
+                } else if (fixedDistribution.totalAllocated < fixedDistribution.remainder) {
+                    validations.push(`<li class="status-warning">Please allocate exactly ${fixedDistribution.remainder} extra questions. Currently allocated: ${fixedDistribution.totalAllocated}.</li>`);
+                } else if (fixedDistribution.totalAllocated > fixedDistribution.remainder) {
+                    validations.push(`<li class="status-error">Allocated extra questions (${fixedDistribution.totalAllocated}) exceeds limit (${fixedDistribution.remainder}).</li>`);
+                } else {
+                    validations.push('<li class="status-ok">Extra question categories are configured.</li>');
+                }
+            } else {
+                validations.push('<li class="status-ok">Exact category distribution can be applied.</li>');
+            }
+        }
+
+        refs.configValidationList.innerHTML = validations.join('');
+    }
+
+    function updateQuestionBankCards() {
+        const totalCategories = Math.max(1, toInt(refs.totalCategories.value, 1));
+        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
+        const fixedPerCategory = refs.fixCategoryQuestions.checked;
+        const query = cleanText(refs.questionSearch.value).toLowerCase();
+        const perCategoryTarget = computeCategoryTarget();
+        const categoryPool = getAssignableCategories();
+        const fixedDistribution = computeFixedCategoryDistribution();
+        const distributionMap = new Map(fixedDistribution.rows.map((row) => [row.categoryId, row.count]));
+        let matchingSnippets = 0;
+
+        refs.questionCategoryCards.innerHTML = categoryPool
+            .map((category) => {
+                const selected = state.selectedCategories.has(category.id);
+                const available = Math.max(0, toInt(state.categoryAvailability[category.id], 0));
+                const target = selected
+                    ? (fixedPerCategory ? (distributionMap.get(category.id) || 0) : available)
+                    : 0;
+                const shortage = fixedPerCategory && selected && target > 0 && available < target;
+                const progress = target > 0 ? Math.min(100, Math.round((available / target) * 100)) : 0;
+                const statusClass = shortage ? 'status-warning' : 'status-good';
+                const statusLabel = shortage
+                    ? 'Insufficient questions'
+                    : (fixedPerCategory ? 'Sufficient availability' : 'Flexible allocation');
+
+                const snippets = state.questionBank
+                    .filter((question) => question.categoryId === category.id)
+                    .filter((question) => state.selectedMarks.has(Number(question.marks)))
+                    .filter((question) => !query || String(question.text || '').toLowerCase().includes(query))
+                    .slice(0, 6);
+
+                matchingSnippets += snippets.length;
+                const expanded = state.expandedCards.has(category.id);
+
+                const listHtml = snippets.length
+                    ? snippets.map((question) => `<li>#${question.id} (${question.marks}m) - ${escapeHtml(question.text)}</li>`).join('')
+                    : '<li>No questions match current marks/search filters.</li>';
+
+                return `
+                    <article class="question-category-card ${shortage ? 'is-warning' : ''} ${expanded ? 'is-expanded' : ''}">
+                        <div class="question-category-head">
+                            <div class="question-category-main">
+                                <input type="checkbox" data-role="category-toggle" data-category-id="${escapeHtml(category.id)}" ${selected ? 'checked' : ''}>
+                                <div>
+                                    <h4 class="question-category-title">${getCategoryDisplayHtml(category.id)} <span class="question-category-count">(${available}/${target || 0})</span></h4>
+                                    <p class="question-category-meta">${fixedPerCategory ? `Required target: ${target || 0}` : 'Required target: Flexible'} | Available: ${available}</p>
+                                    <span class="question-status ${statusClass}">${statusLabel}</span>
+                                </div>
+                            </div>
+                            <div class="question-category-actions">
+                                <button type="button" class="panel-button-secondary" data-action="add-question" data-category-id="${escapeHtml(category.id)}">Add Questions</button>
+                                <button type="button" class="icon-btn" data-action="toggle-expand" data-category-id="${escapeHtml(category.id)}">${expanded ? 'Hide' : 'View'}</button>
+                            </div>
+                        </div>
+                        <div class="question-progress">
+                            <div class="question-progress-bar"><span style="width:${progress}%;"></span></div>
+                            <p class="question-progress-text">${getCategoryDisplayHtml(category.id)} progress: ${available}/${target || 0}</p>
+                        </div>
+                        <div class="question-category-body">
+                            ${shortage ? '<p class="exam-help">This category is below required question count. Use Add Questions to fill the gap.</p>' : ''}
+                            <ul class="question-snippet-list">${listHtml}</ul>
+                        </div>
+                    </article>
+                `;
+            })
+            .join('');
+
+        refs.questionBankFeedback.textContent = !state.selectedMarks.size
+            ? 'Select at least one marks filter to fetch matching questions.'
+            : `Loaded ${matchingSnippets} matching sample question(s) across ${categoryPool.length} categories.`;
+    }
+
+    function renderDiscountSummary() {
+        if (!state.selectedDiscounts.size) {
+            refs.discountSummary.innerHTML = '<li>No discount rules selected.</li>';
+            return;
+        }
+
+        const selected = state.config.discountRules.filter((rule) => state.selectedDiscounts.has(rule.id));
+        refs.discountSummary.innerHTML = selected
+            .map((rule) => `<li>${escapeHtml(rule.label)} - ${escapeHtml(rule.summary)}</li>`)
+            .join('');
+    }
+
+    function updateWorkflowAndSnapshot() {
+        const basicComplete = cleanText(refs.title.value).length >= 3
+            && refs.difficulty.value && refs.status.value && refs.mode.value && refs.visibility.value;
+        const candidateVisible = !refs.candidateSection.hidden;
+        const candidateComplete = !candidateVisible || state.importedCandidates.length > 0 || state.manualEmails.length > 0;
+        const categoryLimit = toInt(refs.totalCategories.value, 0);
+        const configComplete = state.selectedCategories.size === categoryLimit && toInt(refs.totalQuestions.value, 0) > 0 &&
+            (!refs.fixCategoryQuestions.checked || computeFixedCategoryDistribution().totalAllocated === computeFixedCategoryDistribution().remainder);
+        const marksComplete = state.selectedMarks.size > 0;
+        const pricingComplete = refs.pricingSection.hidden || Boolean(state.selectedPricing);
+        const fixedDistribution = computeFixedCategoryDistribution();
+        const distributionMap = new Map(fixedDistribution.rows.map((row) => [row.categoryId, row.count]));
+        const shortages = refs.fixCategoryQuestions.checked
+            ? [...state.selectedCategories].filter((id) => {
+                const required = distributionMap.get(id) || 0;
+                return toInt(state.categoryAvailability[id], 0) < required;
+            }).length
+            : (() => {
+                const totalAvailable = [...state.selectedCategories].reduce(
+                    (sum, id) => sum + toInt(state.categoryAvailability[id], 0),
+                    0
+                );
+                return totalAvailable >= Math.max(1, toInt(refs.totalQuestions.value, 1)) ? 0 : 1;
+            })();
+        const questionBankComplete = state.selectedCategories.size > 0 && shortages === 0;
+        const instructionsComplete = getInstructionTextLength() > 20;
+
+        refs.workflowStatusList.innerHTML = [
+            { label: '1. Basic Information', complete: basicComplete },
+            { label: '2. Candidate Access', complete: candidateComplete },
+            { label: '3. Exam Configuration', complete: configComplete },
+            { label: '4. Question Rules', complete: marksComplete },
+            { label: '5. Pricing and Discount', complete: pricingComplete },
+            { label: '6. Question Bank', complete: questionBankComplete },
+            { label: '7. Instructions', complete: instructionsComplete },
+        ]
+            .map((item) => `<li class="${item.complete ? 'status-ok' : 'status-warning'}">${escapeHtml(item.label)} - ${item.complete ? 'Complete' : 'Pending'}</li>`)
+            .join('');
+
+        refs.snapshotVisibility.textContent = refs.visibility.options[refs.visibility.selectedIndex]?.textContent || '-';
+        refs.snapshotMode.textContent = refs.mode.options[refs.mode.selectedIndex]?.textContent || '-';
+        refs.snapshotCategories.textContent = String(state.selectedCategories.size);
+        refs.snapshotMarks.textContent = String(state.selectedMarks.size);
+        refs.snapshotCandidates.textContent = String(state.importedCandidates.length + state.manualEmails.length);
+        refs.snapshotDiscounts.textContent = String(state.selectedDiscounts.size);
+    }
+
+    async function initRichTextEditors() {
+        if (!window.EmsRichTextEditor || typeof window.EmsRichTextEditor.initAll !== 'function') {
+            if (refs.description) {
+                refs.description.classList.remove('hidden');
+                refs.description.classList.add('panel-input');
+            }
+            if (refs.instructions) {
+                refs.instructions.classList.remove('hidden');
+                refs.instructions.classList.add('panel-input');
+                refs.instructions.addEventListener('input', updateInstructionCounter);
+            }
+            updateInstructionCounter();
+            return;
+        }
+
+        let registry = new Map();
+        try {
+            registry = await Promise.race([
+                window.EmsRichTextEditor.initAll(document),
+                new Promise((_, reject) => {
+                    window.setTimeout(() => reject(new Error('Rich text editor init timed out')), 12000);
+                }),
+            ]);
+        } catch (error) {
+            console.warn(error);
+            if (refs.description) {
+                refs.description.classList.remove('hidden');
+                refs.description.classList.add('panel-input');
+            }
+            if (refs.instructions) {
+                refs.instructions.classList.remove('hidden');
+                refs.instructions.classList.add('panel-input');
+                refs.instructions.addEventListener('input', updateInstructionCounter);
+            }
+        }
+        state.richEditors = registry instanceof Map ? registry : new Map();
+
+        const descriptionEditor = getRichEditor('exam_description');
+        const instructionEditor = getRichEditor('candidate_instructions');
+
+        if (descriptionEditor) {
+            descriptionEditor.onChange(() => {
+                updateWorkflowAndSnapshot();
+            });
+        }
+
+        if (instructionEditor) {
+            instructionEditor.onChange(() => {
+                updateInstructionCounter();
+                updateWorkflowAndSnapshot();
+            });
+        }
+
+        updateInstructionCounter();
+    }
+
+    function applyInstructionTemplate() {
+        const template = state.config.instructionTemplates.find((item) => item.id === refs.instructionTemplate.value);
+        if (!template) return;
+
+        const instructionEditor = getRichEditor('candidate_instructions');
+        if (instructionEditor) {
+            instructionEditor.setData(template.content || '');
+        } else {
+            refs.instructions.value = template.content || '';
+        }
+
+        syncRichTextFields();
+        updateInstructionCounter();
+        updateWorkflowAndSnapshot();
+    }
+
+    function getInstructionTextLength() {
+        const html = getRichTextValue('candidate_instructions');
+        return cleanText(String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')).length;
+    }
+
+    function getRichEditor(inputId) {
+        if (!(state.richEditors instanceof Map)) {
+            return null;
+        }
+        return state.richEditors.get(inputId) || null;
+    }
+
+    function getRichTextValue(inputId) {
+        const editor = getRichEditor(inputId);
+        if (editor) {
+            return editor.getData();
+        }
+
+        const field = document.getElementById(inputId);
+        return field ? field.value : '';
+    }
+
+    function syncRichTextFields() {
+        if (!(state.richEditors instanceof Map) || state.richEditors.size === 0) {
+            return;
+        }
+        state.richEditors.forEach((editor) => {
+            if (editor && typeof editor.sync === 'function') {
+                editor.sync();
+            }
+        });
+    }
+
+    function updateInstructionCounter() {
+        syncRichTextFields();
+        refs.instructionsCount.textContent = String(getInstructionTextLength());
+    }
+
+    function openAddQuestionModal(categoryId) {
+        if (categoryId) {
+            if (window.EmsSelect && typeof window.EmsSelect.setValue === 'function') {
+                window.EmsSelect.setValue('new_question_category', categoryId);
+            } else {
+                refs.newQuestionCategory.value = categoryId;
+            }
+        }
+        refs.modal.hidden = false;
+    }
+
+    function closeAddQuestionModal() {
+        refs.modal.hidden = true;
+        refs.addQuestionForm.reset();
+
+        if (window.EmsSelect && typeof window.EmsSelect.setValue === 'function') {
+            ['new_question_category', 'new_question_marks', 'new_question_difficulty'].forEach((fieldId) => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    window.EmsSelect.setValue(fieldId, field.value);
+                }
+            });
+        }
+    }
+
+    function addQuestionFromModal() {
+        const categoryId = refs.newQuestionCategory.value;
+        const marks = toInt(refs.newQuestionMarks.value, 1);
+        const difficulty = refs.newQuestionDifficulty.value || 'medium';
+        const text = cleanText(refs.newQuestionText.value);
+
+        if (!categoryId || !text) {
+            showFormErrors(['Please select category and write question text before adding.']);
+            return;
+        }
+
+        clearFormErrors();
+        const nextId = state.questionBank.length
+            ? Math.max(...state.questionBank.map((question) => toInt(question.id, 0))) + 1
+            : 2001;
+
+        state.questionBank.push({ id: nextId, categoryId, marks, difficulty, text });
+        state.categoryAvailability[categoryId] = toInt(state.categoryAvailability[categoryId], 0) + 1;
+        closeAddQuestionModal();
+        renderCategorySelector();
+        updateQuestionBankCards();
+        updateWorkflowAndSnapshot();
+    }
+
+    function collectSubmissionErrors() {
+        const errors = [];
+        const totalQuestions = toInt(refs.totalQuestions.value, 0);
+        const totalCategories = normalizeTotalCategoriesInput();
+        const totalMarks = toInt(refs.totalMarks.value, 0);
+        const passingMarks = toInt(refs.passingMarks.value, 0);
+        const paperSets = toInt(refs.paperSets.value, 0);
+
+        if (cleanText(refs.title.value).length < 3) errors.push('Exam title must be at least 3 characters long.');
+        if (totalQuestions < 1) errors.push('Total questions must be at least 1.');
+        if (totalCategories < 1) errors.push('Total categories must be at least 1.');
+        if (state.selectedCategories.size !== totalCategories) errors.push('Selected categories must exactly match Total Categories Used.');
+        if (!Number.isInteger(paperSets) || paperSets < 1 || paperSets > totalQuestions) errors.push('Paper sets must be a whole number between 1 and total questions.');
+        if (passingMarks > totalMarks) errors.push('Passing marks cannot exceed total marks.');
+        if (refs.fixCategoryQuestions.checked) {
+            const distribution = computeFixedCategoryDistribution();
+            if (distribution.remainder === 1 && !distribution.extraCategoryIds.length) {
+                errors.push('Select a category to receive the remainder question in fixed allocation mode.');
+            }
+            if (distribution.remainder > 1 && !distribution.extraCategoryIds.length) {
+                errors.push('Select at least one category to receive extra questions in fixed allocation mode.');
+            }
+            if (distribution.remainder > 1 && distribution.extraCategoryIds.length > 0 && distribution.totalAllocated !== distribution.remainder) {
+                errors.push(`Please allocate exactly ${distribution.remainder} extra questions. Currently allocated: ${distribution.totalAllocated}.`);
+            }
+        } else {
+            const totalAvailable = [...state.selectedCategories].reduce(
+                (sum, categoryId) => sum + toInt(state.categoryAvailability[categoryId], 0),
+                0
+            );
+            if (totalAvailable < totalQuestions) {
+                errors.push('Selected categories do not have enough total questions for flexible allocation.');
+            }
+        }
+        if (!state.selectedMarks.size) errors.push('Select at least one question marks filter.');
+        if (!refs.candidateSection.hidden && state.importedCandidates.length + state.manualEmails.length === 0) errors.push('Add at least one candidate email for the current access configuration.');
+        if (!refs.pricingSection.hidden && !state.selectedPricing) errors.push('Select one pricing option.');
+
+        refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
+        refs.marksHidden.value = JSON.stringify([...state.selectedMarks]);
+        refs.discountHidden.value = JSON.stringify([...state.selectedDiscounts]);
+        refs.pricingOptionHidden.value = state.selectedPricing;
+        refs.tagsHidden.value = JSON.stringify(state.tags);
+        refs.manualEmailsHidden.value = JSON.stringify(state.manualEmails);
+        refs.importedCandidatesHidden.value = JSON.stringify(state.importedCandidates);
+        syncExtraQuestionsHidden();
+
+        return errors;
+    }
+
+    function showFormErrors(errors) {
+        refs.errorBanner.hidden = false;
+        refs.errorBanner.innerHTML = `
+            <strong>Please resolve the following:</strong>
+            <ul>${errors.map((error) => `<li>${escapeHtml(error)}</li>`).join('')}</ul>
+        `;
+    }
+
+    function clearFormErrors() {
+        refs.errorBanner.hidden = true;
+        refs.errorBanner.innerHTML = '';
+    }
+
+    function showLoader() {
+        refs.loader.classList.remove('is-hidden');
+    }
+
+    function hideLoader() {
+        if (!refs.loader) {
+            return;
+        }
+
+        refs.loader.classList.add('is-hidden');
+        if (refs.page) {
+            refs.page.setAttribute('data-page-ready', 'true');
+        }
+
+        window.setTimeout(() => {
+            setDefaultFocusOnTitle();
+        }, 50);
+    }
+
+    function setDefaultFocusOnTitle() {
+        if (!refs.title || refs.title.disabled) {
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            refs.title.focus({ preventScroll: true });
+        });
+    }
+
+    function updateAll() {
+        updateConditionalSections();
+        updateConfigPreview();
+        renderFixedCategoryDistribution();
+        updateQuestionBankCards();
+        renderDiscountSummary();
+        updateWorkflowAndSnapshot();
     }
 });

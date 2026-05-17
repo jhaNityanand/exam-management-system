@@ -4,40 +4,6 @@
 @section('page-title', 'Create Exam')
 @section('content-container-class', 'max-w-none')
 
-@php
-    $realCategories = $categories->values();
-    $realCategoryNames = $realCategories->pluck('name', 'id');
-
-    $realQuestions = $questions->map(function ($question) use ($realCategoryNames) {
-        return [
-            'id'            => (int) $question->id,
-            'body'          => (string) $question->body,
-            'category_id'   => $question->category_id ? (int) $question->category_id : null,
-            'category_name' => $realCategoryNames[$question->category_id] ?? 'Uncategorized',
-            'marks'         => (int) ($question->marks ?? 1),
-            'difficulty'    => (string) ($question->difficulty ?? 'medium'),
-            'type'          => (string) ($question->type ?? 'mcq'),
-        ];
-    })->values();
-
-    $demoQuestions = collect([
-        ['id'=>9001,'body'=>'Explain the difference between RESTful and RPC-style API design in production systems.','category_id'=>301,'category_name'=>'Web Development','marks'=>5,'difficulty'=>'medium','type'=>'short_answer'],
-        ['id'=>9002,'body'=>'In a queue implemented with arrays, what is the time complexity of dequeue in the naive approach?','category_id'=>302,'category_name'=>'Data Structures','marks'=>2,'difficulty'=>'easy','type'=>'mcq'],
-        ['id'=>9003,'body'=>'State whether this claim is true or false: TLS only secures data at rest.','category_id'=>303,'category_name'=>'Networking','marks'=>1,'difficulty'=>'easy','type'=>'true_false'],
-        ['id'=>9004,'body'=>'A payment service handles 1,200 requests/sec. Which scaling strategy best reduces single-region failure impact?','category_id'=>304,'category_name'=>'System Design','marks'=>4,'difficulty'=>'hard','type'=>'mcq'],
-        ['id'=>9005,'body'=>'Write a short explanation of eventual consistency and where it is acceptable in enterprise products.','category_id'=>304,'category_name'=>'System Design','marks'=>6,'difficulty'=>'medium','type'=>'short_answer'],
-        ['id'=>9006,'body'=>'Which HTTP status code is most appropriate when a user is authenticated but lacks permission to access a resource?','category_id'=>301,'category_name'=>'Web Development','marks'=>2,'difficulty'=>'easy','type'=>'mcq'],
-    ]);
-
-    $questionBank             = $realQuestions->isNotEmpty() ? $realQuestions : $demoQuestions;
-    $isDemoQuestionBank       = $realQuestions->isEmpty();
-    $selectedQuestionIds      = collect(old('question_ids', []))->map(fn ($v) => (string) $v)->all();
-    $questionFilterCategories = $questionBank
-        ->map(fn ($q) => ['id' => (string) ($q['category_id'] ?? 'none'), 'name' => (string) ($q['category_name'] ?? 'Uncategorized')])
-        ->unique('id')
-        ->values();
-@endphp
-
 @section('breadcrumbs')
     <x-breadcrumb :items="[
         ['label' => 'Admin',  'url' => route('admin.dashboard')],
@@ -47,392 +13,382 @@
 @endsection
 
 @section('content')
-<div class="w-full">
-    <x-page-card class="exam-builder-card overflow-hidden">
-        <form action="{{ route('admin.exams.store') }}" method="POST" id="exam-create-form" class="exam-builder">
+<div id="exam-create-page" class="exam-create-page" data-page-ready="false">
+    <div id="exam-page-loader" class="exam-page-loader" aria-live="polite" aria-busy="true">
+        <div class="exam-page-loader__inner">
+            <span class="exam-page-loader__spinner" aria-hidden="true"></span>
+            <p>Preparing exam creation workspace...</p>
+        </div>
+    </div>
+
+    <x-page-card class="exam-shell-card overflow-hidden">
+        <form action="{{ route('admin.exams.store') }}" method="POST" id="exam-create-form" class="exam-create-form" novalidate>
             @csrf
 
-            {{-- ── Header ──────────────────────────────────────── --}}
-            <div class="exam-builder__header">
+            <header class="exam-page-header">
                 <div>
-                    <h1 class="exam-builder__title">Create exam configuration</h1>
-                    <p class="exam-builder__subtitle">
-                        Configure exam rules, schedule windows, and question selection from one workspace.
-                    </p>
+                    <h1>Create Exam</h1>
+                    <p>Build a structured exam flow with clear rules, candidate access control, and question availability checks.</p>
                 </div>
-            </div>
+                <span class="exam-header-badge">Draft Workspace</span>
+            </header>
 
-            {{-- ── Body (main + aside) ──────────────────────────── --}}
-            <div class="exam-builder__body">
-                <div class="exam-builder__main space-y-6">
-
-                    {{-- ─ Section 1 · Identity ─ --}}
-                    <section class="exam-block">
-                        <div class="exam-block__head">
-                            <h2>Basic details</h2>
-                            <p>Name, classify, and describe this exam for filtering and reporting.</p>
+            <div class="exam-create-layout">
+                <main class="exam-create-main">
+                    <section class="exam-section" id="exam-basic-information">
+                        <div class="exam-section__head">
+                            <h2>1. Exam Basic Information</h2>
+                            <p>Define the exam identity first so downstream sections can adapt correctly.</p>
                         </div>
-
-                        <div class="exam-block__content space-y-4">
-
-                            {{-- 4-column meta strip (mirrors question form) --}}
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-                                {{-- Category --}}
+                        <div class="exam-section__body space-y-5">
+                            <div class="exam-basic-stack space-y-4">
                                 <div>
-                                    <label for="category_id" class="exam-label">
-                                        Category <span class="form-required">*</span>
-                                    </label>
-                                    <select id="category_id" name="category_id" class="panel-input mt-1 block w-full" data-summary-field="category">
-                                        <option value="">Search or select…</option>
-                                        <option value="1" class="font-semibold">Science</option>
-                                        <option value="2">&nbsp;&nbsp;&nbsp;&nbsp;Physics</option>
-                                        <option value="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Classical Mechanics</option>
-                                        <option value="4">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Quantum Physics</option>
-                                        <option value="6">&nbsp;&nbsp;&nbsp;&nbsp;Biology</option>
-                                        <option value="8">&nbsp;&nbsp;&nbsp;&nbsp;Chemistry</option>
-                                        <option value="9" class="font-semibold">Mathematics</option>
-                                        <option value="10">&nbsp;&nbsp;&nbsp;&nbsp;Algebra</option>
-                                        <option value="11">&nbsp;&nbsp;&nbsp;&nbsp;Geometry</option>
-                                        <option value="12">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Trigonometry</option>
-                                        <option value="14" class="font-semibold">Computer Science</option>
-                                        <option value="15">&nbsp;&nbsp;&nbsp;&nbsp;Programming</option>
-                                        <option value="16">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Web Development</option>
-                                        <option value="17">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Structures</option>
-                                        @foreach ($realCategories as $cat)
-                                            <option value="{{ $cat->id }}" @selected((string) old('category_id') === (string) $cat->id)>
-                                                {{ $cat->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <p class="form-field-error @error('category_id') is-visible @enderror" data-error-for="category_id">@error('category_id'){{ $message }}@enderror</p>
+                                    <label for="exam_title" class="exam-label">Title <span class="form-required">*</span></label>
+                                    <input id="exam_title" name="title" type="text" class="panel-input" value="{{ old('title') }}" placeholder="e.g. Senior Laravel Assessment - June 2026">
                                 </div>
 
-                                {{-- Exam mode --}}
-                                <div>
-                                    <label for="exam_mode" class="exam-label">
-                                        Exam mode <span class="form-required">*</span>
-                                    </label>
-                                    <select id="exam_mode" name="exam_mode" class="panel-input mt-1 block w-full" data-summary-field="mode">
-                                        @foreach (['standard', 'practice', 'proctored'] as $mode)
-                                            <option value="{{ $mode }}" @selected(old('exam_mode', 'standard') === $mode)>{{ ucfirst($mode) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="form-field-error @error('exam_mode') is-visible @enderror" data-error-for="exam_mode">@error('exam_mode'){{ $message }}@enderror</p>
-                                </div>
-
-                                {{-- Difficulty level --}}
-                                <div>
-                                    <label for="difficulty_level" class="exam-label">Difficulty level</label>
-                                    <select id="difficulty_level" name="difficulty_level" class="panel-input mt-1 block w-full" data-summary-field="difficulty">
-                                        @foreach (['beginner', 'intermediate', 'advanced'] as $dl)
-                                            <option value="{{ $dl }}" @selected(old('difficulty_level', 'intermediate') === $dl)>{{ ucfirst($dl) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="form-field-error @error('difficulty_level') is-visible @enderror" data-error-for="difficulty_level">@error('difficulty_level'){{ $message }}@enderror</p>
-                                </div>
-
-                                {{-- Status --}}
-                                <div>
-                                    <label for="status" class="exam-label">
-                                        Status <span class="form-required">*</span>
-                                    </label>
-                                    <select id="status" name="status" class="panel-input mt-1 block w-full" data-summary-field="status">
-                                        @foreach (['draft', 'published', 'active', 'inactive', 'suspended'] as $st)
-                                            <option value="{{ $st }}" @selected(old('status', 'draft') === $st)>{{ ucfirst($st) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="form-field-error @error('status') is-visible @enderror" data-error-for="status">@error('status'){{ $message }}@enderror</p>
-                                </div>
+                                <x-rich-text-editor
+                                    label="Description"
+                                    input-id="exam_description"
+                                    name="description"
+                                    :value="old('description')"
+                                    placeholder="Summarize scope, audience, and expected outcomes."
+                                    :height="210"
+                                    :toolbar="['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']"
+                                />
                             </div>
 
-                            {{-- Visibility + Tags --}}
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div class="exam-grid exam-grid--3" id="basic-meta-grid">
                                 <div>
-                                    <label for="visibility" class="exam-label">Visibility</label>
-                                    <select id="visibility" name="visibility" class="panel-input mt-1 block w-full" data-summary-field="visibility">
-                                        <option value="public"  @selected(old('visibility', 'public')  === 'public') >Public  — anyone can attempt</option>
-                                        <option value="private" @selected(old('visibility', 'public')  === 'private')>Private — invite only</option>
-                                        <option value="invite"  @selected(old('visibility', 'public')  === 'invite') >Link only — via direct URL</option>
-                                    </select>
-                                    <p class="form-field-error @error('visibility') is-visible @enderror" data-error-for="visibility">@error('visibility'){{ $message }}@enderror</p>
+                                    <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-tooltip="Used for filtering and recommendation in reports.">i</span></label>
+                                    <select id="difficulty_level" name="difficulty_level" class="panel-input"></select>
                                 </div>
-
                                 <div>
-                                    <label for="tags" class="exam-label">Tags</label>
-                                    <input
-                                        id="tags"
-                                        type="text"
-                                        name="tags"
-                                        value="{{ old('tags') }}"
-                                        class="panel-input mt-1 block w-full"
-                                        placeholder="e.g. backend, certification, batch-a"
-                                    >
-                                    <p class="exam-help">Comma-separated — used for search and grouping.</p>
+                                    <label for="exam_status" class="exam-label">Status <span class="form-required">*</span></label>
+                                    <select id="exam_status" name="status" class="panel-input"></select>
+                                </div>
+                                <div>
+                                    <label for="exam_mode" class="exam-label">Exam Mode <span class="form-required">*</span></label>
+                                    <select id="exam_mode" name="exam_mode" class="panel-input"></select>
+                                </div>
+                                <div>
+                                    <label for="exam_visibility" class="exam-label">Visibility <span class="form-required">*</span></label>
+                                    <select id="exam_visibility" name="visibility" class="panel-input"></select>
+                                </div>
+                                <div class="exam-grid-span-2">
+                                    <label for="exam-tags-input" class="exam-label">Tags <span class="info-tip" tabindex="0" role="button" aria-label="Tags input info" data-tooltip="Press Enter to add each tag. Commas are ignored.">i</span></label>
+                                    <div class="chip-input" data-chip-input="tags">
+                                        <input id="exam-tags-input" type="text" placeholder="Type a tag and press Enter">
+                                    </div>
+                                    <input type="hidden" name="tags" id="exam_tags" value="[]">
+                                    <p class="exam-help">Tags help in searching, segmentation, and reporting.</p>
                                 </div>
                             </div>
+                        </div>
+                    </section>
 
-                            {{-- Title --}}
-                            <div>
-                                <label for="title" class="exam-label">
-                                    Exam title <span class="form-required">*</span>
+                    <section class="exam-section" id="candidate-access-section" hidden>
+                        <div class="exam-section__head">
+                            <h2>2. Candidate Access Management</h2>
+                            <p>Import or manually add candidate emails for controlled access.</p>
+                        </div>
+                        <div class="exam-section__body space-y-4">
+                            <div class="segmented-control" role="tablist" aria-label="Candidate access method">
+                                <button type="button" class="segmented-control__button is-active" data-candidate-tab="import" role="tab" aria-selected="true">Import Excel</button>
+                                <button type="button" class="segmented-control__button" data-candidate-tab="manual" role="tab" aria-selected="false">Manual Entry</button>
+                            </div>
+
+                            <div class="candidate-panel is-active" data-candidate-panel="import">
+                                <div class="candidate-panel__row">
+                                    <p class="exam-help">Use a spreadsheet with <strong>Name</strong> and <strong>Email</strong> columns.</p>
+                                    <a class="panel-button-secondary" href="{{ asset('data/exam-create/sample-candidates.csv') }}" download>Download Sample Excel Format</a>
+                                </div>
+
+                                <label class="drop-zone" id="candidate-drop-zone">
+                                    <input id="candidate_excel_file" type="file" name="candidate_excel_file" class="sr-only" accept=".csv,.xls,.xlsx">
+                                    <strong>Drag and drop Excel/CSV file</strong>
+                                    <span>or click to choose file</span>
                                 </label>
-                                <input
-                                    id="title"
-                                    type="text"
-                                    name="title"
-                                    value="{{ old('title') }}"
+
+                                <input type="hidden" name="imported_candidates" id="imported_candidates" value="[]">
+                                <div id="imported-candidate-preview" class="candidate-preview" hidden></div>
+                            </div>
+
+                            <div class="candidate-panel" data-candidate-panel="manual" hidden>
+                                <label for="manual-email-input" class="exam-label">Add candidate emails</label>
+                                <div class="chip-input" data-chip-input="emails">
+                                    <input id="manual-email-input" type="text" placeholder="Type email and press Enter">
+                                </div>
+                                <input type="hidden" name="manual_candidate_emails" id="manual_candidate_emails" value="[]">
+                                <p id="manual-email-feedback" class="exam-help"></p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="exam-section" id="exam-configuration-section">
+                        <div class="exam-section__head">
+                            <h2>3. Exam Configuration</h2>
+                            <p>Configure question volume, category requirements, marks, and set generation rules.</p>
+                        </div>
+                        <div class="exam-section__body space-y-5">
+                            <div class="exam-grid exam-grid--3">
+                                <div>
+                                    <label for="total_questions" class="exam-label">Total Questions Ask <span class="form-required">*</span></label>
+                                    <input id="total_questions" name="total_questions" type="number" class="panel-input" min="1" step="1" value="50" placeholder="Enter total questions">
+                                </div>
+                                <div>
+                                    <label for="total_categories" class="exam-label">Total Categories Used <span class="form-required">*</span></label>
+                                    <input id="total_categories" name="total_categories" type="number" class="panel-input" min="1" step="1" value="3" placeholder="Enter category count">
+                                    <p id="category-target-helper" class="exam-help"></p>
+                                </div>
+                                <div>
+                                    <label for="total_marks" class="exam-label">Total Marks <span class="form-required">*</span></label>
+                                    <input id="total_marks" name="total_marks" type="number" class="panel-input" min="1" step="1" value="100" placeholder="Enter total marks">
+                                </div>
+                                <div>
+                                    <label for="passing_marks" class="exam-label">Passing Marks <span class="form-required">*</span></label>
+                                    <input id="passing_marks" name="passing_marks" type="number" class="panel-input" min="0" step="1" value="40" placeholder="Enter passing marks">
+                                </div>
+                                <div>
+                                    <label for="paper_sets" class="exam-label">Number of Paper Sets Generated <span class="form-required">*</span></label>
+                                    <input id="paper_sets" name="paper_sets" type="number" class="panel-input" min="1" step="1" value="1" placeholder="Minimum 1">
+                                    <p id="paper-sets-helper" class="exam-help"></p>
+                                </div>
+                                <div>
+                                    <label class="exam-label">Fix Each Category Question Count</label>
+                                    <label class="switch-control">
+                                        <input id="fix_category_questions" name="fix_category_questions" type="checkbox" value="1">
+                                        <span class="switch-control__track"></span>
+                                        <span class="switch-control__label">Enable exact per-category question allocation</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="exam-label">Question Distribution Type</label>
+                                <div id="distribution-type-group" class="pill-group"></div>
+                            </div>
+
+                            <div id="category-selector-wrap">
+                                <div class="exam-section__mini-head">
+                                    <h3>Select Categories</h3>
+                                    <p>Select exactly the number of categories defined above.</p>
+                                </div>
+                                <select
+                                    id="selected_categories_select"
                                     class="panel-input"
-                                    placeholder="e.g. Backend Engineering Assessment — April Batch"
-                                    data-summary-field="title"
-                                >
-                                <p class="form-field-error @error('title') is-visible @enderror" data-error-for="title">@error('title'){{ $message }}@enderror</p>
+                                    multiple
+                                    data-select-mode="multiple"
+                                    data-option-style="hierarchy"
+                                    data-placeholder="Select categories"
+                                    data-max-items="3"
+                                ></select>
+                                <input type="hidden" name="selected_categories" id="selected_categories" value="[]">
+                                <p id="category-selection-feedback" class="exam-help"></p>
                             </div>
 
-                            {{-- Description (rich editor) --}}
+                            <div id="category-selection-complete" class="config-preview-card" hidden>
+                                <p class="exam-help"><strong id="category-selection-complete-text"></strong></p>
+                            </div>
+
+                            <div id="fixed-category-distribution" class="config-preview-card" hidden>
+                                <h4>Fixed Category Question Allocation</h4>
+                                <p class="exam-help" id="fixed-distribution-helper"></p>
+
+                                <div id="extra-questions-wrap" class="mt-2" hidden>
+                                    <label for="extra_questions_category" id="extra-questions-label" class="exam-label">Category for Extra Questions</label>
+                                    <select
+                                        id="extra_questions_category"
+                                        class="panel-input"
+                                        multiple
+                                        data-select-mode="multiple"
+                                        data-option-style="hierarchy"
+                                        data-placeholder="Select categories for extra questions"
+                                        data-max-items="1"
+                                    ></select>
+                                    <input type="hidden" name="extra_questions_categories" id="extra_questions_categories" value="[]">
+                                    <p id="extra-questions-help" class="exam-help">Remainder questions will be assigned to the selected category.</p>
+
+                                    <div id="extra-questions-allocations-wrap" class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded" hidden>
+                                        <p class="exam-label mb-2">Distribute Extra Questions <span class="text-sm font-normal text-gray-500">(Allocated: <span id="allocated-count">0</span> / <span id="remaining-count">0</span>)</span></p>
+                                        <div id="extra-questions-allocation-list" class="exam-grid exam-grid--3"></div>
+                                        <input type="hidden" name="extra_questions_allocations" id="extra_questions_allocations" value="{}">
+                                    </div>
+                                </div>
+
+                                <ul id="fixed-category-distribution-list" class="preview-list mt-2"></ul>
+                            </div>
+
+                            <div class="config-preview-grid">
+                                <article class="config-preview-card">
+                                    <h4>Live Calculation Preview</h4>
+                                    <ul id="config-preview-list" class="preview-list"></ul>
+                                </article>
+                                <article class="config-preview-card">
+                                    <h4>Validation Summary</h4>
+                                    <ul id="config-validation-list" class="preview-list"></ul>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="exam-section" id="question-rules-section">
+                        <div class="exam-section__head">
+                            <h2>4. Question Rules and Filters</h2>
+                            <p>Limit question import to selected marks only.</p>
+                        </div>
+                        <div class="exam-section__body space-y-4">
                             <div>
-                                <label for="description" class="exam-label">Description</label>
-                                <textarea id="description" name="description" rows="4" class="hidden"
-                                    placeholder="Share scope, target audience, and key sections.">{{ old('description') }}</textarea>
-                                <div id="editor-description" class="exam-editor-shell"></div>
-                                <p class="form-field-error @error('description') is-visible @enderror" data-error-for="description">@error('description'){{ $message }}@enderror</p>
+                                <label class="exam-label">Question Marks Filter</label>
+                                <div id="question-marks-filter" class="pill-group"></div>
+                                <input type="hidden" name="question_marks_filter" id="question_marks_filter" value="[]">
+                                <p class="exam-help">Only questions that match selected marks are available in the question bank.</p>
+                                <p class="exam-help"><strong id="selected-marks-count">0</strong> marks filters selected.</p>
                             </div>
+                        </div>
+                    </section>
 
-                            {{-- Instructions (rich editor) --}}
+                    <section class="exam-section" id="pricing-section">
+                        <div class="exam-section__head">
+                            <h2>5. Pricing and Discount Rules</h2>
+                            <p>Choose pricing strategy and attach predefined discount rules.</p>
+                        </div>
+                        <div class="exam-section__body space-y-5">
                             <div>
-                                <label for="instructions" class="exam-label">Instructions for candidates</label>
-                                <textarea id="instructions" name="instructions" rows="3" class="hidden"
-                                    placeholder="Guidelines shown to the candidate before the exam begins.">{{ old('instructions') }}</textarea>
-                                <div id="editor-instructions" class="exam-editor-shell"></div>
-                                <p class="form-field-error @error('instructions') is-visible @enderror" data-error-for="instructions">@error('instructions'){{ $message }}@enderror</p>
+                                <label class="exam-label">Pricing Option</label>
+                                <div id="pricing-options" class="option-card-grid"></div>
+                                <input type="hidden" name="pricing_option" id="pricing_option" value="">
+                                <p id="pricing-imported-note" class="exam-help" hidden>Imported candidates will get free access. Candidate import tools are now available.</p>
+                            </div>
+
+                            <div>
+                                <label class="exam-label">Discount Rules</label>
+                                <div id="discount-rules" class="option-card-grid option-card-grid--compact"></div>
+                                <input type="hidden" name="selected_discounts" id="selected_discounts" value="[]">
+                            </div>
+
+                            <div class="summary-box">
+                                <h4>Discount Summary Preview</h4>
+                                <ul id="discount-summary" class="preview-list"></ul>
                             </div>
                         </div>
                     </section>
 
-                    {{-- ─ Section 2 · Scoring & rules ─ --}}
-                    <section class="exam-block">
-                        <div class="exam-block__head">
-                            <h2>Scoring and access rules</h2>
-                            <p>Set limits, pass criteria, timing, and randomization controls.</p>
+                    <section class="exam-section" id="question-bank-section">
+                        <div class="exam-section__head">
+                            <h2>6. Question Bank Management</h2>
+                            <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
                         </div>
-
-                        <div class="exam-block__content space-y-4">
-                            {{-- Numeric row --}}
-                            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                                <div>
-                                    <label for="duration" class="exam-label">Duration (min) <span class="form-required">*</span></label>
-                                    <input id="duration" type="number" name="duration" min="1" max="480" class="panel-input" value="{{ old('duration', 60) }}" data-summary-field="duration">
-                                    <p class="form-field-error @error('duration') is-visible @enderror" data-error-for="duration">@error('duration'){{ $message }}@enderror</p>
-                                </div>
-                                <div>
-                                    <label for="pass_percentage" class="exam-label">Pass % <span class="form-required">*</span></label>
-                                    <input id="pass_percentage" type="number" step="0.01" min="0" max="100" name="pass_percentage" class="panel-input" value="{{ old('pass_percentage', 50) }}" data-summary-field="pass_percentage">
-                                    <p class="form-field-error @error('pass_percentage') is-visible @enderror" data-error-for="pass_percentage">@error('pass_percentage'){{ $message }}@enderror</p>
-                                </div>
-                                <div>
-                                    <label for="max_attempts" class="exam-label">Max attempts <span class="form-required">*</span></label>
-                                    <input id="max_attempts" type="number" min="1" max="50" name="max_attempts" class="panel-input" value="{{ old('max_attempts', 1) }}" data-summary-field="max_attempts">
-                                    <p class="form-field-error @error('max_attempts') is-visible @enderror" data-error-for="max_attempts">@error('max_attempts'){{ $message }}@enderror</p>
-                                </div>
-                                <div>
-                                    <label for="negative_mark_per_question" class="exam-label">Negative mark / Q</label>
-                                    <input id="negative_mark_per_question" type="number" step="0.0001" min="0" max="100" name="negative_mark_per_question" class="panel-input" value="{{ old('negative_mark_per_question', 0) }}">
-                                    <p class="form-field-error @error('negative_mark_per_question') is-visible @enderror" data-error-for="negative_mark_per_question">@error('negative_mark_per_question'){{ $message }}@enderror</p>
-                                </div>
+                        <div class="exam-section__body space-y-4">
+                            <div class="question-bank-toolbar">
+                                <label class="question-search">
+                                    <span>Search Questions</span>
+                                    <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword">
+                                </label>
+                                <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
                             </div>
 
-                            {{-- Schedule --}}
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <label for="scheduled_start" class="exam-label">Start date &amp; time</label>
-                                    <input id="scheduled_start" type="text" name="scheduled_start" class="panel-input js-datetime"
-                                        placeholder="Select start date and time"
-                                        value="{{ old('scheduled_start') ? str_replace('T', ' ', old('scheduled_start')) : '' }}"
-                                        data-summary-field="scheduled_start">
-                                    <p class="form-field-error @error('scheduled_start') is-visible @enderror" data-error-for="scheduled_start">@error('scheduled_start'){{ $message }}@enderror</p>
-                                </div>
-                                <div>
-                                    <label for="scheduled_end" class="exam-label">End date &amp; time</label>
-                                    <input id="scheduled_end" type="text" name="scheduled_end" class="panel-input js-datetime is-readonly"
-                                        placeholder="Auto calculated from start + duration"
-                                        value="{{ old('scheduled_end') ? str_replace('T', ' ', old('scheduled_end')) : '' }}"
-                                        data-summary-field="scheduled_end"
-                                        readonly>
-                                    <p class="exam-help">Auto-filled once start date and duration are set.</p>
-                                    <p class="form-field-error @error('scheduled_end') is-visible @enderror" data-error-for="scheduled_end">@error('scheduled_end'){{ $message }}@enderror</p>
-                                </div>
-                            </div>
-
-                            {{-- Toggles row 1 --}}
-                            <div class="exam-toggle-grid">
-                                <label class="exam-toggle">
-                                    <input type="checkbox" name="shuffle_questions" value="1" @checked(old('shuffle_questions'))>
-                                    <span>
-                                        <strong>Shuffle questions</strong>
-                                        <small>Rotate question order per attempt.</small>
-                                    </span>
-                                </label>
-                                <label class="exam-toggle">
-                                    <input type="checkbox" name="shuffle_options" value="1" @checked(old('shuffle_options'))>
-                                    <span>
-                                        <strong>Shuffle options</strong>
-                                        <small>Randomize MCQ options per attempt.</small>
-                                    </span>
-                                </label>
-                                <label class="exam-toggle">
-                                    <input type="checkbox" name="show_result_immediately" value="1" @checked(old('show_result_immediately', true))>
-                                    <span>
-                                        <strong>Show result immediately</strong>
-                                        <small>Candidate sees pass/fail right after submission.</small>
-                                    </span>
-                                </label>
-                                <label class="exam-toggle">
-                                    <input type="checkbox" name="allow_review" value="1" @checked(old('allow_review'))>
-                                    <span>
-                                        <strong>Allow answer review</strong>
-                                        <small>Candidate can revisit all answers before submitting.</small>
-                                    </span>
-                                </label>
-                                <label class="exam-toggle">
-                                    <input type="checkbox" name="certificate_enabled" value="1" @checked(old('certificate_enabled'))>
-                                    <span>
-                                        <strong>Issue certificate on pass</strong>
-                                        <small>Auto-generate a certificate for passing candidates.</small>
-                                    </span>
-                                </label>
-                            </div>
+                            <div id="question-bank-feedback" class="exam-help"></div>
+                            <div id="question-category-cards" class="question-category-cards"></div>
                         </div>
                     </section>
 
-                    {{-- ─ Section 3 · Question bank ─ --}}
-                    <section class="exam-block">
-                        <div class="exam-block__head">
-                            <h2>Question bank</h2>
-                            <p>Search and pick questions that will be included in this exam.</p>
+                    <section class="exam-section" id="instructions-section">
+                        <div class="exam-section__head">
+                            <h2>7. Instructions for Candidates</h2>
+                            <p>Provide clear, structured guidance shown before exam start.</p>
                         </div>
-
-                        <div class="exam-block__content">
-                            <div class="exam-question-toolbar">
-                                <label class="relative w-full lg:max-w-sm">
-                                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                        </svg>
-                                    </span>
-                                    <input id="question-bank-search" type="search" class="panel-input pl-9" placeholder="Search question body…">
-                                </label>
-
-                                <select id="question-bank-category" class="panel-input lg:max-w-xs">
-                                    <option value="">All categories</option>
-                                    @foreach ($questionFilterCategories as $cf)
-                                        <option value="{{ $cf['id'] }}">{{ $cf['name'] }}</option>
-                                    @endforeach
-                                </select>
-
-                                <div class="exam-selected-pill">
-                                    <span id="question-selected-count">0</span>&nbsp;selected
+                        <div class="exam-section__body space-y-4">
+                            <div class="instruction-tools">
+                                <div>
+                                    <label for="instruction_template" class="exam-label">Default Instruction Templates</label>
+                                    <select id="instruction_template" class="panel-input"></select>
                                 </div>
+                                <button type="button" id="apply-instruction-template" class="panel-button-secondary">Apply Template</button>
                             </div>
 
-                            <div id="question-bank-list" class="exam-question-list">
-                                @foreach ($questionBank as $question)
-                                    @php
-                                        $qId   = (string) $question['id'];
-                                        $qCat  = (string) ($question['category_id'] ?? 'none');
-                                        $qText = strip_tags((string) $question['body']);
-                                    @endphp
-                                    <label
-                                        class="exam-question-item"
-                                        data-question-item
-                                        data-question-category="{{ $qCat }}"
-                                        data-question-text="{{ str($qText)->lower() }}"
-                                        data-question-marks="{{ (int) $question['marks'] }}"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            class="exam-question-item__check"
-                                            value="{{ $qId }}"
-                                            @unless ($isDemoQuestionBank) name="question_ids[]" @endunless
-                                            @checked(in_array($qId, $selectedQuestionIds, true))
-                                        >
-                                        <div class="exam-question-item__content">
-                                            <div class="exam-question-item__head">
-                                                <span class="exam-question-item__id">#{{ $qId }}</span>
-                                                <span class="exam-question-item__tag">{{ $question['category_name'] }}</span>
-                                                <span class="exam-question-item__tag">{{ ucfirst($question['difficulty']) }}</span>
-                                                <span class="exam-question-item__tag">{{ strtoupper(str_replace('_', ' ', $question['type'])) }}</span>
-                                            </div>
-                                            <p class="exam-question-item__body">{{ \Illuminate\Support\Str::limit($qText, 150) }}</p>
-                                            <p class="exam-question-item__meta">{{ (int) $question['marks'] }} marks</p>
-                                        </div>
-                                    </label>
-                                @endforeach
+                            <x-rich-text-editor
+                                label="Candidate Instructions"
+                                input-id="candidate_instructions"
+                                name="instructions"
+                                :value="old('instructions')"
+                                placeholder="Add concise instructions for candidates before they start the exam."
+                                :height="200"
+                                :toolbar="['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']"
+                                help="Supports bullet points, numbered lists, and short emphasis formatting."
+                            />
+                            <div class="instruction-footer">
+                                <p class="instruction-counter"><span id="instructions-char-count">0</span> characters</p>
                             </div>
-
-                            <div id="question-bank-empty" class="exam-question-empty hidden">
-                                No questions match the current filters.
-                            </div>
-
-                            <p class="form-field-error @error('question_ids') is-visible @enderror" data-error-for="question_ids">@error('question_ids'){{ $message }}@enderror</p>
                         </div>
                     </section>
-                </div>{{-- /.exam-builder__main --}}
+                </main>
 
-                {{-- ── Aside ────────────────────────────────────── --}}
-                <aside class="exam-builder__aside">
+                <aside class="exam-create-aside">
+                    <section class="summary-box">
+                        <h3>Workflow Progress</h3>
+                        <ul id="workflow-status-list" class="preview-list"></ul>
+                    </section>
 
-                    {{-- Live summary --}}
-                    <section class="exam-summary-card">
-                        <h3>Live summary</h3>
-                        <dl>
-                            <div><dt>Title</dt>       <dd data-summary-title>Untitled exam</dd></div>
-                            <div><dt>Status</dt>      <dd data-summary-status>{{ ucfirst(old('status', 'draft')) }}</dd></div>
-                            <div><dt>Category</dt>    <dd data-summary-category>No category</dd></div>
-                            <div><dt>Mode</dt>        <dd data-summary-mode>{{ ucfirst(old('exam_mode', 'standard')) }}</dd></div>
-                            <div><dt>Difficulty</dt>  <dd data-summary-difficulty>{{ ucfirst(old('difficulty_level', 'intermediate')) }}</dd></div>
-                            <div><dt>Visibility</dt>  <dd data-summary-visibility>{{ ucfirst(old('visibility', 'public')) }}</dd></div>
-                            <div><dt>Duration</dt>    <dd data-summary-duration>{{ old('duration', 60) }} min</dd></div>
-                            <div><dt>Pass rule</dt>   <dd data-summary-pass>{{ old('pass_percentage', 50) }}%</dd></div>
-                            <div><dt>Max attempts</dt><dd data-summary-attempts>{{ old('max_attempts', 1) }}</dd></div>
-                            <div><dt>Questions</dt>   <dd><span data-summary-selected>0</span> selected</dd></div>
-                            <div><dt>Total marks</dt> <dd><span data-summary-total-marks>0</span></dd></div>
-                            <div><dt>Schedule</dt>    <dd data-summary-schedule>Not scheduled</dd></div>
+                    <section class="summary-box">
+                        <h3>Live Snapshot</h3>
+                        <dl class="summary-stats" id="live-snapshot">
+                            <div><dt>Visibility</dt><dd id="snapshot-visibility">-</dd></div>
+                            <div><dt>Exam Mode</dt><dd id="snapshot-mode">-</dd></div>
+                            <div><dt>Categories</dt><dd id="snapshot-categories">0</dd></div>
+                            <div><dt>Marks Filters</dt><dd id="snapshot-marks">0</dd></div>
+                            <div><dt>Candidate Emails</dt><dd id="snapshot-candidates">0</dd></div>
+                            <div><dt>Discount Rules</dt><dd id="snapshot-discounts">0</dd></div>
                         </dl>
                     </section>
-
-                    {{-- Quick presets --}}
-                    <section class="exam-summary-card">
-                        <h3>Quick presets</h3>
-                        <p class="exam-summary-help">Apply a baseline config, then fine-tune as needed.</p>
-                        <div class="exam-preset-grid">
-                            <button type="button" class="exam-preset-btn" data-exam-preset="practice">Practice</button>
-                            <button type="button" class="exam-preset-btn" data-exam-preset="screening">Screening</button>
-                            <button type="button" class="exam-preset-btn" data-exam-preset="certification">Certification</button>
-                        </div>
-                    </section>
-
-                    {{-- Behavioural flags summary --}}
-                    <section class="exam-summary-card">
-                        <h3>Behaviour flags</h3>
-                        <div class="exam-flag-list mt-3 space-y-2" id="flag-summary">
-                            {{-- Filled by JS --}}
-                        </div>
-                    </section>
                 </aside>
-            </div>{{-- /.exam-builder__body --}}
+            </div>
 
-            {{-- ── Footer ──────────────────────────────────────── --}}
-            <div class="exam-builder__footer">
+            <div id="form-error-banner" class="form-error-banner" hidden></div>
+            <footer class="exam-page-footer">
                 <a href="{{ route('admin.exams.index') }}" class="panel-button-secondary">Cancel</a>
                 <button type="submit" class="panel-button-primary">Save Exam</button>
-            </div>
+            </footer>
         </form>
     </x-page-card>
+
+    <div id="add-question-modal" class="exam-modal" hidden>
+        <div class="exam-modal__backdrop" data-modal-close></div>
+        <div class="exam-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="add-question-modal-title">
+            <div class="exam-modal__head">
+                <h3 id="add-question-modal-title">Add Question</h3>
+                <button type="button" class="exam-modal__close" data-modal-close aria-label="Close">x</button>
+            </div>
+            <form id="add-question-form" class="space-y-3">
+                <div>
+                    <label for="new_question_category" class="exam-label">Category</label>
+                    <select id="new_question_category" class="panel-input"></select>
+                </div>
+                <div>
+                    <label for="new_question_text" class="exam-label">Question Text</label>
+                    <textarea id="new_question_text" rows="4" class="panel-input" placeholder="Write a concise question statement."></textarea>
+                </div>
+                <div class="exam-grid exam-grid--2">
+                    <div>
+                        <label for="new_question_marks" class="exam-label">Marks</label>
+                        <select id="new_question_marks" class="panel-input"></select>
+                    </div>
+                    <div>
+                        <label for="new_question_difficulty" class="exam-label">Difficulty</label>
+                        <select id="new_question_difficulty" class="panel-input"></select>
+                    </div>
+                </div>
+                <div class="exam-modal__footer">
+                    <button type="button" class="panel-button-secondary" data-modal-close>Cancel</button>
+                    <button type="submit" class="panel-button-primary">Add Question</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 @endsection
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}">
@@ -440,12 +396,24 @@
 
 @push('scripts')
     <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    <script src="{{ asset('js/core/form-utils.js') }}"></script>
+    <script src="{{ asset('js/components/editor.js') }}"></script>
+    <script src="{{ asset('js/components/select.js') }}"></script>
     <script>
         window.examCreateConfig = {
-            demoQuestionBank: @json($isDemoQuestionBank),
+            endpoints: {
+                difficultyLevels: "{{ asset('data/exam-create/difficulty-levels.json') }}",
+                examStatus: "{{ asset('data/exam-create/exam-status.json') }}",
+                examModes: "{{ asset('data/exam-create/exam-modes.json') }}",
+                visibilityOptions: "{{ asset('data/exam-create/visibility-options.json') }}",
+                categories: "{{ asset('data/exam-create/categories.json') }}",
+                discountRules: "{{ asset('data/exam-create/discount-rules.json') }}",
+                questionMarks: "{{ asset('data/exam-create/question-marks.json') }}",
+                questionBank: "{{ asset('data/exam-create/question-bank.json') }}",
+                pricingOptions: "{{ asset('data/exam-create/pricing-options.json') }}",
+                distributionTypes: "{{ asset('data/exam-create/distribution-types.json') }}",
+                instructionTemplates: "{{ asset('data/exam-create/instruction-templates.json') }}"
+            }
         };
     </script>
     <script src="{{ asset('js/backend/exam-create.js') }}"></script>

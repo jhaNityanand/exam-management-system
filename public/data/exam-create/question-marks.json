@@ -1,0 +1,12 @@
+[
+  { "value": 1, "label": "1 mark" },
+  { "value": 2, "label": "2 marks" },
+  { "value": 3, "label": "3 marks" },
+  { "value": 4, "label": "4 marks" },
+  { "value": 5, "label": "5 marks" },
+  { "value": 6, "label": "6 marks" },
+  { "value": 7, "label": "7 marks" },
+  { "value": 8, "label": "8 marks" },
+  { "value": 9, "label": "9 marks" },
+  { "value": 10, "label": "10 marks" }
+]

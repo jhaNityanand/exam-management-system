@@ -1,0 +1,151 @@
+[
+  {
+    "id": "science",
+    "name": "Science",
+    "availableQuestions": 34,
+    "children": [
+      {
+        "id": "science_physics",
+        "name": "Physics",
+        "availableQuestions": 14,
+        "children": [
+          {
+            "id": "science_physics_mechanics",
+            "name": "Classical Mechanics",
+            "availableQuestions": 7,
+            "children": []
+          },
+          {
+            "id": "science_physics_quantum",
+            "name": "Quantum Physics",
+            "availableQuestions": 7,
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "science_biology",
+        "name": "Biology",
+        "availableQuestions": 10,
+        "children": []
+      },
+      {
+        "id": "science_chemistry",
+        "name": "Chemistry",
+        "availableQuestions": 10,
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": "mathematics",
+    "name": "Mathematics",
+    "availableQuestions": 42,
+    "children": [
+      {
+        "id": "mathematics_quantitative_reasoning",
+        "name": "Quantitative Reasoning",
+        "availableQuestions": 26,
+        "children": [
+          {
+            "id": "aptitude",
+            "name": "Aptitude",
+            "availableQuestions": 26,
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "mathematics_data_structures",
+        "name": "Data Structures",
+        "availableQuestions": 16,
+        "children": [
+          {
+            "id": "algorithms",
+            "name": "Algorithms",
+            "availableQuestions": 16,
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "computer_science",
+    "name": "Computer Science",
+    "availableQuestions": 105,
+    "children": [
+      {
+        "id": "computer_science_programming",
+        "name": "Programming",
+        "availableQuestions": 82,
+        "children": [
+          {
+            "id": "computer_science_programming_frontend",
+            "name": "Frontend Development",
+            "availableQuestions": 30,
+            "children": [
+              {
+                "id": "javascript",
+                "name": "JavaScript",
+                "availableQuestions": 12,
+                "children": []
+              },
+              {
+                "id": "react",
+                "name": "React",
+                "availableQuestions": 18,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "computer_science_programming_backend",
+            "name": "Backend Development",
+            "availableQuestions": 52,
+            "children": [
+              {
+                "id": "php",
+                "name": "PHP Fundamentals",
+                "availableQuestions": 22,
+                "children": []
+              },
+              {
+                "id": "laravel",
+                "name": "Laravel",
+                "availableQuestions": 30,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "computer_science_database_systems",
+        "name": "Database Systems",
+        "availableQuestions": 14,
+        "children": [
+          {
+            "id": "mysql",
+            "name": "MySQL",
+            "availableQuestions": 14,
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "computer_science_operations",
+        "name": "Operations",
+        "availableQuestions": 9,
+        "children": [
+          {
+            "id": "devops",
+            "name": "DevOps",
+            "availableQuestions": 9,
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,4 @@
+[
+  { "id": "mixed", "label": "Mixed Questions", "description": "Random mix from selected categories" },
+  { "id": "category_wise", "label": "Category-wise Questions", "description": "Distribute questions per category strategy" }
+]

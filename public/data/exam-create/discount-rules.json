@@ -1,0 +1,8 @@
+[
+  { "id": "first_time_10", "label": "10% First Time User", "summary": "Apply 10% off to first exam purchase." },
+  { "id": "returning_20", "label": "20% Returning User", "summary": "Reward repeat candidates with 20% off." },
+  { "id": "coupon_code", "label": "Coupon Code Discount", "summary": "Allow promo-code based reductions." },
+  { "id": "festival_offer", "label": "Festival Offer", "summary": "Seasonal campaign discount." },
+  { "id": "bulk_discount", "label": "Bulk Candidate Discount", "summary": "Discount for large candidate batches." },
+  { "id": "early_access", "label": "Early Access Discount", "summary": "Lower pricing for early registrations." }
+]
