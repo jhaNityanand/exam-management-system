@@ -244,7 +244,7 @@ function isCategoryVisibleInDropdown(categoryId, selectedIds, categories) {
     while (current?.parentId) {
         if (seen.has(current.parentId)) break;
         seen.add(current.parentId);
-        
+
         if (selectedSet.has(current.parentId)) {
             return false;
         }
@@ -368,6 +368,9 @@ document.addEventListener('DOMContentLoaded', () => {
         questionBankFeedback: document.getElementById('question-bank-feedback'),
         questionCategoryCards: document.getElementById('question-category-cards'),
         openAddQuestionModal: document.getElementById('open-add-question-modal'),
+        globalSelectedCount: document.getElementById('global-selected-count'),
+        globalAllowedCount: document.getElementById('global-allowed-count'),
+        globalRandomSelectBtn: document.getElementById('global-random-select'),
 
         instructionTemplate: document.getElementById('instruction_template'),
         applyInstructionTemplate: document.getElementById('apply-instruction-template'),
@@ -442,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
         suppressCategorySelectEvents: false,
         suppressExtraSelectEvents: false,
         richEditors: new Map(),
+        selectedQuestions: new Set(),
     };
 
     const tagInput = new ChipInput(refs.tagsChip, {
@@ -526,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             state.categoryTree = categoryTree;
             state.categoryHierarchyIndex = buildCategoryHierarchyIndex(state.config.categories);
-            
+
             state.config.discountRules.forEach(rule => {
                 state.discountPercentages[rule.id] = rule.default_percentage || 0;
             });
@@ -846,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         refs.pricingOptionHidden.value = state.selectedPricing;
         highlightPricingOptions();
-        
+
         if (refs.examCurrency && refs.examCurrency.options.length === 0) {
             populateSelect(refs.examCurrency, state.config.currencies, 'Select currency');
             setSelectDefault(refs.examCurrency, 'USD');
@@ -858,7 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.classList.toggle('is-selected', card.dataset.pricingOption === state.selectedPricing);
         });
         refs.pricingOptionHidden.value = state.selectedPricing;
-        
+
         const showPricingDetails = state.selectedPricing === 'paid' || state.selectedPricing === 'free_for_imported';
         if (refs.pricingDetailsWrap) refs.pricingDetailsWrap.hidden = !showPricingDetails;
         if (refs.discountRulesWrap) refs.discountRulesWrap.hidden = !showPricingDetails;
@@ -870,7 +874,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .map((rule) => {
                 const selected = state.selectedDiscounts.has(rule.id) ? 'is-selected' : '';
                 const percentage = state.discountPercentages[rule.id] || rule.default_percentage || 0;
-                
+
                 return `
                     <article class="option-card ${selected}" data-discount-id="${escapeHtml(rule.id)}">
                         <h4>${escapeHtml(rule.label)}</h4>
@@ -898,10 +902,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errEl = document.getElementById(`err-predefined-${ruleId}`);
                 const rawVal = e.target.value;
                 const val = rawVal === '' ? NaN : parseInt(rawVal, 10);
-                
+
                 let isInvalid = false;
                 let errMsg = '';
-                
+
                 if (isNaN(val)) {
                     isInvalid = true;
                     errMsg = 'Percentage value is required.';
@@ -912,9 +916,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     isInvalid = true;
                     errMsg = 'Discount percentage cannot exceed 100%.';
                 }
-                
+
                 state.discountPercentages[ruleId] = isNaN(val) ? 0 : val;
-                
+
                 if (errEl) {
                     if (isInvalid) {
                         errEl.textContent = errMsg;
@@ -923,7 +927,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         errEl.hidden = true;
                     }
                 }
-                
+
                 refs.discountHidden.value = JSON.stringify(
                     [...state.selectedDiscounts].map(id => ({ id, percentage: state.discountPercentages[id] }))
                 );
@@ -1005,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const index = parseInt(e.target.dataset.rowIndex, 10);
                 const val = e.target.value;
                 state.customDiscounts[index].name = val;
-                
+
                 // Validate name
                 const errEl = document.getElementById(`err-custom-name-${index}`);
                 if (errEl) {
@@ -1140,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!button) return;
 
             const mark = Number(button.dataset.markValue);
-            
+
             if (refs.mixedMarksQuestions && refs.mixedMarksQuestions.checked) {
                 if (state.selectedMarks.has(mark)) {
                     state.selectedMarks.delete(mark);
@@ -1178,7 +1182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         refs.discountRules.addEventListener('click', (event) => {
             if (event.target.closest('input')) return;
-            
+
             const card = event.target.closest('[data-discount-id]');
             if (!card) return;
             const id = card.dataset.discountId;
@@ -1210,10 +1214,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (addButton) {
                 openAddQuestionModal(addButton.dataset.categoryId || '');
+                return;
+            }
+
+            const randomSelectBtn = event.target.closest('[data-action="random-select-category"]');
+            if (randomSelectBtn) {
+                const categoryId = randomSelectBtn.dataset.categoryId;
+                randomSelectCategory(categoryId);
+                return;
             }
         });
 
+        if (refs.globalRandomSelectBtn) {
+            refs.globalRandomSelectBtn.addEventListener('click', () => {
+                randomSelectGlobal();
+            });
+        }
+
         refs.questionCategoryCards.addEventListener('change', (event) => {
+            const questionCheckbox = event.target.closest('.question-checkbox');
+            if (questionCheckbox) {
+                const questionId = Number(questionCheckbox.dataset.questionId);
+                if (questionCheckbox.checked) {
+                    state.selectedQuestions.add(questionId);
+                } else {
+                    state.selectedQuestions.delete(questionId);
+                }
+                updateQuestionBankCards();
+                updateWorkflowAndSnapshot();
+                return;
+            }
+
             const checkbox = event.target.closest('[data-role="category-toggle"]');
             if (!checkbox) return;
 
@@ -1533,19 +1564,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateConditionalSections() {
         const isPrivate = state.selectedVisibility === 'private';
         const importedFree = state.selectedPricing === 'free_for_imported';
-        
+
         // Hide Section 2 by default. Only show if visibility is private (Private candidates different concept!)
         refs.candidateSection.hidden = !isPrivate;
-        
+
         // Show/hide Free Candidate List section depending on selected pricing option
         refs.freeCandidatesWrap.hidden = !importedFree;
-        
+
         refs.pricingImportedNote.hidden = !importedFree;
         renderCandidateTabs();
         renderFreeCandidateTabs();
 
         refs.pricingSection.hidden = state.selectedMode === 'practice';
-        
+
         // Update the visible sections dynamic numbering
         updateSectionNumbers();
     }
@@ -1907,7 +1938,7 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.extraQuestionsAllocationsWrap.hidden = true;
             refs.extraQuestionsAllocationList.innerHTML = '';
             refs.extraQuestionsAllocationList.dataset.structureKey = '';
-            
+
             refs.allocatedCount.textContent = String(distribution.totalAllocated || 0);
             refs.remainingCount.textContent = String(E);
         }
@@ -1926,7 +1957,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const distribution = computeFixedCategoryDistribution();
 
         refs.fixedDistributionCard.hidden = false;
-        
+
         let helperText = `Exact allocation is ${distribution.base} questions per selected category.`;
         if (distribution.remainder > 0) {
             if (distribution.remainder > 1) {
@@ -2018,76 +2049,233 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.configValidationList.innerHTML = validations.join('');
     }
 
-    function updateQuestionBankCards() {
-        const totalCategories = Math.max(1, toInt(refs.totalCategories.value, 1));
-        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
-        const fixedPerCategory = refs.fixCategoryQuestions.checked;
+    function randomSelectCategory(categoryId) {
         const query = cleanText(refs.questionSearch.value).toLowerCase();
-        const perCategoryTarget = computeCategoryTarget();
-        const categoryPool = getAssignableCategories();
-        const fixedDistribution = computeFixedCategoryDistribution();
-        const distributionMap = new Map(fixedDistribution.rows.map((row) => [row.categoryId, row.count]));
-        let matchingSnippets = 0;
+        const hasMarksFilter = state.selectedMarks.size > 0;
+        
+        const availableQuestions = state.questionBank
+            .filter((q) => q.categoryId === categoryId)
+            .filter((q) => !hasMarksFilter || state.selectedMarks.has(Number(q.marks)))
+            .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
+            
+        const totalQuestionsAllowed = Math.max(1, toInt(refs.totalQuestions.value, 1));
+        const fixedPerCategory = refs.fixCategoryQuestions.checked;
+        
+        let categoryAllowedLimit = totalQuestionsAllowed;
+        if (fixedPerCategory) {
+            const fixedDistribution = computeFixedCategoryDistribution();
+            const row = fixedDistribution.rows.find(r => r.categoryId === categoryId);
+            categoryAllowedLimit = row ? row.count : 0;
+        }
 
-        refs.questionCategoryCards.innerHTML = categoryPool
-            .map((category) => {
-                const selected = state.selectedCategories.has(category.id);
-                const available = Math.max(0, toInt(state.categoryAvailability[category.id], 0));
-                const target = selected
-                    ? (fixedPerCategory ? (distributionMap.get(category.id) || 0) : available)
-                    : 0;
-                const shortage = fixedPerCategory && selected && target > 0 && available < target;
-                const progress = target > 0 ? Math.min(100, Math.round((available / target) * 100)) : 0;
-                const statusClass = shortage ? 'status-warning' : 'status-good';
-                const statusLabel = shortage
-                    ? 'Insufficient questions'
-                    : (fixedPerCategory ? 'Sufficient availability' : 'Flexible allocation');
+        if (availableQuestions.length < categoryAllowedLimit) {
+            alert('Not enough questions available. Please add more questions.');
+            return;
+        }
 
-                const snippets = state.questionBank
-                    .filter((question) => question.categoryId === category.id)
-                    .filter((question) => state.selectedMarks.has(Number(question.marks)))
-                    .filter((question) => !query || String(question.text || '').toLowerCase().includes(query))
-                    .slice(0, 6);
+        // Clear existing selections for this category
+        state.questionBank.filter(q => q.categoryId === categoryId).forEach(q => state.selectedQuestions.delete(q.id));
 
-                matchingSnippets += snippets.length;
-                const expanded = state.expandedCards.has(category.id);
+        // Randomly pick
+        const shuffled = availableQuestions.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, categoryAllowedLimit);
+        selected.forEach(q => state.selectedQuestions.add(q.id));
 
-                const listHtml = snippets.length
-                    ? snippets.map((question) => `<li>#${question.id} (${question.marks}m) - ${escapeHtml(question.text)}</li>`).join('')
-                    : '<li>No questions match current marks/search filters.</li>';
+        updateQuestionBankCards();
+        updateWorkflowAndSnapshot();
+    }
 
+    function randomSelectGlobal() {
+        const query = cleanText(refs.questionSearch.value).toLowerCase();
+        const hasMarksFilter = state.selectedMarks.size > 0;
+        const totalQuestionsAllowed = Math.max(1, toInt(refs.totalQuestions.value, 1));
+        const fixedPerCategory = refs.fixCategoryQuestions.checked;
+
+        state.selectedQuestions.clear();
+
+        if (fixedPerCategory) {
+            const fixedDistribution = computeFixedCategoryDistribution();
+            
+            for (const row of fixedDistribution.rows) {
+                const categoryId = row.categoryId;
+                const categoryLimit = row.count;
+
+                const availableQuestions = state.questionBank
+                    .filter((q) => q.categoryId === categoryId)
+                    .filter((q) => !hasMarksFilter || state.selectedMarks.has(Number(q.marks)))
+                    .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
+
+                if (availableQuestions.length < categoryLimit) {
+                    alert(`Not enough questions available in ${getCategoryLabelById(categoryId)}. Please add more questions.`);
+                    return;
+                }
+
+                const shuffled = availableQuestions.sort(() => 0.5 - Math.random());
+                const selected = shuffled.slice(0, categoryLimit);
+                selected.forEach(q => state.selectedQuestions.add(q.id));
+            }
+        } else {
+            const selectedCategorySet = new Set(state.selectedCategories);
+            const availableQuestions = state.questionBank
+                .filter((q) => selectedCategorySet.has(q.categoryId))
+                .filter((q) => !hasMarksFilter || state.selectedMarks.has(Number(q.marks)))
+                .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
+                
+            if (availableQuestions.length < totalQuestionsAllowed) {
+                alert('Not enough questions available globally. Please add more questions.');
+                return;
+            }
+
+            const shuffled = availableQuestions.sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, totalQuestionsAllowed);
+            selected.forEach(q => state.selectedQuestions.add(q.id));
+        }
+
+        updateQuestionBankCards();
+        updateWorkflowAndSnapshot();
+    }
+
+    function updateQuestionBankCards() {
+        const query = cleanText(refs.questionSearch.value).toLowerCase();
+
+        const selectedCategoryIds = [...state.selectedCategories];
+        const selectedCategorySet = new Set(selectedCategoryIds);
+        const hasMarksFilter = state.selectedMarks.size > 0;
+        const totalQuestionsAllowed = Math.max(1, toInt(refs.totalQuestions.value, 1));
+        const fixedPerCategory = refs.fixCategoryQuestions.checked;
+
+        let fixedDistribution = { rows: [] };
+        if (fixedPerCategory) {
+            fixedDistribution = computeFixedCategoryDistribution();
+        }
+
+        const filteredQuestions = state.questionBank
+            .filter((q) => selectedCategorySet.has(q.categoryId))
+            .filter((q) => !hasMarksFilter || state.selectedMarks.has(Number(q.marks)))
+            .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
+
+        const byCategory = new Map();
+        for (const q of filteredQuestions) {
+            if (!byCategory.has(q.categoryId)) byCategory.set(q.categoryId, []);
+            byCategory.get(q.categoryId).push(q);
+        }
+
+        let totalShown = filteredQuestions.length;
+        let totalSelectedGlobal = state.selectedQuestions.size;
+        
+        if (refs.globalSelectedCount) refs.globalSelectedCount.textContent = totalSelectedGlobal;
+        if (refs.globalAllowedCount) refs.globalAllowedCount.textContent = totalQuestionsAllowed;
+        
+        const globalLimitReached = totalSelectedGlobal >= totalQuestionsAllowed;
+
+        if (!selectedCategoryIds.length) {
+            refs.questionCategoryCards.innerHTML = '';
+            refs.questionBankFeedback.textContent = 'Select categories above to load the question bank.';
+            return;
+        }
+
+        refs.questionCategoryCards.innerHTML = selectedCategoryIds
+            .map((categoryId) => {
+                const categoryName = getCategoryLabelById(categoryId);
+                const questions = byCategory.get(categoryId) || [];
+
+                const expanded = state.expandedCards.has(categoryId);
+                const count = questions.length;
+                
+                let categoryAllowedLimit = totalQuestionsAllowed;
+                if (fixedPerCategory) {
+                    const row = fixedDistribution.rows.find(r => r.categoryId === categoryId);
+                    categoryAllowedLimit = row ? row.count : 0;
+                }
+                
+                let selectedInCategory = questions.filter(q => state.selectedQuestions.has(q.id)).length;
+                const categoryLimitReached = fixedPerCategory ? (selectedInCategory >= categoryAllowedLimit) : false;
+
+                let categorySelectionText = '';
+                if (fixedPerCategory) {
+                    categorySelectionText = `<span class="question-accordion__selection-count" style="font-size: 0.8rem; font-weight: 700; color: var(--exam-primary); margin-right: 0.5rem;">${selectedInCategory}/${categoryAllowedLimit} selected</span>`;
+                } else {
+                    categorySelectionText = `<span class="question-accordion__selection-count" style="font-size: 0.8rem; font-weight: 700; color: var(--exam-primary); margin-right: 0.5rem;">${selectedInCategory} picked</span>`;
+                }
+
+                const questionsList = count
+                    ? questions
+                        .map((question, idx) => {
+                            const isSelected = state.selectedQuestions.has(question.id);
+                            const disabled = !isSelected && (globalLimitReached || categoryLimitReached);
+                            const diffBadge = question.difficulty
+                                ? `<span class="question-accordion__badge question-accordion__badge--${escapeHtml(question.difficulty)}">${escapeHtml(question.difficulty)}</span>`
+                                : '';
+                            const marksBadge = question.marks
+                                ? `<span class="question-accordion__marks">${Number(question.marks)} mark${Number(question.marks) !== 1 ? 's' : ''}</span>`
+                                : '';
+                            
+                            return `
+                                <li class="question-accordion__item">
+                                    <label class="question-checkbox-label" style="display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; cursor: ${disabled ? 'not-allowed' : 'pointer'}; opacity: ${disabled ? '0.6' : '1'};">
+                                        <input type="checkbox" class="question-checkbox" data-question-id="${question.id}" data-category-id="${escapeHtml(categoryId)}" ${isSelected ? 'checked' : ''} ${disabled ? 'disabled' : ''} style="margin-top: 0.25rem;">
+                                        <div style="flex: 1; display: flex; flex-direction: column; gap: 0.2rem;">
+                                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                                <span class="question-accordion__text">${escapeHtml(question.text)}</span>
+                                            </div>
+                                            <div style="display: flex; gap: 0.35rem; margin-top: 0.15rem;">
+                                                ${diffBadge}${marksBadge}
+                                            </div>
+                                        </div>
+                                    </label>
+                                </li>
+                            `;
+                        })
+                        .join('')
+                    : `<li class="question-accordion__empty">No questions found for this category${hasMarksFilter ? ' matching the selected marks filter' : ''}.</li>`;
+                
+                let randomSelectHtml = '';
+                if (fixedPerCategory) {
+                    randomSelectHtml = `<button type="button" class="panel-button-secondary panel-button--small" data-action="random-select-category" data-category-id="${escapeHtml(categoryId)}" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Random Select</button>`;
+                }
+
+                // Reusable accordion markup
                 return `
-                    <article class="question-category-card ${shortage ? 'is-warning' : ''} ${expanded ? 'is-expanded' : ''}">
-                        <div class="question-category-head">
-                            <div class="question-category-main">
-                                <input type="checkbox" data-role="category-toggle" data-category-id="${escapeHtml(category.id)}" ${selected ? 'checked' : ''}>
-                                <div>
-                                    <h4 class="question-category-title">${getCategoryDisplayHtml(category.id)} <span class="question-category-count">(${available}/${target || 0})</span></h4>
-                                    <p class="question-category-meta">${fixedPerCategory ? `Required target: ${target || 0}` : 'Required target: Flexible'} | Available: ${available}</p>
-                                    <span class="question-status ${statusClass}">${statusLabel}</span>
+                    <article class="question-accordion" data-category-accordion="${escapeHtml(categoryId)}" data-expanded="${expanded ? 'true' : 'false'}">
+                        <button
+                            type="button"
+                            class="question-accordion__header"
+                            data-action="toggle-expand"
+                            data-category-id="${escapeHtml(categoryId)}"
+                            aria-expanded="${expanded ? 'true' : 'false'}"
+                        >
+                            <span class="question-accordion__chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+                            <span class="question-accordion__title">
+                                ${escapeHtml(categoryName)}
+                                <span class="question-accordion__count">(${count} question${count !== 1 ? 's' : ''})</span>
+                            </span>
+                        </button>
+
+                        <div class="question-accordion__panel" data-role="accordion-panel"${expanded ? '' : ' hidden'}>
+                            <div class="question-accordion__panel-inner">
+                                <div class="question-accordion__toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                                    <div class="toolbar-left">
+                                        ${randomSelectHtml}
+                                    </div>
+                                    <div class="toolbar-right" style="display: flex; align-items: center; gap: 0.5rem;">
+                                        ${categorySelectionText}
+                                        <button type="button" class="panel-button-secondary panel-button--small" data-action="add-question" data-category-id="${escapeHtml(categoryId)}" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">+ Add Question</button>
+                                    </div>
                                 </div>
+
+                                <ul class="question-accordion__list">
+                                    ${questionsList}
+                                </ul>
                             </div>
-                            <div class="question-category-actions">
-                                <button type="button" class="panel-button-secondary" data-action="add-question" data-category-id="${escapeHtml(category.id)}">Add Questions</button>
-                                <button type="button" class="icon-btn" data-action="toggle-expand" data-category-id="${escapeHtml(category.id)}">${expanded ? 'Hide' : 'View'}</button>
-                            </div>
-                        </div>
-                        <div class="question-progress">
-                            <div class="question-progress-bar"><span style="width:${progress}%;"></span></div>
-                            <p class="question-progress-text">${getCategoryDisplayHtml(category.id)} progress: ${available}/${target || 0}</p>
-                        </div>
-                        <div class="question-category-body">
-                            ${shortage ? '<p class="exam-help">This category is below required question count. Use Add Questions to fill the gap.</p>' : ''}
-                            <ul class="question-snippet-list">${listHtml}</ul>
                         </div>
                     </article>
                 `;
             })
             .join('');
 
-        refs.questionBankFeedback.textContent = !state.selectedMarks.size
-            ? 'Select at least one marks filter to fetch matching questions.'
-            : `Loaded ${matchingSnippets} matching sample question(s) across ${categoryPool.length} categories.`;
+        refs.questionBankFeedback.textContent = hasMarksFilter
+            ? `Loaded ${totalShown} matching question(s) across ${selectedCategoryIds.length} selected categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}.`
+            : `Showing all ${totalShown} question(s) across ${selectedCategoryIds.length} selected categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}. Use marks filter to narrow results.`;
     }
 
     function renderDiscountSummary() {
@@ -2114,10 +2302,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const configComplete = state.selectedCategories.size === categoryLimit && toInt(refs.totalQuestions.value, 0) > 0 &&
             (!refs.fixCategoryQuestions.checked || computeFixedCategoryDistribution().totalAllocated === computeFixedCategoryDistribution().remainder);
         const marksComplete = state.selectedMarks.size > 0;
-        
+
         const freeCount = state.freeImportedCandidates.length + state.freeManualEmails.length;
         const pricingComplete = refs.pricingSection.hidden || (Boolean(state.selectedPricing) && (state.selectedPricing !== 'free_for_imported' || freeCount > 0));
-        
+
         const fixedDistribution = computeFixedCategoryDistribution();
         const distributionMap = new Map(fixedDistribution.rows.map((row) => [row.categoryId, row.count]));
         const shortages = refs.fixCategoryQuestions.checked
@@ -2158,14 +2346,14 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.snapshotMode.textContent = refs.mode.options[refs.mode.selectedIndex]?.textContent || '-';
         refs.snapshotCategories.textContent = String(state.selectedCategories.size);
         refs.snapshotMarks.textContent = String(state.selectedMarks.size);
-        
+
         const privateCount = state.importedCandidates.length + state.manualEmails.length;
         if (state.selectedPricing === 'free_for_imported') {
             refs.snapshotCandidates.textContent = `${privateCount} (Private) / ${freeCount} (Free)`;
         } else {
             refs.snapshotCandidates.textContent = String(privateCount);
         }
-        
+
         refs.snapshotDiscounts.textContent = String(state.selectedDiscounts.size);
     }
 
@@ -2398,10 +2586,10 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.tagsHidden.value = JSON.stringify(state.tags);
         refs.manualEmailsHidden.value = JSON.stringify(state.manualEmails);
         refs.importedCandidatesHidden.value = JSON.stringify(state.importedCandidates);
-        
+
         refs.freeManualEmailsHidden.value = JSON.stringify(state.freeManualEmails);
         refs.freeImportedCandidatesHidden.value = JSON.stringify(state.freeImportedCandidates);
-        
+
         syncExtraQuestionsHidden();
 
         return errors;

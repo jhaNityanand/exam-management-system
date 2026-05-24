@@ -370,7 +370,13 @@
                                     <span>Search Questions</span>
                                     <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword">
                                 </label>
-                                <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
+                                <div class="question-bank-global-actions" style="display: flex; align-items: flex-end; gap: 0.75rem;">
+                                    <div class="global-selection-stats" style="font-size: 0.82rem; font-weight: 700; color: var(--exam-primary); padding-bottom: 0.5rem;">
+                                        Total Selected: <span id="global-selected-count">0</span> / <span id="global-allowed-count">0</span>
+                                    </div>
+                                    <button type="button" id="global-random-select" class="panel-button-secondary">Random Select</button>
+                                    <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
+                                </div>
                             </div>
 
                             <div id="question-bank-feedback" class="exam-help"></div>
