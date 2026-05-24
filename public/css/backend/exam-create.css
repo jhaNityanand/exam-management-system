@@ -784,6 +784,77 @@
     cursor: not-allowed;
 }
 
+.marks-management-card {
+    border: 1px solid #dbe7f3;
+    border-radius: 0.9rem;
+    background: #f8fcff;
+    padding: 0.85rem;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.marks-management-card.is-valid {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+
+.marks-management-card.is-warning {
+    border-color: #fdba74;
+    background: #fffbeb;
+}
+
+.marks-management-card__title {
+    margin: 0;
+    color: #0f172a;
+    font-size: 0.82rem;
+    font-weight: 760;
+}
+
+.marks-management-card__help {
+    margin-top: 0.05rem;
+}
+
+.marks-management-card__summary {
+    border: 1px dashed #c7d7ea;
+    border-radius: 0.72rem;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 0.75rem;
+    font-weight: 620;
+    line-height: 1.5;
+    padding: 0.55rem 0.7rem;
+}
+
+.marks-management-card__warning {
+    margin: 0;
+    color: #b45309;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.marks-management-card__suggestion {
+    margin: 0;
+    color: #334155;
+    font-size: 0.74rem;
+    line-height: 1.45;
+}
+
+.marks-management-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.marks-management-card__actions .panel-button-secondary {
+    min-height: 2.2rem;
+}
+
+.marks-management-card__actions .panel-button-secondary[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .category-selector {
     display: grid;
     gap: 0.55rem;
@@ -1155,6 +1226,52 @@
     color: #92400e;
 }
 
+.instruction-rules-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.instruction-rules-grid {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.instruction-rule-card {
+    border: 1px solid #d8e3ef;
+    border-radius: 0.86rem;
+    background: #fbfdff;
+    padding: 0.66rem 0.72rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.instruction-rule-card.is-active {
+    border-color: #38bdf8;
+    background: #f0f9ff;
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.18);
+}
+
+.instruction-rule-card .switch-control {
+    min-height: 0;
+    align-items: flex-start;
+}
+
+.instruction-rule-card .switch-control__label {
+    font-size: 0.76rem;
+    color: #1e293b;
+    line-height: 1.4;
+}
+
+.instruction-rule-card__description {
+    margin: 0.28rem 0 0 3.35rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
 .instruction-tools {
     display: flex;
     align-items: flex-end;
@@ -1436,6 +1553,14 @@
     .instruction-tools {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .instruction-rules-header {
+        align-items: flex-start;
+    }
+
+    .instruction-rule-card__description {
+        margin-left: 0;
     }
 }
 

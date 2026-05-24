@@ -156,6 +156,128 @@ async function loadJsonMapWithTimeout(endpoints, timeoutMs = 15000) {
     ]);
 }
 
+const PREDEFINED_INSTRUCTION_RULES = [
+    {
+        id: 'no_revert_after_submit',
+        label: 'Once the exam is submitted, it cannot be reverted.',
+        description: 'Candidates cannot edit or reopen the submission after final submit.',
+    },
+    {
+        id: 'no_retake_after_submit',
+        label: 'Users cannot retake the exam after submission.',
+        description: 'The same candidate cannot attempt this exam again once completed.',
+    },
+    {
+        id: 'tab_switch_autosubmit',
+        label: 'Switching tabs may auto-submit the exam.',
+        description: 'Leaving the active exam window can immediately end the attempt.',
+    },
+    {
+        id: 'fullscreen_required',
+        label: 'Full-screen mode is required during the exam.',
+        description: 'Candidates must remain in full-screen mode for the full session.',
+    },
+    {
+        id: 'no_page_refresh',
+        label: 'Refreshing the exam page may end the attempt.',
+        description: 'Page reload can cause automatic submission or attempt lock.',
+    },
+    {
+        id: 'random_question_order',
+        label: 'Questions will appear in random order.',
+        description: 'Each candidate can receive the same questions in a different sequence.',
+    },
+    {
+        id: 'mandatory_questions_no_skip',
+        label: 'Candidates cannot skip mandatory questions.',
+        description: 'Mandatory items must be answered before moving forward.',
+    },
+    {
+        id: 'disable_copy_paste',
+        label: 'Disable copy/paste during the exam.',
+        description: 'Clipboard actions can be blocked while the exam is active.',
+    },
+    {
+        id: 'webcam_monitoring_enabled',
+        label: 'Webcam monitoring is enabled.',
+        description: 'Candidates may be monitored by camera during the attempt.',
+    },
+    {
+        id: 'disconnection_may_affect_session',
+        label: 'Internet disconnection may affect the exam session.',
+        description: 'Unstable connectivity can interrupt timing or answer sync.',
+    },
+    {
+        id: 'single_attempt_per_question',
+        label: 'Each question can be attempted only once.',
+        description: 'Candidates cannot return to revise an already attempted question.',
+    },
+    {
+        id: 'id_verification_required',
+        label: 'Identity verification is required before exam start.',
+        description: 'Candidates must complete required identity checks before launching the test.',
+    },
+    {
+        id: 'suspicious_activity_flagged',
+        label: 'Suspicious activity may be flagged for review.',
+        description: 'The platform may log unusual behavior for proctor/admin review.',
+    },
+];
+
+const EXAM_FORMAT_OPTIONS = [
+    {
+        id: 'mcq',
+        label: 'MCQ',
+        description: 'Single-correct objective questions.',
+    },
+    {
+        id: 'written',
+        label: 'Written',
+        description: 'Descriptive answers reviewed manually.',
+    },
+    {
+        id: 'multi_select',
+        label: 'Multi Select',
+        description: 'Questions may have multiple correct choices.',
+    },
+    {
+        id: 'mixed',
+        label: 'Mixed',
+        description: 'A blend of objective and descriptive questions.',
+    },
+];
+
+const SCHEDULE_TYPE_OPTIONS = [
+    {
+        id: 'any_time',
+        label: 'Any Time Allowed',
+        description: 'Candidates can start the exam at any time.',
+    },
+    {
+        id: 'fixed_window',
+        label: 'Fixed Date & Time Window',
+        description: 'Candidates can start only between a configured start and end date-time.',
+    },
+];
+
+const ATTEMPT_LIMIT_OPTIONS = [
+    {
+        id: 'once',
+        label: 'One Time Only',
+        description: 'Each candidate can attempt this exam once.',
+    },
+    {
+        id: 'fixed_count',
+        label: 'Fixed Attempts',
+        description: 'Allow a fixed number of attempts per candidate (e.g., 2 or 3).',
+    },
+    {
+        id: 'unlimited',
+        label: 'Unlimited Attempts',
+        description: 'Candidates can reattempt without an attempt cap.',
+    },
+];
+
 function flattenCategoryTree(nodes, level = 0, parentId = null, path = []) {
     const source = Array.isArray(nodes) ? nodes : [];
     const flattened = [];
@@ -285,6 +407,24 @@ document.addEventListener('DOMContentLoaded', () => {
         status: document.getElementById('exam_status'),
         mode: document.getElementById('exam_mode'),
         visibility: document.getElementById('exam_visibility'),
+        enableExamTimer: document.getElementById('enable_exam_timer'),
+        examDurationMinutes: document.getElementById('exam_duration_minutes'),
+        autoSubmitOnTimerEnd: document.getElementById('auto_submit_on_timer_end'),
+        timerDurationWrap: document.getElementById('timer-duration-wrap'),
+        timerAutoSubmitWrap: document.getElementById('timer-autosubmit-wrap'),
+        timerConfigSummary: document.getElementById('timer-config-summary'),
+        examFormatOptions: document.getElementById('exam-format-options'),
+        examFormatHidden: document.getElementById('exam_format'),
+        scheduleTypeOptions: document.getElementById('schedule-type-options'),
+        scheduleTypeHidden: document.getElementById('schedule_type'),
+        fixedScheduleWindow: document.getElementById('fixed-schedule-window'),
+        scheduleStartAt: document.getElementById('schedule_start_at'),
+        scheduleEndAt: document.getElementById('schedule_end_at'),
+        attemptLimitOptions: document.getElementById('attempt-limit-options'),
+        attemptLimitTypeHidden: document.getElementById('attempt_limit_type'),
+        fixedAttemptLimitWrap: document.getElementById('fixed-attempt-limit-wrap'),
+        attemptLimitCount: document.getElementById('attempt_limit_count'),
+        scheduleConfigSummary: document.getElementById('schedule-config-summary'),
 
         tagsHidden: document.getElementById('exam_tags'),
         tagsChip: document.querySelector('[data-chip-input="tags"]'),
@@ -347,7 +487,17 @@ document.addEventListener('DOMContentLoaded', () => {
         marksFilter: document.getElementById('question-marks-filter'),
         marksHidden: document.getElementById('question_marks_filter'),
         marksCount: document.getElementById('selected-marks-count'),
-        mixedMarksQuestions: document.getElementById('mixed_marks_questions'),
+        fixMarksEachQuestion: document.getElementById('fix_marks_each_question'),
+        marksCalculationManagement: document.getElementById('marks-calculation-management'),
+        marksCalculationSummary: document.getElementById('marks-calculation-summary'),
+        marksCalculationWarning: document.getElementById('marks-calculation-warning'),
+        marksCalculationSuggestion: document.getElementById('marks-calculation-suggestion'),
+        marksCalculationActions: document.getElementById('marks-calculation-actions'),
+        marksFixTotalMarksBtn: document.getElementById('marks-fix-total-marks'),
+        marksFixTotalQuestionsBtn: document.getElementById('marks-fix-total-questions'),
+        enableNegativeMarking: document.getElementById('enable_negative_marking'),
+        negativeMarkingConfig: document.getElementById('negative-marking-config'),
+        negativeMarkingType: document.getElementById('negative_marking_type'),
 
         pricingSection: document.getElementById('pricing-section'),
         pricingOptions: document.getElementById('pricing-options'),
@@ -376,6 +526,9 @@ document.addEventListener('DOMContentLoaded', () => {
         applyInstructionTemplate: document.getElementById('apply-instruction-template'),
         instructions: document.getElementById('candidate_instructions'),
         instructionsCount: document.getElementById('instructions-char-count'),
+        instructionRulesList: document.getElementById('instruction-rules-list'),
+        instructionRulesHidden: document.getElementById('predefined_instruction_rules'),
+        instructionRulesCount: document.getElementById('selected-instruction-rules-count'),
 
         workflowStatusList: document.getElementById('workflow-status-list'),
 
@@ -383,8 +536,13 @@ document.addEventListener('DOMContentLoaded', () => {
         snapshotMode: document.getElementById('snapshot-mode'),
         snapshotCategories: document.getElementById('snapshot-categories'),
         snapshotMarks: document.getElementById('snapshot-marks'),
+        snapshotTimer: document.getElementById('snapshot-timer'),
+        snapshotExamFormat: document.getElementById('snapshot-exam-format'),
+        snapshotSchedule: document.getElementById('snapshot-schedule'),
+        snapshotAttempts: document.getElementById('snapshot-attempts'),
         snapshotCandidates: document.getElementById('snapshot-candidates'),
         snapshotDiscounts: document.getElementById('snapshot-discounts'),
+        snapshotInstructionRules: document.getElementById('snapshot-instruction-rules'),
 
         modal: document.getElementById('add-question-modal'),
         modalCloseButtons: [...document.querySelectorAll('[data-modal-close]')],
@@ -425,6 +583,9 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedDistributionType: '',
         selectedVisibility: '',
         selectedMode: '',
+        selectedExamFormat: 'mcq',
+        selectedScheduleType: 'any_time',
+        selectedAttemptLimitType: 'once',
         activeCandidateTab: 'import',
         importedCandidates: [],
         manualEmails: [],
@@ -446,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
         suppressExtraSelectEvents: false,
         richEditors: new Map(),
         selectedQuestions: new Set(),
+        selectedInstructionRules: new Set(),
     };
 
     const tagInput = new ChipInput(refs.tagsChip, {
@@ -616,7 +778,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         renderCustomDiscounts();
 
+        state.selectedExamFormat = normalizeExamFormat(refs.examFormatHidden ? refs.examFormatHidden.value : 'mcq');
+        renderExamFormatOptions();
+        state.selectedScheduleType = normalizeScheduleType(refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time');
+        state.selectedAttemptLimitType = normalizeAttemptLimitType(refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once');
+        renderScheduleTypeOptions();
+        renderAttemptLimitOptions();
+        updateScheduleConfigState();
+        updateTimerConfigState();
+
         renderInstructionTemplates();
+        const defaultInstructionRules = normalizeInstructionRuleSelection(
+            jsonSafeParse(refs.instructionRulesHidden ? refs.instructionRulesHidden.value : '[]')
+        );
+        state.selectedInstructionRules = new Set(defaultInstructionRules);
+        renderInstructionRules();
         renderModalSelects();
         refs.manualEmailFeedback.textContent = 'Type email and press Enter to add.';
 
@@ -817,6 +993,14 @@ document.addEventListener('DOMContentLoaded', () => {
             [1].forEach((mark) => state.selectedMarks.add(mark));
         }
 
+        if (refs.fixMarksEachQuestion && refs.fixMarksEachQuestion.checked && state.selectedMarks.size > 1) {
+            const firstMark = Array.from(state.selectedMarks)[0];
+            state.selectedMarks.clear();
+            if (firstMark) {
+                state.selectedMarks.add(firstMark);
+            }
+        }
+
         refs.marksFilter.innerHTML = state.config.questionMarks
             .map((item) => {
                 const mark = Number(item.value);
@@ -827,6 +1011,134 @@ document.addEventListener('DOMContentLoaded', () => {
 
         refs.marksHidden.value = JSON.stringify([...state.selectedMarks]);
         refs.marksCount.textContent = String(state.selectedMarks.size);
+    }
+
+    function computeMarksCalculationState() {
+        const fixEnabled = Boolean(refs.fixMarksEachQuestion && refs.fixMarksEachQuestion.checked);
+        const totalQuestions = Math.max(0, toInt(refs.totalQuestions.value, 0));
+        const totalMarks = Math.max(0, toInt(refs.totalMarks.value, 0));
+        const selectedMark = state.selectedMarks.size === 1 ? Number(Array.from(state.selectedMarks)[0]) : 0;
+        const hasSelectedMark = Number.isFinite(selectedMark) && selectedMark > 0;
+        const expectedTotalMarks = hasSelectedMark ? totalQuestions * selectedMark : 0;
+        const rawQuestionCountFromMarks = hasSelectedMark ? (totalMarks / selectedMark) : 0;
+        const hasExactQuestionCount = hasSelectedMark
+            && rawQuestionCountFromMarks > 0
+            && Number.isInteger(rawQuestionCountFromMarks);
+        const suggestedQuestionCount = hasSelectedMark
+            ? Math.max(1, hasExactQuestionCount ? rawQuestionCountFromMarks : Math.round(rawQuestionCountFromMarks || 1))
+            : 0;
+        const suggestedTotalMarks = hasSelectedMark ? suggestedQuestionCount * selectedMark : 0;
+        const isValid = !fixEnabled || (
+            hasSelectedMark
+            && totalQuestions > 0
+            && totalMarks > 0
+            && totalMarks === expectedTotalMarks
+        );
+
+        return {
+            fixEnabled,
+            totalQuestions,
+            totalMarks,
+            selectedMark,
+            hasSelectedMark,
+            expectedTotalMarks,
+            hasExactQuestionCount,
+            suggestedQuestionCount,
+            suggestedTotalMarks,
+            isValid,
+        };
+    }
+
+    function renderMarksCalculationManagement() {
+        if (
+            !refs.marksCalculationManagement
+            || !refs.marksCalculationSummary
+            || !refs.marksCalculationWarning
+            || !refs.marksCalculationSuggestion
+            || !refs.marksCalculationActions
+        ) {
+            return;
+        }
+
+        const calculation = computeMarksCalculationState();
+        if (!calculation.fixEnabled) {
+            refs.marksCalculationManagement.hidden = true;
+            refs.marksCalculationManagement.classList.remove('is-valid', 'is-warning');
+            refs.marksCalculationSummary.textContent = '';
+            refs.marksCalculationWarning.textContent = '';
+            refs.marksCalculationWarning.hidden = true;
+            refs.marksCalculationSuggestion.textContent = '';
+            refs.marksCalculationSuggestion.hidden = true;
+            refs.marksCalculationActions.hidden = true;
+            return;
+        }
+
+        refs.marksCalculationManagement.hidden = false;
+        refs.marksCalculationManagement.classList.remove('is-valid', 'is-warning');
+
+        if (!calculation.hasSelectedMark) {
+            refs.marksCalculationSummary.textContent = 'Select one question mark value to validate fixed marks calculation.';
+            refs.marksCalculationWarning.textContent = 'Fixed marks mode requires one selected mark value.';
+            refs.marksCalculationWarning.hidden = false;
+            refs.marksCalculationSuggestion.textContent = 'Choose a mark from Question Marks Filter, then use suggested auto-fix actions if needed.';
+            refs.marksCalculationSuggestion.hidden = false;
+            refs.marksCalculationActions.hidden = true;
+            refs.marksCalculationManagement.classList.add('is-warning');
+            return;
+        }
+
+        refs.marksCalculationSummary.textContent = `Current formula: ${calculation.totalQuestions} questions x ${calculation.selectedMark} mark(s) = ${calculation.expectedTotalMarks} expected total marks. Current Total Marks: ${calculation.totalMarks}.`;
+
+        if (calculation.isValid) {
+            refs.marksCalculationWarning.textContent = '';
+            refs.marksCalculationWarning.hidden = true;
+            refs.marksCalculationSuggestion.textContent = 'Marks configuration is valid and ready.';
+            refs.marksCalculationSuggestion.hidden = false;
+            refs.marksCalculationActions.hidden = true;
+            refs.marksCalculationManagement.classList.add('is-valid');
+            return;
+        }
+
+        refs.marksCalculationWarning.textContent = 'The selected marks configuration does not match the total questions and total marks. Please adjust the values.';
+        refs.marksCalculationWarning.hidden = false;
+
+        if (calculation.hasExactQuestionCount) {
+            refs.marksCalculationSuggestion.textContent = `Suggested fix: set Total Marks to ${calculation.expectedTotalMarks}, or set Total Questions to ${calculation.suggestedQuestionCount}.`;
+        } else {
+            refs.marksCalculationSuggestion.textContent = `Suggested fix: set Total Marks to ${calculation.expectedTotalMarks}, or set Total Questions to ${calculation.suggestedQuestionCount} (nearest whole number, then Total Marks will sync to ${calculation.suggestedTotalMarks}).`;
+        }
+        refs.marksCalculationSuggestion.hidden = false;
+        refs.marksCalculationActions.hidden = false;
+        refs.marksCalculationManagement.classList.add('is-warning');
+
+        if (refs.marksFixTotalMarksBtn) {
+            refs.marksFixTotalMarksBtn.textContent = `Update Total Marks (${calculation.expectedTotalMarks})`;
+            refs.marksFixTotalMarksBtn.disabled = false;
+        }
+        if (refs.marksFixTotalQuestionsBtn) {
+            refs.marksFixTotalQuestionsBtn.textContent = `Update Total Questions (${calculation.suggestedQuestionCount})`;
+            refs.marksFixTotalQuestionsBtn.disabled = false;
+        }
+    }
+
+    function applyMarksCalculationFix(fixType) {
+        const calculation = computeMarksCalculationState();
+        if (!calculation.fixEnabled || !calculation.hasSelectedMark) {
+            return;
+        }
+
+        if (fixType === 'total_marks') {
+            refs.totalMarks.value = String(calculation.expectedTotalMarks);
+        }
+
+        if (fixType === 'total_questions') {
+            refs.totalQuestions.value = String(calculation.suggestedQuestionCount);
+            if (!calculation.hasExactQuestionCount) {
+                refs.totalMarks.value = String(calculation.suggestedTotalMarks);
+            }
+        }
+
+        updateAll();
     }
 
     function renderPricingOptions() {
@@ -1064,6 +1376,170 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function getExamFormatById(formatId) {
+        return EXAM_FORMAT_OPTIONS.find((option) => option.id === formatId) || null;
+    }
+
+    function normalizeExamFormat(rawValue) {
+        const normalized = cleanText(String(rawValue || '')).toLowerCase();
+        return getExamFormatById(normalized) ? normalized : 'mcq';
+    }
+
+    function getScheduleTypeById(scheduleTypeId) {
+        return SCHEDULE_TYPE_OPTIONS.find((option) => option.id === scheduleTypeId) || null;
+    }
+
+    function normalizeScheduleType(rawValue) {
+        const normalized = cleanText(String(rawValue || '')).toLowerCase();
+        return getScheduleTypeById(normalized) ? normalized : 'any_time';
+    }
+
+    function getAttemptLimitTypeById(attemptTypeId) {
+        return ATTEMPT_LIMIT_OPTIONS.find((option) => option.id === attemptTypeId) || null;
+    }
+
+    function normalizeAttemptLimitType(rawValue) {
+        const normalized = cleanText(String(rawValue || '')).toLowerCase();
+        return getAttemptLimitTypeById(normalized) ? normalized : 'once';
+    }
+
+    function renderExamFormatOptions() {
+        if (!refs.examFormatOptions || !refs.examFormatHidden) {
+            return;
+        }
+
+        refs.examFormatOptions.innerHTML = EXAM_FORMAT_OPTIONS
+            .map((option) => {
+                const selected = state.selectedExamFormat === option.id ? 'is-selected' : '';
+                return `
+                    <article class="option-card ${selected}" data-format-id="${escapeHtml(option.id)}">
+                        <h4>${escapeHtml(option.label)}</h4>
+                        <p>${escapeHtml(option.description)}</p>
+                    </article>
+                `;
+            })
+            .join('');
+
+        refs.examFormatHidden.value = state.selectedExamFormat;
+    }
+
+    function renderScheduleTypeOptions() {
+        if (!refs.scheduleTypeOptions || !refs.scheduleTypeHidden) {
+            return;
+        }
+
+        refs.scheduleTypeOptions.innerHTML = SCHEDULE_TYPE_OPTIONS
+            .map((option) => {
+                const selected = state.selectedScheduleType === option.id ? 'is-selected' : '';
+                return `
+                    <article class="option-card ${selected}" data-schedule-type-id="${escapeHtml(option.id)}">
+                        <h4>${escapeHtml(option.label)}</h4>
+                        <p>${escapeHtml(option.description)}</p>
+                    </article>
+                `;
+            })
+            .join('');
+
+        refs.scheduleTypeHidden.value = state.selectedScheduleType;
+    }
+
+    function renderAttemptLimitOptions() {
+        if (!refs.attemptLimitOptions || !refs.attemptLimitTypeHidden) {
+            return;
+        }
+
+        refs.attemptLimitOptions.innerHTML = ATTEMPT_LIMIT_OPTIONS
+            .map((option) => {
+                const selected = state.selectedAttemptLimitType === option.id ? 'is-selected' : '';
+                return `
+                    <article class="option-card ${selected}" data-attempt-type-id="${escapeHtml(option.id)}">
+                        <h4>${escapeHtml(option.label)}</h4>
+                        <p>${escapeHtml(option.description)}</p>
+                    </article>
+                `;
+            })
+            .join('');
+
+        refs.attemptLimitTypeHidden.value = state.selectedAttemptLimitType;
+    }
+
+    function updateScheduleConfigState() {
+        const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
+        state.selectedScheduleType = scheduleType;
+        const attemptType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
+        state.selectedAttemptLimitType = attemptType;
+
+        if (refs.fixedScheduleWindow) {
+            refs.fixedScheduleWindow.hidden = scheduleType !== 'fixed_window';
+        }
+        if (refs.fixedAttemptLimitWrap) {
+            refs.fixedAttemptLimitWrap.hidden = attemptType !== 'fixed_count';
+        }
+
+        const startAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
+        const endAt = cleanText(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
+        const fixedCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
+
+        let scheduleSummary = 'Schedule: candidates can start anytime.';
+        if (scheduleType === 'fixed_window') {
+            scheduleSummary = startAt && endAt
+                ? `Schedule: exam is allowed between ${startAt} and ${endAt}.`
+                : 'Schedule: fixed date-time window selected. Please set both start and end.';
+        }
+
+        let attemptSummary = 'Attempt policy: one time only.';
+        if (attemptType === 'fixed_count') {
+            attemptSummary = `Attempt policy: maximum ${fixedCount || 0} attempt(s) per candidate.`;
+        } else if (attemptType === 'unlimited') {
+            attemptSummary = 'Attempt policy: unlimited attempts are allowed.';
+        }
+
+        if (refs.scheduleConfigSummary) {
+            refs.scheduleConfigSummary.textContent = `${scheduleSummary} ${attemptSummary}`;
+        }
+
+        if (refs.scheduleTypeHidden) {
+            refs.scheduleTypeHidden.value = state.selectedScheduleType;
+        }
+        if (refs.attemptLimitTypeHidden) {
+            refs.attemptLimitTypeHidden.value = state.selectedAttemptLimitType;
+        }
+    }
+
+    function updateTimerConfigState() {
+        if (!refs.enableExamTimer) {
+            return;
+        }
+
+        const timerEnabled = refs.enableExamTimer.checked;
+        const duration = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
+        const autoSubmitEnabled = Boolean(refs.autoSubmitOnTimerEnd && refs.autoSubmitOnTimerEnd.checked);
+
+        if (refs.timerDurationWrap) {
+            refs.timerDurationWrap.hidden = !timerEnabled;
+        }
+        if (refs.timerAutoSubmitWrap) {
+            refs.timerAutoSubmitWrap.hidden = !timerEnabled;
+        }
+
+        if (refs.timerConfigSummary) {
+            if (!timerEnabled) {
+                refs.timerConfigSummary.textContent = 'Timer is disabled. Candidates can continue without a countdown limit.';
+            } else {
+                refs.timerConfigSummary.textContent = autoSubmitEnabled
+                    ? `Timer is enabled for ${duration || 0} minute(s). Exam will auto-submit when time ends.`
+                    : `Timer is enabled for ${duration || 0} minute(s). Auto-submit on timer end is currently disabled.`;
+            }
+        }
+    }
+
+    function parseDateTimeValue(value) {
+        const cleaned = cleanText(String(value || ''));
+        if (!cleaned) return null;
+        const timestamp = Date.parse(cleaned);
+        return Number.isFinite(timestamp) ? timestamp : null;
+    }
+
     function renderInstructionTemplates() {
         refs.instructionTemplate.innerHTML = [`<option value="">Choose template</option>`]
             .concat(
@@ -1072,6 +1548,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 )
             )
             .join('');
+    }
+
+    function normalizeInstructionRuleSelection(rawValues) {
+        const validIds = new Set(PREDEFINED_INSTRUCTION_RULES.map((rule) => rule.id));
+        const source = Array.isArray(rawValues) ? rawValues : [];
+        return [...new Set(source
+            .map((value) => cleanText(String(value || '')))
+            .filter((value) => validIds.has(value)))];
+    }
+
+    function syncInstructionRulesHidden() {
+        if (!refs.instructionRulesHidden) {
+            return;
+        }
+        refs.instructionRulesHidden.value = JSON.stringify([...state.selectedInstructionRules]);
+    }
+
+    function renderInstructionRules() {
+        if (!refs.instructionRulesList) {
+            return;
+        }
+
+        refs.instructionRulesList.innerHTML = PREDEFINED_INSTRUCTION_RULES
+            .map((rule) => {
+                const checked = state.selectedInstructionRules.has(rule.id);
+                const cardState = checked ? 'is-active' : '';
+                return `
+                    <article class="instruction-rule-card ${cardState}">
+                        <label class="switch-control" style="cursor: pointer;">
+                            <input type="checkbox" data-rule-id="${escapeHtml(rule.id)}" ${checked ? 'checked' : ''}>
+                            <span class="switch-control__track"></span>
+                            <span class="switch-control__label">${escapeHtml(rule.label)}</span>
+                        </label>
+                        <p class="instruction-rule-card__description">${escapeHtml(rule.description || '')}</p>
+                    </article>
+                `;
+            })
+            .join('');
+
+        if (refs.instructionRulesCount) {
+            refs.instructionRulesCount.textContent = String(state.selectedInstructionRules.size);
+        }
+        syncInstructionRulesHidden();
     }
 
     function renderModalSelects() {
@@ -1105,6 +1624,67 @@ document.addEventListener('DOMContentLoaded', () => {
             state.selectedVisibility = refs.visibility.value;
             renderPricingOptions();
             updateAll();
+        });
+
+        if (refs.enableExamTimer) {
+            refs.enableExamTimer.addEventListener('change', () => {
+                updateTimerConfigState();
+                updateAll();
+            });
+        }
+
+        if (refs.examDurationMinutes) {
+            refs.examDurationMinutes.addEventListener('input', () => {
+                updateTimerConfigState();
+                updateAll();
+            });
+            refs.examDurationMinutes.addEventListener('change', () => {
+                updateTimerConfigState();
+                updateAll();
+            });
+        }
+
+        if (refs.autoSubmitOnTimerEnd) {
+            refs.autoSubmitOnTimerEnd.addEventListener('change', () => {
+                updateTimerConfigState();
+                updateAll();
+            });
+        }
+
+        if (refs.examFormatOptions) {
+            refs.examFormatOptions.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-format-id]');
+                if (!card) return;
+                state.selectedExamFormat = normalizeExamFormat(card.dataset.formatId);
+                renderExamFormatOptions();
+                updateAll();
+            });
+        }
+
+        if (refs.scheduleTypeOptions) {
+            refs.scheduleTypeOptions.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-schedule-type-id]');
+                if (!card) return;
+                state.selectedScheduleType = normalizeScheduleType(card.dataset.scheduleTypeId);
+                renderScheduleTypeOptions();
+                updateAll();
+            });
+        }
+
+        if (refs.attemptLimitOptions) {
+            refs.attemptLimitOptions.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-attempt-type-id]');
+                if (!card) return;
+                state.selectedAttemptLimitType = normalizeAttemptLimitType(card.dataset.attemptTypeId);
+                renderAttemptLimitOptions();
+                updateAll();
+            });
+        }
+
+        [refs.scheduleStartAt, refs.scheduleEndAt, refs.attemptLimitCount].forEach((field) => {
+            if (!field) return;
+            field.addEventListener('input', updateAll);
+            field.addEventListener('change', updateAll);
         });
 
         const handleTotalCategoriesInput = () => {
@@ -1145,13 +1725,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const mark = Number(button.dataset.markValue);
 
-            if (refs.mixedMarksQuestions && refs.mixedMarksQuestions.checked) {
+            if (refs.fixMarksEachQuestion && !refs.fixMarksEachQuestion.checked) {
+                // Not fixed, allow multiple marks
                 if (state.selectedMarks.has(mark)) {
                     state.selectedMarks.delete(mark);
                 } else {
                     state.selectedMarks.add(mark);
                 }
             } else {
+                // Fixed, allow only one mark
                 state.selectedMarks.clear();
                 state.selectedMarks.add(mark);
             }
@@ -1160,15 +1742,33 @@ document.addEventListener('DOMContentLoaded', () => {
             updateAll();
         });
 
-        if (refs.mixedMarksQuestions) {
-            refs.mixedMarksQuestions.addEventListener('change', () => {
-                if (!refs.mixedMarksQuestions.checked && state.selectedMarks.size > 1) {
+        if (refs.fixMarksEachQuestion) {
+            refs.fixMarksEachQuestion.addEventListener('change', () => {
+                if (refs.fixMarksEachQuestion.checked && state.selectedMarks.size > 1) {
                     const firstMark = Array.from(state.selectedMarks)[0];
                     state.selectedMarks.clear();
                     if (firstMark) state.selectedMarks.add(firstMark);
                 }
                 renderQuestionMarks();
                 updateAll();
+            });
+        }
+
+        if (refs.marksFixTotalMarksBtn) {
+            refs.marksFixTotalMarksBtn.addEventListener('click', () => {
+                applyMarksCalculationFix('total_marks');
+            });
+        }
+
+        if (refs.marksFixTotalQuestionsBtn) {
+            refs.marksFixTotalQuestionsBtn.addEventListener('click', () => {
+                applyMarksCalculationFix('total_questions');
+            });
+        }
+
+        if (refs.enableNegativeMarking) {
+            refs.enableNegativeMarking.addEventListener('change', () => {
+                refs.negativeMarkingConfig.hidden = !refs.enableNegativeMarking.checked;
             });
         }
 
@@ -1359,6 +1959,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         refs.applyInstructionTemplate.addEventListener('click', applyInstructionTemplate);
 
+        if (refs.instructionRulesList) {
+            refs.instructionRulesList.addEventListener('change', (event) => {
+                const checkbox = event.target.closest('input[data-rule-id]');
+                if (!checkbox) {
+                    return;
+                }
+
+                const ruleId = cleanText(checkbox.dataset.ruleId || '');
+                if (!ruleId) {
+                    return;
+                }
+
+                if (checkbox.checked) {
+                    state.selectedInstructionRules.add(ruleId);
+                } else {
+                    state.selectedInstructionRules.delete(ruleId);
+                }
+
+                renderInstructionRules();
+                updateWorkflowAndSnapshot();
+            });
+        }
+
         refs.form.addEventListener('submit', (event) => {
             syncRichTextFields();
             const errors = collectSubmissionErrors();
@@ -1378,11 +2001,18 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.status,
             refs.mode,
             refs.visibility,
+            refs.enableExamTimer,
+            refs.examDurationMinutes,
+            refs.autoSubmitOnTimerEnd,
+            refs.scheduleStartAt,
+            refs.scheduleEndAt,
+            refs.attemptLimitCount,
             refs.totalQuestions,
             refs.totalMarks,
             refs.passingMarks,
             refs.paperSets,
         ].forEach((field) => {
+            if (!field) return;
             field.addEventListener('input', updateWorkflowAndSnapshot);
             field.addEventListener('change', updateWorkflowAndSnapshot);
         });
@@ -1538,11 +2168,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSectionNumbers() {
         const sections = [
             { id: 'exam-basic-information', defaultTitle: 'Exam Basic Information' },
+            { id: 'timer-section', defaultTitle: 'Timer & Duration Management' },
+            { id: 'exam-format-section', defaultTitle: 'Exam Format Management' },
+            { id: 'schedule-section', defaultTitle: 'Schedule & Attempt Management' },
             { id: 'candidate-access-section', defaultTitle: 'Candidate Access Management' },
             { id: 'exam-configuration-section', defaultTitle: 'Exam Configuration' },
             { id: 'question-rules-section', defaultTitle: 'Question Rules and Filters' },
             { id: 'pricing-section', defaultTitle: 'Pricing and Discount Rules' },
             { id: 'question-bank-section', defaultTitle: 'Question Bank Management' },
+            { id: 'instructions-rules-section', defaultTitle: 'Exam Instructions & Rules Management' },
             { id: 'instructions-section', defaultTitle: 'Instructions for Candidates' }
         ];
 
@@ -1990,6 +2624,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const fixedPerCategory = refs.fixCategoryQuestions.checked;
         const perCategoryTarget = computeCategoryTarget();
         const distribution = state.config.distributionTypes.find((item) => item.id === state.selectedDistributionType);
+        const marksCalculation = computeMarksCalculationState();
+        const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
+        const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
+        const formatLabel = getExamFormatById(state.selectedExamFormat)?.label || '-';
+        const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
+        const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
+        const scheduleTypeLabel = getScheduleTypeById(scheduleType)?.label || '-';
+        const attemptLimitLabel = getAttemptLimitTypeById(attemptLimitType)?.label || '-';
+        const scheduleStartAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
+        const scheduleEndAt = cleanText(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
+        const scheduleStartTs = parseDateTimeValue(scheduleStartAt);
+        const scheduleEndTs = parseDateTimeValue(scheduleEndAt);
+        const fixedAttemptCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
 
         refs.paperSets.min = '1';
         refs.paperSets.max = String(totalQuestions);
@@ -2004,13 +2651,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     : 'Fixed allocation enabled. Select categories to calculate distribution.'
             )
             : 'Fixed allocation disabled';
+        const marksInfo = !marksCalculation.fixEnabled
+            ? 'Flexible marks per question'
+            : (
+                !marksCalculation.hasSelectedMark
+                    ? 'Fixed marks enabled. Select exactly one mark value.'
+                    : (
+                        marksCalculation.isValid
+                            ? `Fixed marks valid (${marksCalculation.totalQuestions} x ${marksCalculation.selectedMark} = ${marksCalculation.totalMarks}).`
+                            : `Fixed marks mismatch (${marksCalculation.totalQuestions} x ${marksCalculation.selectedMark} should be ${marksCalculation.expectedTotalMarks}).`
+                    )
+            );
 
         refs.configPreviewList.innerHTML = [
             `<li>Total questions planned: <strong>${totalQuestions}</strong></li>`,
             `<li>Distribution mode: <strong>${escapeHtml(distribution?.label || '-')}</strong></li>`,
+            `<li>Exam format: <strong>${escapeHtml(formatLabel)}</strong></li>`,
+            `<li>Timer: <strong>${timerEnabled ? `${durationMinutes} minute(s)` : 'Disabled'}</strong></li>`,
+            `<li>Schedule type: <strong>${escapeHtml(scheduleTypeLabel)}</strong></li>`,
+            `<li>Attempt limit: <strong>${escapeHtml(attemptLimitType === 'fixed_count' ? `${attemptLimitLabel} (${fixedAttemptCount})` : attemptLimitLabel)}</strong></li>`,
             `<li>Paper sets: <strong>${paperSets}</strong> / ${totalQuestions}</li>`,
             `<li>Category requirement: <strong>${selectedCount}</strong> selected of ${totalCategories}</li>`,
             `<li>Passing threshold: <strong>${passingMarks}</strong> of ${totalMarks} marks</li>`,
+            `<li>${escapeHtml(marksInfo)}</li>`,
             `<li>${escapeHtml(fixedInfo)}</li>`,
         ].join('');
 
@@ -2030,6 +2693,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? '<li class="status-ok">Passing marks do not exceed total marks.</li>'
                 : '<li class="status-error">Passing marks cannot exceed total marks.</li>'
         );
+        validations.push(
+            timerEnabled && durationMinutes < 1
+                ? '<li class="status-error">Set a valid exam duration when timer is enabled.</li>'
+                : '<li class="status-ok">Timer configuration is valid.</li>'
+        );
+        validations.push(
+            state.selectedExamFormat
+                ? '<li class="status-ok">Exam format is selected.</li>'
+                : '<li class="status-error">Select one exam format.</li>'
+        );
+        if (scheduleType === 'fixed_window') {
+            if (!scheduleStartAt || !scheduleEndAt) {
+                validations.push('<li class="status-warning">Set both schedule start and end date-time for fixed window access.</li>');
+            } else if (scheduleStartTs === null || scheduleEndTs === null) {
+                validations.push('<li class="status-error">Schedule date-time values are invalid.</li>');
+            } else if (scheduleEndTs <= scheduleStartTs) {
+                validations.push('<li class="status-error">Schedule end date-time must be after start date-time.</li>');
+            } else {
+                validations.push('<li class="status-ok">Schedule window is valid.</li>');
+            }
+        } else {
+            validations.push('<li class="status-ok">Any-time schedule access is enabled.</li>');
+        }
+        if (attemptLimitType === 'fixed_count') {
+            validations.push(
+                fixedAttemptCount >= 2
+                    ? '<li class="status-ok">Fixed attempt limit is configured.</li>'
+                    : '<li class="status-error">Fixed attempts must be at least 2.</li>'
+            );
+        } else if (attemptLimitType === 'once') {
+            validations.push('<li class="status-ok">Single-attempt policy is enabled.</li>');
+        } else {
+            validations.push('<li class="status-ok">Unlimited attempts are allowed.</li>');
+        }
+        if (marksCalculation.fixEnabled) {
+            if (!marksCalculation.hasSelectedMark) {
+                validations.push('<li class="status-error">Select exactly one mark value for fixed marks mode.</li>');
+            } else if (marksCalculation.isValid) {
+                validations.push('<li class="status-ok">Fixed marks calculation matches total questions and total marks.</li>');
+            } else {
+                validations.push(`<li class="status-error">Fixed marks mismatch: ${marksCalculation.totalQuestions} x ${marksCalculation.selectedMark} = ${marksCalculation.expectedTotalMarks}, but Total Marks is ${marksCalculation.totalMarks}.</li>`);
+            }
+        }
         if (fixedPerCategory) {
             if (fixedDistribution.remainder > 0) {
                 if (fixedDistribution.extraCategoryIds.length === 0) {
@@ -2301,7 +3007,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const categoryLimit = toInt(refs.totalCategories.value, 0);
         const configComplete = state.selectedCategories.size === categoryLimit && toInt(refs.totalQuestions.value, 0) > 0 &&
             (!refs.fixCategoryQuestions.checked || computeFixedCategoryDistribution().totalAllocated === computeFixedCategoryDistribution().remainder);
-        const marksComplete = state.selectedMarks.size > 0;
+        const marksCalculation = computeMarksCalculationState();
+        const marksComplete = state.selectedMarks.size > 0 && (!marksCalculation.fixEnabled || marksCalculation.isValid);
+        const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
+        const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
+        const timerComplete = !timerEnabled || durationMinutes > 0;
+        const examFormatComplete = Boolean(state.selectedExamFormat);
+        const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
+        const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
+        const scheduleStartAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
+        const scheduleEndAt = cleanText(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
+        const scheduleStartTs = parseDateTimeValue(scheduleStartAt);
+        const scheduleEndTs = parseDateTimeValue(scheduleEndAt);
+        const fixedAttemptCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
+        const scheduleComplete = scheduleType !== 'fixed_window'
+            || (Boolean(scheduleStartAt) && Boolean(scheduleEndAt) && scheduleStartTs !== null && scheduleEndTs !== null && scheduleEndTs > scheduleStartTs);
+        const attemptsComplete = attemptLimitType !== 'fixed_count' || fixedAttemptCount >= 2;
+        const scheduleAndAttemptsComplete = scheduleComplete && attemptsComplete;
 
         const freeCount = state.freeImportedCandidates.length + state.freeManualEmails.length;
         const pricingComplete = refs.pricingSection.hidden || (Boolean(state.selectedPricing) && (state.selectedPricing !== 'free_for_imported' || freeCount > 0));
@@ -2321,15 +3043,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return totalAvailable >= Math.max(1, toInt(refs.totalQuestions.value, 1)) ? 0 : 1;
             })();
         const questionBankComplete = state.selectedCategories.size > 0 && shortages === 0;
+        const instructionRulesComplete = state.selectedInstructionRules.size > 0;
         const instructionsComplete = getInstructionTextLength() > 20;
 
         const checklist = [
             { label: 'Basic Information', complete: basicComplete, show: true },
+            { label: 'Timer Setup', complete: timerComplete, show: true },
+            { label: 'Exam Format', complete: examFormatComplete, show: true },
+            { label: 'Schedule & Attempts', complete: scheduleAndAttemptsComplete, show: true },
             { label: 'Candidate Access', complete: candidateComplete, show: candidateVisible },
             { label: 'Exam Configuration', complete: configComplete, show: true },
             { label: 'Question Rules', complete: marksComplete, show: true },
             { label: 'Pricing and Discount', complete: pricingComplete, show: !refs.pricingSection.hidden },
             { label: 'Question Bank', complete: questionBankComplete, show: true },
+            { label: 'Exam Rules', complete: instructionRulesComplete, show: true },
             { label: 'Instructions', complete: instructionsComplete, show: true }
         ];
 
@@ -2346,6 +3073,23 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.snapshotMode.textContent = refs.mode.options[refs.mode.selectedIndex]?.textContent || '-';
         refs.snapshotCategories.textContent = String(state.selectedCategories.size);
         refs.snapshotMarks.textContent = String(state.selectedMarks.size);
+        if (refs.snapshotTimer) {
+            refs.snapshotTimer.textContent = timerEnabled ? `${durationMinutes} min` : 'Disabled';
+        }
+        if (refs.snapshotExamFormat) {
+            const selectedFormat = getExamFormatById(state.selectedExamFormat);
+            refs.snapshotExamFormat.textContent = selectedFormat ? selectedFormat.label : '-';
+        }
+        if (refs.snapshotSchedule) {
+            refs.snapshotSchedule.textContent = scheduleType === 'fixed_window'
+                ? (scheduleStartAt && scheduleEndAt ? `${scheduleStartAt} to ${scheduleEndAt}` : 'Fixed window (incomplete)')
+                : 'Any time';
+        }
+        if (refs.snapshotAttempts) {
+            refs.snapshotAttempts.textContent = attemptLimitType === 'fixed_count'
+                ? `${fixedAttemptCount || 0} times`
+                : (attemptLimitType === 'once' ? 'Once' : 'Unlimited');
+        }
 
         const privateCount = state.importedCandidates.length + state.manualEmails.length;
         if (state.selectedPricing === 'free_for_imported') {
@@ -2355,6 +3099,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         refs.snapshotDiscounts.textContent = String(state.selectedDiscounts.size);
+        if (refs.snapshotInstructionRules) {
+            refs.snapshotInstructionRules.textContent = String(state.selectedInstructionRules.size);
+        }
     }
 
     async function initRichTextEditors() {
@@ -2523,8 +3270,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalMarks = toInt(refs.totalMarks.value, 0);
         const passingMarks = toInt(refs.passingMarks.value, 0);
         const paperSets = toInt(refs.paperSets.value, 0);
+        const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
+        const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
+        const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
+        const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
+        const scheduleStartAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
+        const scheduleEndAt = cleanText(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
+        const scheduleStartTs = parseDateTimeValue(scheduleStartAt);
+        const scheduleEndTs = parseDateTimeValue(scheduleEndAt);
+        const attemptLimitCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
 
         if (cleanText(refs.title.value).length < 3) errors.push('Exam title must be at least 3 characters long.');
+        if (!state.selectedExamFormat) errors.push('Select one exam format.');
+        if (timerEnabled && (!Number.isInteger(durationMinutes) || durationMinutes < 1)) {
+            errors.push('Exam duration must be a whole number of at least 1 minute when timer is enabled.');
+        }
+        if (scheduleType === 'fixed_window') {
+            if (!scheduleStartAt || !scheduleEndAt) {
+                errors.push('Set both schedule start and end date-time when fixed schedule window is selected.');
+            } else if (scheduleStartTs === null || scheduleEndTs === null) {
+                errors.push('Schedule date-time values are invalid.');
+            } else if (scheduleEndTs <= scheduleStartTs) {
+                errors.push('Schedule end date-time must be later than start date-time.');
+            }
+        }
+        if (attemptLimitType === 'fixed_count' && attemptLimitCount < 2) {
+            errors.push('Fixed attempt limit must be at least 2.');
+        }
         if (totalQuestions < 1) errors.push('Total questions must be at least 1.');
         if (totalCategories < 1) errors.push('Total categories must be at least 1.');
         if (state.selectedCategories.size !== totalCategories) errors.push('Selected categories must exactly match Total Categories Used.');
@@ -2550,7 +3322,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 errors.push('Selected categories do not have enough total questions for flexible allocation.');
             }
         }
-        if (!state.selectedMarks.size) errors.push('Select at least one question marks filter.');
+        const marksCalculation = computeMarksCalculationState();
+        if (marksCalculation.fixEnabled) {
+            if (!marksCalculation.hasSelectedMark || state.selectedMarks.size !== 1) {
+                errors.push('Select exactly one question marks filter when "Fix Marks Each Question" is enabled.');
+            }
+            if (marksCalculation.hasSelectedMark && !marksCalculation.isValid) {
+                errors.push(`Fixed marks mismatch: ${marksCalculation.totalQuestions} questions with ${marksCalculation.selectedMark} mark(s) requires Total Marks ${marksCalculation.expectedTotalMarks}.`);
+            }
+        } else if (!state.selectedMarks.size) {
+            errors.push('Select at least one question marks filter.');
+        }
         if (!refs.candidateSection.hidden && state.importedCandidates.length + state.manualEmails.length === 0) errors.push('Add at least one candidate email for the current access configuration.');
         if (!refs.pricingSection.hidden && !state.selectedPricing) {
             errors.push('Select one pricing option.');
@@ -2584,11 +3366,24 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.discountHidden.value = JSON.stringify([...state.selectedDiscounts]);
         refs.pricingOptionHidden.value = state.selectedPricing;
         refs.tagsHidden.value = JSON.stringify(state.tags);
+        if (refs.examFormatHidden) {
+            refs.examFormatHidden.value = state.selectedExamFormat;
+        }
+        if (refs.scheduleTypeHidden) {
+            refs.scheduleTypeHidden.value = scheduleType;
+        }
+        if (refs.attemptLimitTypeHidden) {
+            refs.attemptLimitTypeHidden.value = attemptLimitType;
+        }
         refs.manualEmailsHidden.value = JSON.stringify(state.manualEmails);
         refs.importedCandidatesHidden.value = JSON.stringify(state.importedCandidates);
 
         refs.freeManualEmailsHidden.value = JSON.stringify(state.freeManualEmails);
         refs.freeImportedCandidatesHidden.value = JSON.stringify(state.freeImportedCandidates);
+        state.selectedInstructionRules = new Set(
+            normalizeInstructionRuleSelection([...state.selectedInstructionRules])
+        );
+        syncInstructionRulesHidden();
 
         syncExtraQuestionsHidden();
 
@@ -2638,7 +3433,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAll() {
+        state.selectedExamFormat = normalizeExamFormat(
+            state.selectedExamFormat || (refs.examFormatHidden ? refs.examFormatHidden.value : 'mcq')
+        );
+        state.selectedScheduleType = normalizeScheduleType(
+            state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time')
+        );
+        state.selectedAttemptLimitType = normalizeAttemptLimitType(
+            state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once')
+        );
+        renderExamFormatOptions();
+        renderScheduleTypeOptions();
+        renderAttemptLimitOptions();
+        updateScheduleConfigState();
+        updateTimerConfigState();
         updateConditionalSections();
+        renderMarksCalculationManagement();
         updateConfigPreview();
         renderFixedCategoryDistribution();
         updateQuestionBankCards();
