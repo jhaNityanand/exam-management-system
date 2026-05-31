@@ -10,23 +10,43 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Default admin user
+        // Super admin
         User::firstOrCreate(
             ['email' => 'admin@examms.test'],
             [
-                'name' => 'Admin User',
+                'name'     => 'Admin User',
                 'password' => Hash::make('password'),
-                'status' => 'active',
+                'status'   => 'active',
             ]
         );
 
-        // Default student user
+        // Org admin
+        User::firstOrCreate(
+            ['email' => 'orgadmin@examms.test'],
+            [
+                'name'     => 'Org Admin User',
+                'password' => Hash::make('password'),
+                'status'   => 'active',
+            ]
+        );
+
+        // Editor
+        User::firstOrCreate(
+            ['email' => 'editor@examms.test'],
+            [
+                'name'     => 'Editor User',
+                'password' => Hash::make('password'),
+                'status'   => 'active',
+            ]
+        );
+
+        // Viewer / Candidate
         User::firstOrCreate(
             ['email' => 'student@examms.test'],
             [
-                'name' => 'Student User',
+                'name'     => 'Student User',
                 'password' => Hash::make('password'),
-                'status' => 'active',
+                'status'   => 'active',
             ]
         );
     }

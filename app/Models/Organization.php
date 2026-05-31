@@ -13,6 +13,7 @@ class Organization extends Model
     use HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        // Identity
         'user_id',
         'name',
         'slug',
@@ -20,6 +21,15 @@ class Organization extends Model
         'logo',
         'banner',
         'status',
+
+        // SEO / Metadata
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'og_title',
+        'og_description',
+
+        // Audit
         'created_by',
         'updated_by',
         'updated_by_history',
@@ -31,6 +41,8 @@ class Organization extends Model
             'updated_by_history' => 'array',
         ];
     }
+
+    // ── Relationships ─────────────────────────────────────────────────────────
 
     public function owner(): BelongsTo
     {

@@ -20,10 +20,12 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info('Demo logins (password: password):');
         $this->command->table(
-            ['Email', 'Access'],
+            ['Email', 'Role', 'Access'],
             [
-                ['admin@examms.test', 'Admin panel  /admin'],
-                ['student@examms.test', 'Student / take exams'],
+                ['admin@examms.test',    'Admin',     '/admin — super admin panel'],
+                ['orgadmin@examms.test', 'Org Admin', '/admin — org-level management'],
+                ['editor@examms.test',   'Editor',    '/admin — question & exam creation'],
+                ['student@examms.test',  'Viewer',    '/admin — exam taking & results'],
             ]
         );
     }

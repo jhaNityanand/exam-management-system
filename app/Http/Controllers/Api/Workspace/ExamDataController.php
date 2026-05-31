@@ -12,7 +12,15 @@ class ExamDataController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $query = Exam::query()->with(['category', 'createdBy']);
+        $orgId = current_organization_id();
+
+        // SINGLE-ORG MODE: org is always available; abort only if DB has no org at all.
+        // MULTI-ORG MODE (future): restore → abort_if($orgId === null, 404);
+        abort_if($orgId === null, 503, 'No organization found. Please run the database seeder.');
+
+        $query = Exam::query()
+            ->forOrg($orgId)
+            ->with(['category', 'createdBy']);
 
         DatatableQuery::apply($query, $request, ['title', 'description', 'status'], 'id');
 
@@ -22,9 +30,9 @@ class ExamDataController extends Controller
             'data' => $paginator->items(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
             ],
         ]);
     }

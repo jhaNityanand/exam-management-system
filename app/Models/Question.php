@@ -12,12 +12,14 @@ class Question extends Model
     use HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        // Relations & Audit
         'organization_id',
         'category_id',
         'created_by',
         'updated_by',
         'updated_by_history',
-        'status',
+
+        // Content
         'body',
         'type',
         'allows_multiple',
@@ -25,19 +27,34 @@ class Question extends Model
         'correct_answer',
         'correct_answers',
         'explanation',
+        'previous_exam',
+
+        // Scoring & Classification
         'marks',
         'difficulty',
+        'status',
+
+        // SEO / Metadata
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'slug',
+        'canonical_url',
+        'og_title',
+        'og_description',
     ];
 
     protected function casts(): array
     {
         return [
-            'options' => 'array',
-            'correct_answers' => 'array',
-            'allows_multiple' => 'boolean',
+            'options'            => 'array',
+            'correct_answers'    => 'array',
+            'allows_multiple'    => 'boolean',
             'updated_by_history' => 'array',
         ];
     }
+
+    // ── Relationships ─────────────────────────────────────────────────────────
 
     public function organization()
     {
@@ -60,6 +77,8 @@ class Question extends Model
             ->withPivot(['sort_order', 'marks_override', 'status'])
             ->withTimestamps();
     }
+
+    // ── Scopes ────────────────────────────────────────────────────────────────
 
     public function scopeForOrg($query, int $orgId)
     {

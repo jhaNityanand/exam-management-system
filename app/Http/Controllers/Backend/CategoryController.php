@@ -14,10 +14,17 @@ class CategoryController extends Controller
 {
     public function __construct(protected CategoryService $categoryService) {}
 
+    /**
+     * Resolve the active organization ID.
+     *
+     * SINGLE-ORG MODE: current_organization_id() always returns the one org.
+     * MULTI-ORG MODE (future): restore the abort_if checks in edit/update/destroy
+     *   to enforce org ownership — abort_if((int) $category->organization_id !== $this->currentOrgId(), 403).
+     */
     protected function currentOrgId(): int
     {
         $id = current_organization_id();
-        abort_if($id === null, 404, 'No organization context. Please select an organization.');
+        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
 
         return $id;
     }
@@ -29,8 +36,9 @@ class CategoryController extends Controller
 
     public function create(): View
     {
-        // For now, returning UI with dummy data as requested
-        return view('backend.categories.create', ['parents' => collect()]);
+        $parents = $this->categoryService->listForSelect($this->currentOrgId());
+
+        return view('backend.categories.create', compact('parents'));
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
@@ -45,19 +53,16 @@ class CategoryController extends Controller
 
     public function edit(Category $category): View
     {
-        abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
+        // MULTI-ORG: abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
         $parents = $this->categoryService->listForSelect($this->currentOrgId())
             ->where('id', '!=', $category->id);
 
-        return view('backend.categories.edit', [
-            'category' => $category,
-            'parents' => $parents,
-        ]);
+        return view('backend.categories.edit', compact('category', 'parents'));
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
+        // MULTI-ORG: abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
         $this->categoryService->update($category, $request->validated());
 
         return redirect()->route('admin.categories.index')
@@ -66,7 +71,7 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
+        // MULTI-ORG: abort_if((int) $category->organization_id !== $this->currentOrgId(), 403);
         $this->categoryService->delete($category);
 
         return redirect()->route('admin.categories.index')

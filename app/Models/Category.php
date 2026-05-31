@@ -12,14 +12,26 @@ class Category extends Model
     use HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        // Relations & Audit
         'organization_id',
         'parent_id',
-        'name',
-        'description',
-        'status',
         'created_by',
         'updated_by',
         'updated_by_history',
+
+        // Content
+        'name',
+        'description',
+        'status',
+
+        // SEO / Metadata
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'slug',
+        'canonical_url',
+        'og_title',
+        'og_description',
     ];
 
     protected function casts(): array
@@ -28,6 +40,8 @@ class Category extends Model
             'updated_by_history' => 'array',
         ];
     }
+
+    // ── Lifecycle Hooks ───────────────────────────────────────────────────────
 
     protected static function booted(): void
     {
@@ -41,6 +55,8 @@ class Category extends Model
             $category->questions()->delete();
         });
     }
+
+    // ── Relationships ─────────────────────────────────────────────────────────
 
     public function organization()
     {
@@ -66,6 +82,8 @@ class Category extends Model
     {
         return $this->hasMany(Exam::class);
     }
+
+    // ── Scopes ────────────────────────────────────────────────────────────────
 
     public function scopeRoots($query)
     {

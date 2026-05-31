@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration 
+return new class extends Migration
 {
     public function up(): void
     {
@@ -13,13 +13,72 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+
+            // Identity
             $table->string('title');
             $table->text('description')->nullable();
+            $table->string('status')->default('draft');      // draft | published | active | inactive | suspended
+            $table->string('exam_mode')->default('standard'); // standard | practice | proctored
+            $table->string('exam_format')->default('mcq');   // mcq | written | multi_select | mixed
+            $table->string('difficulty_level')->nullable();  // easy | medium | hard
+            $table->string('visibility')->default('public'); // public | private | invite_only
+            $table->json('tags')->nullable();
+
+            // Timer & Duration
             $table->unsignedSmallInteger('duration')->default(60); // minutes
-            $table->decimal('pass_percentage', 5, 2)->default(50);
+            $table->boolean('enable_exam_timer')->default(true);
+            $table->boolean('auto_submit_on_timer_end')->default(true);
+
+            // Scheduling
+            $table->string('schedule_type')->default('any_time'); // any_time | fixed_window
+            $table->timestamp('scheduled_start')->nullable();
+            $table->timestamp('scheduled_end')->nullable();
+
+            // Attempts
+            $table->string('attempt_limit_type')->default('once'); // once | fixed | unlimited
             $table->unsignedTinyInteger('max_attempts')->default(1);
-            $table->string('status')->default('draft'); // changed to string to accommodate active/inactive/suspended along with draft/published
-            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+
+            // Scoring
+            $table->decimal('pass_percentage', 5, 2)->default(50);
+            $table->unsignedSmallInteger('total_marks')->nullable();
+            $table->unsignedSmallInteger('passing_marks')->nullable();
+            $table->decimal('negative_mark_per_question', 8, 4)->default(0);
+            $table->boolean('enable_negative_marking')->default(false);
+            $table->string('negative_marking_type')->nullable(); // 25 | 33.33 | 50 | 100 (percent)
+            $table->boolean('fix_marks_each_question')->default(false);
+
+            // Question Configuration
+            $table->unsignedSmallInteger('total_questions')->nullable();
+            $table->unsignedSmallInteger('total_categories')->nullable();
+            $table->unsignedTinyInteger('paper_sets')->default(1);
+            $table->boolean('fix_category_questions')->default(false);
+            $table->string('distribution_type')->nullable();     // equal | weighted | manual
+            $table->json('selected_categories')->nullable();
+            $table->json('extra_questions_categories')->nullable();
+            $table->json('extra_questions_allocations')->nullable();
+            $table->json('question_marks_filter')->nullable();
+            $table->json('category_question_rules')->nullable();
+
+            // Shuffle
+            $table->boolean('shuffle_questions')->default(false);
+            $table->boolean('shuffle_options')->default(false);
+
+            // Candidate Access
+            $table->json('imported_candidates')->nullable();
+            $table->json('manual_candidate_emails')->nullable();
+
+            // SEO / Metadata
+            $table->string('meta_title')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->string('meta_keywords')->nullable();
+            $table->string('slug')->nullable();
+            $table->string('canonical_url')->nullable();
+            $table->string('og_title')->nullable();
+            $table->text('og_description')->nullable();
+
+            // Audit
+            $table->json('updated_by_history')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

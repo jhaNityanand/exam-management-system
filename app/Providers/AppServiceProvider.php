@@ -32,12 +32,32 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            $user->loadMissing(['organizations', 'appSettings']);
+            $user->loadMissing(['appSettings']);
+
+            /*
+             * SINGLE-ORG MODE:
+             *   Always resolve the one organization directly — no session lookup,
+             *   no per-user org list needed.
+             *
+             * MULTI-ORG MODE (future):
+             *   Uncomment the lines below and remove the single-org block.
+             *
+             *   $user->loadMissing(['organizations', 'appSettings']);
+             *   $navOrganizations = $user->organizations()->orderBy('organizations.name')->get();
+             *   $currentOrgModel  = Organization::find(session(config('organization.session_key')));
+             */
+
+            // ── SINGLE-ORG MODE ───────────────────────────────────────────────
+            $singleOrg       = Organization::first();
+            $navOrganizations = $singleOrg ? collect([$singleOrg]) : collect();
+            $currentOrgModel  = $singleOrg;
+            // ─────────────────────────────────────────────────────────────────
+
             $view->with([
-                'navOrganizations'          => $user->organizations()->orderBy('organizations.name')->get(),
-                'currentOrgModel'           => Organization::find(session(config('organization.session_key'))),
-                'userThemeSetting'          => $user->appSettings?->theme ?? 'system',
-                'sidebarCollapsedSetting'   => (bool) ($user->appSettings?->sidebar_collapsed ?? false),
+                'navOrganizations'        => $navOrganizations,
+                'currentOrgModel'         => $currentOrgModel,
+                'userThemeSetting'        => $user->appSettings?->theme ?? 'system',
+                'sidebarCollapsedSetting' => (bool) ($user->appSettings?->sidebar_collapsed ?? false),
             ]);
         });
     }
