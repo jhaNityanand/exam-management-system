@@ -53,6 +53,19 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('candidates', CandidateController::class)->only(['index']);
     Route::resource('notifications', NotificationController::class)->only(['index']);
     Route::resource('logs', LogController::class)->only(['index']);
+
+    // Dummy routes for Static UI - Exam Categories
+    Route::get('exam-categories', function () {
+        return view('backend.exam-categories.index');
+    })->name('exam-categories.index');
+
+    Route::get('exam-categories/create', function () {
+        return view('backend.exam-categories.create');
+    })->name('exam-categories.create');
+
+    Route::get('exam-categories/1/edit', function () {
+        return view('backend.exam-categories.edit');
+    })->name('exam-categories.edit');
 });
 
 Route::get('/dashboard', function () {

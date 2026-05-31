@@ -278,6 +278,9 @@ const ATTEMPT_LIMIT_OPTIONS = [
     },
 ];
 
+const SCHEDULE_DATE_TIME_FORMAT = 'Y-m-d H:i';
+const SCHEDULE_ALT_DATE_TIME_FORMAT = 'M j, Y h:i K';
+
 function flattenCategoryTree(nodes, level = 0, parentId = null, path = []) {
     const source = Array.isArray(nodes) ? nodes : [];
     const flattened = [];
@@ -606,6 +609,10 @@ document.addEventListener('DOMContentLoaded', () => {
         suppressCategorySelectEvents: false,
         suppressExtraSelectEvents: false,
         richEditors: new Map(),
+        schedulePickers: {
+            start: null,
+            end: null,
+        },
         selectedQuestions: new Set(),
         selectedInstructionRules: new Set(),
     };
@@ -705,6 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderInitialControls();
             initEnhancedSelects();
+            initScheduleDateTimePickers();
             renderCategorySelector();
             bindEvents();
             bindMainCategorySelect();
@@ -749,6 +757,133 @@ document.addEventListener('DOMContentLoaded', () => {
             document,
             'select.panel-input:not(#selected_categories_select):not(#extra_questions_category)'
         );
+    }
+
+    function normalizeScheduleDateTimeValue(rawValue) {
+        const cleaned = cleanText(rawValue);
+        if (!cleaned) {
+            return '';
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(cleaned)) {
+            return cleaned.replace('T', ' ').slice(0, 16);
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(cleaned)) {
+            return cleaned.replace(/\s+/, ' ').slice(0, 16);
+        }
+
+        return cleaned;
+    }
+
+    function parseDateTimeObject(value) {
+        const cleaned = cleanText(String(value || ''));
+        if (!cleaned) {
+            return null;
+        }
+
+        const parser = window.EmsFormUtils && typeof window.EmsFormUtils.parseDateTime === 'function'
+            ? window.EmsFormUtils.parseDateTime
+            : null;
+
+        if (parser) {
+            const parsed = parser(cleaned, SCHEDULE_DATE_TIME_FORMAT)
+                || parser(cleaned.replace('T', ' '), SCHEDULE_DATE_TIME_FORMAT);
+            if (parsed instanceof Date && !Number.isNaN(parsed.getTime())) {
+                return parsed;
+            }
+        }
+
+        const normalizedIso = cleaned.includes('T') ? cleaned : cleaned.replace(' ', 'T');
+        const fallback = new Date(normalizedIso);
+        return Number.isNaN(fallback.getTime()) ? null : fallback;
+    }
+
+    function formatScheduleDateTimeForDisplay(value) {
+        const cleaned = cleanText(String(value || ''));
+        if (!cleaned) {
+            return '';
+        }
+
+        const parsed = parseDateTimeObject(cleaned);
+        if (!parsed) {
+            return normalizeScheduleDateTimeValue(cleaned);
+        }
+
+        if (window.EmsFormUtils && typeof window.EmsFormUtils.formatHumanDateTime === 'function') {
+            const readable = window.EmsFormUtils.formatHumanDateTime(parsed);
+            if (cleanText(readable)) {
+                return readable;
+            }
+        }
+
+        return normalizeScheduleDateTimeValue(cleaned);
+    }
+
+    function syncScheduleEndPickerMinDate() {
+        const endPicker = state.schedulePickers.end;
+        if (!endPicker || typeof endPicker.set !== 'function') {
+            return;
+        }
+
+        const startDate = parseDateTimeObject(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
+        endPicker.set('minDate', startDate || null);
+
+        const endDate = parseDateTimeObject(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
+        if (startDate && endDate && endDate.getTime() <= startDate.getTime()) {
+            endPicker.clear();
+        }
+    }
+
+    function initScheduleDateTimePickers() {
+        [refs.scheduleStartAt, refs.scheduleEndAt].forEach((field) => {
+            if (!field) {
+                return;
+            }
+            field.value = normalizeScheduleDateTimeValue(field.value);
+        });
+
+        if (!window.EmsFormUtils || typeof window.EmsFormUtils.initDateTimePicker !== 'function') {
+            return;
+        }
+
+        const pickerOptions = {
+            dateFormat: SCHEDULE_DATE_TIME_FORMAT,
+            altInput: true,
+            altFormat: SCHEDULE_ALT_DATE_TIME_FORMAT,
+            altInputClass: 'panel-input',
+            minuteIncrement: 5,
+            disableMobile: true,
+            onReady: (_, __, instance) => {
+                if (instance?.altInput) {
+                    instance.altInput.placeholder = instance.input.placeholder || 'Select date and time';
+                }
+            },
+        };
+
+        state.schedulePickers.start = window.EmsFormUtils.initDateTimePicker(refs.scheduleStartAt, {
+            ...pickerOptions,
+            onChange: () => {
+                syncScheduleEndPickerMinDate();
+                safeUpdateAll();
+            },
+            onClose: () => {
+                syncScheduleEndPickerMinDate();
+                safeUpdateAll();
+            },
+        });
+
+        state.schedulePickers.end = window.EmsFormUtils.initDateTimePicker(refs.scheduleEndAt, {
+            ...pickerOptions,
+            onChange: () => {
+                safeUpdateAll();
+            },
+            onClose: () => {
+                safeUpdateAll();
+            },
+        });
+
+        syncScheduleEndPickerMinDate();
     }
 
     function renderInitialControls() {
@@ -1478,12 +1613,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const startAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
         const endAt = cleanText(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
+        const startAtLabel = formatScheduleDateTimeForDisplay(startAt);
+        const endAtLabel = formatScheduleDateTimeForDisplay(endAt);
         const fixedCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
 
         let scheduleSummary = 'Schedule: candidates can start anytime.';
         if (scheduleType === 'fixed_window') {
             scheduleSummary = startAt && endAt
-                ? `Schedule: exam is allowed between ${startAt} and ${endAt}.`
+                ? `Schedule: exam is allowed between ${startAtLabel} and ${endAtLabel}.`
                 : 'Schedule: fixed date-time window selected. Please set both start and end.';
         }
 
@@ -1534,10 +1671,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function parseDateTimeValue(value) {
-        const cleaned = cleanText(String(value || ''));
-        if (!cleaned) return null;
-        const timestamp = Date.parse(cleaned);
-        return Number.isFinite(timestamp) ? timestamp : null;
+        const parsed = parseDateTimeObject(value);
+        return parsed ? parsed.getTime() : null;
     }
 
     function renderInstructionTemplates() {
@@ -3081,8 +3216,10 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.snapshotExamFormat.textContent = selectedFormat ? selectedFormat.label : '-';
         }
         if (refs.snapshotSchedule) {
+            const scheduleStartLabel = formatScheduleDateTimeForDisplay(scheduleStartAt);
+            const scheduleEndLabel = formatScheduleDateTimeForDisplay(scheduleEndAt);
             refs.snapshotSchedule.textContent = scheduleType === 'fixed_window'
-                ? (scheduleStartAt && scheduleEndAt ? `${scheduleStartAt} to ${scheduleEndAt}` : 'Fixed window (incomplete)')
+                ? (scheduleStartAt && scheduleEndAt ? `${scheduleStartLabel} to ${scheduleEndLabel}` : 'Fixed window (incomplete)')
                 : 'Any time';
         }
         if (refs.snapshotAttempts) {

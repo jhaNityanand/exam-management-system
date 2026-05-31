@@ -60,7 +60,15 @@
 
                             <div class="exam-grid exam-grid--3" id="basic-meta-grid">
                                 <div>
-                                    <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-tooltip="Used for filtering and recommendation in reports.">i</span></label>
+                                    <label for="exam_category_id" class="exam-label">Exam Category <span class="form-required">*</span></label>
+                                    <select id="exam_category_id" name="exam_category_id" class="panel-input">
+                                        <option value="" disabled selected>Select Category</option>
+                                        <option value="1">University Admissions</option>
+                                        <option value="2">Corporate Hiring</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-bs-tooltip="Used for filtering and recommendation in reports.">i</span></label>
                                     <select id="difficulty_level" name="difficulty_level" class="panel-input"></select>
                                 </div>
                                 <div>
@@ -178,9 +186,11 @@
                                     <input
                                         id="schedule_start_at"
                                         name="schedule_start_at"
-                                        type="datetime-local"
+                                        type="text"
                                         class="panel-input"
                                         value="{{ old('schedule_start_at') }}"
+                                        placeholder="Select start date and time"
+                                        autocomplete="off"
                                     >
                                 </div>
                                 <div>
@@ -188,9 +198,11 @@
                                     <input
                                         id="schedule_end_at"
                                         name="schedule_end_at"
-                                        type="datetime-local"
+                                        type="text"
                                         class="panel-input"
                                         value="{{ old('schedule_end_at') }}"
+                                        placeholder="Select end date and time"
+                                        autocomplete="off"
                                     >
                                 </div>
                             </div>
@@ -203,16 +215,18 @@
 
                             <div id="fixed-attempt-limit-wrap" hidden>
                                 <label for="attempt_limit_count" class="exam-label">Maximum Attempts <span class="form-required">*</span></label>
-                                <input
-                                    id="attempt_limit_count"
-                                    name="attempt_limit_count"
-                                    type="number"
-                                    min="2"
-                                    step="1"
-                                    class="panel-input"
-                                    value="{{ old('attempt_limit_count', 2) }}"
-                                    placeholder="e.g. 2 or 3"
-                                >
+                                <div style="max-width: 33.333%;">
+                                    <input
+                                        id="attempt_limit_count"
+                                        name="attempt_limit_count"
+                                        type="number"
+                                        min="2"
+                                        step="1"
+                                        class="panel-input"
+                                        value="{{ old('attempt_limit_count', 2) }}"
+                                        placeholder="e.g. 2 or 3"
+                                    >
+                                </div>
                                 <p class="exam-help">Use this only when “Fixed Attempts” is selected.</p>
                             </div>
 
@@ -678,6 +692,7 @@
 @endsection
 
 @push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
@@ -686,8 +701,10 @@
 @push('scripts')
     <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/core/form-utils.js') }}?v={{ time() }}"></script>
     <script>
         window.examCreateConfig = {
             endpoints: {

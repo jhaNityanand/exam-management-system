@@ -18,17 +18,26 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
-        View::composer(['layouts.app', 'layouts.admin'], function ($view) {
+        View::composer([
+            'backend.layouts.base',
+            'backend.layouts.app',
+            'layouts.app',
+            'layouts.guest',
+            'backend.layouts.guest',
+        ], function ($view) {
             $user = auth()->user();
             if (! $user) {
+                $view->with('userThemeSetting', 'system');
+
                 return;
             }
+
             $user->loadMissing(['organizations', 'appSettings']);
             $view->with([
-                'navOrganizations'      => $user->organizations()->orderBy('organizations.name')->get(),
-                'currentOrgModel'       => Organization::find(session(config('organization.session_key'))),
-                'userThemeSetting'      => $user->appSettings?->theme ?? 'system',
-                'sidebarCollapsedSetting' => (bool) ($user->appSettings?->sidebar_collapsed ?? false),
+                'navOrganizations'          => $user->organizations()->orderBy('organizations.name')->get(),
+                'currentOrgModel'           => Organization::find(session(config('organization.session_key'))),
+                'userThemeSetting'          => $user->appSettings?->theme ?? 'system',
+                'sidebarCollapsedSetting'   => (bool) ($user->appSettings?->sidebar_collapsed ?? false),
             ]);
         });
     }

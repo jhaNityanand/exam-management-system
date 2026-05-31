@@ -7,14 +7,18 @@
         display: none !important;
     }
 
+    html {
+        @apply transition-colors duration-200;
+    }
+
     body {
-        @apply bg-slate-100 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100;
+        @apply bg-slate-100 text-slate-900 transition-colors duration-200 dark:bg-slate-900 dark:text-slate-100;
     }
 }
 
 @layer components {
     .panel-card {
-        @apply rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none;
+        @apply rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800/60 dark:shadow-none;
     }
 
     .panel-card-body {
@@ -31,5 +35,55 @@
 
     .panel-button-secondary {
         @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:text-white;
+    }
+
+    .question-type-badge {
+        @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset;
+    }
+
+    .question-type-mcq {
+        @apply bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-500/20;
+    }
+
+    .question-type-true-false {
+        @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-500/20;
+    }
+
+    .question-type-short-answer {
+        @apply bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-500/20;
+    }
+
+    .question-diff-badge {
+        @apply inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset;
+    }
+
+    .question-diff-easy {
+        @apply bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-500/20;
+    }
+
+    .question-diff-medium {
+        @apply bg-yellow-50 text-yellow-700 ring-yellow-600/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-500/20;
+    }
+
+    .question-diff-hard {
+        @apply bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-500/20;
+    }
+
+    /* Tom Select — global dark mode overrides */
+    .dark .ts-wrapper .ts-control {
+        @apply border-slate-600 bg-slate-900 text-slate-100;
+    }
+
+    .dark .ts-dropdown {
+        @apply border-slate-600 bg-slate-900 text-slate-100;
+    }
+
+    .dark .ts-dropdown .option.active,
+    .dark .ts-dropdown .option:hover {
+        @apply bg-slate-800 text-white;
+    }
+
+    .dark .ts-dropdown .selected {
+        @apply bg-indigo-900/40 text-indigo-200;
     }
 }
