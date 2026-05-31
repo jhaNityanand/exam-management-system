@@ -1,26 +1,1213 @@
 [
-  { "id": 1001, "categoryId": "javascript", "marks": 2, "difficulty": "easy", "text": "Which method converts a JSON string into a JavaScript object?" },
-  { "id": 1002, "categoryId": "javascript", "marks": 4, "difficulty": "medium", "text": "Explain event delegation and when it improves performance." },
-  { "id": 1003, "categoryId": "javascript", "marks": 5, "difficulty": "hard", "text": "Design a debounce utility function and describe its use cases." },
-  { "id": 1101, "categoryId": "laravel", "marks": 3, "difficulty": "easy", "text": "What is the purpose of Laravel service providers?" },
-  { "id": 1102, "categoryId": "laravel", "marks": 6, "difficulty": "hard", "text": "How would you design a multi-tenant access policy in Laravel?" },
-  { "id": 1103, "categoryId": "laravel", "marks": 4, "difficulty": "medium", "text": "Compare jobs, events, and listeners in a notification workflow." },
-  { "id": 1201, "categoryId": "react", "marks": 2, "difficulty": "easy", "text": "What is the difference between props and state?" },
-  { "id": 1202, "categoryId": "react", "marks": 5, "difficulty": "medium", "text": "Explain how memoization can reduce unnecessary re-renders." },
-  { "id": 1203, "categoryId": "react", "marks": 7, "difficulty": "hard", "text": "Design a scalable state structure for a role-based admin dashboard." },
-  { "id": 1301, "categoryId": "php", "marks": 1, "difficulty": "easy", "text": "What is strict typing in PHP and why might you enable it?" },
-  { "id": 1302, "categoryId": "php", "marks": 4, "difficulty": "medium", "text": "Explain dependency injection with a simple service example." },
-  { "id": 1303, "categoryId": "php", "marks": 8, "difficulty": "hard", "text": "How do you avoid circular dependencies in large PHP applications?" },
-  { "id": 1401, "categoryId": "mysql", "marks": 3, "difficulty": "easy", "text": "What is the difference between WHERE and HAVING clauses?" },
-  { "id": 1402, "categoryId": "mysql", "marks": 6, "difficulty": "medium", "text": "How would you optimize a slow query with multiple joins?" },
-  { "id": 1403, "categoryId": "mysql", "marks": 9, "difficulty": "hard", "text": "Describe an indexing strategy for large transactional tables." },
-  { "id": 1501, "categoryId": "devops", "marks": 2, "difficulty": "easy", "text": "Why is infrastructure as code useful in CI/CD?" },
-  { "id": 1502, "categoryId": "devops", "marks": 5, "difficulty": "medium", "text": "Explain blue-green deployment with rollback considerations." },
-  { "id": 1503, "categoryId": "devops", "marks": 10, "difficulty": "hard", "text": "Design observability alerts for a high-volume exam platform." },
-  { "id": 1601, "categoryId": "aptitude", "marks": 1, "difficulty": "easy", "text": "If 25% of candidates pass, how many pass out of 320?" },
-  { "id": 1602, "categoryId": "aptitude", "marks": 3, "difficulty": "medium", "text": "A train covers 240 km in 3 hours. Find average speed." },
-  { "id": 1603, "categoryId": "aptitude", "marks": 4, "difficulty": "medium", "text": "Solve a profit-loss scenario with tiered discounts." },
-  { "id": 1701, "categoryId": "algorithms", "marks": 5, "difficulty": "medium", "text": "Compare BFS and DFS for shortest-path discovery." },
-  { "id": 1702, "categoryId": "algorithms", "marks": 7, "difficulty": "hard", "text": "Discuss time complexity tradeoffs for heap-based scheduling." },
-  { "id": 1703, "categoryId": "algorithms", "marks": 8, "difficulty": "hard", "text": "Design an algorithm to detect cyclic dependency graphs." }
+  {
+    "id": 2001,
+    "categoryId": "science",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between a chemical change and a physical change?"
+  },
+  {
+    "id": 2002,
+    "categoryId": "science",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain Newton's third law of motion with a real-world application."
+  },
+  {
+    "id": 2003,
+    "categoryId": "science",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "How does the principle of conservation of energy apply to thermodynamic systems?"
+  },
+  {
+    "id": 2004,
+    "categoryId": "science",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the role of mitochondria in a eukaryotic cell?"
+  },
+  {
+    "id": 2005,
+    "categoryId": "science",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Describe the process of osmosis and give one example."
+  },
+  {
+    "id": 2101,
+    "categoryId": "science_physics",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "Define velocity and acceleration. How are they different?"
+  },
+  {
+    "id": 2102,
+    "categoryId": "science_physics",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What is Hooke's Law and how does it apply to elastic materials?"
+  },
+  {
+    "id": 2103,
+    "categoryId": "science_physics",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Derive the expression for the time period of a simple pendulum."
+  },
+  {
+    "id": 2104,
+    "categoryId": "science_physics",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain why the sky appears blue during the day."
+  },
+  {
+    "id": 2201,
+    "categoryId": "science_physics_mechanics",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "State Newton's first law of motion and define inertia."
+  },
+  {
+    "id": 2202,
+    "categoryId": "science_physics_mechanics",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "A 5 kg object is pushed with 20 N of force. What is its acceleration?"
+  },
+  {
+    "id": 2203,
+    "categoryId": "science_physics_mechanics",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Explain the work-energy theorem with a mathematical derivation."
+  },
+  {
+    "id": 2204,
+    "categoryId": "science_physics_mechanics",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Describe the concept of torque and its relationship with angular momentum."
+  },
+  {
+    "id": 2205,
+    "categoryId": "science_physics_mechanics",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "What is the principle of conservation of momentum? Solve a collision problem."
+  },
+  {
+    "id": 2206,
+    "categoryId": "science_physics_mechanics",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "Differentiate between static and kinetic friction."
+  },
+  {
+    "id": 2207,
+    "categoryId": "science_physics_mechanics",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Calculate the centripetal acceleration of a car moving at 60 km/h in a 50 m radius turn."
+  },
+  {
+    "id": 2301,
+    "categoryId": "science",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is the photoelectric effect and how did Einstein explain it?"
+  },
+  {
+    "id": 2302,
+    "categoryId": "science_physics_quantum",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Describe Heisenberg's Uncertainty Principle and its implications."
+  },
+  {
+    "id": 2303,
+    "categoryId": "science_physics_quantum",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What is wave-particle duality? How is it demonstrated by electrons?"
+  },
+  {
+    "id": 2304,
+    "categoryId": "science_physics_quantum",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Explain the Schrödinger equation and its physical interpretation."
+  },
+  {
+    "id": 2305,
+    "categoryId": "science_physics_quantum",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What are quantum numbers and what do they describe?"
+  },
+  {
+    "id": 2306,
+    "categoryId": "science_physics_quantum",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Compare the Bohr model and the quantum mechanical model of the atom."
+  },
+  {
+    "id": 2307,
+    "categoryId": "science_physics_quantum",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is quantum tunneling and where is it practically observed?"
+  },
+  {
+    "id": 2401,
+    "categoryId": "science_biology",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between DNA and RNA?"
+  },
+  {
+    "id": 2402,
+    "categoryId": "science_biology",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain the stages of mitosis and their significance."
+  },
+  {
+    "id": 2403,
+    "categoryId": "science_biology",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Describe the mechanism of enzyme-substrate binding using the lock-and-key model."
+  },
+  {
+    "id": 2404,
+    "categoryId": "science_biology",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the function of chlorophyll in photosynthesis?"
+  },
+  {
+    "id": 2405,
+    "categoryId": "science_biology",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain Mendelian genetics and the concept of dominant and recessive traits."
+  },
+  {
+    "id": 2406,
+    "categoryId": "science_biology",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Describe the molecular mechanism of DNA replication and error correction."
+  },
+  {
+    "id": 2407,
+    "categoryId": "science_biology",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is the role of the immune system in defending against pathogens?"
+  },
+  {
+    "id": 2408,
+    "categoryId": "science_biology",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Compare aerobic and anaerobic respiration in terms of ATP yield."
+  },
+  {
+    "id": 2409,
+    "categoryId": "science_biology",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Explain the lac operon model and gene regulation in prokaryotes."
+  },
+  {
+    "id": 2410,
+    "categoryId": "science_biology",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is osmosis? Give an example from a biological system."
+  },
+  {
+    "id": 2501,
+    "categoryId": "science_chemistry",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between ionic and covalent bonding?"
+  },
+  {
+    "id": 2502,
+    "categoryId": "science_chemistry",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain Le Chatelier's principle with a chemical equilibrium example."
+  },
+  {
+    "id": 2503,
+    "categoryId": "science_chemistry",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Describe the Born-Haber cycle and its use in lattice energy calculation."
+  },
+  {
+    "id": 2504,
+    "categoryId": "science_chemistry",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the pH scale and how is it calculated?"
+  },
+  {
+    "id": 2505,
+    "categoryId": "science_chemistry",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Compare oxidation and reduction with an example redox reaction."
+  },
+  {
+    "id": 2506,
+    "categoryId": "science_chemistry",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Explain reaction kinetics and how temperature affects rate constants."
+  },
+  {
+    "id": 2507,
+    "categoryId": "science_chemistry",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Describe the properties and reactivity of alkyl halides."
+  },
+  {
+    "id": 2508,
+    "categoryId": "science_chemistry",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What are functional groups? Identify three and describe their chemical behavior."
+  },
+  {
+    "id": 2509,
+    "categoryId": "science_chemistry",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Explain Hess's Law and use it to calculate reaction enthalpy."
+  },
+  {
+    "id": 2510,
+    "categoryId": "science_chemistry",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is Avogadro's number and what is its significance in chemistry?"
+  },
+  {
+    "id": 3001,
+    "categoryId": "mathematics",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between permutation and combination?"
+  },
+  {
+    "id": 3002,
+    "categoryId": "mathematics",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Solve the system of linear equations: 3x + 2y = 12 and x - y = 1."
+  },
+  {
+    "id": 3003,
+    "categoryId": "mathematics",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Prove that the sum of angles in any triangle is 180 degrees."
+  },
+  {
+    "id": 3004,
+    "categoryId": "mathematics",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Find the derivative of f(x) = x³ - 4x² + 7x using first principles."
+  },
+  {
+    "id": 3005,
+    "categoryId": "mathematics",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the Pythagorean theorem and when is it applicable?"
+  },
+  {
+    "id": 3101,
+    "categoryId": "mathematics_quantitative_reasoning",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "If the ratio of boys to girls in a class is 3:5 and there are 40 students, how many are boys?"
+  },
+  {
+    "id": 3102,
+    "categoryId": "mathematics_quantitative_reasoning",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "A car travels at 60 km/h for 2 hours and 80 km/h for 3 hours. Find the average speed."
+  },
+  {
+    "id": 3103,
+    "categoryId": "mathematics_quantitative_reasoning",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "In how many ways can 4 students be chosen from a group of 10?"
+  },
+  {
+    "id": 3201,
+    "categoryId": "mathematics_data_structures",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is the time complexity of binary search and why?"
+  },
+  {
+    "id": 3202,
+    "categoryId": "mathematics_data_structures",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain the difference between a stack and a queue with use cases."
+  },
+  {
+    "id": 3203,
+    "categoryId": "mathematics_data_structures",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Compare B-trees and hash tables for database indexing scenarios."
+  },
+  {
+    "id": 4001,
+    "categoryId": "computer_science",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between compiled and interpreted programming languages?"
+  },
+  {
+    "id": 4002,
+    "categoryId": "computer_science",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain the concept of object-oriented programming with an example."
+  },
+  {
+    "id": 4003,
+    "categoryId": "computer_science",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Describe how a CPU executes instructions through the fetch-decode-execute cycle."
+  },
+  {
+    "id": 4004,
+    "categoryId": "computer_science",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is the difference between RAM and ROM?"
+  },
+  {
+    "id": 4005,
+    "categoryId": "computer_science",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is a boolean expression and how is it used in programming?"
+  },
+  {
+    "id": 4101,
+    "categoryId": "computer_science_programming",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is a function and why is modular code important?"
+  },
+  {
+    "id": 4102,
+    "categoryId": "computer_science_programming",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain the difference between pass-by-value and pass-by-reference."
+  },
+  {
+    "id": 4103,
+    "categoryId": "computer_science_programming",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "What is recursion? Implement a recursive solution for Fibonacci sequence."
+  },
+  {
+    "id": 4201,
+    "categoryId": "computer_science_programming_frontend",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between HTML, CSS, and JavaScript?"
+  },
+  {
+    "id": 4202,
+    "categoryId": "computer_science_programming_frontend",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is the CSS box model and how does padding differ from margin?"
+  },
+  {
+    "id": 4203,
+    "categoryId": "computer_science_programming_frontend",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Explain how browsers render a web page from HTML to pixels."
+  },
+  {
+    "id": 4301,
+    "categoryId": "computer_science_programming_backend",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is an API and how does REST differ from SOAP?"
+  },
+  {
+    "id": 4302,
+    "categoryId": "computer_science_programming_backend",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain session management and token-based authentication."
+  },
+  {
+    "id": 4303,
+    "categoryId": "computer_science_programming_backend",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Design a scalable backend architecture for a real-time exam platform."
+  },
+  {
+    "id": 4401,
+    "categoryId": "computer_science_database_systems",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is normalization in databases and why is it important?"
+  },
+  {
+    "id": 4402,
+    "categoryId": "computer_science_database_systems",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain ACID properties with an example of a banking transaction."
+  },
+  {
+    "id": 4403,
+    "categoryId": "computer_science_database_systems",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "How does a database query optimizer work? Discuss common optimization strategies."
+  },
+  {
+    "id": 4501,
+    "categoryId": "computer_science_operations",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is a container and how does Docker differ from a virtual machine?"
+  },
+  {
+    "id": 4502,
+    "categoryId": "computer_science_operations",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain the concept of continuous integration and continuous deployment (CI/CD)."
+  },
+  {
+    "id": 4503,
+    "categoryId": "computer_science_operations",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "How would you design a zero-downtime deployment pipeline for a microservices app?"
+  },
+  {
+    "id": 1001,
+    "categoryId": "javascript",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "Which method converts a JSON string into a JavaScript object?"
+  },
+  {
+    "id": 1002,
+    "categoryId": "javascript",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain event delegation and when it improves performance."
+  },
+  {
+    "id": 1003,
+    "categoryId": "javascript",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Design a debounce utility function and describe its use cases."
+  },
+  {
+    "id": 1004,
+    "categoryId": "javascript",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between == and === in JavaScript?"
+  },
+  {
+    "id": 1005,
+    "categoryId": "javascript",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain the concept of closures and provide a practical example."
+  },
+  {
+    "id": 1006,
+    "categoryId": "javascript",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What is the event loop and how does JavaScript handle asynchronous code?"
+  },
+  {
+    "id": 1007,
+    "categoryId": "javascript",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Explain Promises and async/await patterns with error handling."
+  },
+  {
+    "id": 1008,
+    "categoryId": "javascript",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is hoisting in JavaScript?"
+  },
+  {
+    "id": 1009,
+    "categoryId": "javascript",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Describe the difference between var, let, and const."
+  },
+  {
+    "id": 1010,
+    "categoryId": "javascript",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "How does prototypal inheritance work in JavaScript?"
+  },
+  {
+    "id": 1011,
+    "categoryId": "javascript",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Implement a custom event emitter class with on, off, and emit methods."
+  },
+  {
+    "id": 1012,
+    "categoryId": "javascript",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Explain the module bundling process and how tree-shaking works in Webpack/Rollup."
+  },
+  {
+    "id": 1101,
+    "categoryId": "laravel",
+    "marks": 3,
+    "difficulty": "easy",
+    "text": "What is the purpose of Laravel service providers?"
+  },
+  {
+    "id": 1102,
+    "categoryId": "laravel",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "How would you design a multi-tenant access policy in Laravel?"
+  },
+  {
+    "id": 1103,
+    "categoryId": "laravel",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Compare jobs, events, and listeners in a notification workflow."
+  },
+  {
+    "id": 1104,
+    "categoryId": "laravel",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is Eloquent ORM and how does it simplify database interactions?"
+  },
+  {
+    "id": 1105,
+    "categoryId": "laravel",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain the Laravel request lifecycle from HTTP request to response."
+  },
+  {
+    "id": 1106,
+    "categoryId": "laravel",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What are Laravel middleware? Provide a use case for custom middleware."
+  },
+  {
+    "id": 1107,
+    "categoryId": "laravel",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "How do you implement role-based access control (RBAC) using Laravel Gates and Policies?"
+  },
+  {
+    "id": 1108,
+    "categoryId": "laravel",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the purpose of the .env file in a Laravel project?"
+  },
+  {
+    "id": 1109,
+    "categoryId": "laravel",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Describe how Laravel queues work and when you should use them."
+  },
+  {
+    "id": 1110,
+    "categoryId": "laravel",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Explain optimistic vs pessimistic locking in Laravel and when to use each."
+  },
+  {
+    "id": 1201,
+    "categoryId": "react",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between props and state?"
+  },
+  {
+    "id": 1202,
+    "categoryId": "react",
+    "marks": 5,
+    "difficulty": "medium",
+    "text": "Explain how memoization can reduce unnecessary re-renders."
+  },
+  {
+    "id": 1203,
+    "categoryId": "react",
+    "marks": 7,
+    "difficulty": "hard",
+    "text": "Design a scalable state structure for a role-based admin dashboard."
+  },
+  {
+    "id": 1204,
+    "categoryId": "react",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is JSX and how does it differ from regular JavaScript?"
+  },
+  {
+    "id": 1205,
+    "categoryId": "react",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain the React component lifecycle hooks with functional components."
+  },
+  {
+    "id": 1206,
+    "categoryId": "react",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What is the Context API and how does it solve prop drilling?"
+  },
+  {
+    "id": 1207,
+    "categoryId": "react",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Compare Redux and React Query for server state management."
+  },
+  {
+    "id": 1208,
+    "categoryId": "react",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "How does React.lazy and Suspense enable code splitting?"
+  },
+  {
+    "id": 1209,
+    "categoryId": "react",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain the useEffect hook and list three use cases."
+  },
+  {
+    "id": 1210,
+    "categoryId": "react",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "How would you implement infinite scroll with React and the Intersection Observer API?"
+  },
+  {
+    "id": 1301,
+    "categoryId": "php",
+    "marks": 1,
+    "difficulty": "easy",
+    "text": "What is strict typing in PHP and why might you enable it?"
+  },
+  {
+    "id": 1302,
+    "categoryId": "php",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain dependency injection with a simple service example."
+  },
+  {
+    "id": 1303,
+    "categoryId": "php",
+    "marks": 8,
+    "difficulty": "hard",
+    "text": "How do you avoid circular dependencies in large PHP applications?"
+  },
+  {
+    "id": 1304,
+    "categoryId": "php",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between include and require in PHP?"
+  },
+  {
+    "id": 1305,
+    "categoryId": "php",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain the PSR-4 autoloading standard and Composer's role."
+  },
+  {
+    "id": 1306,
+    "categoryId": "php",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What are PHP traits and when should they be used over inheritance?"
+  },
+  {
+    "id": 1307,
+    "categoryId": "php",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Describe PHP's generator functions and their memory efficiency advantage."
+  },
+  {
+    "id": 1308,
+    "categoryId": "php",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between echo and print in PHP?"
+  },
+  {
+    "id": 1309,
+    "categoryId": "php",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain the difference between abstract classes and interfaces in PHP 8."
+  },
+  {
+    "id": 1310,
+    "categoryId": "php",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "How does PHP handle sessions and what are the security considerations?"
+  },
+  {
+    "id": 1311,
+    "categoryId": "php",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Implement a simple dependency injection container in PHP using closures."
+  },
+  {
+    "id": 1312,
+    "categoryId": "php",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Explain PHP Fiber (coroutines) introduced in PHP 8.1 and their use cases."
+  },
+  {
+    "id": 1401,
+    "categoryId": "mysql",
+    "marks": 3,
+    "difficulty": "easy",
+    "text": "What is the difference between WHERE and HAVING clauses?"
+  },
+  {
+    "id": 1402,
+    "categoryId": "mysql",
+    "marks": 6,
+    "difficulty": "medium",
+    "text": "How would you optimize a slow query with multiple joins?"
+  },
+  {
+    "id": 1403,
+    "categoryId": "mysql",
+    "marks": 9,
+    "difficulty": "hard",
+    "text": "Describe an indexing strategy for large transactional tables."
+  },
+  {
+    "id": 1404,
+    "categoryId": "mysql",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is a foreign key and how does it enforce referential integrity?"
+  },
+  {
+    "id": 1405,
+    "categoryId": "mysql",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain the difference between INNER JOIN, LEFT JOIN, and FULL OUTER JOIN."
+  },
+  {
+    "id": 1406,
+    "categoryId": "mysql",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What are stored procedures? Give an example scenario where they are beneficial."
+  },
+  {
+    "id": 1407,
+    "categoryId": "mysql",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "How does MySQL implement MVCC (Multi-Version Concurrency Control) with InnoDB?"
+  },
+  {
+    "id": 1408,
+    "categoryId": "mysql",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the difference between a primary key and a unique key?"
+  },
+  {
+    "id": 1409,
+    "categoryId": "mysql",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Describe normalization up to 3NF with a relational example."
+  },
+  {
+    "id": 1410,
+    "categoryId": "mysql",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain the EXPLAIN statement and how to read its output."
+  },
+  {
+    "id": 1411,
+    "categoryId": "mysql",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Design a sharding strategy for a MySQL database exceeding 1 billion rows."
+  },
+  {
+    "id": 1412,
+    "categoryId": "mysql",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "What are MySQL partitions and when should they be used?"
+  },
+  {
+    "id": 1413,
+    "categoryId": "mysql",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is a composite index and how does column order affect its performance?"
+  },
+  {
+    "id": 1414,
+    "categoryId": "mysql",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "How do transactions work in MySQL? Explain COMMIT and ROLLBACK."
+  },
+  {
+    "id": 1501,
+    "categoryId": "devops",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "Why is infrastructure as code useful in CI/CD?"
+  },
+  {
+    "id": 1502,
+    "categoryId": "devops",
+    "marks": 5,
+    "difficulty": "medium",
+    "text": "Explain blue-green deployment with rollback considerations."
+  },
+  {
+    "id": 1503,
+    "categoryId": "devops",
+    "marks": 10,
+    "difficulty": "hard",
+    "text": "Design observability alerts for a high-volume exam platform."
+  },
+  {
+    "id": 1504,
+    "categoryId": "devops",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is Docker and how does containerization differ from virtualization?"
+  },
+  {
+    "id": 1505,
+    "categoryId": "devops",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is Kubernetes and what problems does it solve?"
+  },
+  {
+    "id": 1506,
+    "categoryId": "devops",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain the role of a reverse proxy like Nginx in a production environment."
+  },
+  {
+    "id": 1507,
+    "categoryId": "devops",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Describe a GitOps workflow and the tools used for infrastructure management."
+  },
+  {
+    "id": 1508,
+    "categoryId": "devops",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is the difference between horizontal and vertical scaling?"
+  },
+  {
+    "id": 1509,
+    "categoryId": "devops",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain how Terraform manages infrastructure state."
+  },
+  {
+    "id": 1601,
+    "categoryId": "aptitude",
+    "marks": 1,
+    "difficulty": "easy",
+    "text": "If 25% of candidates pass, how many pass out of 320?"
+  },
+  {
+    "id": 16011,
+    "categoryId": "aptitude",
+    "marks": 1,
+    "difficulty": "easy",
+    "text": "If 25% of candidates pass, how many pass out of 322?"
+  },
+  {
+    "id": 16013,
+    "categoryId": "aptitude",
+    "marks": 1,
+    "difficulty": "easy",
+    "text": "If 25% of candidates pass, how many pass out of 321?"
+  },
+  {
+    "id": 16021,
+    "categoryId": "aptitude",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "A train covers 240 km in 3 hours. Find average speed."
+  },
+  {
+    "id": 1603,
+    "categoryId": "aptitude",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Solve a profit-loss scenario with tiered discounts."
+  },
+  {
+    "id": 1604,
+    "categoryId": "aptitude",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is 15% of 840?"
+  },
+  {
+    "id": 1605,
+    "categoryId": "aptitude",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "A cistern fills in 12 minutes. What fraction is filled in 4 minutes?"
+  },
+  {
+    "id": 1606,
+    "categoryId": "aptitude",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "If A can complete a job in 10 days and B in 15 days, how long will they take together?"
+  },
+  {
+    "id": 1607,
+    "categoryId": "aptitude",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Find the compound interest on ₹10,000 at 10% per annum for 2 years."
+  },
+  {
+    "id": 1608,
+    "categoryId": "aptitude",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "A shopkeeper sells an item at 20% profit. If the cost price is ₹500, find the selling price."
+  },
+  {
+    "id": 1609,
+    "categoryId": "aptitude",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "How many ways can the letters of the word 'EXAM' be arranged?"
+  },
+  {
+    "id": 1610,
+    "categoryId": "aptitude",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Two trains of length 120 m and 80 m travel in opposite directions at 60 km/h and 40 km/h. How long to pass each other?"
+  },
+  {
+    "id": 1701,
+    "categoryId": "algorithms",
+    "marks": 5,
+    "difficulty": "medium",
+    "text": "Compare BFS and DFS for shortest-path discovery."
+  },
+  {
+    "id": 1702,
+    "categoryId": "algorithms",
+    "marks": 7,
+    "difficulty": "hard",
+    "text": "Discuss time complexity tradeoffs for heap-based scheduling."
+  },
+  {
+    "id": 1703,
+    "categoryId": "algorithms",
+    "marks": 8,
+    "difficulty": "hard",
+    "text": "Design an algorithm to detect cyclic dependency graphs."
+  },
+  {
+    "id": 1704,
+    "categoryId": "algorithms",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is dynamic programming? Give a classic example like the knapsack problem."
+  },
+  {
+    "id": 1705,
+    "categoryId": "algorithms",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Explain merge sort and its time complexity in best and worst cases."
+  },
+  {
+    "id": 1706,
+    "categoryId": "algorithms",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Describe Dijkstra's algorithm and its real-world applications."
+  },
+  {
+    "id": 1707,
+    "categoryId": "algorithms",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What is memoization and how does it differ from tabulation in DP?"
+  },
+  {
+    "id": 1708,
+    "categoryId": "algorithms",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Explain the union-find (disjoint set) data structure with path compression."
+  },
+  {
+    "id": 1709,
+    "categoryId": "algorithms",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "What is the difference between greedy algorithms and dynamic programming?"
+  },
+  {
+    "id": 1710,
+    "categoryId": "algorithms",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Analyze the amortized complexity of dynamic array resizing."
+  },
+  {
+    "id": 1711,
+    "categoryId": "algorithms",
+    "marks": 6,
+    "difficulty": "hard",
+    "text": "Implement and explain the A* search algorithm for pathfinding."
+  },
+  {
+    "id": 1712,
+    "categoryId": "algorithms",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "What is the time complexity of QuickSort in best, average, and worst cases?"
+  },
+  {
+    "id": 1713,
+    "categoryId": "algorithms",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "How does backtracking differ from brute-force search? Illustrate with N-Queens."
+  },
+  {
+    "id": 1714,
+    "categoryId": "algorithms",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "Explain binary search and implement it for a sorted array."
+  },
+  {
+    "id": 1715,
+    "categoryId": "algorithms",
+    "marks": 4,
+    "difficulty": "medium",
+    "text": "Describe segment trees and their use in range query problems."
+  },
+  {
+    "id": 1716,
+    "categoryId": "algorithms",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "What is topological sorting and in what type of graph does it apply?"
+  },
+  {
+    "id": 2006,
+    "categoryId": "science",
+    "marks": 4,
+    "difficulty": "hard",
+    "text": "Explain the theory of relativity."
+  },
+  {
+    "id": 2007,
+    "categoryId": "science",
+    "marks": 2,
+    "difficulty": "easy",
+    "text": "What is the boiling point of water?"
+  },
+  {
+    "id": 2008,
+    "categoryId": "science",
+    "marks": 3,
+    "difficulty": "medium",
+    "text": "How does gravity work?"
+  },
+  {
+    "id": 2009,
+    "categoryId": "science",
+    "marks": 5,
+    "difficulty": "hard",
+    "text": "Describe the structure of an atom."
+  }
 ]

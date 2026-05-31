@@ -63,27 +63,38 @@
 
                     <div>
                         <label for="difficulty" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Difficulty <span class="text-red-500">*</span></label>
-                        <select id="difficulty" name="difficulty" class="panel-input mt-1 block w-full">
-                            <option value="easy" {{ old('difficulty') == 'easy' ? 'selected' : '' }}>Easy</option>
-                            <option value="medium" {{ old('difficulty') == 'medium' ? 'selected' : '' }}>Medium</option>
-                            <option value="hard" {{ old('difficulty') == 'hard' ? 'selected' : '' }}>Hard</option>
+                        <select id="difficulty" name="difficulty[]" multiple class="mt-1 block w-full">
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
                         </select>
                     </div>
 
                     <div>
                         <label for="marks" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Marks <span class="text-red-500">*</span></label>
-                        <input type="number" id="marks" name="marks" value="{{ old('marks', 1) }}" min="1" max="100" class="panel-input mt-1 block w-full" placeholder="e.g. 5">
-                        <p class="text-red-500 text-xs hidden mt-1 font-semibold" id="err-marks">Marks must be > 0.</p>
+                        <select id="marks" name="marks[]" multiple class="mt-1 block w-full">
+                            @for($i = 1; $i <= 10; $i++)
+                                <option value="{{ $i }}">{{ $i }}</option>
+                            @endfor
+                        </select>
+                        <p class="text-red-500 text-xs hidden mt-1 font-semibold" id="err-marks">Please select at least one mark option.</p>
                     </div>
                 </div>
 
                 <!-- Status Row -->
-                <div class="sm:max-w-xs shrink-0 pt-2">
-                    <label for="status" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Status <span class="text-red-500">*</span></label>
-                    <select id="status" name="status" class="panel-input mt-1 block w-full">
-                        <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    </select>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 shrink-0 pt-2">
+                    <div class="sm:max-w-xs">
+                        <label for="status" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Status <span class="text-red-500">*</span></label>
+                        <select id="status" name="status" class="panel-input mt-1 block w-full">
+                            <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="previous_exam" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Previously Asked Question</label>
+                        <input type="text" id="previous_exam" name="previous_exam" value="{{ old('previous_exam') }}" class="panel-input mt-1 block w-full" placeholder="e.g. UPSC Prelims 2023">
+                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">User input previous years exam name and date any things..</p>
+                    </div>
                 </div>
 
                 <!-- Question Body -->
@@ -236,6 +247,14 @@
             new TomSelect('#category_id',{
                 create: false,
                 placeholder: "Search for a category..."
+            });
+            new TomSelect('#difficulty',{
+                create: false,
+                placeholder: "Select difficulty..."
+            });
+            new TomSelect('#marks',{
+                create: false,
+                placeholder: "Select marks..."
             });
         });
     </script>

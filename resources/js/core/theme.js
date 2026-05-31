@@ -1,11 +1,20 @@
 export const THEME_KEY = 'ems.theme';
 
+export function readServerThemeDefault() {
+    return document.documentElement.dataset.themeDefault || 'system';
+}
+
 export function readThemePreference() {
     try {
-        return localStorage.getItem(THEME_KEY) || 'light';
+        const stored = localStorage.getItem(THEME_KEY);
+        if (stored) {
+            return stored;
+        }
     } catch (error) {
-        return 'light';
+        //
     }
+
+    return readServerThemeDefault();
 }
 
 export function writeThemePreference(theme) {
@@ -20,9 +29,13 @@ export function resolveSystemDark() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
+export function resolveActualTheme(theme) {
+    return theme === 'system' ? (resolveSystemDark() ? 'dark' : 'light') : theme;
+}
+
 export function applyTheme(theme = readThemePreference()) {
     const root = document.documentElement;
-    const actualTheme = theme === 'system' ? (resolveSystemDark() ? 'dark' : 'light') : theme;
+    const actualTheme = resolveActualTheme(theme);
 
     root.classList.toggle('dark', actualTheme === 'dark');
     root.dataset.theme = theme;
@@ -62,10 +75,11 @@ export function initThemeControls() {
     }
 
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
-    if (themeToggleBtn) {
+    if (themeToggleBtn && !themeToggleBtn.dataset.themeBound) {
+        themeToggleBtn.dataset.themeBound = '1';
         themeToggleBtn.addEventListener('click', () => {
             const currentTheme = readThemePreference();
-            const actualTheme = currentTheme === 'system' ? (resolveSystemDark() ? 'dark' : 'light') : currentTheme;
+            const actualTheme = resolveActualTheme(currentTheme);
             const newTheme = actualTheme === 'dark' ? 'light' : 'dark';
             writeThemePreference(newTheme);
             applyTheme(newTheme);
@@ -73,6 +87,11 @@ export function initThemeControls() {
     }
 
     document.querySelectorAll('[data-theme-option]').forEach((option) => {
+        if (option.dataset.themeBound) {
+            return;
+        }
+
+        option.dataset.themeBound = '1';
         option.addEventListener('click', () => {
             const theme = option.dataset.themeOption || 'light';
             writeThemePreference(theme);

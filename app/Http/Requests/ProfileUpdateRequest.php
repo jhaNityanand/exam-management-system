@@ -28,11 +28,13 @@ class ProfileUpdateRequest extends FormRequest
             'state_region' => ['nullable', 'string', 'max:120'],
             'postal_code' => ['nullable', 'string', 'max:32'],
             'country' => ['nullable', 'string', 'max:100'],
-            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
+            'cropped_avatar' => ['nullable', 'string', 'regex:/^data:image\/(jpeg|jpg|png|gif|webp);base64,/'],
+            'remove_avatar' => ['nullable', 'boolean'],
             'social_links' => ['nullable', 'array'],
             'social_links.facebook' => ['nullable', 'url', 'max:255'],
             'social_links.twitter' => ['nullable', 'url', 'max:255'],
             'social_links.linkedin' => ['nullable', 'url', 'max:255'],
+            'social_links.github' => ['nullable', 'url', 'max:255'],
         ];
     }
 }

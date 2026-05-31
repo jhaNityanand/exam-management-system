@@ -368,8 +368,114 @@
                 0 0 0 1px rgb(226 232 240 / 0.8) !important;
     padding-right: 1rem !important;
 }
-.swal-cat-toast-title { font-size: 0.875rem !important; font-weight: 600 !important; color: #0f172a !important; }
-.swal-cat-toast-bar   { background: #10b981 !important; }
+    .swal-cat-toast-title { font-size: 0.875rem !important; font-weight: 600 !important; color: #0f172a !important; }
+    .swal-cat-toast-bar   { background: #10b981 !important; }
+
+/* ============================================================ */
+/*  Dark mode — modals & SweetAlert                             */
+/* ============================================================ */
+
+.dark .cat-modal-card {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.45);
+}
+
+.dark .cat-modal-head {
+    border-color: #334155;
+    background: #1e293b;
+}
+
+.dark .category-desc-modal-title {
+    color: #f1f5f9;
+}
+
+.dark .category-desc-modal-close {
+    border-color: #475569;
+    color: #94a3b8;
+}
+
+.dark .category-desc-modal-close:hover {
+    background: #0f172a;
+    border-color: #64748b;
+    color: #f1f5f9;
+}
+
+.dark .cat-modal-body {
+    background: #1e293b;
+}
+
+.dark .category-desc-modal-text {
+    color: #cbd5e1;
+}
+
+.dark .cat-modal-foot {
+    border-color: #334155;
+    background: #0f172a;
+}
+
+.dark .category-desc-modal-btn-close {
+    border-color: #475569;
+    background: #1e293b;
+    color: #cbd5e1;
+}
+
+.dark .category-desc-modal-btn-close:hover {
+    background: #0f172a;
+    border-color: #64748b;
+    color: #f1f5f9;
+}
+
+.dark .swal-cat-popup {
+    box-shadow: 0 32px 64px -16px rgb(0 0 0 / 0.55),
+                0 0 0 1px rgb(51 65 85 / 0.8) !important;
+}
+
+.dark .swal-cat-title {
+    color: #f1f5f9 !important;
+}
+
+.dark .swal-cat-message {
+    color: #94a3b8;
+}
+
+.dark .swal-cat-name-chip {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.dark .swal-cat-warning {
+    color: #94a3b8;
+    background: #450a0a;
+    border-color: #991b1b;
+}
+
+.dark .swal-cat-actions {
+    border-color: #334155 !important;
+    background: #0f172a !important;
+}
+
+.dark .swal-cat-cancel-btn {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #475569 !important;
+}
+
+.dark .swal-cat-cancel-btn:hover {
+    background: #0f172a !important;
+    border-color: #64748b !important;
+    color: #f1f5f9 !important;
+}
+
+.dark .swal-cat-toast-popup {
+    box-shadow: 0 8px 24px -6px rgb(0 0 0 / 0.45),
+                0 0 0 1px rgb(51 65 85 / 0.8) !important;
+}
+
+.dark .swal-cat-toast-title {
+    color: #f1f5f9 !important;
+}
 
 /* ============================================================ */
 /*  Responsive                                                   */

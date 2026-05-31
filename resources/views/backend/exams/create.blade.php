@@ -60,7 +60,15 @@
 
                             <div class="exam-grid exam-grid--3" id="basic-meta-grid">
                                 <div>
-                                    <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-tooltip="Used for filtering and recommendation in reports.">i</span></label>
+                                    <label for="exam_category_id" class="exam-label">Exam Category <span class="form-required">*</span></label>
+                                    <select id="exam_category_id" name="exam_category_id" class="panel-input">
+                                        <option value="" disabled selected>Select Category</option>
+                                        <option value="1">University Admissions</option>
+                                        <option value="2">Corporate Hiring</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-bs-tooltip="Used for filtering and recommendation in reports.">i</span></label>
                                     <select id="difficulty_level" name="difficulty_level" class="panel-input"></select>
                                 </div>
                                 <div>
@@ -87,9 +95,148 @@
                         </div>
                     </section>
 
+                    <section class="exam-section" id="timer-section">
+                        <div class="exam-section__head">
+                            <h2>2. Timer &amp; Duration Management</h2>
+                            <p>Configure exam timing behavior and auto-submit rules.</p>
+                        </div>
+                        <div class="exam-section__body space-y-4">
+                            <div class="config-preview-card">
+                                <label class="switch-control" style="cursor: pointer;">
+                                    <input
+                                        id="enable_exam_timer"
+                                        name="enable_exam_timer"
+                                        type="checkbox"
+                                        value="1"
+                                        {{ old('enable_exam_timer', 1) ? 'checked' : '' }}
+                                    >
+                                    <span class="switch-control__track"></span>
+                                    <span class="switch-control__label">Enable Exam Timer</span>
+                                </label>
+                                <p class="exam-help mt-1">If enabled, the exam will be bound to the configured duration.</p>
+                            </div>
+
+                            <div class="exam-grid exam-grid--2">
+                                <div id="timer-duration-wrap">
+                                    <label for="exam_duration_minutes" class="exam-label">Exam Duration (Minutes) <span class="form-required">*</span></label>
+                                    <input
+                                        id="exam_duration_minutes"
+                                        name="exam_duration_minutes"
+                                        type="number"
+                                        class="panel-input"
+                                        min="1"
+                                        step="1"
+                                        value="{{ old('exam_duration_minutes', 60) }}"
+                                        placeholder="e.g. 60"
+                                    >
+                                    <p class="exam-help">Set total allowed time. Example: 60 minutes.</p>
+                                </div>
+                                <div id="timer-autosubmit-wrap">
+                                    <label class="exam-label">Timer End Behavior</label>
+                                    <label class="switch-control" style="cursor: pointer;">
+                                        <input
+                                            id="auto_submit_on_timer_end"
+                                            name="auto_submit_on_timer_end"
+                                            type="checkbox"
+                                            value="1"
+                                            {{ old('auto_submit_on_timer_end', 1) ? 'checked' : '' }}
+                                        >
+                                        <span class="switch-control__track"></span>
+                                        <span class="switch-control__label">Auto-submit exam when timer ends</span>
+                                    </label>
+                                    <p class="exam-help">Recommended to avoid incomplete attempts.</p>
+                                </div>
+                            </div>
+
+                            <p id="timer-config-summary" class="exam-help"></p>
+                        </div>
+                    </section>
+
+                    <section class="exam-section" id="exam-format-section">
+                        <div class="exam-section__head">
+                            <h2>3. Exam Format Management</h2>
+                            <p>Choose the format style for this exam session.</p>
+                        </div>
+                        <div class="exam-section__body space-y-4">
+                            <div>
+                                <label class="exam-label">Exam Format <span class="form-required">*</span></label>
+                                <div id="exam-format-options" class="option-card-grid"></div>
+                                <input type="hidden" name="exam_format" id="exam_format" value="{{ old('exam_format', 'mcq') }}">
+                                <p class="exam-help">Select one format: MCQ, Written, Multi Select, or Mixed.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="exam-section" id="schedule-section">
+                        <div class="exam-section__head">
+                            <h2>4. Schedule &amp; Attempt Management</h2>
+                            <p>Control when the exam is available and how many attempts each candidate can make.</p>
+                        </div>
+                        <div class="exam-section__body space-y-5">
+                            <div>
+                                <label class="exam-label">Schedule Availability</label>
+                                <div id="schedule-type-options" class="option-card-grid option-card-grid--compact"></div>
+                                <input type="hidden" name="schedule_type" id="schedule_type" value="{{ old('schedule_type', 'any_time') }}">
+                                <p class="exam-help">Choose whether candidates can start anytime or only within a fixed date-time window.</p>
+                            </div>
+
+                            <div id="fixed-schedule-window" class="exam-grid exam-grid--2" hidden>
+                                <div>
+                                    <label for="schedule_start_at" class="exam-label">Start Date &amp; Time <span class="form-required">*</span></label>
+                                    <input
+                                        id="schedule_start_at"
+                                        name="schedule_start_at"
+                                        type="text"
+                                        class="panel-input"
+                                        value="{{ old('schedule_start_at') }}"
+                                        placeholder="Select start date and time"
+                                        autocomplete="off"
+                                    >
+                                </div>
+                                <div>
+                                    <label for="schedule_end_at" class="exam-label">End Date &amp; Time <span class="form-required">*</span></label>
+                                    <input
+                                        id="schedule_end_at"
+                                        name="schedule_end_at"
+                                        type="text"
+                                        class="panel-input"
+                                        value="{{ old('schedule_end_at') }}"
+                                        placeholder="Select end date and time"
+                                        autocomplete="off"
+                                    >
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="exam-label">Attempt Limit Per Candidate</label>
+                                <div id="attempt-limit-options" class="option-card-grid option-card-grid--compact"></div>
+                                <input type="hidden" name="attempt_limit_type" id="attempt_limit_type" value="{{ old('attempt_limit_type', 'once') }}">
+                            </div>
+
+                            <div id="fixed-attempt-limit-wrap" hidden>
+                                <label for="attempt_limit_count" class="exam-label">Maximum Attempts <span class="form-required">*</span></label>
+                                <div style="max-width: 33.333%;">
+                                    <input
+                                        id="attempt_limit_count"
+                                        name="attempt_limit_count"
+                                        type="number"
+                                        min="2"
+                                        step="1"
+                                        class="panel-input"
+                                        value="{{ old('attempt_limit_count', 2) }}"
+                                        placeholder="e.g. 2 or 3"
+                                    >
+                                </div>
+                                <p class="exam-help">Use this only when “Fixed Attempts” is selected.</p>
+                            </div>
+
+                            <p id="schedule-config-summary" class="exam-help"></p>
+                        </div>
+                    </section>
+
                     <section class="exam-section" id="candidate-access-section">
                         <div class="exam-section__head">
-                            <h2>2. Candidate Access Management</h2>
+                            <h2>5. Candidate Access Management</h2>
                             <p>Import or manually add candidate emails for controlled access.</p>
                         </div>
                         <div class="exam-section__body space-y-4">
@@ -127,7 +274,7 @@
 
                     <section class="exam-section" id="exam-configuration-section">
                         <div class="exam-section__head">
-                            <h2>3. Exam Configuration</h2>
+                            <h2>6. Exam Configuration</h2>
                             <p>Configure question volume, category requirements, marks, and set generation rules.</p>
                         </div>
                         <div class="exam-section__body space-y-5">
@@ -234,17 +381,36 @@
 
                     <section class="exam-section" id="question-rules-section">
                         <div class="exam-section__head">
-                            <h2>4. Question Rules and Filters</h2>
+                            <h2>7. Question Rules and Filters</h2>
                             <p>Limit question import to selected marks only.</p>
                         </div>
                         <div class="exam-section__body space-y-4">
                             <div>
                                 <label class="exam-label">Question Marks Type</label>
                                 <label class="switch-control" style="cursor: pointer;">
-                                    <input id="mixed_marks_questions" name="mixed_marks_questions" type="checkbox" value="1">
+                                    <input id="fix_marks_each_question" name="fix_marks_each_question" type="checkbox" value="1">
                                     <span class="switch-control__track"></span>
-                                    <span class="switch-control__label">Enable mixed marks questions (allows selecting multiple marks)</span>
+                                    <span class="switch-control__label">Fix Marks Each Question (All questions will have the same marks)</span>
                                 </label>
+                            </div>
+
+                            <div>
+                                <label class="exam-label">Negative Marking</label>
+                                <label class="switch-control" style="cursor: pointer;">
+                                    <input id="enable_negative_marking" name="enable_negative_marking" type="checkbox" value="1">
+                                    <span class="switch-control__track"></span>
+                                    <span class="switch-control__label">Enable Negative Marking</span>
+                                </label>
+                            </div>
+
+                            <div id="negative-marking-config" hidden>
+                                <label for="negative_marking_type" class="exam-label">Penalty per wrong answer</label>
+                                <select id="negative_marking_type" name="negative_marking_type" class="panel-input">
+                                    <option value="25">25% (1/4th of question marks)</option>
+                                    <option value="33.33">33.33% (1/3rd of question marks)</option>
+                                    <option value="50">50% (1/2 of question marks)</option>
+                                    <option value="100">100% (Full question marks)</option>
+                                </select>
                             </div>
 
                             <div>
@@ -254,12 +420,33 @@
                                 <p class="exam-help">Only questions that match selected marks are available in the question bank.</p>
                                 <p class="exam-help"><strong id="selected-marks-count">0</strong> marks filters selected.</p>
                             </div>
+
+                            <div id="marks-calculation-management" class="marks-management-card" hidden>
+                                <h4 class="marks-management-card__title">Marks Calculation Management</h4>
+                                <p class="exam-help marks-management-card__help">
+                                    When fixed marks are enabled, Total Marks must equal Total Questions x Selected Marks Per Question.
+                                </p>
+
+                                <div id="marks-calculation-summary" class="marks-management-card__summary" aria-live="polite"></div>
+
+                                <p id="marks-calculation-warning" class="marks-management-card__warning" role="status" aria-live="polite"></p>
+                                <p id="marks-calculation-suggestion" class="marks-management-card__suggestion" aria-live="polite"></p>
+
+                                <div id="marks-calculation-actions" class="marks-management-card__actions" hidden>
+                                    <button type="button" id="marks-fix-total-marks" class="panel-button-secondary">
+                                        Update Total Marks
+                                    </button>
+                                    <button type="button" id="marks-fix-total-questions" class="panel-button-secondary">
+                                        Update Total Questions
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
                     <section class="exam-section" id="pricing-section">
                         <div class="exam-section__head">
-                            <h2>5. Pricing and Discount Rules</h2>
+                            <h2>8. Pricing and Discount Rules</h2>
                             <p>Choose pricing strategy and attach predefined discount rules.</p>
                         </div>
                         <div class="exam-section__body space-y-5">
@@ -361,7 +548,7 @@
 
                     <section class="exam-section" id="question-bank-section">
                         <div class="exam-section__head">
-                            <h2>6. Question Bank Management</h2>
+                            <h2>9. Question Bank Management</h2>
                             <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
                         </div>
                         <div class="exam-section__body space-y-4" id="question-bank-container" data-question-bank>
@@ -370,7 +557,13 @@
                                     <span>Search Questions</span>
                                     <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword" data-question-search-input>
                                 </label>
-                                <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
+                                <div class="question-bank-global-actions" style="display: flex; align-items: flex-end; gap: 0.75rem;">
+                                    <div class="global-selection-stats" style="font-size: 0.82rem; font-weight: 700; color: var(--exam-primary); padding-bottom: 0.5rem;">
+                                        Total Selected: <span id="global-selected-count">0</span> / <span id="global-allowed-count">0</span>
+                                    </div>
+                                    <button type="button" id="global-random-select" class="panel-button-secondary">Random Select</button>
+                                    <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
+                                </div>
                             </div>
 
                             <div id="question-bank-feedback" class="exam-help" data-question-bank-feedback></div>
@@ -378,9 +571,29 @@
                         </div>
                     </section>
 
+                    <section class="exam-section" id="instructions-rules-section">
+                        <div class="exam-section__head">
+                            <h2>10. Exam Instructions &amp; Rules Management</h2>
+                            <p>Enable or disable predefined rules that candidates must follow during the exam.</p>
+                        </div>
+                        <div class="exam-section__body space-y-4">
+                            <div class="instruction-rules-header">
+                                <p class="exam-help">Turn on the rules you want to enforce for this exam session.</p>
+                                <p class="exam-help"><strong id="selected-instruction-rules-count">0</strong> predefined rules enabled.</p>
+                            </div>
+                            <div id="instruction-rules-list" class="instruction-rules-grid"></div>
+                            <input
+                                type="hidden"
+                                name="predefined_instruction_rules"
+                                id="predefined_instruction_rules"
+                                value="{{ json_encode(old('predefined_instruction_rules', ['no_revert_after_submit', 'no_retake_after_submit', 'tab_switch_autosubmit'])) }}"
+                            >
+                        </div>
+                    </section>
+
                     <section class="exam-section" id="instructions-section">
                         <div class="exam-section__head">
-                            <h2>7. Instructions for Candidates</h2>
+                            <h2>11. Instructions for Candidates</h2>
                             <p>Provide clear, structured guidance shown before exam start.</p>
                         </div>
                         <div class="exam-section__body space-y-4">
@@ -422,8 +635,13 @@
                             <div><dt>Exam Mode</dt><dd id="snapshot-mode">-</dd></div>
                             <div><dt>Categories</dt><dd id="snapshot-categories">0</dd></div>
                             <div><dt>Marks Filters</dt><dd id="snapshot-marks">0</dd></div>
+                            <div><dt>Timer</dt><dd id="snapshot-timer">-</dd></div>
+                            <div><dt>Exam Format</dt><dd id="snapshot-exam-format">-</dd></div>
+                            <div><dt>Schedule</dt><dd id="snapshot-schedule">-</dd></div>
+                            <div><dt>Attempts</dt><dd id="snapshot-attempts">-</dd></div>
                             <div><dt>Candidate Emails</dt><dd id="snapshot-candidates">0</dd></div>
                             <div><dt>Discount Rules</dt><dd id="snapshot-discounts">0</dd></div>
+                            <div><dt>Enabled Rules</dt><dd id="snapshot-instruction-rules">0</dd></div>
                         </dl>
                     </section>
                 </aside>
@@ -474,6 +692,7 @@
 @endsection
 
 @push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
@@ -483,10 +702,12 @@
 @push('scripts')
     <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/core/form-utils.js') }}?v={{ time() }}"></script>
     <script>
         window.examCreateConfig = {
             endpoints: {
