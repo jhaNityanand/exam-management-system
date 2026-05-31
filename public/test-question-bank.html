@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Bank Accordion - Test</title>
+    <link rel="stylesheet" href="css/question-bank-accordion.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f3f7fb;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            color: #152336;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .test-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #0f5d89;
+            background: #0f5d89;
+            color: white;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 200ms;
+        }
+
+        .test-btn:hover {
+            background: #0d4a6d;
+        }
+
+        .test-info {
+            background: #e0f2fe;
+            border: 1px solid #0f5d89;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #0f5d89;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Question Bank Accordion - Test Page</h1>
+        
+        <div class="test-info">
+            <strong>Test Controls:</strong> Use the buttons below to test the accordion functionality
+        </div>
+
+        <div class="test-controls">
+            <button class="test-btn" onclick="testSelectCategories()">Select 3 Categories</button>
+            <button class="test-btn" onclick="testSelectAll()">Select All</button>
+            <button class="test-btn" onclick="testExpandAll()">Expand All</button>
+            <button class="test-btn" onclick="testCollapseAll()">Collapse All</button>
+            <button class="test-btn" onclick="testSearch()">Test Search</button>
+            <button class="test-btn" onclick="testReset()">Reset</button>
+        </div>
+
+        <div id="question-bank-container" data-question-bank style="margin-top: 2rem;">
+            <div class="question-bank-toolbar">
+                <label class="question-search">
+                    <span>Search Questions</span>
+                    <input type="search" class="panel-input" placeholder="Search by keyword" data-question-search-input style="
+                        padding: 0.5rem 0.75rem;
+                        border: 1px solid #d8e2ee;
+                        border-radius: 0.5rem;
+                        font-size: 0.9rem;
+                        width: 100%;
+                    ">
+                </label>
+            </div>
+
+            <div id="question-bank-feedback" class="exam-help" data-question-bank-feedback style="
+                margin-bottom: 1rem;
+            "></div>
+            <div id="question-category-cards" class="question-category-cards" data-question-category-cards></div>
+        </div>
+    </div>
+
+    <script src="js/components/question-bank-accordion.js"></script>
+    <script>
+        // Mock data for testing
+        const mockConfig = {
+            endpoints: {
+                questionBank: 'data/exam-create/question-bank.json',
+                categories: 'data/exam-create/categories.json'
+            }
+        };
+
+        let accordion = null;
+
+        // Initialize accordion when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('question-bank-container');
+            accordion = new QuestionBankAccordion(container, {
+                questionBankEndpoint: mockConfig.endpoints.questionBank,
+                categoriesEndpoint: mockConfig.endpoints.categories,
+                animationDuration: 300,
+                onCategoryToggle: (categoryId, isExpanded) => {
+                    console.log(`Category ${categoryId} ${isExpanded ? 'expanded' : 'collapsed'}`);
+                }
+            });
+
+            // Select some categories by default
+            testSelectCategories();
+        });
+
+        function testSelectCategories() {
+            if (!accordion) return;
+            accordion.setSelectedCategories(['javascript', 'react', 'laravel']);
+            console.log('Selected: javascript, react, laravel');
+        }
+
+        function testSelectAll() {
+            if (!accordion) return;
+            const allLeafIds = accordion.getLeafCategories().map(c => c.id);
+            accordion.setSelectedCategories(allLeafIds);
+            console.log('Selected all categories');
+        }
+
+        function testExpandAll() {
+            if (!accordion) return;
+            accordion.toggleAll(true);
+            console.log('Expanded all');
+        }
+
+        function testCollapseAll() {
+            if (!accordion) return;
+            accordion.toggleAll(false);
+            console.log('Collapsed all');
+        }
+
+        function testSearch() {
+            if (!accordion) return;
+            const keyword = prompt('Enter search keyword:', 'json');
+            if (keyword !== null) {
+                accordion.searchQuestions(keyword);
+                console.log(`Searched for: ${keyword}`);
+            }
+        }
+
+        function testReset() {
+            if (!accordion) return;
+            accordion.setSelectedCategories([]);
+            accordion.searchQuestions('');
+            console.log('Reset');
+        }
+    </script>
+</body>
+</html>

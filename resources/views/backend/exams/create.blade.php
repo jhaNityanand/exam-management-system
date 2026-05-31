@@ -364,17 +364,17 @@
                             <h2>6. Question Bank Management</h2>
                             <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
                         </div>
-                        <div class="exam-section__body space-y-4">
+                        <div class="exam-section__body space-y-4" id="question-bank-container" data-question-bank>
                             <div class="question-bank-toolbar">
                                 <label class="question-search">
                                     <span>Search Questions</span>
-                                    <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword">
+                                    <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword" data-question-search-input>
                                 </label>
                                 <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
                             </div>
 
-                            <div id="question-bank-feedback" class="exam-help"></div>
-                            <div id="question-category-cards" class="question-category-cards"></div>
+                            <div id="question-bank-feedback" class="exam-help" data-question-bank-feedback></div>
+                            <div id="question-category-cards" class="question-category-cards" data-question-category-cards></div>
                         </div>
                     </section>
 
@@ -477,6 +477,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/question-bank-accordion.css') }}?v={{ time() }}">
 @endpush
 
 @push('scripts')
@@ -484,6 +485,8 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ time() }}"></script>
     <script>
         window.examCreateConfig = {
             endpoints: {
