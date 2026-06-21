@@ -129,23 +129,25 @@ class QuestionCategoryController extends Controller
 
     /**
      * Show the edit form for a single category.
-     * Also passes the category's direct children for the hierarchy panel.
+     * Loads the category and its children recursively for the tree canvas.
      */
     public function edit(QuestionCategory $category): View
     {
-        $orgId   = $this->currentOrgId();
-        $parents = $this->service->listForSelect($orgId, excludeId: $category->id);
-        $children = $category->children()->with('children')->orderBy('name')->get();
+        $category->load([
+            'children' => fn ($q) => $q->orderBy('name')
+                ->with([
+                    'children' => fn ($q2) => $q2->orderBy('name')
+                        ->with([
+                            'children' => fn ($q3) => $q3->orderBy('name'),
+                        ]),
+                ]),
+        ]);
 
-        return view('backend.question-categories.edit', compact(
-            'category',
-            'parents',
-            'children',
-        ));
+        return view('backend.question-categories.edit', compact('category'));
     }
 
     /**
-     * Persist category edits.
+     * Persist category edits (saves the entire hierarchy).
      */
     public function update(
         UpdateQuestionCategoryRequest $request,
@@ -153,15 +155,29 @@ class QuestionCategoryController extends Controller
     ): RedirectResponse {
         $data = $request->validated();
 
-        // Cast AI booleans (checkboxes submit '1' or nothing)
-        $data['ai_generated'] = (bool) ($data['ai_generated'] ?? false);
-        $data['ai_improve']   = (bool) ($data['ai_improve']   ?? false);
+        // Decode parent relationship map from the hidden JSON field
+        $parentMapRaw = $request->input('_parent_map', '{}');
+        $parentMap    = json_decode($parentMapRaw, true) ?: [];
 
-        $this->service->update($category, $data);
+        // Shared metadata / flags applied to all nodes in the tree
+        $meta = [
+            'status'          => $data['status']          ?? 'active',
+            'meta_title'      => $data['meta_title']      ?? null,
+            'meta_description'=> $data['meta_description'] ?? null,
+            'meta_keywords'   => $data['meta_keywords']   ?? null,
+            'slug'            => $data['slug']            ?? null,
+            'canonical_url'   => $data['canonical_url']   ?? null,
+            'og_title'        => $data['og_title']        ?? null,
+            'og_description'  => $data['og_description']  ?? null,
+            'ai_generated'    => (bool) ($data['ai_generated'] ?? false),
+            'ai_improve'      => (bool) ($data['ai_improve']   ?? false),
+        ];
+
+        $this->service->updateTree($category, $data['categories'], $parentMap, $meta);
 
         return redirect()
             ->route('admin.questions.categories.edit', $category)
-            ->with('success', 'Category updated successfully.');
+            ->with('success', 'Category hierarchy updated successfully.');
     }
 
     /**

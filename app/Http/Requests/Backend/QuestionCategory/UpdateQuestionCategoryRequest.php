@@ -21,29 +21,20 @@ class UpdateQuestionCategoryRequest extends FormRequest
 
     public function rules(): array
     {
-        /** @var QuestionCategory|null $category */
-        $category = $this->route('category');
-
-        // parent_id must exist in question_categories and must not be self
-        $parentRules = [
-            'nullable',
-            'integer',
-            Rule::exists('question_categories', 'id'),
-        ];
-
-        if ($category) {
-            // Cannot set a category as its own parent
-            $parentRules[] = Rule::notIn([$category->id]);
-        }
-
         return [
-            // ── Content ──────────────────────────────────────────────────────
-            'name'        => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'status'      => ['required', Rule::in(['active', 'inactive', 'suspended'])],
-            'parent_id'   => $parentRules,
+            // ── Tree nodes (from the category-builder) ──────────────────────
+            'categories'                => ['required', 'array', 'min:1'],
+            'categories.*.id'           => ['nullable', 'integer', Rule::exists('question_categories', 'id')],
+            'categories.*.name'         => ['required', 'string', 'max:255'],
+            'categories.*.description'  => ['nullable', 'string'],
 
-            // ── SEO / Metadata ────────────────────────────────────────────────
+            // Parent relationship map (JSON string) ─────────────────────────
+            '_parent_map'               => ['nullable', 'string'],
+
+            // ── Shared fields ───────────────────────────────────────────────
+            'status'          => ['required', Rule::in(['active', 'inactive', 'suspended'])],
+
+            // ── SEO / Metadata ──────────────────────────────────────────────
             'meta_title'       => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
             'meta_keywords'    => ['nullable', 'string', 'max:500'],
@@ -61,11 +52,10 @@ class UpdateQuestionCategoryRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required'       => 'Please enter a category name.',
-            'status.required'     => 'Please select a status for this category.',
-            'parent_id.not_in'   => 'A category cannot be its own parent.',
-            'parent_id.exists'   => 'The selected parent category does not exist.',
-            'canonical_url.url'  => 'The canonical URL must be a valid URL (e.g. https://example.com).',
+            'categories.required'       => 'Please add at least one category.',
+            'categories.*.name.required' => 'Each category must have a name.',
+            'status.required'           => 'Please select a status for the categories.',
+            'canonical_url.url'         => 'The canonical URL must be a valid URL (e.g. https://example.com).',
         ];
     }
 }

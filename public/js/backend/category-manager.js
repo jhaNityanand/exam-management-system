@@ -13,8 +13,33 @@ class CategoryManager {
             return;
         }
 
-        this.container.innerHTML = '';
-        this.renderInitialTree();
+        // Check if there are pre-existing nodes (Edit mode)
+        const hasExistingNodes = this.container.querySelectorAll('.category-node').length > 0;
+
+        if (!hasExistingNodes) {
+            this.container.innerHTML = '';
+            this.renderInitialTree();
+        } else {
+            // Parse existing nodes to find the maximum node index and set counter
+            let maxIndex = -1;
+            const nodes = this.container.querySelectorAll('.category-node');
+            nodes.forEach(node => {
+                const idAttr = node.dataset.nodeId || '';
+                const match = idAttr.match(/node-(\d+)/);
+                if (match) {
+                    const val = parseInt(match[1], 10);
+                    if (val > maxIndex) {
+                        maxIndex = val;
+                    }
+                }
+            });
+            this.counter = maxIndex + 1;
+            // Wire up auto-resizing for textareas
+            this.container.querySelectorAll('.category-node__textarea').forEach(textarea => {
+                this.autosizeTextarea(textarea);
+            });
+        }
+
         this.bindEvents();
     }
 

@@ -202,6 +202,91 @@ class QuestionCategoryService
     }
 
     /**
+     * Update an entire category tree starting from a root category.
+     * Any existing children that are missing from the updated payload will be soft-deleted.
+     */
+    public function updateTree(
+        QuestionCategory $root,
+        array            $nodes,
+        array            $parentMap,
+        array            $meta = [],
+    ): QuestionCategory {
+        $orgId = $root->organization_id;
+
+        // 1. Gather all existing descendant IDs recursively to detect deletions
+        $existingIds = [];
+        $collectIds = function ($node) use (&$existingIds, &$collectIds) {
+            foreach ($node->children as $child) {
+                $existingIds[] = $child->id;
+                $collectIds($child);
+            }
+        };
+        $collectIds($root);
+
+        // Map nodeId (e.g. "node-0", "node-1") to DB ID
+        $idMap = [];
+        $submittedDbIds = [];
+
+        // 2. Create or update nodes submitted from the hierarchy canvas
+        foreach ($nodes as $nodeId => $attrs) {
+            $parentNodeId = $parentMap[$nodeId] ?? null;
+
+            // Resolve parent DB ID
+            $parentDbId = null;
+            if ($parentNodeId) {
+                $parentDbId = $idMap[$parentNodeId] ?? null;
+                // Fallback: check if the parent already has a DB ID set in the attributes
+                if (!$parentDbId && isset($nodes[$parentNodeId]['id'])) {
+                    $parentDbId = (int) $nodes[$parentNodeId]['id'];
+                }
+            }
+
+            $nodeDbId = isset($attrs['id']) ? (int) $attrs['id'] : null;
+            $slug = Str::slug($attrs['name'] ?? '');
+
+            $fields = [
+                'organization_id' => $orgId,
+                'parent_id'       => $parentDbId,
+                'name'            => trim($attrs['name'] ?? ''),
+                'description'     => trim($attrs['description'] ?? ''),
+                'status'          => $meta['status']       ?? 'active',
+                'meta_title'      => $meta['meta_title']   ?? null,
+                'meta_description'=> $meta['meta_description'] ?? null,
+                'meta_keywords'   => $meta['meta_keywords'] ?? null,
+                'slug'            => $slug,
+                'canonical_url'   => $meta['canonical_url'] ?? null,
+                'og_title'        => $meta['og_title']      ?? null,
+                'og_description'  => $meta['og_description'] ?? null,
+                'ai_generated'    => (bool) ($meta['ai_generated'] ?? false),
+                'ai_improve'      => (bool) ($meta['ai_improve']   ?? false),
+            ];
+
+            if ($nodeDbId) {
+                $category = QuestionCategory::findOrFail($nodeDbId);
+                $category->update($fields);
+                $idMap[$nodeId] = $nodeDbId;
+                $submittedDbIds[] = $nodeDbId;
+            } else {
+                $fields['created_by'] = Auth::id();
+                $created = QuestionCategory::create($fields);
+                $idMap[$nodeId] = $created->id;
+                $submittedDbIds[] = $created->id;
+            }
+        }
+
+        // 3. Identify and delete nodes that were removed from the builder
+        $toDeleteIds = array_diff($existingIds, $submittedDbIds);
+        if (!empty($toDeleteIds)) {
+            // Delete them individually to trigger booted deleting cascade hooks
+            foreach (QuestionCategory::whereIn('id', $toDeleteIds)->get() as $toDelete) {
+                $toDelete->delete();
+            }
+        }
+
+        return $root->fresh();
+    }
+
+    /**
      * Soft-delete a category (children and questions cascade via model booted hook).
      */
     public function delete(QuestionCategory $category): bool
