@@ -1,34 +1,46 @@
 <?php
 
 use App\Models\Organization;
+use App\Models\UserOrganization;
+use Illuminate\Support\Facades\Auth;
 
 if (! function_exists('current_organization_id')) {
     /**
-     * Return the active organization ID.
+     * Return the active organization ID for the current context.
      *
-     * SINGLE-ORG MODE (current):
-     *   Always returns the first/only organization in the database.
-     *   No session, no membership check — bypassed for single-org development.
+     * Resolution order:
+     *   1. If a user is authenticated, look up their first active record in
+     *      user_organizations and return that organization_id.
+     *   2. Fallback: return the first organization in the organizations table.
+     *      Used for CLI (seeders / artisan commands) and unauthenticated contexts.
      *
-     * MULTI-ORG MODE (future — uncomment the block below and remove the single-org block):
-     *   Read from session, validate the authenticated user belongs to that org.
+     * MULTI-ORG MODE (future):
+     *   Replace step 1 with a session-based lookup:
+     *     $id = session(config('organization.session_key'));
+     *     Validate the user belongs to that org before returning it.
      *
-     *   use Illuminate\Support\Facades\Auth;
-     *   $id = session(config('organization.session_key'));
-     *   if (! $id) { return null; }
-     *   if (Auth::check() && ! Auth::user()->belongsToOrganization((int) $id)) { return null; }
-     *   return (int) $id;
+     * @return int|null  null when no organization exists at all.
      */
     function current_organization_id(): ?int
     {
-        // ── SINGLE-ORG MODE ───────────────────────────────────────────────────
+        // ── Step 1: Authenticated user → user_organizations ───────────────────
+        if (Auth::check()) {
+            $orgId = UserOrganization::where('user_id', Auth::id())
+                ->where('status', 'active')
+                ->value('organization_id');
+
+            if ($orgId) {
+                return (int) $orgId;
+            }
+        }
+
+        // ── Step 2: Fallback — first org (seeders / CLI / guests) ─────────────
         static $cachedId = null;
 
         if ($cachedId === null) {
-            $cachedId = Organization::value('id'); // first org, or null if table is empty
+            $cachedId = Organization::value('id'); // first org in table, or null
         }
 
         return $cachedId ? (int) $cachedId : null;
-        // ─────────────────────────────────────────────────────────────────────
     }
 }

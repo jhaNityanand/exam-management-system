@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
+use App\Models\QuestionCategory;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Services\ExamService;
@@ -23,7 +23,7 @@ class ExamController extends Controller
 
     public function create(): View
     {
-        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        $categories = QuestionCategory::query()->orderBy('name')->get(['id', 'name']);
         $questions = Question::query()
             ->orderBy('body')
             ->limit(500)
@@ -55,7 +55,7 @@ class ExamController extends Controller
 
     public function edit($id): View
     {
-        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        $categories = QuestionCategory::query()->orderBy('name')->get(['id', 'name']);
         $questions = Question::query()
             ->orderBy('body')
             ->limit(500)

@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             ProfileSeeder::class,
             OrganizationSeeder::class,
             UserOrganizationSeeder::class,
-            CategorySeeder::class,
+            QuestionCategorySeeder::class,
             QuestionSeeder::class,
             ExamSeeder::class,
         ]);

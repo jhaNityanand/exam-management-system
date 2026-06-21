@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Category;
+use App\Models\QuestionCategory;
 use App\Models\Question;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -42,7 +42,7 @@ class QuestionService
 
     public function getCategoriesForOrg(int $orgId): Collection
     {
-        return Category::where('organization_id', $orgId)->orderBy('name')->get();
+        return QuestionCategory::where('organization_id', $orgId)->orderBy('name')->get();
     }
 
     public function getStats(int $orgId): array

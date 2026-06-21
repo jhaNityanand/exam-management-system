@@ -1,0 +1,542 @@
+/* ============================================================
+   question-category-form.css
+   Styles for Create and Edit pages of the Question Category module.
+   ============================================================ */
+
+/* ── AI placeholder mask (removed) ─────────────────────────────────── */
+
+/* ── Options row (Status + AI toggles) ─────────────────────────────── */
+
+.category-builder__options {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgb(226 232 240 / 0.85);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.dark .category-builder__options {
+    border-color: rgb(30 41 59 / 0.9);
+}
+
+@media (min-width: 900px) {
+    .category-builder__options {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 2rem;
+    }
+}
+
+.qcat-options-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 180px;
+}
+
+.qcat-options-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(51 65 85);
+}
+
+.dark .qcat-options-label {
+    color: rgb(203 213 225);
+}
+
+.qcat-options-select {
+    max-width: 200px;
+}
+
+/* ── AI Toggle row ──────────────────────────────────────────────────── */
+
+.qcat-ai-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+    .qcat-ai-row {
+        flex-direction: row;
+        gap: 2rem;
+    }
+}
+
+.qcat-ai-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Hide the real checkbox */
+.qcat-ai-checkbox {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Toggle track */
+.qcat-ai-toggle-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 2.75rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: rgb(203 213 225);
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.dark .qcat-ai-toggle-wrap {
+    background: rgb(51 65 85);
+}
+
+/* Toggle thumb */
+.qcat-ai-thumb {
+    position: absolute;
+    left: 0.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    background: white;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
+    transition: transform 0.2s ease;
+}
+
+/* Checked state */
+.qcat-ai-checkbox:checked ~ .qcat-ai-toggle-wrap,
+.qcat-ai-checkbox:checked + .qcat-ai-toggle-wrap {
+    background: rgb(79 70 229);
+}
+
+.qcat-ai-checkbox:checked ~ .qcat-ai-toggle-wrap .qcat-ai-thumb,
+.qcat-ai-checkbox:checked + .qcat-ai-toggle-wrap .qcat-ai-thumb {
+    transform: translateX(1.25rem);
+}
+
+/* Focus ring */
+.qcat-ai-checkbox:focus-visible + .qcat-ai-toggle-wrap {
+    outline: 2px solid rgb(79 70 229);
+    outline-offset: 2px;
+}
+
+/* Text labels */
+.qcat-ai-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.qcat-ai-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(15 23 42);
+}
+
+.dark .qcat-ai-title {
+    color: rgb(241 245 249);
+}
+
+.qcat-ai-hint {
+    font-size: 0.75rem;
+    color: rgb(100 116 139);
+}
+
+.dark .qcat-ai-hint {
+    color: rgb(100 116 139);
+}
+
+.qcat-ai-hint em {
+    font-style: normal;
+    color: rgb(148 163 184);
+}
+
+/* ── Metadata section ───────────────────────────────────────────────── */
+
+.category-builder__metadata {
+    border-top: 1px solid rgb(226 232 240 / 0.85);
+    margin-top: 0;
+}
+
+.dark .category-builder__metadata {
+    border-color: rgb(30 41 59 / 0.9);
+}
+
+.qcat-meta-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem 1.25rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.qcat-meta-header:hover {
+    background: rgb(248 250 252);
+}
+
+.dark .qcat-meta-header:hover {
+    background: rgb(15 23 42 / 0.5);
+}
+
+@media (min-width: 900px) {
+    .qcat-meta-header {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+.qcat-meta-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.qcat-meta-icon {
+    color: rgb(100 116 139);
+    flex-shrink: 0;
+}
+
+.qcat-meta-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: rgb(15 23 42);
+}
+
+.dark .qcat-meta-title {
+    color: rgb(241 245 249);
+}
+
+.qcat-meta-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: rgb(241 245 249);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgb(100 116 139);
+    letter-spacing: 0.03em;
+}
+
+.dark .qcat-meta-badge {
+    background: rgb(30 41 59);
+    color: rgb(148 163 184);
+}
+
+.qcat-meta-chevron {
+    color: rgb(148 163 184);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+/* Body (accordion content) */
+.qcat-meta-body {
+    padding: 0 1.25rem 1.5rem;
+    animation: qcatFadeDown 0.2s ease both;
+}
+
+@media (min-width: 900px) {
+    .qcat-meta-body {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@keyframes qcatFadeDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.qcat-meta-hint {
+    font-size: 0.8rem;
+    color: rgb(100 116 139);
+    margin: 0 0 1rem;
+    line-height: 1.6;
+}
+
+.dark .qcat-meta-hint {
+    color: rgb(100 116 139);
+}
+
+/* Grid for meta fields */
+.qcat-meta-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .qcat-meta-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.qcat-meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.qcat-meta-field--full {
+    grid-column: 1 / -1;
+}
+
+.qcat-meta-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgb(71 85 105);
+}
+
+.dark .qcat-meta-label {
+    color: rgb(203 213 225);
+}
+
+.qcat-meta-input,
+.qcat-meta-textarea {
+    width: 100%;
+}
+
+.qcat-meta-textarea {
+    resize: vertical;
+    min-height: 4rem;
+}
+
+/* Character counter */
+.qcat-meta-count {
+    font-size: 0.72rem;
+    color: rgb(148 163 184);
+    text-align: right;
+    transition: color 0.15s;
+}
+
+.qcat-meta-count--warn { color: rgb(245 158 11); }
+.qcat-meta-count--over { color: rgb(239 68 68); font-weight: 600; }
+
+/* ── Edit page — form fields grid ───────────────────────────────────── */
+
+.qcat-edit-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .qcat-edit-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.qcat-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.qcat-edit-field--full {
+    grid-column: 1 / -1;
+}
+
+/* ── Inline validation error ────────────────────────────────────────── */
+
+.qcat-field-error {
+    display: none;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    color: rgb(239 68 68);
+    animation: qcatFadeDown 0.18s ease both;
+}
+
+.qcat-field-error.is-visible {
+    display: block;
+}
+
+.panel-input.is-invalid {
+    border-color: rgb(239 68 68) !important;
+    box-shadow: 0 0 0 3px rgb(239 68 68 / 0.12) !important;
+}
+
+/* ── Status badges ──────────────────────────────────────────────────── */
+
+.qcat-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+}
+
+.qcat-status-badge--active {
+    background: rgb(220 252 231);
+    color: rgb(22 101 52);
+}
+
+.dark .qcat-status-badge--active {
+    background: rgb(20 83 45 / 0.3);
+    color: rgb(134 239 172);
+}
+
+.qcat-status-badge--inactive {
+    background: rgb(241 245 249);
+    color: rgb(71 85 105);
+}
+
+.dark .qcat-status-badge--inactive {
+    background: rgb(30 41 59);
+    color: rgb(148 163 184);
+}
+
+.qcat-status-badge--suspended {
+    background: rgb(255 237 213);
+    color: rgb(154 52 18);
+}
+
+.dark .qcat-status-badge--suspended {
+    background: rgb(124 45 18 / 0.25);
+    color: rgb(253 186 116);
+}
+
+/* ── AI badge ───────────────────────────────────────────────────────── */
+
+.qcat-ai-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    color: #4338ca;
+    flex-shrink: 0;
+}
+
+.dark .qcat-ai-badge {
+    background: linear-gradient(135deg, rgb(79 70 229 / 0.2), rgb(99 102 241 / 0.15));
+    color: #a5b4fc;
+}
+
+/* ── Edit page header badge ─────────────────────────────────────────── */
+
+.category-builder__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/* ── Status Toggle Switch ───────────────────────────────────────────── */
+.qcat-status-toggle-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    user-select: none;
+}
+
+.qcat-status-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: rgb(71 85 105);
+}
+
+.dark .qcat-status-label {
+    color: rgb(203 213 225);
+}
+
+.qcat-status-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.qcat-status-checkbox {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.qcat-status-toggle-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 2.75rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: rgb(239 68 68); /* Red for inactive */
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.qcat-status-thumb {
+    position: absolute;
+    left: 0.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    background: white;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
+    transition: transform 0.2s ease;
+}
+
+/* When checked: Active (Green) */
+.qcat-status-checkbox:checked + .qcat-status-toggle-wrap {
+    background: rgb(34 197 94); /* Green for active */
+}
+
+.qcat-status-checkbox:checked + .qcat-status-toggle-wrap .qcat-status-thumb {
+    transform: translateX(1.25rem);
+}
+
+/* Status text indicator label */
+.qcat-status-text-indicator {
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: color 0.15s ease;
+}
+
+.qcat-status-text-indicator.status-active {
+    color: rgb(22 163 74); /* Green */
+}
+
+.qcat-status-text-indicator.status-inactive {
+    color: rgb(220 38 38); /* Red */
+}
+
+.dark .qcat-status-text-indicator.status-active {
+    color: rgb(74 222 128);
+}
+
+.dark .qcat-status-text-indicator.status-inactive {
+    color: rgb(248 113 113);
+}
+
+/* ── SEO Toggles Container under Header ─────────────────────────────── */
+.qcat-meta-toggles {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid rgb(226 232 240 / 0.85);
+}
+
+.dark .qcat-meta-toggles {
+    border-color: rgb(30 41 59 / 0.9);
+}
+
+/* Align Improve with AI next to Meta Title */
+.qcat-meta-field--ai-improve {
+    justify-content: flex-end;
+    padding-bottom: 1.25rem;
+}

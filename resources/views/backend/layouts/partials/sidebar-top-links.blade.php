@@ -11,7 +11,7 @@
             'parentRoute' => 'admin.questions.index',
             'children' => [
                 ['route' => 'admin.questions.index', 'label' => 'Questions'],
-                ['route' => 'admin.categories.index', 'label' => 'Category'],
+                ['route' => 'admin.questions.categories.index', 'label' => 'Categories'],
             ]
         ],
         [
@@ -20,7 +20,7 @@
             'parentRoute' => 'admin.exams.index',
             'children' => [
                 ['route' => 'admin.exams.index', 'label' => 'Exams'],
-                ['route' => 'admin.exam-categories.index', 'label' => 'Category'],
+                ['route' => 'admin.exams.index', 'label' => 'All Exams'],
             ]
         ],
         [

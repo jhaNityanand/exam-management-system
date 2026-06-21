@@ -500,3 +500,45 @@
     .swal-cat-confirm-btn,
     .swal-cat-cancel-btn { width: 100% !important; justify-content: center !important; }
 }
+
+/* ============================================================ */
+/*  Status badges (shared — used by index tree and edit panel)  */
+/* ============================================================ */
+
+.qcat-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+}
+.qcat-status-badge--active    { background: #dcfce7; color: #166534; }
+.qcat-status-badge--inactive  { background: #f1f5f9; color: #475569; }
+.qcat-status-badge--suspended { background: #ffedd5; color: #9a3412; }
+
+.dark .qcat-status-badge--active    { background: rgb(20 83 45 / 0.3);   color: #86efac; }
+.dark .qcat-status-badge--inactive  { background: rgb(30 41 59);         color: #94a3b8; }
+.dark .qcat-status-badge--suspended { background: rgb(124 45 18 / 0.25); color: #fdba74; }
+
+/* ── AI badge ───────────────────────────────────────────────── */
+
+.qcat-ai-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.14rem 0.48rem;
+    border-radius: 999px;
+    font-size: 0.63rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    color: #4338ca;
+    flex-shrink: 0;
+}
+.dark .qcat-ai-badge {
+    background: linear-gradient(135deg, rgb(79 70 229 / 0.2), rgb(99 102 241 / 0.15));
+    color: #a5b4fc;
+}
+

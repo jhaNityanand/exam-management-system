@@ -61,9 +61,9 @@ class Organization extends Model
         return $this->hasMany(Exam::class);
     }
 
-    public function categories()
+    public function questionCategories()
     {
-        return $this->hasMany(Category::class);
+        return $this->hasMany(QuestionCategory::class);
     }
 
     public function questions()

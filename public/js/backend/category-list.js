@@ -1,64 +1,101 @@
+/**
+ * category-list.js
+ *
+ * Handles the interactive behaviour of the Question Category index (tree list) page:
+ *   - Tree expand / collapse
+ *   - Client-side search highlight (live JS filter on the already-rendered tree)
+ *   - SweetAlert2 delete confirmation → real HTTP DELETE (via hidden form)
+ *   - Description modal
+ *   - Expand-All / Collapse-All toggle
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    /* ------------------------------------------------------------------ */
-    /*  Element refs                                                         */
-    /* ------------------------------------------------------------------ */
-    const root           = document.getElementById('category-tree-root');
-    const searchInput    = document.getElementById('category-search');
-    const expandAllButton= document.getElementById('expand-all-btn');
-    const expandAllIcon  = document.getElementById('expand-all-icon');
-    const emptyState     = document.getElementById('category-empty-state');
-    const toast          = document.getElementById('category-toast');
-    const toastText      = document.getElementById('category-toast-text');
 
-    /* Bootstrap modal instance for description */
+    /* ------------------------------------------------------------------ */
+    /*  Element refs                                                        */
+    /* ------------------------------------------------------------------ */
+    const root            = document.getElementById('category-tree-root');
+    const searchInput     = document.getElementById('category-search');
+    const expandAllButton = document.getElementById('expand-all-btn');
+    const expandAllIcon   = document.getElementById('expand-all-icon');
+    const emptyState      = document.getElementById('category-empty-state');
     const descModalEl     = document.getElementById('descModal');
     const descModalTitle  = document.getElementById('descModalLabel');
     const descModalContent= document.getElementById('descModalContent');
 
-    let nodePendingDelete = null;
-    let toastTimer        = null;
-
-    if (!root || !searchInput || !expandAllButton) return;
+    if (!root) return;
 
     const topLevelNodes = Array.from(root.children).filter(
-        (child) => child.classList.contains('category-tree-node')
+        (c) => c.classList.contains('category-tree-node')
     );
 
     /* ------------------------------------------------------------------ */
-    /*  Toast helper                                                         */
+    /*  Tree expand / collapse                                              */
     /* ------------------------------------------------------------------ */
-    const showToast = (message) => {
-        if (!toast || !toastText) return;
+    const setBranchState = (node, shouldOpen) => {
+        const children = node.querySelector(':scope > .category-tree-children');
+        const toggle   = node.querySelector('.toggle-node-btn');
+        if (!children || !toggle) return;
 
-        toastText.textContent = message;
-        toast.classList.remove('hidden');
-        requestAnimationFrame(() => toast.classList.add('is-visible'));
+        children.classList.toggle('hidden', !shouldOpen);
+        toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        toggle.title = shouldOpen ? 'Collapse category' : 'Expand category';
+    };
 
-        window.clearTimeout(toastTimer);
-        toastTimer = window.setTimeout(() => {
-            toast.classList.remove('is-visible');
-            window.setTimeout(() => toast.classList.add('hidden'), 200);
-        }, 2800);
+    const updateExpandAllLabel = () => {
+        const toggles     = root.querySelectorAll('.toggle-node-btn');
+        const allExpanded = Array.from(toggles).every(
+            (t) => t.getAttribute('aria-expanded') === 'true'
+        );
+        const label = expandAllButton?.querySelector('span');
+        if (label) label.textContent = allExpanded ? 'Collapse All' : 'Expand All';
+        if (expandAllButton) expandAllButton.dataset.expanded = allExpanded ? 'true' : 'false';
+        if (expandAllIcon) expandAllIcon.style.transform = allExpanded ? 'rotate(180deg)' : '';
     };
 
     /* ------------------------------------------------------------------ */
-    /*  Description Modal  (pure JS — no Bootstrap CSS dependency)          */
+    /*  Client-side search filter                                           */
+    /* ------------------------------------------------------------------ */
+    const filterNode = (node, query) => {
+        const haystack   = `${node.dataset.nodeName || ''} ${node.dataset.nodeDescription || ''}`.trim();
+        const directMatch = !query || haystack.includes(query);
+        const children   = Array.from(
+            node.querySelectorAll(':scope > .category-tree-children > .category-tree-node')
+        );
+
+        let hasChildMatch = false;
+        children.forEach((child) => {
+            if (filterNode(child, query)) hasChildMatch = true;
+        });
+
+        const visible = directMatch || hasChildMatch;
+        node.classList.toggle('is-hidden-by-search', !visible);
+        node.classList.toggle('matching-node',    !!query && directMatch);
+        node.classList.toggle('has-search-match', !!query && !directMatch && hasChildMatch);
+
+        const childContainer = node.querySelector(':scope > .category-tree-children');
+        if (childContainer) {
+            if (!!query && hasChildMatch) setBranchState(node, true);
+            else if (!query)             setBranchState(node, false);
+        }
+
+        return visible;
+    };
+
+    /* ------------------------------------------------------------------ */
+    /*  Description modal (pure JS — no Bootstrap CSS dependency)          */
     /* ------------------------------------------------------------------ */
     let descBackdrop = null;
 
     const openDescModal = (name, desc) => {
         if (!descModalEl || !descModalTitle || !descModalContent) return;
-
         descModalTitle.textContent   = name;
         descModalContent.textContent = desc;
 
-        /* Create backdrop */
         descBackdrop = document.createElement('div');
         descBackdrop.className = 'modal-backdrop fade';
         document.body.appendChild(descBackdrop);
         document.body.style.overflow = 'hidden';
 
-        /* Trigger animations on next frame */
         requestAnimationFrame(() => {
             descBackdrop.classList.add('show');
             descModalEl.classList.add('show');
@@ -69,40 +106,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const closeDescModal = () => {
         if (!descModalEl) return;
-
         descModalEl.classList.remove('show');
         descModalEl.setAttribute('aria-hidden', 'true');
         descModalEl.removeAttribute('aria-modal');
-
         if (descBackdrop) {
             descBackdrop.classList.remove('show');
-            /* Remove after transition */
-            window.setTimeout(() => {
-                descBackdrop?.remove();
-                descBackdrop = null;
-            }, 150);
+            window.setTimeout(() => { descBackdrop?.remove(); descBackdrop = null; }, 150);
         }
         document.body.style.overflow = '';
     };
 
     /* ------------------------------------------------------------------ */
-    /*  Delete Confirmation  (SweetAlert2)                                  */
+    /*  Delete confirmation → real HTTP DELETE                              */
     /* ------------------------------------------------------------------ */
-    const openDeleteConfirm = (node, categoryName) => {
+    const openDeleteConfirm = (categoryId, categoryName) => {
         if (!window.Swal) return;
 
-        nodePendingDelete = node;
+        const form = document.getElementById(`delete-form-${categoryId}`);
+        if (!form) return;
 
         Swal.fire({
-            /* ── layout ── */
-            showClass:  { popup: 'swal-cat-show'  },
-            hideClass:  { popup: 'swal-cat-hide'  },
+            showClass:  { popup: 'swal-cat-show' },
+            hideClass:  { popup: 'swal-cat-hide' },
             buttonsStyling: false,
             showCancelButton: true,
             reverseButtons: true,
             focusCancel: true,
 
-            /* ── content ── */
             title: 'Delete Category',
             html: `
                 <div class="swal-cat-body">
@@ -122,11 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         </svg>
                         <span>${categoryName}</span>
                     </div>
-                    <p class="swal-cat-warning">This action is <strong>irreversible</strong>. All sub-categories linked to this entry will also be affected.</p>
+                    <p class="swal-cat-warning">This action is <strong>irreversible</strong>. All sub-categories and questions linked to this entry will also be affected.</p>
                 </div>
             `,
 
-            /* ── buttons ── */
             confirmButtonText: `
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:6px">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
@@ -141,114 +170,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 Cancel
             `,
 
-            /* ── custom classes ── */
             customClass: {
-                popup:          'swal-cat-popup',
-                title:          'swal-cat-title',
-                htmlContainer:  'swal-cat-html',
-                confirmButton:  'swal-cat-confirm-btn',
-                cancelButton:   'swal-cat-cancel-btn',
-                actions:        'swal-cat-actions',
-            },
-
-            /* ── entrance animation hook ── */
-            didOpen: (popup) => {
-                popup.style.transform = 'scale(1)';
-                popup.style.opacity   = '1';
+                popup:         'swal-cat-popup',
+                title:         'swal-cat-title',
+                htmlContainer: 'swal-cat-html',
+                confirmButton: 'swal-cat-confirm-btn',
+                cancelButton:  'swal-cat-cancel-btn',
+                actions:       'swal-cat-actions',
             },
 
         }).then((result) => {
-            if (result.isConfirmed && nodePendingDelete) {
-                const parentList = nodePendingDelete.parentElement;
-                nodePendingDelete.remove();
-                nodePendingDelete = null;
-
-                if (parentList?.id === 'category-tree-root' && !parentList.children.length) {
-                    emptyState?.classList.remove('hidden');
-                }
-
-                /* ── Success toast (SweetAlert2) ── */
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    iconColor: '#10b981',
-                    title: 'Category deleted successfully',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    showCloseButton: true,
-                    customClass: {
-                        popup:        'swal-cat-toast-popup',
-                        title:        'swal-cat-toast-title',
-                        timerProgressBar: 'swal-cat-toast-bar',
-                    },
-                });
-            } else {
-                nodePendingDelete = null;
+            if (result.isConfirmed) {
+                // Submit the real hidden DELETE form
+                form.submit();
             }
         });
-    };
-
-    /* ------------------------------------------------------------------ */
-    /*  Tree expand / collapse                                              */
-    /* ------------------------------------------------------------------ */
-    const setBranchState = (node, shouldOpen) => {
-        const children = node.querySelector(':scope > .category-tree-children');
-        const toggle   = node.querySelector('.toggle-node-btn');
-
-        if (!children || !toggle) return;
-
-        children.classList.toggle('hidden', !shouldOpen);
-        toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-        toggle.title = shouldOpen ? 'Collapse category' : 'Expand category';
-    };
-
-    const updateExpandAllLabel = () => {
-        const branchToggles = root.querySelectorAll('.toggle-node-btn');
-        const allExpanded   = Array.from(branchToggles).every(
-            (toggle) => toggle.getAttribute('aria-expanded') === 'true'
-        );
-        const label = expandAllButton.querySelector('span');
-
-        if (label) {
-            label.textContent = allExpanded ? 'Collapse all' : 'Expand all';
-        }
-
-        expandAllButton.dataset.expanded = allExpanded ? 'true' : 'false';
-        if (expandAllIcon) {
-            expandAllIcon.style.transform = allExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
-        }
-    };
-
-    /* ------------------------------------------------------------------ */
-    /*  Search / filter                                                     */
-    /* ------------------------------------------------------------------ */
-    const filterNode = (node, query) => {
-        const haystack    = `${node.dataset.nodeName || ''} ${node.dataset.nodeDescription || ''}`.trim();
-        const directMatch = !query || haystack.includes(query);
-        const children    = Array.from(
-            node.querySelectorAll(':scope > .category-tree-children > .category-tree-node')
-        );
-
-        let hasChildMatch = false;
-        children.forEach((child) => {
-            if (filterNode(child, query)) hasChildMatch = true;
-        });
-
-        const visible = directMatch || hasChildMatch;
-        node.classList.toggle('is-hidden-by-search', !visible);
-        node.classList.toggle('matching-node',   !!query && directMatch);
-        node.classList.toggle('has-search-match',!!query && !directMatch && hasChildMatch);
-
-        const childContainer = node.querySelector(':scope > .category-tree-children');
-        if (childContainer) {
-            const shouldOpen = !!query && hasChildMatch;
-            if (shouldOpen)      setBranchState(node, true);
-            else if (!query)     setBranchState(node, false);
-        }
-
-        return visible;
     };
 
     /* ------------------------------------------------------------------ */
@@ -262,9 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (toggle) {
             const node          = toggle.closest('.category-tree-node');
             const childContainer= node?.querySelector(':scope > .category-tree-children');
-            const isExpanded    = toggle.getAttribute('aria-expanded') === 'true';
-
             if (node && childContainer) {
+                const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
                 setBranchState(node, !isExpanded);
                 updateExpandAllLabel();
             }
@@ -279,63 +214,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (deleteButton) {
             openDeleteConfirm(
-                deleteButton.closest('.category-tree-node'),
+                deleteButton.dataset.categoryId,
                 deleteButton.dataset.categoryName || 'this category'
             );
         }
     });
 
     /* ------------------------------------------------------------------ */
-    /*  Search input                                                        */
+    /*  Live search                                                         */
     /* ------------------------------------------------------------------ */
-    searchInput.addEventListener('input', () => {
+    searchInput?.addEventListener('input', () => {
         const query = searchInput.value.trim().toLowerCase();
-        let visibleCount = 0;
-
-        topLevelNodes.forEach((node) => {
-            if (filterNode(node, query)) visibleCount += 1;
-        });
-
-        emptyState?.classList.toggle('hidden', visibleCount > 0);
+        let visible = 0;
+        topLevelNodes.forEach((node) => { if (filterNode(node, query)) visible++; });
+        emptyState?.classList.toggle('hidden', visible > 0);
         updateExpandAllLabel();
     });
 
     /* ------------------------------------------------------------------ */
-    /*  Expand / Collapse all                                               */
+    /*  Expand / Collapse All                                               */
     /* ------------------------------------------------------------------ */
-    expandAllButton.addEventListener('click', () => {
+    expandAllButton?.addEventListener('click', () => {
         const shouldExpand = expandAllButton.dataset.expanded !== 'true';
-
         root.querySelectorAll('.category-tree-node').forEach((node) => {
-            if (node.classList.contains('is-hidden-by-search')) return;
-            setBranchState(node, shouldExpand);
+            if (!node.classList.contains('is-hidden-by-search')) {
+                setBranchState(node, shouldExpand);
+            }
         });
-
         updateExpandAllLabel();
     });
 
     /* ------------------------------------------------------------------ */
-    /*  Modal close wiring                                                   */
+    /*  Modal close wiring                                                  */
     /* ------------------------------------------------------------------ */
-    /* data-bs-dismiss buttons inside the modal */
     descModalEl?.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
         btn.addEventListener('click', closeDescModal);
     });
-
-    /* Click on the dark overlay (outside the card) closes modal */
     descModalEl?.addEventListener('click', (e) => {
         if (e.target === descModalEl) closeDescModal();
     });
-
-    /* Escape key */
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && descModalEl?.classList.contains('show')) {
-            closeDescModal();
-        }
+        if (e.key === 'Escape' && descModalEl?.classList.contains('show')) closeDescModal();
     });
 
     /* ------------------------------------------------------------------ */
-    /*  Initial state                                                       */
+    /*  Initial state — all branches collapsed                              */
     /* ------------------------------------------------------------------ */
     topLevelNodes.forEach((node) => setBranchState(node, false));
     updateExpandAllLabel();
