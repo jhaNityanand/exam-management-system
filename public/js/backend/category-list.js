@@ -1,35 +1,110 @@
 /**
  * category-list.js
  *
- * Handles the interactive behaviour of the Question Category index (tree list) page:
- *   - Tree expand / collapse
- *   - Client-side search highlight (live JS filter on the already-rendered tree)
- *   - SweetAlert2 delete confirmation → real HTTP DELETE (via hidden form)
- *   - Description modal
- *   - Expand-All / Collapse-All toggle
+ * Handles the interactive behavior of the Question Category index (tree list) page:
+ *   - AJAX loading on initial page load
+ *   - Debounced real-time AJAX search
+ *   - Instant AJAX status filtering
+ *   - URL state synchronization using history.replaceState
+ *   - Event delegation on tree container for nodes (expand/collapse, view modal, SweetAlert2 delete confirmation)
+ *   - Category Details modal population from single category JSON endpoint
  */
 document.addEventListener('DOMContentLoaded', () => {
 
     /* ------------------------------------------------------------------ */
     /*  Element refs                                                        */
     /* ------------------------------------------------------------------ */
-    const root            = document.getElementById('category-tree-root');
-    const searchInput     = document.getElementById('category-search');
-    const expandAllButton = document.getElementById('expand-all-btn');
-    const expandAllIcon   = document.getElementById('expand-all-icon');
-    const emptyState      = document.getElementById('category-empty-state');
-    const descModalEl     = document.getElementById('descModal');
-    const descModalTitle  = document.getElementById('descModalLabel');
-    const descModalContent= document.getElementById('descModalContent');
+    const persistentContainer = document.getElementById('category-tree-container');
+    const searchInput         = document.getElementById('category-search');
+    const statusFilter        = document.getElementById('status-filter');
+    const expandAllButton     = document.getElementById('expand-all-btn');
+    const expandAllIcon       = document.getElementById('expand-all-icon');
+    const detailsModalEl      = document.getElementById('categoryDetailsModal');
 
-    if (!root) return;
+    if (!persistentContainer) return;
 
-    const topLevelNodes = Array.from(root.children).filter(
-        (c) => c.classList.contains('category-tree-node')
-    );
+    // Skeleton loader HTML matching hierarchy nodes visual structure
+    const skeletonHTML = `
+        <div class="animate-pulse space-y-4">
+            <!-- Skeleton Root Node 1 -->
+            <div class="rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                            <div class="h-5 w-40 rounded bg-slate-200 dark:bg-slate-800"></div>
+                            <div class="h-5 w-16 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                        </div>
+                        <div class="pl-12 space-y-2">
+                            <div class="h-4 w-5/6 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                            <div class="h-4 w-3/4 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Skeleton Child Node 1.1 -->
+            <div class="ml-8 rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                            <div class="h-5 w-32 rounded bg-slate-200 dark:bg-slate-800"></div>
+                        </div>
+                        <div class="pl-12 space-y-2">
+                            <div class="h-4 w-4/5 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Skeleton Root Node 2 -->
+            <div class="rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                            <div class="h-5 w-48 rounded bg-slate-200 dark:bg-slate-800"></div>
+                        </div>
+                        <div class="pl-12 space-y-2">
+                            <div class="h-4 w-2/3 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 
     /* ------------------------------------------------------------------ */
-    /*  Tree expand / collapse                                              */
+    /*  Debounce Helper                                                     */
+    /* ------------------------------------------------------------------ */
+    const debounce = (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+
+    /* ------------------------------------------------------------------ */
+    /*  Tree Node State Helpers                                             */
     /* ------------------------------------------------------------------ */
     const setBranchState = (node, shouldOpen) => {
         const children = node.querySelector(':scope > .category-tree-children');
@@ -42,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateExpandAllLabel = () => {
-        const toggles     = root.querySelectorAll('.toggle-node-btn');
+        const toggles     = persistentContainer.querySelectorAll('.toggle-node-btn');
+        if (toggles.length === 0) return;
         const allExpanded = Array.from(toggles).every(
             (t) => t.getAttribute('aria-expanded') === 'true'
         );
@@ -53,71 +129,218 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /* ------------------------------------------------------------------ */
-    /*  Client-side search filter                                           */
+    /*  AJAX Loaders                                                        */
     /* ------------------------------------------------------------------ */
-    const filterNode = (node, query) => {
-        const haystack   = `${node.dataset.nodeName || ''} ${node.dataset.nodeDescription || ''}`.trim();
-        const directMatch = !query || haystack.includes(query);
-        const children   = Array.from(
-            node.querySelectorAll(':scope > .category-tree-children > .category-tree-node')
-        );
+    const loadCategories = () => {
+        const query = searchInput ? searchInput.value.trim() : '';
+        const status = statusFilter ? statusFilter.value : '';
 
-        let hasChildMatch = false;
-        children.forEach((child) => {
-            if (filterNode(child, query)) hasChildMatch = true;
-        });
+        // Trigger loading visual skeleton state
+        persistentContainer.innerHTML = skeletonHTML;
 
-        const visible = directMatch || hasChildMatch;
-        node.classList.toggle('is-hidden-by-search', !visible);
-        node.classList.toggle('matching-node',    !!query && directMatch);
-        node.classList.toggle('has-search-match', !!query && !directMatch && hasChildMatch);
-
-        const childContainer = node.querySelector(':scope > .category-tree-children');
-        if (childContainer) {
-            if (!!query && hasChildMatch) setBranchState(node, true);
-            else if (!query)             setBranchState(node, false);
+        // Build request URL containing filter state params
+        const url = new URL(window.location.href);
+        if (query) {
+            url.searchParams.set('search', query);
+        } else {
+            url.searchParams.delete('search');
+        }
+        if (status) {
+            url.searchParams.set('status', status);
+        } else {
+            url.searchParams.delete('status');
         }
 
-        return visible;
+        // Sync browser history URL structure
+        window.history.replaceState(null, '', url.toString());
+
+        // Perform AJAX GET
+        fetch(url.toString(), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load categories hierarchy.');
+            return response.text();
+        })
+        .then(html => {
+            persistentContainer.innerHTML = html;
+
+            const rootEl = document.getElementById('category-tree-root');
+            if (rootEl) {
+                const nodes = Array.from(rootEl.children).filter(c => c.classList.contains('category-tree-node'));
+
+                // Auto-expand all matching branches when search query is active
+                if (query) {
+                    rootEl.querySelectorAll('.category-tree-node').forEach(node => {
+                        setBranchState(node, true);
+                    });
+                } else {
+                    // Collapse all tree structures by default for general browsing
+                    nodes.forEach(node => {
+                        setBranchState(node, false);
+                    });
+                }
+            }
+            updateExpandAllLabel();
+        })
+        .catch(err => {
+            console.error('AJAX Load error:', err);
+            persistentContainer.innerHTML = `
+                <div class="rounded-3xl border border-dashed border-rose-300 bg-rose-50 px-6 py-12 text-center dark:border-rose-900/40 dark:bg-rose-900/10">
+                    <h3 class="text-base font-semibold text-rose-900 dark:text-rose-400">Failed to retrieve categories</h3>
+                    <p class="mt-1 text-sm text-rose-500 dark:text-rose-400">Please refresh or verify backend services.</p>
+                </div>
+            `;
+        });
     };
 
     /* ------------------------------------------------------------------ */
-    /*  Description modal (pure JS — no Bootstrap CSS dependency)          */
+    /*  Detailed View Modal Handlers                                      */
     /* ------------------------------------------------------------------ */
-    let descBackdrop = null;
+    let detailsBackdrop = null;
 
-    const openDescModal = (name, desc) => {
-        if (!descModalEl || !descModalTitle || !descModalContent) return;
-        descModalTitle.textContent   = name;
-        descModalContent.textContent = desc;
+    const openDetailsModal = (categoryId) => {
+        if (!detailsModalEl) return;
 
-        descBackdrop = document.createElement('div');
-        descBackdrop.className = 'modal-backdrop fade';
-        document.body.appendChild(descBackdrop);
+        // Render custom dark backdrop and prevent scrolling
+        detailsBackdrop = document.createElement('div');
+        detailsBackdrop.className = 'modal-backdrop fade';
+        document.body.appendChild(detailsBackdrop);
         document.body.style.overflow = 'hidden';
 
         requestAnimationFrame(() => {
-            descBackdrop.classList.add('show');
-            descModalEl.classList.add('show');
-            descModalEl.removeAttribute('aria-hidden');
-            descModalEl.setAttribute('aria-modal', 'true');
+            detailsBackdrop.classList.add('show');
+            detailsModalEl.classList.add('show');
+            detailsModalEl.removeAttribute('aria-hidden');
+            detailsModalEl.setAttribute('aria-modal', 'true');
+        });
+
+        // Set skeleton loader state
+        const skeleton = document.getElementById('modal-skeleton');
+        const content = document.getElementById('modal-content');
+        if (skeleton) skeleton.classList.remove('hidden');
+        if (content) content.classList.add('hidden');
+
+        // Collapsed state default reset for SEO accordion
+        const seoContent = document.getElementById('modal-seo-content');
+        const seoToggleIcon = document.getElementById('modal-seo-toggle-icon');
+        if (seoContent) seoContent.classList.add('hidden');
+        if (seoToggleIcon) seoToggleIcon.classList.remove('rotate-180');
+
+        // Fetch detailed record JSON
+        fetch(`/admin/questions/categories/${categoryId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Could not fetch category profile.');
+            return response.json();
+        })
+        .then(data => {
+            // Map JSON properties to DOM nodes
+            document.getElementById('categoryDetailsModalLabel').textContent = data.name;
+            document.getElementById('modal-slug').textContent = data.slug || 'N/A';
+
+            // Status Badge
+            const statusEl = document.getElementById('modal-status-badge');
+            if (statusEl) {
+                statusEl.innerHTML = `
+                    <span class="qcat-status-badge qcat-status-badge--${data.status}">
+                        ${data.status.charAt(0).toUpperCase() + data.status.slice(1)}
+                    </span>
+                `;
+            }
+
+            // Parent category resolution
+            document.getElementById('modal-parent').textContent = data.parent ? data.parent.name : 'None';
+
+            // AI Generated Flag details
+            const aiFlagsEl = document.getElementById('modal-ai-flags');
+            if (aiFlagsEl) {
+                aiFlagsEl.innerHTML = '';
+                if (data.ai_generated) {
+                    aiFlagsEl.innerHTML += `<span class="qcat-ai-badge" title="Created via AI">AI Generated</span>`;
+                }
+                if (data.ai_improve) {
+                    aiFlagsEl.innerHTML += `
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                            AI Improve Queue
+                        </span>
+                    `;
+                }
+                if (!data.ai_generated && !data.ai_improve) {
+                    aiFlagsEl.innerHTML = `<span class="text-xs text-slate-400 font-medium">None</span>`;
+                }
+            }
+
+            // Description block
+            document.getElementById('modal-description').textContent = data.description || 'No description added yet.';
+
+            // Render sub-categories recursively
+            const childrenEl = document.getElementById('modal-children');
+            if (childrenEl) {
+                childrenEl.innerHTML = '';
+                if (data.children && data.children.length > 0) {
+                    data.children.forEach(child => {
+                        const badge = document.createElement('span');
+                        badge.className = 'child-category-badge';
+                        badge.textContent = child.name;
+                        childrenEl.appendChild(badge);
+                    });
+                } else {
+                    childrenEl.innerHTML = '<span class="text-xs text-slate-400 font-medium">No sub-categories.</span>';
+                }
+            }
+
+            // SEO Metadata
+            document.getElementById('modal-meta-title').textContent = data.meta_title || 'N/A';
+            document.getElementById('modal-canonical-url').textContent = data.canonical_url || 'N/A';
+            document.getElementById('modal-meta-keywords').textContent = data.meta_keywords || 'N/A';
+            document.getElementById('modal-meta-description').textContent = data.meta_description || 'N/A';
+            document.getElementById('modal-og-title').textContent = data.og_title || 'N/A';
+            document.getElementById('modal-og-description').textContent = data.og_description || 'N/A';
+
+            // Timestamps
+            document.getElementById('modal-created-at').textContent = data.formatted_created_at || 'N/A';
+            document.getElementById('modal-updated-at').textContent = data.formatted_updated_at || 'N/A';
+
+            // Swap skeleton for structured visual layout
+            if (skeleton) skeleton.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('categoryDetailsModalLabel').textContent = 'Error Loading Profile';
+            if (skeleton) skeleton.classList.add('hidden');
+            if (content) {
+                content.innerHTML = `
+                    <div class="text-center py-8 text-rose-600 dark:text-rose-400 font-medium">
+                        Unable to fetch category details. Please close and try again.
+                    </div>
+                `;
+                content.classList.remove('hidden');
+            }
         });
     };
 
-    const closeDescModal = () => {
-        if (!descModalEl) return;
-        descModalEl.classList.remove('show');
-        descModalEl.setAttribute('aria-hidden', 'true');
-        descModalEl.removeAttribute('aria-modal');
-        if (descBackdrop) {
-            descBackdrop.classList.remove('show');
-            window.setTimeout(() => { descBackdrop?.remove(); descBackdrop = null; }, 150);
+    const closeDetailsModal = () => {
+        if (!detailsModalEl) return;
+        detailsModalEl.classList.remove('show');
+        detailsModalEl.setAttribute('aria-hidden', 'true');
+        detailsModalEl.removeAttribute('aria-modal');
+        if (detailsBackdrop) {
+            detailsBackdrop.classList.remove('show');
+            window.setTimeout(() => { detailsBackdrop?.remove(); detailsBackdrop = null; }, 150);
         }
         document.body.style.overflow = '';
     };
 
     /* ------------------------------------------------------------------ */
-    /*  Delete confirmation → real HTTP DELETE                              */
+    /*  SweetAlert2 Delete Confirmation                                     */
     /* ------------------------------------------------------------------ */
     const openDeleteConfirm = (categoryId, categoryName) => {
         if (!window.Swal) return;
@@ -181,18 +404,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         }).then((result) => {
             if (result.isConfirmed) {
-                // Submit the real hidden DELETE form
                 form.submit();
             }
         });
     };
 
     /* ------------------------------------------------------------------ */
-    /*  Event delegation on tree root                                       */
+    /*  Event Delegation on Persistent Container                           */
     /* ------------------------------------------------------------------ */
-    root.addEventListener('click', (event) => {
+    persistentContainer.addEventListener('click', (event) => {
         const toggle       = event.target.closest('.toggle-node-btn');
-        const viewButton   = event.target.closest('.view-desc-btn');
+        const viewButton   = event.target.closest('.view-node-btn');
         const deleteButton = event.target.closest('.delete-node-btn');
 
         if (toggle) {
@@ -206,10 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (viewButton) {
-            openDescModal(
-                viewButton.dataset.name || 'Category',
-                viewButton.dataset.desc || ''
-            );
+            openDetailsModal(viewButton.dataset.categoryId);
         }
 
         if (deleteButton) {
@@ -221,45 +440,69 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ------------------------------------------------------------------ */
-    /*  Live search                                                         */
+    /*  Input Observers                                                     */
     /* ------------------------------------------------------------------ */
-    searchInput?.addEventListener('input', () => {
-        const query = searchInput.value.trim().toLowerCase();
-        let visible = 0;
-        topLevelNodes.forEach((node) => { if (filterNode(node, query)) visible++; });
-        emptyState?.classList.toggle('hidden', visible > 0);
-        updateExpandAllLabel();
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(() => {
+            loadCategories();
+        }, 300));
+    }
+
+    if (statusFilter) {
+        statusFilter.addEventListener('change', () => {
+            loadCategories();
+        });
+    }
 
     /* ------------------------------------------------------------------ */
-    /*  Expand / Collapse All                                               */
+    /*  Header Controls                                                     */
     /* ------------------------------------------------------------------ */
     expandAllButton?.addEventListener('click', () => {
         const shouldExpand = expandAllButton.dataset.expanded !== 'true';
-        root.querySelectorAll('.category-tree-node').forEach((node) => {
-            if (!node.classList.contains('is-hidden-by-search')) {
-                setBranchState(node, shouldExpand);
-            }
+        persistentContainer.querySelectorAll('.category-tree-node').forEach((node) => {
+            setBranchState(node, shouldExpand);
         });
         updateExpandAllLabel();
     });
 
     /* ------------------------------------------------------------------ */
-    /*  Modal close wiring                                                  */
+    /*  Modal wiring details                                                */
     /* ------------------------------------------------------------------ */
-    descModalEl?.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
-        btn.addEventListener('click', closeDescModal);
-    });
-    descModalEl?.addEventListener('click', (e) => {
-        if (e.target === descModalEl) closeDescModal();
-    });
+    if (detailsModalEl) {
+        detailsModalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
+            btn.addEventListener('click', closeDetailsModal);
+        });
+        detailsModalEl.addEventListener('click', (e) => {
+            if (e.target === detailsModalEl) closeDetailsModal();
+        });
+
+        // Accordion functionality for SEO section inside modal
+        const seoToggle = document.getElementById('modal-seo-toggle');
+        const seoContent = document.getElementById('modal-seo-content');
+        const seoToggleIcon = document.getElementById('modal-seo-toggle-icon');
+
+        if (seoToggle && seoContent && seoToggleIcon) {
+            seoToggle.addEventListener('click', () => {
+                const isHidden = seoContent.classList.contains('hidden');
+                if (isHidden) {
+                    seoContent.classList.remove('hidden');
+                    seoToggleIcon.classList.add('rotate-180');
+                } else {
+                    seoContent.classList.add('hidden');
+                    seoToggleIcon.classList.remove('rotate-180');
+                }
+            });
+        }
+    }
+
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && descModalEl?.classList.contains('show')) closeDescModal();
+        if (e.key === 'Escape' && detailsModalEl?.classList.contains('show')) {
+            closeDetailsModal();
+        }
     });
 
     /* ------------------------------------------------------------------ */
-    /*  Initial state — all branches collapsed                              */
+    /*  Initial Load Trigger                                                */
     /* ------------------------------------------------------------------ */
-    topLevelNodes.forEach((node) => setBranchState(node, false));
-    updateExpandAllLabel();
+    loadCategories();
 });

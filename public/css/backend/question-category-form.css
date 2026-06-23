@@ -147,11 +147,11 @@
 
 .qcat-ai-hint {
     font-size: 0.75rem;
-    color: rgb(100 116 139);
+    color: rgb(71 85 105); /* Improved contrast (previously slate-500) */
 }
 
 .dark .qcat-ai-hint {
-    color: rgb(100 116 139);
+    color: rgb(148 163 184); /* Improved contrast (previously slate-500) */
 }
 
 .qcat-ai-hint em {
@@ -294,11 +294,11 @@
 .qcat-meta-label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgb(71 85 105);
+    color: rgb(51 65 85); /* Improved contrast (previously slate-600) */
 }
 
 .dark .qcat-meta-label {
-    color: rgb(203 213 225);
+    color: rgb(226 232 240); /* Improved contrast (previously slate-300) */
 }
 
 .qcat-meta-input,
@@ -448,11 +448,11 @@
 .qcat-status-label {
     font-size: 0.875rem;
     font-weight: 700;
-    color: rgb(71 85 105);
+    color: rgb(51 65 85); /* Improved contrast (previously slate-600) */
 }
 
 .dark .qcat-status-label {
-    color: rgb(203 213 225);
+    color: rgb(226 232 240); /* Improved contrast (previously slate-300) */
 }
 
 .qcat-status-toggle-btn {

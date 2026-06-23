@@ -56,11 +56,9 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="truncate text-base font-medium text-slate-900 dark:text-white">{{ $node->name }}</h3>
                                 {{-- Status badge --}}
-                                @if ($node->status !== 'active')
-                                    <span class="qcat-status-badge qcat-status-badge--{{ $node->status }}">
-                                        {{ ucfirst($node->status) }}
-                                    </span>
-                                @endif
+                                <span class="qcat-status-badge qcat-status-badge--{{ $node->status }}">
+                                    {{ ucfirst($node->status) }}
+                                </span>
                                 {{-- AI badge --}}
                                 @if ($node->ai_generated)
                                     <span class="qcat-ai-badge" title="Created via AI">AI</span>
@@ -72,22 +70,27 @@
                     <div class="mt-2 pl-11">
                         <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
                             {{ \Illuminate\Support\Str::limit($node->description ?: 'No description added yet.', 90) }}
-                            @if (!empty($node->description) && strlen($node->description) > 90)
-                                <button
-                                    type="button"
-                                    class="view-desc-btn ml-2 inline-flex items-center text-sm font-medium text-sky-600 transition hover:text-sky-700 dark:text-sky-300 dark:hover:text-sky-200"
-                                    data-name="{{ $node->name }}"
-                                    data-desc="{{ $node->description }}"
-                                >
-                                    View
-                                </button>
-                            @endif
                         </p>
                     </div>
                 </div>
 
                 {{-- Action buttons --}}
                 <div class="flex shrink-0 items-center gap-2">
+                    {{-- Dedicated View details button --}}
+                    <button
+                        type="button"
+                        class="view-node-btn inline-flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-200"
+                        title="View details"
+                        data-category-id="{{ $node->id }}"
+                    >
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
+
                     <a
                         href="{{ route('admin.questions.categories.edit', ['category' => $node->id]) }}"
                         class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:border-sky-500/40 dark:hover:bg-sky-500/20 dark:hover:text-sky-200"

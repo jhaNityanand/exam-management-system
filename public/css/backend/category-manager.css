@@ -54,7 +54,7 @@
     margin: 0.65rem 0 0;
     font-size: 0.95rem;
     line-height: 1.7;
-    color: rgb(100 116 139);
+    color: rgb(71 85 105); /* Improved contrast (previously slate-500) */
 }
 
 .dark .category-builder__subtitle,
@@ -100,7 +100,7 @@
     margin: 0.3rem 0 0;
     font-size: 0.875rem;
     line-height: 1.6;
-    color: rgb(100 116 139);
+    color: rgb(71 85 105); /* Improved contrast (previously slate-500) */
 }
 
 .category-builder__legend {

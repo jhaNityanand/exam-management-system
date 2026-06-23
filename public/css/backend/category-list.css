@@ -53,18 +53,17 @@
     position: fixed;
     inset: 0;
     z-index: 1055;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;       /* Disable overlay scrollbar to scroll body instead */
     outline: 0;
-    /* flex layout so dialog centres */
+    /* center vertically and horizontally using flexbox */
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     padding: 1.75rem 1rem;
 }
 /* Bootstrap adds .show to make it visible */
 .cat-modal-overlay.show { display: flex; }
 
-/* Fade animation (Bootstrap adds .fade to the overlay) */
+/* Fade animation */
 .cat-modal-overlay.fade          { opacity: 0; transition: opacity 0.15s ease; }
 .cat-modal-overlay.fade.show     { opacity: 1; }
 
@@ -72,12 +71,14 @@
 .cat-modal-dialog {
     position: relative;
     width: 100%;
-    max-width: 36rem;
+    max-width: 52rem;       /* Increased width (max-w-4xl style) for better visibility */
+    max-height: 85vh;       /* Cap dialog maximum height */
     margin: auto;
     pointer-events: none;
-    /* slide-in */
     transition: transform 0.3s ease-out;
     transform: translateY(-3rem);
+    display: flex;
+    flex-direction: column;
 }
 .cat-modal-overlay.show .cat-modal-dialog { transform: translateY(0); pointer-events: auto; }
 
@@ -89,15 +90,17 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    max-height: 85vh;       /* Fixed max height */
     background: #fff;
     border-radius: 1.5rem;
     border: 1px solid #e2e8f0;
     box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.18);
-    overflow: hidden;
+    overflow: hidden;       /* Clip contents so body scrolling works */
     outline: 0;
 }
 
 .cat-modal-head {
+    flex: 0 0 auto;         /* fixed, does not grow or shrink */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -112,7 +115,7 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #94a3b8;
+    color: #64748b;         /* Improved contrast for accessibility (previously #94a3b8) */
     margin: 0 0 0.2rem;
 }
 
@@ -145,6 +148,8 @@
 }
 
 .cat-modal-body {
+    flex: 1 1 auto;         /* fills available vertical space */
+    overflow-y: auto;       /* only body content area scrolls */
     padding: 1.5rem;
     background: #fff;
 }
@@ -152,11 +157,12 @@
 .category-desc-modal-text {
     font-size: 0.9rem;
     line-height: 1.75;
-    color: #475569;
+    color: #334155;         /* Higher contrast text for readability (previously #475569) */
     margin: 0;
 }
 
 .cat-modal-foot {
+    flex: 0 0 auto;         /* fixed, does not grow or shrink */
     display: flex;
     justify-content: flex-end;
     border-top: 1px solid #e2e8f0;
@@ -490,8 +496,8 @@
     .category-tree-item     { border-radius: 1.25rem; }
 
     .cat-modal-overlay { padding: 1rem 0.75rem; align-items: flex-end; }
-    .cat-modal-dialog  { max-width: 100%; margin: 0; }
-    .cat-modal-card    { border-radius: 1.25rem 1.25rem 0 0; }
+    .cat-modal-dialog  { max-width: 100%; margin: 0; max-height: 85vh; display: flex; flex-direction: column; }
+    .cat-modal-card    { border-radius: 1.25rem 1.25rem 0 0; max-height: 85vh; display: flex; flex-direction: column; }
 
     .swal-cat-popup    { width: 92vw !important; }
     .swal-cat-title    { padding: 1.25rem 1.25rem 0 !important; }
@@ -516,11 +522,11 @@
     flex-shrink: 0;
 }
 .qcat-status-badge--active    { background: #dcfce7; color: #166534; }
-.qcat-status-badge--inactive  { background: #f1f5f9; color: #475569; }
+.qcat-status-badge--inactive  { background: #f1f5f9; color: #1e293b; } /* Improved contrast (previously #475569) */
 .qcat-status-badge--suspended { background: #ffedd5; color: #9a3412; }
 
 .dark .qcat-status-badge--active    { background: rgb(20 83 45 / 0.3);   color: #86efac; }
-.dark .qcat-status-badge--inactive  { background: rgb(30 41 59);         color: #94a3b8; }
+.dark .qcat-status-badge--inactive  { background: rgb(30 41 59);         color: #cbd5e1; } /* Improved contrast (previously #94a3b8) */
 .dark .qcat-status-badge--suspended { background: rgb(124 45 18 / 0.25); color: #fdba74; }
 
 /* ── AI badge ───────────────────────────────────────────────── */
@@ -541,4 +547,52 @@
     background: linear-gradient(135deg, rgb(79 70 229 / 0.2), rgb(99 102 241 / 0.15));
     color: #a5b4fc;
 }
+
+/* ============================================================ */
+/*  SEO Accordion & Category Details Modal Visuals             */
+/* ============================================================ */
+
+#modal-seo-toggle {
+    border: none;
+    outline: none;
+}
+#modal-seo-toggle-icon.rotate-180 {
+    transform: rotate(180deg);
+}
+
+.child-category-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    transition: all 0.15s ease;
+}
+.dark .child-category-badge {
+    background-color: #1e293b;
+    color: #cbd5e1;
+    border-color: #334155;
+}
+.child-category-badge:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+    transform: translateY(-1px);
+}
+.dark .child-category-badge:hover {
+    background-color: #334155;
+    color: #f1f5f9;
+}
+
+@keyframes custom-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+}
+.animate-pulse {
+    animation: custom-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 

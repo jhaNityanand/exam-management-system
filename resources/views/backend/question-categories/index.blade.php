@@ -36,7 +36,7 @@
                 </div>
 
                 {{-- Filter / Search Row --}}
-                <form id="filter-form" method="GET" action="{{ route('admin.questions.categories.index') }}"
+                <form id="filter-form" onsubmit="event.preventDefault();"
                       class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 
                     <div class="flex flex-col sm:flex-row gap-2 flex-1">
@@ -57,36 +57,16 @@
                         </div>
 
                         {{-- Status filter --}}
-                        <select name="status" id="status-filter" class="panel-input w-full sm:w-40"
-                                onchange="document.getElementById('filter-form').submit()">
+                        <select name="status" id="status-filter" class="panel-input w-full sm:w-40">
                             <option value="">All Statuses</option>
                             @foreach (['active', 'inactive', 'suspended'] as $s)
                                 <option value="{{ $s }}" @selected($status === $s)>{{ ucfirst($s) }}</option>
-                            @endforeach
-                        </select>
-
-                        {{-- Sort --}}
-                        <select name="sort" id="sort-select" class="panel-input w-full sm:w-44"
-                                onchange="document.getElementById('filter-form').submit()">
-                            @foreach ([
-                                'name_asc'  => 'Name A → Z',
-                                'name_desc' => 'Name Z → A',
-                                'newest'    => 'Newest First',
-                                'oldest'    => 'Oldest First',
-                            ] as $val => $label)
-                                <option value="{{ $val }}" @selected($sort === $val)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
 
                     {{-- Actions --}}
                     <div class="flex items-center gap-2 shrink-0">
-
-                        {{-- Search submit --}}
-                        <button type="submit"
-                            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                            Search
-                        </button>
 
                         {{-- Expand All --}}
                         <button id="expand-all-btn" type="button"
@@ -114,65 +94,77 @@
 
         {{-- ── Tree Body ────────────────────────────────────────────────────── --}}
         <div class="px-4 py-4 sm:px-6 sm:py-6">
-
-            @if ($categories->isEmpty())
-                {{-- Empty state --}}
-                <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900/40">
-                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm dark:bg-slate-800 dark:text-slate-500">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/>
-                        </svg>
+            <div id="category-tree-container">
+                {{-- Skeleton Loader Placeholder --}}
+                <div class="animate-pulse space-y-4">
+                    <div class="rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                                    <div class="h-5 w-40 rounded bg-slate-200 dark:bg-slate-800"></div>
+                                    <div class="h-5 w-16 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                                </div>
+                                <div class="pl-12 space-y-2">
+                                    <div class="h-4 w-5/6 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                                    <div class="h-4 w-3/4 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                                <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="mt-4 text-base font-semibold text-slate-900 dark:text-white">No categories yet</h3>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Get started by creating your first category.
-                    </p>
-                    <a href="{{ route('admin.questions.categories.create') }}"
-                       class="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition">
-                        Create Category
-                    </a>
-                </div>
-            @else
-
-                <ul id="category-tree-root" class="space-y-4">
-                    @foreach ($categories as $category)
-                        @include('backend.question-categories.partials.tree-node', [
-                            'node'            => $category,
-                            'level'           => 0,
-                            'levelColors'     => $levelColors,
-                            'levelSoftColors' => $levelSoftColors,
-                        ])
-                    @endforeach
-                </ul>
-
-                {{-- Empty search state (JS-toggled) --}}
-                <div id="category-empty-state" class="hidden rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center mt-4 dark:border-slate-700 dark:bg-slate-900/40">
-                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm dark:bg-slate-800 dark:text-slate-500">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
+                    <div class="ml-8 rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                                    <div class="h-5 w-32 rounded bg-slate-200 dark:bg-slate-800"></div>
+                                </div>
+                                <div class="pl-12 space-y-2">
+                                    <div class="h-4 w-4/5 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                                <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="mt-4 text-base font-semibold text-slate-900 dark:text-white">No matching categories</h3>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Try a different keyword.</p>
-                </div>
-
-            @endif
+                    <div class="rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                                    <div class="h-5 w-48 rounded bg-slate-200 dark:bg-slate-800"></div>
+                                </div>
+                                <div class="pl-12 space-y-2">
+                                    <div class="h-4 w-2/3 rounded bg-slate-100 dark:bg-slate-800/50"></div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                                <div class="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                            </div>
+                        </div>
+            </div>
         </div>
-
-    </section>
+    </div>
+</section>
 </div>
 
-{{-- Description Modal --}}
-<div id="descModal" tabindex="-1" aria-labelledby="descModalLabel" aria-hidden="true"
+
+{{-- Category Details Modal --}}
+<div id="categoryDetailsModal" tabindex="-1" aria-labelledby="categoryDetailsModalLabel" aria-hidden="true"
      class="cat-modal-overlay" role="dialog">
-    <div class="cat-modal-dialog">
+    <div class="cat-modal-dialog max-w-4xl">
         <div class="cat-modal-card">
             <div class="cat-modal-head">
                 <div>
-                    <p class="category-desc-modal-eyebrow">Category Details</p>
-                    <h5 class="category-desc-modal-title" id="descModalLabel">Category</h5>
+                    <p class="category-desc-modal-eyebrow">Category Profile</p>
+                    <h5 class="category-desc-modal-title" id="categoryDetailsModalLabel">Category Name</h5>
                 </div>
                 <button type="button" class="category-desc-modal-close" data-bs-dismiss="modal" aria-label="Close">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,11 +172,106 @@
                     </svg>
                 </button>
             </div>
-            <div class="cat-modal-body">
-                <p id="descModalContent" class="category-desc-modal-text"></p>
+            
+            <div class="cat-modal-body p-6 space-y-6">
+                <!-- Inner skeleton loader -->
+                <div id="modal-skeleton" class="animate-pulse space-y-4">
+                    <div class="h-4 w-1/3 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                    <div class="h-10 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                    <div class="h-20 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                </div>
+                
+                <div id="modal-content" class="hidden space-y-6">
+                    <!-- Basic Info Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Slug</span>
+                            <span id="modal-slug" class="text-sm font-medium text-slate-800 dark:text-slate-200"></span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Status</span>
+                            <span id="modal-status-badge"></span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Parent Category</span>
+                            <span id="modal-parent" class="text-sm font-medium text-slate-800 dark:text-slate-200"></span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">AI Integration</span>
+                            <span id="modal-ai-flags" class="flex gap-2"></span>
+                        </div>
+                    </div>
+                    
+                    <hr class="border-slate-200 dark:border-slate-700" />
+                    
+                    <!-- Description -->
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Description</span>
+                        <p id="modal-description" class="text-sm leading-relaxed text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80"></p>
+                    </div>
+
+                    <hr class="border-slate-200 dark:border-slate-700" />
+
+                    <!-- Child Categories -->
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Child Categories</span>
+                        <div id="modal-children" class="flex flex-wrap gap-2 text-sm text-slate-700 dark:text-slate-300"></div>
+                    </div>
+
+                    <hr class="border-slate-200 dark:border-slate-700" />
+
+                    <!-- SEO Accordion Section -->
+                    <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" id="modal-seo-toggle" class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                            <span>SEO Metadata</span>
+                            <svg id="modal-seo-toggle-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div id="modal-seo-content" class="hidden p-4 space-y-4 bg-white dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-800 text-sm">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meta Title</span>
+                                    <span id="modal-meta-title" class="text-xs text-slate-800 dark:text-slate-200"></span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Canonical URL</span>
+                                    <span id="modal-canonical-url" class="text-xs text-slate-800 dark:text-slate-200"></span>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meta Keywords</span>
+                                    <span id="modal-meta-keywords" class="text-xs text-slate-800 dark:text-slate-200"></span>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meta Description</span>
+                                    <p id="modal-meta-description" class="text-xs text-slate-800 dark:text-slate-200 leading-relaxed"></p>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">OG Title</span>
+                                    <span id="modal-og-title" class="text-xs text-slate-800 dark:text-slate-200"></span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">OG Description</span>
+                                    <span id="modal-og-description" class="text-xs text-slate-800 dark:text-slate-200"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timestamps -->
+                    <div class="flex flex-col sm:flex-row justify-between text-xs text-slate-500 dark:text-slate-400 gap-2 bg-slate-50 dark:bg-slate-900/20 p-3 rounded-xl border border-slate-100 dark:border-slate-800/40">
+                        <div>
+                            <strong>Created:</strong> <span id="modal-created-at"></span>
+                        </div>
+                        <div>
+                            <strong>Last Updated:</strong> <span id="modal-updated-at"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="cat-modal-foot">
-                <button type="button" class="category-desc-modal-btn-close" data-bs-dismiss="modal">Close</button>
+            
+            <div class="cat-modal-foot bg-slate-50 dark:bg-slate-900/60 p-4 flex justify-end">
+                <button type="button" class="category-desc-modal-btn-close border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold px-5 py-2.5 rounded-xl transition" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
