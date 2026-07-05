@@ -26,13 +26,24 @@
         <div class="border-b border-slate-200/80 px-4 py-4 sm:px-6 dark:border-slate-800">
             <div class="flex flex-col gap-4">
 
-                <div>
-                    <h2 class="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
-                        Category Explorer
-                    </h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Browse, search, and manage the parent-child question category structure.
-                    </p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
+                            Category Explorer
+                        </h2>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            Browse, search, and manage the parent-child question category structure.
+                        </p>
+                    </div>
+                    <div class="shrink-0">
+                        <a href="{{ route('admin.questions.categories.create') }}"
+                           class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition shadow-sm">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            <span>Create Category</span>
+                        </a>
+                    </div>
                 </div>
 
                 {{-- Filter / Search Row --}}
@@ -42,7 +53,7 @@
                     <div class="flex flex-col sm:flex-row gap-2 flex-1">
 
                         {{-- Search --}}
-                        <div class="relative w-full sm:max-w-xs">
+                        <div class="relative w-full md:w-96">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -66,8 +77,7 @@
                     </div>
 
                     {{-- Actions --}}
-                    <div class="flex items-center gap-2 shrink-0">
-
+                    <div class="flex items-center gap-2 shrink-0 sm:justify-end">
                         {{-- Expand All --}}
                         <button id="expand-all-btn" type="button"
                             class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
@@ -77,15 +87,6 @@
                             </svg>
                             <span>Expand All</span>
                         </button>
-
-                        {{-- Create --}}
-                        <a href="{{ route('admin.questions.categories.create') }}"
-                           class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            <span>Create Category</span>
-                        </a>
                     </div>
                 </form>
 

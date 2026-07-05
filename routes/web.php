@@ -8,7 +8,7 @@ use App\Http\Controllers\Backend\ExamController;
 use App\Http\Controllers\Backend\LogController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\QuestionController;
-use App\Http\Controllers\Backend\QuestionCategory\QuestionCategoryController;
+use App\Http\Controllers\Backend\QuestionCategoryController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\ProfileController;

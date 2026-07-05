@@ -23,6 +23,7 @@ class QuestionService
     {
         $data['created_by'] = Auth::id();
         $this->normalizeAnswers($data);
+        $this->normalizeMarks($data);
 
         return Question::create($data);
     }
@@ -30,9 +31,25 @@ class QuestionService
     public function update(Question $question, array $data): Question
     {
         $this->normalizeAnswers($data);
+        $this->normalizeMarks($data);
         $question->update($data);
 
         return $question->fresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function normalizeMarks(array &$data): void
+    {
+        if (($data['marks_type'] ?? 'single') === 'multiple') {
+            $marksList = array_map('intval', array_filter($data['marks_list'] ?? []));
+            $data['marks_list'] = array_values(array_unique($marksList));
+            $data['marks'] = !empty($data['marks_list']) ? $data['marks_list'][0] : 1;
+        } else {
+            $data['marks_list'] = null;
+            $data['marks'] = isset($data['marks']) ? (int) $data['marks'] : 1;
+        }
     }
 
     public function delete(Question $question): bool

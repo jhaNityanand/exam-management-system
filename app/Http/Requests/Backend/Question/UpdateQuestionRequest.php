@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Http\Requests\Editor;
+namespace App\Http\Requests\Backend\Question;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateQuestionRequest extends FormRequest
 {

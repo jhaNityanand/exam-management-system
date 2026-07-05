@@ -13,101 +13,7 @@
  */
 document.addEventListener('DOMContentLoaded', () => {
 
-    /* ------------------------------------------------------------------ */
-    /*  Accordion — Metadata section                                        */
-    /* ------------------------------------------------------------------ */
-    const accordionToggle = document.getElementById('meta-accordion-toggle');
-    const accordionBody   = document.getElementById('meta-accordion-body');
-    const accordionChevron= accordionToggle?.querySelector('.qcat-meta-chevron');
-
-    let openAccordion = () => {};
-    let closeAccordion = () => {};
-
-    if (accordionToggle && accordionBody) {
-        openAccordion = () => {
-            accordionBody.classList.remove('hidden');
-            accordionToggle.setAttribute('aria-expanded', 'true');
-            if (accordionChevron) accordionChevron.style.transform = 'rotate(180deg)';
-        };
-        closeAccordion = () => {
-            accordionBody.classList.add('hidden');
-            accordionToggle.setAttribute('aria-expanded', 'false');
-            if (accordionChevron) accordionChevron.style.transform = '';
-        };
-
-        accordionToggle.addEventListener('click', () => {
-            accordionBody.classList.contains('hidden') ? openAccordion() : closeAccordion();
-        });
-        accordionToggle.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                accordionBody.classList.contains('hidden') ? openAccordion() : closeAccordion();
-            }
-        });
-
-        // Auto-open if accordion is already set to expanded (Edit page with existing data)
-        if (accordionToggle.getAttribute('aria-expanded') === 'true') {
-            openAccordion();
-        }
-    }
-
-    /* ------------------------------------------------------------------ */
-    /*  AI Toggle logic                                                     */
-    /* ------------------------------------------------------------------ */
-    const aiCreateCheckbox  = document.getElementById('toggle-ai-create')
-                           || document.getElementById('edit-toggle-ai-create');
-    const aiImproveWrap     = document.getElementById('toggle-improve-wrap')
-                           || document.getElementById('edit-improve-wrap');
-
-    const applyAiCreateState = (enabled) => {
-        if (enabled) {
-            // Close accordion body
-            closeAccordion();
-            // Hide chevron and badge
-            if (accordionChevron) accordionChevron.classList.add('hidden');
-            const metaBadge = accordionToggle?.querySelector('.qcat-meta-badge');
-            if (metaBadge) metaBadge.classList.add('hidden');
-            // Disable pointer cursor and clickability style
-            if (accordionToggle) {
-                accordionToggle.style.pointerEvents = 'none';
-                accordionToggle.style.cursor = 'default';
-            }
-            // Hide Improve with AI toggle
-            if (aiImproveWrap) {
-                aiImproveWrap.classList.add('hidden');
-                const improveCheckbox = aiImproveWrap.querySelector('input[type="checkbox"]');
-                if (improveCheckbox) improveCheckbox.checked = false;
-            }
-        } else {
-            // Show chevron and badge
-            if (accordionChevron) accordionChevron.classList.remove('hidden');
-            const metaBadge = accordionToggle?.querySelector('.qcat-meta-badge');
-            if (metaBadge) metaBadge.classList.remove('hidden');
-            // Enable pointer cursor and clickability style
-            if (accordionToggle) {
-                accordionToggle.style.pointerEvents = '';
-                accordionToggle.style.cursor = '';
-            }
-            // Show Improve with AI toggle
-            if (aiImproveWrap) aiImproveWrap.classList.remove('hidden');
-
-            // Auto-expand if there are validation errors or existing values
-            const hasErrors = document.querySelectorAll('.qcat-meta-body .is-invalid').length > 0;
-            const hasValues = Array.from(document.querySelectorAll('.qcat-meta-body input, .qcat-meta-body textarea')).some(input => input.value.trim() !== '');
-            if (hasErrors || hasValues) {
-                openAccordion();
-            }
-        }
-    };
-
-    if (aiCreateCheckbox) {
-        // Apply on page load (handles old() repopulation)
-        applyAiCreateState(aiCreateCheckbox.checked);
-
-        aiCreateCheckbox.addEventListener('change', () => {
-            applyAiCreateState(aiCreateCheckbox.checked);
-        });
-    }
+    // SEO and AI toggle behaviors are managed by seo-manager.js
 
     /* ------------------------------------------------------------------ */
     /*  Status Toggle Switch                                                */
@@ -133,25 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatusLabel(); // Run on load
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Character counters for meta fields                                  */
-    /* ------------------------------------------------------------------ */
-    document.querySelectorAll('.qcat-meta-count[data-max]').forEach((counter) => {
-        const field = counter.previousElementSibling; // input or textarea immediately before counter
-        if (!field) return;
-
-        const max = parseInt(counter.dataset.max, 10);
-
-        const update = () => {
-            const len = field.value.length;
-            counter.textContent = `${len} / ${max}`;
-            counter.classList.toggle('qcat-meta-count--warn', len > max * 0.85);
-            counter.classList.toggle('qcat-meta-count--over', len > max);
-        };
-
-        field.addEventListener('input', update);
-        update(); // run on load
-    });
+    // Character counters are managed by seo-manager.js
 
     /* ------------------------------------------------------------------ */
     /*  Frontend validation (no HTML `required`)                            */

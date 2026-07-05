@@ -30,6 +30,8 @@ class Question extends Model
         'previous_exam',
 
         // Scoring & Classification
+        'marks_type',
+        'marks_list',
         'marks',
         'difficulty',
         'status',
@@ -42,6 +44,10 @@ class Question extends Model
         'canonical_url',
         'og_title',
         'og_description',
+
+        // AI flags
+        'ai_generated',
+        'ai_improve',
     ];
 
     protected function casts(): array
@@ -51,6 +57,9 @@ class Question extends Model
             'correct_answers'    => 'array',
             'allows_multiple'    => 'boolean',
             'updated_by_history' => 'array',
+            'marks_list'         => 'array',
+            'ai_generated'       => 'boolean',
+            'ai_improve'         => 'boolean',
         ];
     }
 

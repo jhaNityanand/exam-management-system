@@ -35,9 +35,9 @@
             </div>
 
             <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <div class="flex-1 w-full sm:w-auto">
                     {{-- Search Input --}}
-                    <div class="relative w-full sm:w-64">
+                    <div class="relative w-full md:w-96">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -45,36 +45,31 @@
                         </div>
                         <input type="search" id="questions-search" class="panel-input w-full pl-9 text-sm" placeholder="Search questions...">
                     </div>
-
-                    {{-- Category Filter --}}
-                    <div class="w-full sm:w-64">
-                        <select id="questions-category-filter" class="w-full text-sm">
-                            <option value="">All Categories</option>
-                            <option value="1" class="font-semibold text-slate-900">Science</option>
-                            <option value="2">&nbsp;&nbsp;&nbsp;&nbsp;Physics</option>
-                            <option value="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Classical Mechanics</option>
-                            <option value="4">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Quantum Physics</option>
-                            <option value="6">&nbsp;&nbsp;&nbsp;&nbsp;Biology</option>
-                            <option value="8">&nbsp;&nbsp;&nbsp;&nbsp;Chemistry</option>
-                            <option value="9" class="font-semibold text-slate-900">Mathematics</option>
-                            <option value="10">&nbsp;&nbsp;&nbsp;&nbsp;Algebra</option>
-                            <option value="11">&nbsp;&nbsp;&nbsp;&nbsp;Geometry</option>
-                            <option value="12">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Trigonometry</option>
-                            <option value="14" class="font-semibold text-slate-900">Computer Science</option>
-                            <option value="15">&nbsp;&nbsp;&nbsp;&nbsp;Programming</option>
-                            <option value="16">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Web Development</option>
-                            <option value="17">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Data Structures</option>
-                        </select>
-                    </div>
                 </div>
 
-                <div class="flex items-center gap-2 text-sm text-slate-500">
-                    <span id="questions-total-count">0</span> items
+                <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                    {{-- Per Page Dropdown --}}
+                    <div class="relative w-28 sm:w-32">
+                        <select id="questions-per-page" class="panel-input per-page-select w-full text-sm">
+                            <option value="10" selected>10 / Page</option>
+                            <option value="20">20 / Page</option>
+                            <option value="50">50 / Page</option>
+                            <option value="100">100 / Page</option>
+                        </select>
+                    </div>
+
+                    {{-- Filter Button --}}
+                    <button id="btn-toggle-filters" type="button" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/>
+                        </svg>
+                        <span>Filters</span>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div class="overflow-x-auto min-h-[300px]">
+        <div class="relative overflow-x-auto min-h-[300px]" id="ajax-table-container">
             <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900/40 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
@@ -90,13 +85,15 @@
                 </tbody>
             </table>
 
-            <div id="questions-loading" class="hidden flex justify-center items-center py-12">
+            {{-- Loading Spinner overlay --}}
+            <div id="questions-loading" class="hidden table-loading-overlay">
                 <svg class="h-8 w-8 animate-spin text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             </div>
 
+            {{-- Empty State Component --}}
             <div id="questions-empty" class="hidden py-12 text-center">
                 <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,6 +102,14 @@
                 </div>
                 <h3 class="mt-4 text-sm font-semibold text-slate-900 dark:text-white">No questions found</h3>
                 <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Try adjusting your filters or create a new question.</p>
+                <div class="mt-5">
+                    <a href="{{ route('admin.questions.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-sm">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span>Add Question</span>
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -114,6 +119,86 @@
             </div>
         </div>
     </section>
+</div>
+
+{{-- Right-Side Filter Drawer --}}
+<div id="filter-drawer" class="offcanvas-drawer" tabindex="-1" aria-labelledby="filter-drawer-title">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="filter-drawer-title">Filter Questions</h5>
+        <button type="button" class="offcanvas-close" aria-label="Close">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <form id="filter-drawer-form" class="flex flex-col h-full overflow-hidden">
+        <div class="offcanvas-body">
+            {{-- Category Filter --}}
+            <div class="filter-group">
+                <label for="drawer-category-filter" class="filter-label">Category</label>
+                <select id="drawer-category-filter" name="filters[category_id]">
+                    <option value="">All Categories</option>
+                    @foreach ($categories as $cat)
+                        <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
+                            {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Type Filter --}}
+            <div class="filter-group">
+                <label for="drawer-type-filter" class="filter-label">Question Type</label>
+                <select id="drawer-type-filter" name="filters[type]" class="panel-input w-full text-sm">
+                    <option value="">All Types</option>
+                    <option value="mcq">Multiple Choice</option>
+                    <option value="true_false">True / False</option>
+                    <option value="short_answer">Short Answer</option>
+                </select>
+            </div>
+
+            {{-- Difficulty Filter --}}
+            <div class="filter-group">
+                <label for="drawer-difficulty-filter" class="filter-label">Difficulty</label>
+                <select id="drawer-difficulty-filter" name="filters[difficulty]" class="panel-input w-full text-sm">
+                    <option value="">All Difficulties</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+
+            {{-- Status Filter --}}
+            <div class="filter-group">
+                <label for="drawer-status-filter" class="filter-label">Status</label>
+                <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            {{-- Marks Type Filter --}}
+            <div class="filter-group">
+                <label for="drawer-marks-type-filter" class="filter-label">Marks Type</label>
+                <select id="drawer-marks-type-filter" name="filters[marks_type]" class="panel-input w-full text-sm">
+                    <option value="">All Marks Types</option>
+                    <option value="single">Single Mark</option>
+                    <option value="multiple">Multiple Marks</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="offcanvas-footer">
+            <button type="reset" class="panel-button-secondary">
+                Reset
+            </button>
+            <button type="submit" class="panel-button-primary">
+                Apply Filters
+            </button>
+        </div>
+    </form>
 </div>
 
 {{-- Delete Form (hidden) --}}
@@ -159,12 +244,13 @@
         window.questionsIndexUrl = @json(route('admin.questions.index'));
 
         document.addEventListener('DOMContentLoaded', function() {
-            new TomSelect('#questions-category-filter', {
+            new TomSelect('#drawer-category-filter', {
                 create: false,
                 placeholder: "All Categories",
                 maxOptions: null
             });
         });
     </script>
+    <script src="{{ asset('js/backend/ajax-table.js') }}"></script>
     <script src="{{ asset('js/backend/question-list.js') }}"></script>
 @endpush

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Editor;
+namespace App\Http\Requests\Backend\Question;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -14,21 +14,15 @@ class StoreQuestionRequest extends FormRequest
 
     public function rules(): array
     {
-        /*
-         * SINGLE-ORG MODE:
-         *   category_id just needs to exist in the categories table — no org scope check.
-         *
-         * MULTI-ORG MODE (future):
-         *   $orgId = current_organization_id();
-         *   Add ->where(fn ($q) => $q->where('organization_id', $orgId)) to the exists rule.
-         */
-
         return [
             // Classification
-            'category_id'      => ['nullable', 'integer', Rule::exists('categories', 'id')],
+            'category_id'      => ['nullable', 'integer', Rule::exists('question_categories', 'id')],
             'type'             => ['required', Rule::in(['mcq', 'true_false', 'short_answer'])],
             'difficulty'       => ['required', Rule::in(['easy', 'medium', 'hard'])],
-            'marks'            => ['required', 'integer', 'min:1', 'max:100'],
+            'marks_type'       => ['required', Rule::in(['single', 'multiple'])],
+            'marks'            => ['required_if:marks_type,single', 'nullable', 'integer', 'min:1', 'max:10'],
+            'marks_list'       => ['required_if:marks_type,multiple', 'nullable', 'array', 'min:1'],
+            'marks_list.*'     => ['integer', 'min:1', 'max:10'],
             'status'           => ['sometimes', Rule::in(['active', 'inactive', 'suspended'])],
             'previous_exam'    => ['nullable', 'string', 'max:255'],
 
@@ -50,15 +44,21 @@ class StoreQuestionRequest extends FormRequest
             'canonical_url'    => ['nullable', 'url', 'max:500'],
             'og_title'         => ['nullable', 'string', 'max:255'],
             'og_description'   => ['nullable', 'string', 'max:500'],
+
+            // AI Flags
+            'ai_generated'     => ['nullable', 'boolean'],
+            'ai_improve'       => ['nullable', 'boolean'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'body.required'       => 'Enter the question text.',
-            'difficulty.required' => 'Select a difficulty level.',
-            'marks.required'      => 'Set the marks for this question.',
+            'body.required'             => 'Enter the question text.',
+            'difficulty.required'       => 'Select a difficulty level.',
+            'marks.required_if'         => 'Select the marks for this question.',
+            'marks_list.required_if'    => 'Select at least one mark value.',
+            'category_id.exists'        => 'Select a valid category.',
         ];
     }
 }

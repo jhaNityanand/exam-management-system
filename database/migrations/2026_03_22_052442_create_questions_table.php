@@ -26,6 +26,8 @@ return new class extends Migration
             $table->string('previous_exam')->nullable();      // e.g. "UPSC Prelims 2023"
 
             // Scoring & Classification
+            $table->string('marks_type')->default('single');
+            $table->json('marks_list')->nullable();
             $table->unsignedTinyInteger('marks')->default(1);
             $table->string('difficulty')->default('medium'); // easy | medium | hard
             $table->string('status')->default('active');     // active | inactive | suspended
@@ -38,6 +40,8 @@ return new class extends Migration
             $table->string('canonical_url')->nullable();
             $table->string('og_title')->nullable();
             $table->text('og_description')->nullable();
+            $table->boolean('ai_generated')->default(false);
+            $table->boolean('ai_improve')->default(false);
 
             // Audit
             $table->json('updated_by_history')->nullable();

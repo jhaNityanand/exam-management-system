@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Backend\QuestionCategory;
+namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\QuestionCategory\StoreQuestionCategoryRequest;
@@ -177,11 +177,6 @@ class QuestionCategoryController extends Controller
 
     /**
      * Persist the category tree created by the builder form.
-     *
-     * Payload shape:
-     *   categories[node-N][name], categories[node-N][description]
-     *   _parent_map  (JSON): {"node-1":"node-0", "node-2":"node-0"}
-     *   status, meta_title, ..., ai_generated, ai_improve
      */
     public function store(StoreQuestionCategoryRequest $request): RedirectResponse
     {
@@ -219,6 +214,9 @@ class QuestionCategoryController extends Controller
      */
     public function edit(QuestionCategory $category): View
     {
+        $orgId = $this->currentOrgId();
+        abort_if($category->organization_id !== $orgId, 403, 'Unauthorized access to this category.');
+
         $category->load([
             'children' => fn ($q) => $q->orderBy('name')
                 ->with([
@@ -239,6 +237,9 @@ class QuestionCategoryController extends Controller
         UpdateQuestionCategoryRequest $request,
         QuestionCategory              $category,
     ): RedirectResponse {
+        $orgId = $this->currentOrgId();
+        abort_if($category->organization_id !== $orgId, 403, 'Unauthorized access to this category.');
+
         $data = $request->validated();
 
         // Decode parent relationship map from the hidden JSON field
@@ -271,6 +272,9 @@ class QuestionCategoryController extends Controller
      */
     public function destroy(QuestionCategory $category): RedirectResponse
     {
+        $orgId = $this->currentOrgId();
+        abort_if($category->organization_id !== $orgId, 403, 'Unauthorized access to this category.');
+
         $this->service->delete($category);
 
         return redirect()

@@ -103,6 +103,34 @@ class QuestionCategoryService
         return $query->get(['id', 'name', 'parent_id']);
     }
 
+    /**
+     * Get a hierarchical sorted array of categories with a depth attribute.
+     * Useful for select dropdown indentation.
+     */
+    public function getHierarchicalList(int $orgId): array
+    {
+        $categories = QuestionCategory::forOrg($orgId)
+            ->where('status', 'active')
+            ->get(['id', 'name', 'parent_id']);
+
+        $grouped = $categories->groupBy('parent_id');
+
+        $result = [];
+        $traverse = function ($parentId = null, $depth = 0) use ($grouped, &$result, &$traverse) {
+            $items = $grouped->get($parentId, collect([]));
+            $items = $items->sortBy('name');
+            foreach ($items as $item) {
+                $item->depth = $depth;
+                $result[] = $item;
+                $traverse($item->id, $depth + 1);
+            }
+        };
+
+        $traverse(null, 0);
+
+        return $result;
+    }
+
     // ── Write ────────────────────────────────────────────────────────────────
 
     /**

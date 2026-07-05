@@ -193,18 +193,26 @@ class CategoryManager {
             const badge = node.querySelector('.category-node__badge');
             const input = node.querySelector('.category-node__input');
             const textarea = node.querySelector('.category-node__textarea');
+            const hiddenId = node.querySelector('input[type="hidden"][name$="[id]"]');
+
+            const newId = `node-${index}`;
+            node.dataset.nodeId = newId;
 
             badge.textContent = this.getLevelLabel(level);
 
-            input.name = `categories[node-${index}][name]`;
-            textarea.name = `categories[node-${index}][description]`;
-            input.id = `category-name-node-${index}`;
-            textarea.id = `category-description-node-${index}`;
+            input.name = `categories[${newId}][name]`;
+            textarea.name = `categories[${newId}][description]`;
+            input.id = `category-name-${newId}`;
+            textarea.id = `category-description-${newId}`;
+
+            if (hiddenId) {
+                hiddenId.name = `categories[${newId}][id]`;
+            }
 
             const inputLabel = node.querySelector('.category-node__name .category-node__label');
             const descriptionLabel = node.querySelector('.category-node__description .category-node__label');
-            inputLabel.setAttribute('for', input.id);
-            descriptionLabel.setAttribute('for', textarea.id);
+            if (inputLabel) inputLabel.setAttribute('for', input.id);
+            if (descriptionLabel) descriptionLabel.setAttribute('for', textarea.id);
 
             node.style.setProperty('--tree-color', this.getColour(level));
         });

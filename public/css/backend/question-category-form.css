@@ -535,8 +535,32 @@
     border-color: rgb(30 41 59 / 0.9);
 }
 
-/* Align Improve with AI next to Meta Title */
-.qcat-meta-field--ai-improve {
-    justify-content: flex-end;
-    padding-bottom: 1.25rem;
+/* ── Reorganized SEO Row / Grid CSS ──────────────────────────────────── */
+.qcat-seo-row {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: 1fr;
+    margin-bottom: 1.25rem;
+}
+
+.qcat-seo-row:last-child {
+    margin-bottom: 0;
+}
+
+.qcat-seo-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+@media (min-width: 1024px) {
+    .qcat-seo-row--toggles {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .qcat-seo-row--three-cols {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .qcat-seo-row--two-cols {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
