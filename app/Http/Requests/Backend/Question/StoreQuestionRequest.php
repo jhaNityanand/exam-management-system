@@ -24,7 +24,7 @@ class StoreQuestionRequest extends FormRequest
             'marks_list'       => ['required_if:marks_type,multiple', 'nullable', 'array', 'min:1'],
             'marks_list.*'     => ['integer', 'min:1', 'max:10'],
             'status'           => ['sometimes', Rule::in(['active', 'inactive', 'suspended'])],
-            'previous_exam'    => ['nullable', 'string', 'max:255'],
+            'reference'        => ['nullable', 'string', 'max:255'],
 
             // Content
             'body'             => ['required', 'string'],

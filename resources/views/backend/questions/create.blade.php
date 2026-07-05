@@ -73,9 +73,23 @@
                     </div>
                 </div>
 
-                <!-- Row 2: Marks Type, Marks -->
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 shrink-0 pt-2">
-                    <div>
+                <!-- Row 2: Reference, Marks Type, Marks -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 shrink-0 pt-2">
+                    {{-- Reference --}}
+                    <div class="lg:col-span-3">
+                        <label for="reference" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Reference
+                        </label>
+                        <input type="text" id="reference" name="reference" 
+                               value="{{ old('reference') }}" 
+                               placeholder="e.g. UPSC Prelims 2023" 
+                               class="panel-input mt-1 block w-full text-sm">
+                        <p class="mt-1.5 text-xs text-slate-400 dark:text-slate-500">Short note referencing the source exam/book.</p>
+                        <p class="qcat-field-error" id="err-reference"></p>
+                    </div>
+
+                    {{-- Marks Type --}}
+                    <div class="lg:col-span-3">
                         <label for="marks_type" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Marks Type <span class="text-red-500">*</span></label>
                         <select id="marks_type" name="marks_type" class="panel-input mt-1 block w-full">
                             <option value="single" {{ old('marks_type', 'single') == 'single' ? 'selected' : '' }}>Single Marks</option>
@@ -84,7 +98,8 @@
                         <p class="qcat-field-error" id="err-marks_type"></p>
                     </div>
 
-                    <div class="lg:col-span-3">
+                    {{-- Marks --}}
+                    <div class="lg:col-span-6">
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Marks <span class="text-red-500">*</span></label>
                         <!-- Modern Interactive Marks Pill Container -->
                         <div id="marks-pills-container" class="flex flex-wrap gap-2 mt-1 p-2 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl">

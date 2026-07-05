@@ -252,12 +252,12 @@
                         </span>
                     </div>
 
-                    <!-- Previous Exam -->
-                    @if($question->previous_exam)
+                    <!-- Reference -->
+                    @if($question->reference)
                         <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <span class="text-sm text-slate-450 dark:text-slate-400 font-semibold">Previous Exam</span>
+                            <span class="text-sm text-slate-450 dark:text-slate-400 font-semibold">Reference</span>
                             <span class="text-xs font-bold text-slate-600 dark:text-slate-350">
-                                {{ $question->previous_exam }}
+                                {{ $question->reference }}
                             </span>
                         </div>
                     @endif

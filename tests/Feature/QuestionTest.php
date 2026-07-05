@@ -135,6 +135,7 @@ test('user can store a new MCQ question', function () {
         ],
         'correct_answer' => 'Java',
         'status' => 'active',
+        'reference' => 'UPSC Prelims 2023',
     ];
 
     $response = $this->actingAs($this->user)
@@ -148,6 +149,7 @@ test('user can store a new MCQ question', function () {
         'correct_answer' => 'Java',
         'difficulty' => 'medium',
         'organization_id' => $this->organization->id,
+        'reference' => 'UPSC Prelims 2023',
     ]);
 });
 
@@ -215,6 +217,7 @@ test('user can update a question', function () {
         'body' => 'Updated content',
         'correct_answer' => 'False',
         'status' => 'active',
+        'reference' => 'GATE 2022',
     ];
 
     $response = $this->actingAs($this->user)
@@ -228,6 +231,7 @@ test('user can update a question', function () {
         'body' => 'Updated content',
         'correct_answer' => 'False',
         'difficulty' => 'hard',
+        'reference' => 'GATE 2022',
     ]);
 });
 

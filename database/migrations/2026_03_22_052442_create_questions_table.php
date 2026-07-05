@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('correct_answer')->nullable();
             $table->json('correct_answers')->nullable();      // for multi-select MCQ
             $table->text('explanation')->nullable();
-            $table->string('previous_exam')->nullable();      // e.g. "UPSC Prelims 2023"
+            $table->string('reference')->nullable();          // e.g. "UPSC Prelims 2023"
 
             // Scoring & Classification
             $table->string('marks_type')->default('single');

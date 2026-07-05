@@ -27,7 +27,7 @@ class Question extends Model
         'correct_answer',
         'correct_answers',
         'explanation',
-        'previous_exam',
+        'reference',
 
         // Scoring & Classification
         'marks_type',
