@@ -764,7 +764,7 @@
     color: #334155;
     font-size: 0.76rem;
     font-weight: 650;
-    padding: 0.36rem 0.72rem;
+    padding: 0.27rem 0.57rem;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -1626,7 +1626,7 @@
     overflow: hidden;
 }
 
-.question-accordion + .question-accordion {
+.question-accordion+.question-accordion {
     margin-top: 0.62rem;
 }
 
@@ -1820,7 +1820,7 @@
     padding-right: 0.25rem;
 }
 
-.question-accordion__item + .question-accordion__item {
+.question-accordion__item+.question-accordion__item {
     margin-top: 0;
 }
 
@@ -2298,7 +2298,7 @@
     color: #94a3b8;
 }
 
-.dark .ck.ck-editor__main > .ck-editor__editable,
+.dark .ck.ck-editor__main>.ck-editor__editable,
 .dark .ck.ck-toolbar {
     background-color: #0f172a !important;
     border-color: #334155 !important;
@@ -2314,4 +2314,3 @@
     background-color: #1e293b !important;
     color: #ffffff !important;
 }
-
