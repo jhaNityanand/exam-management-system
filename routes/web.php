@@ -9,6 +9,7 @@ use App\Http\Controllers\Backend\LogController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\QuestionController;
 use App\Http\Controllers\Backend\QuestionCategoryController;
+use App\Http\Controllers\Backend\ExamCategoryController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\ProfileController;
@@ -57,6 +58,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('questions', QuestionController::class);
 
     // ── Exams ─────────────────────────────────────────────────────────────────
+    Route::prefix('exams')->name('exams.')->group(function () {
+        Route::resource('categories', ExamCategoryController::class)->names('categories');
+    });
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
 

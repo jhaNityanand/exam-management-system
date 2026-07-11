@@ -206,6 +206,11 @@
         <button type="button" id="btn-apply-filters" class="panel-button-primary flex-1">Apply Filters</button>
     </div>
 </aside>
+
+<form id="delete-exam-form" method="POST" style="display:none">
+    @csrf
+    @method('DELETE')
+</form>
 @endsection
 
 @push('styles')

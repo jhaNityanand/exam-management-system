@@ -20,9 +20,24 @@ class ExamDataController extends Controller
 
         $query = Exam::query()
             ->forOrg($orgId)
-            ->with(['category', 'createdBy']);
+            ->with(['category', 'createdBy'])
+            ->withCount('questions');
 
         DatatableQuery::apply($query, $request, ['title', 'description', 'status'], 'id');
+
+        // Build a lightweight stats query (no withCount — avoids MySQL ONLY_FULL_GROUP_BY)
+        $baseStatsQuery = Exam::query()->forOrg($orgId);
+        DatatableQuery::apply($baseStatsQuery, $request, ['title', 'description', 'status'], 'id');
+        $baseStatsQuery->getQuery()->orders = null;
+        $baseStatsQuery->getQuery()->limit  = null;
+        $baseStatsQuery->getQuery()->offset = null;
+
+        $statusCounts = (clone $baseStatsQuery)
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        $avgDuration = (clone $baseStatsQuery)->avg('duration') ?? 0;
 
         $paginator = $query->paginate(DatatableQuery::perPage($request));
 
@@ -34,6 +49,13 @@ class ExamDataController extends Controller
                 'per_page'     => $paginator->perPage(),
                 'total'        => $paginator->total(),
             ],
+            'stats' => [
+                'total'        => $paginator->total(),
+                'published'    => $statusCounts->get('published', 0),
+                'draft'        => $statusCounts->get('draft', 0),
+                'active'       => $statusCounts->get('active', 0),
+                'avg_duration' => round($avgDuration),
+            ]
         ]);
     }
 }

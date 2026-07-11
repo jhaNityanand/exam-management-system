@@ -18,8 +18,45 @@ class ExamService
             ->paginate($perPage);
     }
 
+    /**
+     * Normalise form-request data into model-ready column names.
+     */
+    public function prepareData(array $data): array
+    {
+        // Map wizard field aliases → model columns
+        if (isset($data['exam_duration_minutes'])) {
+            $data['duration'] = (int) $data['exam_duration_minutes'];
+            unset($data['exam_duration_minutes']);
+        }
+        if (array_key_exists('schedule_start_at', $data)) {
+            $data['scheduled_start'] = $data['schedule_start_at'] ?: null;
+            unset($data['schedule_start_at']);
+        }
+        if (array_key_exists('schedule_end_at', $data)) {
+            $data['scheduled_end'] = $data['schedule_end_at'] ?: null;
+            unset($data['schedule_end_at']);
+        }
+        if (isset($data['attempt_limit_count'])) {
+            $data['max_attempts'] = (int) $data['attempt_limit_count'];
+            unset($data['attempt_limit_count']);
+        }
+
+        // Map exam_category_id (the create form uses this name) → category_id
+        if (array_key_exists('exam_category_id', $data)) {
+            $data['category_id'] = $data['exam_category_id'] ?: null;
+            unset($data['exam_category_id']);
+        }
+
+        // Strip helper / UI-only keys
+        unset($data['_token'], $data['_method']);
+
+        return $data;
+    }
+
     public function create(array $data): Exam
     {
+        $data = $this->prepareData($data);
+
         $ids = $data['question_ids'] ?? [];
         unset($data['question_ids']);
 
@@ -34,6 +71,8 @@ class ExamService
 
     public function update(Exam $exam, array $data): Exam
     {
+        $data = $this->prepareData($data);
+
         $ids = $data['question_ids'] ?? null;
         unset($data['question_ids']);
 

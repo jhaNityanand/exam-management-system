@@ -20,7 +20,7 @@
             'parentRoute' => 'admin.exams.index',
             'children' => [
                 ['route' => 'admin.exams.index', 'label' => 'Exams'],
-                ['route' => 'admin.exams.index', 'label' => 'All Exams'],
+                ['route' => 'admin.exams.categories.index', 'label' => 'Categories'],
             ]
         ],
         [

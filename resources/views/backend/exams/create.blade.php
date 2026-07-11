@@ -63,8 +63,16 @@
                                     <label for="exam_category_id" class="exam-label">Exam Category <span class="form-required">*</span></label>
                                     <select id="exam_category_id" name="exam_category_id" class="panel-input">
                                         <option value="" disabled selected>Select Category</option>
-                                        <option value="1">University Admissions</option>
-                                        <option value="2">Corporate Hiring</option>
+                                        @foreach($categories as $cat)
+                                            <option value="{{ $cat->id }}" {{ old('exam_category_id') == $cat->id ? 'selected' : '' }}>
+                                                {{ $cat->name }}
+                                            </option>
+                                            @foreach($cat->children as $child)
+                                                <option value="{{ $child->id }}" {{ old('exam_category_id') == $child->id ? 'selected' : '' }}>
+                                                    &nbsp;&nbsp;— {{ $child->name }}
+                                                </option>
+                                            @endforeach
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div>

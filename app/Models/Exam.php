@@ -118,7 +118,7 @@ class Exam extends Model
 
     public function category()
     {
-        return $this->belongsTo(QuestionCategory::class);
+        return $this->belongsTo(ExamCategory::class);
     }
 
     public function createdBy()

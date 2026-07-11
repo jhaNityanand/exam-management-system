@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             UserOrganizationSeeder::class,
             QuestionCategorySeeder::class,
             QuestionSeeder::class,
+            ExamCategorySeeder::class,
             ExamSeeder::class,
         ]);
 
