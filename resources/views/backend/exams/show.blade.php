@@ -73,9 +73,60 @@
             
             <!-- Description Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider mb-3">Description</h2>
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Description</h2>
                 <div class="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 text-sm leading-relaxed">
                     {!! $exam->description ?: '<p class="text-slate-400 italic">No description added yet.</p>' !!}
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Instructions</h2>
+                <div class="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 text-sm leading-relaxed">
+                    {!! $exam->instructions ?: '<p class="text-slate-400 italic">No instructions added yet.</p>' !!}
+                </div>
+            </div>
+
+            <!-- Distributions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                    <h3 class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Difficulty</h3>
+                    <ul class="space-y-2 text-sm">
+                        @forelse ($difficultyDistribution as $label => $count)
+                            <li class="flex items-center justify-between gap-2">
+                                <span class="text-slate-600 dark:text-slate-300">{{ ucfirst(str_replace('_', ' ', $label)) }}</span>
+                                <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $count }}</span>
+                            </li>
+                        @empty
+                            <li class="text-slate-400 italic text-sm">No data</li>
+                        @endforelse
+                    </ul>
+                </div>
+                <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                    <h3 class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Question Types</h3>
+                    <ul class="space-y-2 text-sm">
+                        @forelse ($typeDistribution as $label => $count)
+                            <li class="flex items-center justify-between gap-2">
+                                <span class="text-slate-600 dark:text-slate-300">{{ ucfirst(str_replace('_', ' ', $label)) }}</span>
+                                <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $count }}</span>
+                            </li>
+                        @empty
+                            <li class="text-slate-400 italic text-sm">No data</li>
+                        @endforelse
+                    </ul>
+                </div>
+                <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                    <h3 class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Marks</h3>
+                    <ul class="space-y-2 text-sm">
+                        @forelse ($marksDistribution as $label => $count)
+                            <li class="flex items-center justify-between gap-2">
+                                <span class="text-slate-600 dark:text-slate-300">{{ $label }} pts</span>
+                                <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $count }}</span>
+                            </li>
+                        @empty
+                            <li class="text-slate-400 italic text-sm">No data</li>
+                        @endforelse
+                    </ul>
                 </div>
             </div>
 
@@ -166,10 +217,20 @@
                         </span>
                     </div>
 
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Format</span>
-                        <span class="font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wide text-xs">
-                            {{ is_array($exam->exam_format) ? implode(', ', $exam->exam_format) : $exam->exam_format }}
+                    <div class="flex items-start justify-between text-sm gap-3">
+                        <span class="text-slate-450 dark:text-slate-400 shrink-0">Format</span>
+                        <span class="font-semibold text-slate-800 dark:text-slate-200 text-right">
+                            @if (count($formats))
+                                <span class="inline-flex flex-wrap justify-end gap-1">
+                                    @foreach ($formats as $format)
+                                        <span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                                            {{ $formatLabels[$format] ?? ucfirst(str_replace('_', ' ', $format)) }}
+                                        </span>
+                                    @endforeach
+                                </span>
+                            @else
+                                —
+                            @endif
                         </span>
                     </div>
 
@@ -240,6 +301,31 @@
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Audit Card -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-3">
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                    Metadata
+                </h2>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-450 dark:text-slate-400">Created by</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $exam->createdBy?->name ?? '—' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-450 dark:text-slate-400">Created</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $exam->created_at?->format('M d, Y h:i A') ?? '—' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-450 dark:text-slate-400">Updated</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $exam->updated_at?->format('M d, Y h:i A') ?? '—' }}</span>
+                </div>
+                @if ($exam->difficulty_level)
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-450 dark:text-slate-400">Difficulty</span>
+                        <span class="font-semibold text-slate-800 dark:text-slate-200">{{ ucfirst($exam->difficulty_level) }}</span>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

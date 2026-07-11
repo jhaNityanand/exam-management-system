@@ -165,7 +165,7 @@
                                 <label class="exam-label">Exam Format <span class="form-required">*</span></label>
                                 <div id="exam-format-options" class="option-card-grid"></div>
                                 <input type="hidden" name="exam_format" id="exam_format" value="{{ old('exam_format', '["mcq"]') }}">
-                                <p class="exam-help">Select one or more formats: MCQ, Written, Multi Select.</p>
+                                <p class="exam-help">Select one or more formats: MCQ, Multi Select, True/False, Written, Fill in the Blanks.</p>
                             </div>
                         </div>
                     </section>
@@ -471,13 +471,13 @@
                                 <p class="exam-help mt-1" style="color: #d97706;"><strong>&#9888;</strong> A 5% platform charge applies to all paid exams.</p>
                             </div>
 
-                            <div id="free-candidates-wrap" class="mt-4 pt-4 border-t border-slate-200" hidden>
+                            <div id="free-candidates-wrap" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700" hidden>
                                 <div class="mb-3">
-                                    <h4 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                        <span>Free Candidate List</span> &nbsp;
+                                    <h4 class="exam-label" style="margin-bottom: 0.35rem; font-size: 0.9rem;">
+                                        <span>Free Candidate List</span>
                                         <span class="info-tip" tabindex="0" role="button" aria-label="Free Candidate List info" data-tooltip="Candidates added to this list will not be charged any fee to attempt the exam, while other candidates pay the default fee.">i</span>
                                     </h4>
-                                    <p class="text-xs text-slate-500">Import or manually add candidate emails who will receive free access to this paid exam.</p>
+                                    <p class="exam-help">Import or manually add candidate emails who will receive free access to this paid exam.</p>
                                 </div>
 
                                 <div class="segmented-control" role="tablist" aria-label="Free candidate access method">
@@ -517,11 +517,11 @@
                                 <input type="hidden" name="selected_discounts" id="selected_discounts" value="[]">
 
                                 <!-- Custom Discount Section -->
-                                <div class="custom-discounts-section mt-4 pt-4 border-t border-slate-200">
-                                    <div class="flex justify-between items-center mb-3">
+                                <div class="custom-discounts-section mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <div class="flex justify-between items-center mb-3 gap-3 flex-wrap">
                                         <div>
-                                            <h4 class="text-sm font-bold text-slate-800">Custom Discount Offers</h4>
-                                            <p class="text-xs text-slate-500">Create custom discount incentives for specific events or campaigns.</p>
+                                            <h4 class="exam-label" style="margin-bottom: 0.25rem; font-size: 0.9rem;">Custom Discount Offers</h4>
+                                            <p class="exam-help">Create custom discount incentives for specific events or campaigns.</p>
                                         </div>
                                         <button type="button" id="add-custom-discount-btn" class="panel-button-secondary py-1.5 px-3 text-xs flex items-center gap-1.5" style="border-radius: var(--field-radius); padding: 0.5rem 0.75rem; height: auto;">
                                             <span>+ Add Custom Offer</span>
@@ -529,8 +529,8 @@
                                     </div>
 
                                     <!-- Guide Info Box -->
-                                    <div class="custom-discount-guide bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-4 flex items-start gap-2">
-                                        <span style="font-size: 1.1rem; line-height: 1;">💡</span>
+                                    <div class="custom-discount-guide mb-4 flex items-start gap-2">
+                                        <span aria-hidden="true">💡</span>
                                         <div>
                                             <strong>Guide:</strong> Provide an offer name (e.g., "Early Bird Offer"), a brief description (e.g., "Save 15% before June 1st"), and a percentage value (between 0% and 100%). You can add multiple offers. Click the trash icon to remove any offer.
                                         </div>
@@ -587,12 +587,12 @@
 
                     <section class="exam-section" id="instructions-rules-section">
                         <div class="exam-section__head">
-                            <h2>10. Exam Instructions &amp; Rules Management</h2>
+                            <h2>Exam Instructions &amp; Rules Management</h2>
                             <p>Enable or disable predefined rules that candidates must follow during the exam.</p>
                         </div>
                         <div class="exam-section__body space-y-4">
                             <div class="instruction-rules-header">
-                                <p class="exam-help">Turn on the rules you want to enforce for this exam session.</p>
+                                <p class="exam-help">Turn on the rules you want to enforce for this exam session. Disabling a rule removes it from the selection.</p>
                                 <p class="exam-help"><strong id="selected-instruction-rules-count">0</strong> predefined rules enabled.</p>
                             </div>
                             <div id="instruction-rules-list" class="instruction-rules-grid"></div>
@@ -607,28 +607,30 @@
 
                     <section class="exam-section" id="instructions-section">
                         <div class="exam-section__head">
-                            <h2>11. Instructions for Candidates</h2>
+                            <h2>Instructions for Candidates</h2>
                             <p>Provide clear, structured guidance shown before exam start.</p>
                         </div>
                         <div class="exam-section__body space-y-4">
                             <div class="instruction-tools">
-                                <div>
+                                <div class="instruction-tools__select">
                                     <label for="instruction_template" class="exam-label">Default Instruction Templates</label>
                                     <select id="instruction_template" class="panel-input"></select>
                                 </div>
                                 <button type="button" id="apply-instruction-template" class="panel-button-secondary">Apply Template</button>
                             </div>
 
-                            <x-rich-text-editor
-                                label="Candidate Instructions"
-                                input-id="candidate_instructions"
-                                name="instructions"
-                                :value="old('instructions')"
-                                placeholder="Add concise instructions for candidates before they start the exam."
-                                :height="200"
-                                :toolbar="['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']"
-                                help="Supports bullet points, numbered lists, and short emphasis formatting."
-                            />
+                            <div class="instruction-editor-wrap">
+                                <x-rich-text-editor
+                                    label="Candidate Instructions"
+                                    input-id="candidate_instructions"
+                                    name="instructions"
+                                    :value="old('instructions')"
+                                    placeholder="Add concise instructions for candidates before they start the exam."
+                                    :height="220"
+                                    :toolbar="['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']"
+                                    help="Supports bullet points, numbered lists, and short emphasis formatting."
+                                />
+                            </div>
                             <div class="instruction-footer">
                                 <p class="instruction-counter"><span id="instructions-char-count">0</span> characters</p>
                             </div>
@@ -872,9 +874,13 @@
         window.examCreateConfig = {
             options: @json($formOptions),
             endpoints: {
+                // Categories only on first load. Question bank loads on demand (filters) to avoid timeouts.
                 categories: @json(route('admin.api.question-bank.categories')),
                 questionBank: @json(route('admin.api.question-bank.questions')),
-            }
+            },
+            bootstrapEndpoints: {
+                categories: @json(route('admin.api.question-bank.categories')),
+            },
         };
         document.addEventListener('DOMContentLoaded', function() {
             const categorySelect = new TomSelect('#exam_category_id', {

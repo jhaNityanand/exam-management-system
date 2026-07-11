@@ -185,14 +185,14 @@
             {{-- Category Filter --}}
             <div class="filter-group">
                 <label for="drawer-category-filter" class="filter-label">Category</label>
-                <select id="drawer-category-filter" name="filters[category_id]">
-                    <option value="">All Categories</option>
+                <select id="drawer-category-filter" name="filters[category_id][]" multiple placeholder="All Categories">
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
                             {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
                         </option>
                     @endforeach
                 </select>
+                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more question categories.</p>
             </div>
 
             {{-- Type Filter --}}
@@ -313,12 +313,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             const categoryFilter = new TomSelect('#drawer-category-filter', {
                 create: false,
-                placeholder: 'All Categories',
+                plugins: ['remove_button'],
+                placeholder: 'Select categories…',
                 maxOptions: null,
-                allowEmptyOption: true,
-                closeAfterSelect: true,
+                maxItems: null,
+                closeAfterSelect: false,
             });
-            window.EmsTomSelectBlur?.attach(categoryFilter);
             window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
         });
     </script>

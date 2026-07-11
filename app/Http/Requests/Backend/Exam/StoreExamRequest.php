@@ -38,9 +38,8 @@ class StoreExamRequest extends FormRequest
             'auto_submit_on_timer_end' => ['sometimes', 'boolean'],
 
             // ── Section 3: Exam Format ────────────────────────────────────
-            // ── Section 3: Exam Format ────────────────────────────────────
             'exam_format'   => ['required', 'array', 'min:1'],
-            'exam_format.*' => [Rule::in(['mcq', 'written', 'multi_select'])],
+            'exam_format.*' => [Rule::in(\App\Support\ExamFormOptions::examFormatIds())],
 
             // ── Section 4: Schedule & Attempts ───────────────────────────
             'schedule_type'       => ['required', Rule::in(['any_time', 'fixed_window'])],
@@ -60,7 +59,7 @@ class StoreExamRequest extends FormRequest
             'passing_marks'                => ['required', 'integer', 'min:0'],
             'paper_sets'                   => ['required', 'integer', 'min:1'],
             'fix_category_questions'       => ['sometimes', 'boolean'],
-            'distribution_type'            => ['nullable', Rule::in(['equal', 'weighted', 'manual'])],
+            'distribution_type'            => ['nullable', Rule::in(['mixed', 'category_wise', 'equal', 'weighted', 'manual'])],
             'selected_categories'          => ['nullable', 'json'],
             'extra_questions_categories'   => ['nullable', 'json'],
             'extra_questions_allocations'  => ['nullable', 'json'],
@@ -141,6 +140,10 @@ class StoreExamRequest extends FormRequest
             // Map exam_category_id → category_id (create form uses exam_category_id field name)
             'category_id'              => $this->input('exam_category_id') ?: $this->input('category_id'),
             'exam_format'              => $examFormat,
+            // Normalize UI id fixed_count → stored validation id fixed
+            'attempt_limit_type'       => $this->input('attempt_limit_type') === 'fixed_count'
+                ? 'fixed'
+                : $this->input('attempt_limit_type'),
         ]);
     }
 }

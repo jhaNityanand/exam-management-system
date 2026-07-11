@@ -21,8 +21,13 @@
 
     function createFallbackAdapter(host, input) {
         input.classList.remove('hidden');
-        input.classList.add('panel-input');
+        input.classList.add('panel-input', 'rich-editor-fallback');
+        input.removeAttribute('hidden');
+        input.style.minHeight = `${toInt(host.getAttribute('data-editor-height'), 180)}px`;
+        input.style.display = 'block';
         host.hidden = true;
+        host.classList.add('is-fallback');
+        host.classList.remove('is-ready');
 
         return {
             id: input.id,
@@ -64,6 +69,8 @@
         }
 
         try {
+            host.hidden = false;
+            host.classList.remove('is-fallback');
             const editor = await global.ClassicEditor.create(host, { toolbar, placeholder });
             editor.setData(input.value || '');
 
@@ -71,6 +78,11 @@
             if (editable) {
                 editable.style.minHeight = `${height}px`;
             }
+
+            // CKEditor owns the UI; keep the textarea as the form source of truth only.
+            input.classList.add('hidden');
+            input.style.display = 'none';
+            host.classList.add('is-ready');
 
             editor.model.document.on('change:data', () => {
                 input.value = editor.getData();

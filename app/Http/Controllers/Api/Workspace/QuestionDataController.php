@@ -60,6 +60,32 @@ class QuestionDataController extends Controller
                 }
             }
 
+            if (isset($filters['category_id'])) {
+                $categoryIds = is_array($filters['category_id'])
+                    ? $filters['category_id']
+                    : [$filters['category_id']];
+                $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds))));
+
+                if ($categoryIds === []) {
+                    unset($filters['category_id']);
+                } else {
+                    // Expand parents to include nested children
+                    $expanded = $categoryIds;
+                    $toProcess = $categoryIds;
+                    while ($toProcess !== []) {
+                        $children = \App\Models\QuestionCategory::query()
+                            ->whereIn('parent_id', $toProcess)
+                            ->pluck('id')
+                            ->map(fn ($id) => (int) $id)
+                            ->all();
+                        $new = array_values(array_diff($children, $expanded));
+                        $expanded = array_values(array_unique(array_merge($expanded, $new)));
+                        $toProcess = $new;
+                    }
+                    $filters['category_id'] = count($expanded) === 1 ? $expanded[0] : $expanded;
+                }
+            }
+
             $request->query->set('filters', $filters);
         }
 

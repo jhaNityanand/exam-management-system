@@ -136,14 +136,14 @@
         <div class="offcanvas-body">
             <div class="filter-group">
                 <label for="drawer-category-filter" class="filter-label">Category</label>
-                <select id="drawer-category-filter" name="filters[category_id]">
-                    <option value="">All Categories</option>
+                <select id="drawer-category-filter" name="filters[category_id][]" multiple placeholder="All Categories">
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
                             {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
                         </option>
                     @endforeach
                 </select>
+                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more exam categories.</p>
             </div>
 
             <div class="filter-group">
@@ -155,6 +155,15 @@
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                     <option value="suspended">Suspended</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="drawer-format-filter" class="filter-label">Exam Format</label>
+                <select id="drawer-format-filter" name="filters[exam_format][]" multiple class="panel-input w-full text-sm" size="5">
+                    @foreach (\App\Support\ExamFormOptions::formatLabels() as $val => $label)
+                        <option value="{{ $val }}">{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -176,6 +185,39 @@
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
                 </select>
+            </div>
+
+            <div class="filter-group grid grid-cols-2 gap-3">
+                <div>
+                    <label for="drawer-duration-min" class="filter-label">Duration Min</label>
+                    <input id="drawer-duration-min" type="number" min="1" name="filters[duration_min]" class="panel-input w-full text-sm" placeholder="Min">
+                </div>
+                <div>
+                    <label for="drawer-duration-max" class="filter-label">Duration Max</label>
+                    <input id="drawer-duration-max" type="number" min="1" name="filters[duration_max]" class="panel-input w-full text-sm" placeholder="Max">
+                </div>
+            </div>
+
+            <div class="filter-group grid grid-cols-2 gap-3">
+                <div>
+                    <label for="drawer-questions-min" class="filter-label">Questions Min</label>
+                    <input id="drawer-questions-min" type="number" min="0" name="filters[questions_min]" class="panel-input w-full text-sm" placeholder="Min">
+                </div>
+                <div>
+                    <label for="drawer-questions-max" class="filter-label">Questions Max</label>
+                    <input id="drawer-questions-max" type="number" min="0" name="filters[questions_max]" class="panel-input w-full text-sm" placeholder="Max">
+                </div>
+            </div>
+
+            <div class="filter-group grid grid-cols-2 gap-3">
+                <div>
+                    <label for="drawer-created-from" class="filter-label">Created From</label>
+                    <input id="drawer-created-from" type="date" name="filters[created_from]" class="panel-input w-full text-sm">
+                </div>
+                <div>
+                    <label for="drawer-created-to" class="filter-label">Created To</label>
+                    <input id="drawer-created-to" type="date" name="filters[created_to]" class="panel-input w-full text-sm">
+                </div>
             </div>
 
             <div class="filter-group">
@@ -226,12 +268,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             const categoryFilter = new TomSelect('#drawer-category-filter', {
                 create: false,
-                placeholder: "All Categories",
+                plugins: ['remove_button'],
+                placeholder: 'Select categories…',
                 maxOptions: null,
-                allowEmptyOption: true,
-                closeAfterSelect: true,
+                maxItems: null,
+                closeAfterSelect: false,
             });
-            window.EmsTomSelectBlur?.attach(categoryFilter);
             window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
         });
     </script>

@@ -27,12 +27,14 @@
         </label>
     @endif
 
+    {{-- Visible textarea until CKEditor mounts; never leave an empty gap if JS/CDN fails. --}}
     <textarea
         id="{{ $inputId }}"
         name="{{ $name }}"
         rows="{{ $rows }}"
-        class="rich-editor-input hidden"
+        class="panel-input rich-editor-input rich-editor-fallback"
         placeholder="{{ $placeholder }}"
+        style="min-height: {{ max(120, (int) $height) }}px;"
         @if($required) required @endif
     >{{ $resolvedValue }}</textarea>
 
@@ -45,6 +47,7 @@
         data-editor-height="{{ $height }}"
         data-editor-required="{{ $required ? '1' : '0' }}"
         data-editor-toolbar='@json($toolbar)'
+        hidden
     ></div>
 
     @if($help)

@@ -158,10 +158,76 @@ test('user can store a new exam', function () {
     ]);
 });
 
-test('store exam fails validation without required fields', function () {
+test('store exam accepts all exam formats including true false and fill blank', function () {
+    $payload = [
+        'title'                 => 'Mixed Format Exam',
+        'status'                => 'draft',
+        'exam_mode'             => 'standard',
+        'exam_format'           => ['mcq', 'true_false', 'written', 'fill_blank', 'multi_select'],
+        'visibility'            => 'public',
+        'exam_duration_minutes' => 60,
+        'schedule_type'         => 'any_time',
+        'attempt_limit_type'    => 'fixed_count',
+        'attempt_limit_count'   => 3,
+        'total_questions'       => 20,
+        'total_categories'      => 1,
+        'total_marks'           => 40,
+        'passing_marks'         => 20,
+        'paper_sets'            => 1,
+    ];
+
     $this->actingAs($this->user)
-        ->post(route('admin.exams.store'), [])
-        ->assertSessionHasErrors(['title', 'status', 'exam_mode', 'exam_format', 'visibility']);
+        ->post(route('admin.exams.store'), $payload)
+        ->assertSessionHasNoErrors()
+        ->assertRedirectContains('exams');
+
+    $exam = Exam::where('title', 'Mixed Format Exam')->first();
+    expect($exam)->not->toBeNull();
+    expect($exam->exam_format)->toEqualCanonicalizing([
+        'mcq', 'true_false', 'written', 'fill_blank', 'multi_select',
+    ]);
+    expect($exam->max_attempts)->toBe(3);
+});
+
+test('exams table can filter by multiple categories and formats', function () {
+    $catA = ExamCategory::create([
+        'organization_id' => $this->organization->id,
+        'name'            => 'Filter Cat A',
+        'status'          => 'active',
+    ]);
+    $catB = ExamCategory::create([
+        'organization_id' => $this->organization->id,
+        'name'            => 'Filter Cat B',
+        'status'          => 'active',
+    ]);
+
+    makeExam($this->organization->id, [
+        'title'       => 'TF Exam',
+        'category_id' => $catA->id,
+        'exam_format' => ['true_false'],
+    ]);
+    makeExam($this->organization->id, [
+        'title'       => 'Fill Exam',
+        'category_id' => $catB->id,
+        'exam_format' => ['fill_blank'],
+    ]);
+    makeExam($this->organization->id, [
+        'title'       => 'Other Exam',
+        'category_id' => $catA->id,
+        'exam_format' => ['mcq'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.internal-api.exams-table', [
+            'filters' => [
+                'category_id' => [$catA->id, $catB->id],
+                'exam_format' => ['true_false', 'fill_blank'],
+            ],
+        ]))
+        ->assertOk()
+        ->assertJsonFragment(['title' => 'TF Exam'])
+        ->assertJsonFragment(['title' => 'Fill Exam'])
+        ->assertJsonMissing(['title' => 'Other Exam']);
 });
 
 // ── Edit / Update ─────────────────────────────────────────────────────────────

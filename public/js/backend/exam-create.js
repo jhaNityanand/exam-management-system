@@ -131,13 +131,17 @@ async function loadJsonMap(endpoints) {
 
             try {
                 const response = await fetch(endpoint, {
-                    headers: { Accept: 'application/json' },
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     signal: controller.signal,
                 });
                 if (!response.ok) {
-                    throw new Error(`Failed to load ${key}`);
+                    console.warn(`Failed to load ${key}: HTTP ${response.status}`);
+                    return [key, key === 'categories' ? [] : (key === 'questionBank' ? [] : null)];
                 }
                 return [key, await response.json()];
+            } catch (error) {
+                console.warn(`Failed to load ${key}:`, error);
+                return [key, key === 'categories' ? [] : (key === 'questionBank' ? [] : null)];
             } finally {
                 window.clearTimeout(timeoutId);
             }
@@ -148,12 +152,18 @@ async function loadJsonMap(endpoints) {
 }
 
 async function loadJsonMapWithTimeout(endpoints, timeoutMs = 15000) {
-    return Promise.race([
-        loadJsonMap(endpoints),
-        new Promise((_, reject) => {
-            window.setTimeout(() => reject(new Error('Exam configuration load timed out')), timeoutMs);
-        }),
-    ]);
+    try {
+        return await Promise.race([
+            loadJsonMap(endpoints),
+            new Promise((_, reject) => {
+                window.setTimeout(() => reject(new Error('Exam configuration load timed out')), timeoutMs);
+            }),
+        ]);
+    } catch (error) {
+        console.warn(error);
+        // Never block the whole create form — continue with empty remote data.
+        return {};
+    }
 }
 
 const PREDEFINED_INSTRUCTION_RULES = [
@@ -224,28 +234,7 @@ const PREDEFINED_INSTRUCTION_RULES = [
     },
 ];
 
-const EXAM_FORMAT_OPTIONS = [
-    {
-        id: 'mcq',
-        label: 'MCQ',
-        description: 'Single-correct objective questions.',
-    },
-    {
-        id: 'written',
-        label: 'Written',
-        description: 'Descriptive answers reviewed manually.',
-    },
-    {
-        id: 'multi_select',
-        label: 'Multi Select',
-        description: 'Questions may have multiple correct choices.',
-    },
-    {
-        id: 'mixed',
-        label: 'Mixed',
-        description: 'A blend of objective and descriptive questions.',
-    },
-];
+const EXAM_FORMAT_OPTIONS = []; // populated from ExamFormOptions via examCreateConfig
 
 const SCHEDULE_TYPE_OPTIONS = [
     {
@@ -612,6 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
         suppressCategorySelectEvents: false,
         suppressExtraSelectEvents: false,
         richEditors: new Map(),
+        richEditorsInitializing: false,
+        richEditorsReady: false,
+        eventsBound: false,
         schedulePickers: {
             start: null,
             end: null,
@@ -668,8 +660,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initialize().catch((error) => {
         console.error(error);
-        showFormErrors(['Unable to load exam configuration. Please refresh the page and try again.']);
+        // Keep the form usable even if bootstrap partially fails.
         hideLoader();
+        try {
+            renderInitialControls();
+            bindEvents();
+            initRichTextEditors().catch(() => {});
+            safeUpdateAll();
+        } catch (innerError) {
+            console.error(innerError);
+            showFormErrors(['Unable to load exam configuration. Please refresh the page and try again.']);
+        }
     });
 
     async function initialize() {
@@ -680,11 +681,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showLoader();
 
+        // Mount description / instructions editors immediately so fields are never blank.
+        const editorsReady = initRichTextEditors().catch((error) => {
+            console.warn(error);
+        });
+
         try {
-            const endpoints = window.examCreateConfig?.endpoints || {};
+            const endpoints = window.examCreateConfig?.bootstrapEndpoints
+                || { categories: window.examCreateConfig?.endpoints?.categories };
             const staticOptions = window.examCreateConfig?.options || {};
-            // Only fetch live domain endpoints (categories / question bank).
-            // Form option lists are injected server-side from ExamFormOptions.
+            // Only fetch live category tree on bootstrap. Question bank loads on demand.
             const remoteData = Object.keys(endpoints).length
                 ? await loadJsonMapWithTimeout(endpoints, 15000)
                 : {};
@@ -697,6 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 examStatus: Array.isArray(configData.examStatus) ? configData.examStatus : [],
                 examModes: Array.isArray(configData.examModes) ? configData.examModes : [],
                 visibilityOptions: Array.isArray(configData.visibilityOptions) ? configData.visibilityOptions : [],
+                examFormats: Array.isArray(configData.examFormats) ? configData.examFormats : [],
                 categories: flatCategories,
                 discountRules: Array.isArray(configData.discountRules) ? configData.discountRules : [],
                 questionMarks: Array.isArray(configData.questionMarks) ? configData.questionMarks : [],
@@ -731,19 +738,46 @@ document.addEventListener('DOMContentLoaded', () => {
             emergencyHide = null;
             hideLoader();
 
-            initRichTextEditors().catch((error) => {
-                console.warn(error);
-            });
+            await editorsReady;
             safeUpdateAll();
         } catch (error) {
             console.error(error);
-            showFormErrors(['Unable to load exam configuration. Please refresh the page and try again.']);
-            throw error;
+            hideLoader();
+            // Soft-fail: keep static options usable and still mount editors.
+            try {
+                if (!state.config.difficultyLevels?.length) {
+                    const staticOptions = window.examCreateConfig?.options || {};
+                    state.config = {
+                        ...state.config,
+                        difficultyLevels: staticOptions.difficultyLevels || [],
+                        examStatus: staticOptions.examStatus || [],
+                        examModes: staticOptions.examModes || [],
+                        visibilityOptions: staticOptions.visibilityOptions || [],
+                        examFormats: staticOptions.examFormats || [],
+                        discountRules: staticOptions.discountRules || [],
+                        questionMarks: staticOptions.questionMarks || [],
+                        pricingOptions: staticOptions.pricingOptions || [],
+                        distributionTypes: staticOptions.distributionTypes || [],
+                        instructionTemplates: staticOptions.instructionTemplates || [],
+                        currencies: staticOptions.currencies || [],
+                        categories: state.config.categories || [],
+                        questionBank: [],
+                    };
+                    renderInitialControls();
+                    bindEvents();
+                }
+                await editorsReady;
+                safeUpdateAll();
+            } catch (innerError) {
+                console.error(innerError);
+                showFormErrors(['Unable to load exam configuration. Please refresh the page and try again.']);
+            }
         } finally {
             if (emergencyHide) {
                 window.clearTimeout(emergencyHide);
             }
             hideLoader();
+            await editorsReady.catch(() => {});
         }
     }
 
@@ -1348,9 +1382,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <article class="option-card ${selected}" data-discount-id="${escapeHtml(rule.id)}">
                         <h4>${escapeHtml(rule.label)}</h4>
                         <p>${escapeHtml(rule.summary)}</p>
-                        <div class="mt-2" ${selected ? '' : 'hidden'}>
-                            <label class="text-xs font-semibold text-gray-700">Discount Percentage (%)</label>
-                            <input type="number" class="panel-input discount-percentage-input" data-rule-id="${escapeHtml(rule.id)}" value="${percentage}" min="0" max="100" style="margin-top: 4px; padding: 4px 8px;">
+                        <div class="mt-2 discount-pct-wrap" ${selected ? '' : 'hidden'}>
+                            <label class="exam-label discount-pct-label">Discount Percentage (%)</label>
+                            <input type="number" class="panel-input discount-percentage-input" data-rule-id="${escapeHtml(rule.id)}" value="${percentage}" min="0" max="100">
                             <p class="exam-help is-invalid mt-1 text-xs" id="err-predefined-${rule.id}" hidden></p>
                         </div>
                     </article>
@@ -1411,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (state.customDiscounts.length === 0) {
             refs.customDiscountsContainer.innerHTML = `
-                <div class="text-center py-4 px-3 border border-dashed border-slate-200 rounded-lg text-slate-400 text-xs bg-slate-50/50">
+                <div class="custom-discount-empty">
                     No custom discount offers added yet. Click "+ Add Custom Offer" to create one.
                 </div>
             `;
@@ -1435,16 +1469,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         <div class="custom-discount-grid">
                             <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Offer Name <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Offer Name <span class="text-red-500">*</span></label>
                                 <input type="text" class="panel-input custom-discount-name" data-row-index="${index}" placeholder="e.g. Summer Sale" value="${name}">
                                 <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-name-${index}" hidden></p>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Description</label>
                                 <input type="text" class="panel-input custom-discount-desc" data-row-index="${index}" placeholder="e.g. Valid for standard exams" value="${desc}">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Discount Percentage (%) <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Discount Percentage (%) <span class="text-red-500">*</span></label>
                                 <input type="number" class="panel-input custom-discount-pct" data-row-index="${index}" placeholder="e.g. 15" value="${pct}" min="0" max="100">
                                 <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-pct-${index}" hidden></p>
                             </div>
@@ -1533,10 +1567,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function getExamFormatById(formatId) {
-        return EXAM_FORMAT_OPTIONS.find((option) => option.id === formatId) || null;
-    }
-
     function normalizeExamFormat(rawValue) {
         const normalized = cleanText(String(rawValue || '')).toLowerCase();
         return getExamFormatById(normalized) ? normalized : 'mcq';
@@ -1560,20 +1590,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return getAttemptLimitTypeById(normalized) ? normalized : 'once';
     }
 
+    function getExamFormatOptions() {
+        const fromConfig = Array.isArray(state.config.examFormats) ? state.config.examFormats : [];
+        return fromConfig.length ? fromConfig : EXAM_FORMAT_OPTIONS;
+    }
+
+    function getExamFormatById(formatId) {
+        return getExamFormatOptions().find((option) => option.id === formatId) || null;
+    }
+
+    function getSelectedExamFormatLabels() {
+        return [...state.selectedExamFormat]
+            .map((id) => getExamFormatById(id)?.label || id)
+            .filter(Boolean);
+    }
+
     function renderExamFormatOptions() {
         if (!refs.examFormatOptions || !refs.examFormatHidden) {
             return;
         }
 
-        const activeOptions = EXAM_FORMAT_OPTIONS.filter((option) => option.id !== 'mixed');
+        const activeOptions = getExamFormatOptions();
 
         refs.examFormatOptions.innerHTML = activeOptions
             .map((option) => {
                 const selected = state.selectedExamFormat.has(option.id) ? 'is-selected' : '';
+                const description = option.description || '';
                 return `
                     <article class="option-card ${selected}" data-format-id="${escapeHtml(option.id)}">
                         <h4>${escapeHtml(option.label)}</h4>
-                        <p>${escapeHtml(option.description)}</p>
+                        <p>${escapeHtml(description)}</p>
                     </article>
                 `;
             })
@@ -1780,6 +1826,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function bindEvents() {
+        if (state.eventsBound) {
+            return;
+        }
+        state.eventsBound = true;
+
         refs.mode.addEventListener('change', () => {
             state.selectedMode = refs.mode.value;
             updateAll();
@@ -1953,7 +2004,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         refs.discountRules.addEventListener('click', (event) => {
-            if (event.target.closest('input')) return;
+            if (event.target.closest('input') || event.target.closest('.discount-pct-wrap')) return;
 
             const card = event.target.closest('[data-discount-id]');
             if (!card) return;
@@ -2143,13 +2194,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                const card = checkbox.closest('.instruction-rule-card');
+
                 if (checkbox.checked) {
                     state.selectedInstructionRules.add(ruleId);
+                    card?.classList.add('is-active');
                 } else {
                     state.selectedInstructionRules.delete(ruleId);
+                    card?.classList.remove('is-active');
                 }
 
-                renderInstructionRules();
+                if (refs.instructionRulesCount) {
+                    refs.instructionRulesCount.textContent = String(state.selectedInstructionRules.size);
+                }
+                syncInstructionRulesHidden();
                 updateWorkflowAndSnapshot();
             });
         }
@@ -2799,7 +2857,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const marksCalculation = computeMarksCalculationState();
         const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
         const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
-        const formatLabel = getExamFormatById(state.selectedExamFormat)?.label || '-';
+        const formatLabel = getSelectedExamFormatLabels().join(', ') || '-';
         const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
         const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
         const scheduleTypeLabel = getScheduleTypeById(scheduleType)?.label || '-';
@@ -3196,36 +3254,71 @@ document.addEventListener('DOMContentLoaded', () => {
             : `Showing all ${totalShown} question(s) across ${selectedCategoryIds.length} selected categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}. Use marks filter to narrow results.`;
     }
 
+    let questionBankSyncTimer = null;
+    function scheduleQuestionBankSync(delayMs = 350) {
+        clearTimeout(questionBankSyncTimer);
+        questionBankSyncTimer = setTimeout(() => {
+            syncQuestionBankFromServer();
+        }, delayMs);
+    }
+
     async function syncQuestionBankFromServer() {
         const endpoints = window.examCreateConfig?.endpoints || {};
         if (!endpoints.questionBank) return;
 
+        const refreshBtn = document.getElementById('refresh-question-bank');
+        const bankSection = document.getElementById('question-bank-section');
+
         if (refs.questionBankFeedback) {
-            refs.questionBankFeedback.textContent = "Loading matching questions from server...";
+            refs.questionBankFeedback.textContent = 'Loading matching questions from server...';
         }
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('is-loading');
+        }
+        bankSection?.classList.add('is-loading');
 
         const categoryIds = [...state.selectedCategories].join(',');
         const marks = [...state.selectedMarks].join(',');
         const formats = [...state.selectedExamFormat].join(',');
+        const difficulty = refs.difficulty?.value || '';
 
         const url = new URL(endpoints.questionBank, window.location.origin);
         if (categoryIds) url.searchParams.set('categories', categoryIds);
         if (marks) url.searchParams.set('marks', marks);
         if (formats) url.searchParams.set('formats', formats);
+        if (difficulty) url.searchParams.set('difficulty', difficulty);
 
         try {
             const response = await fetch(url, {
-                headers: { Accept: 'application/json' }
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             });
             if (response.ok) {
                 const questions = await response.json();
-                state.questionBank = questions;
+                state.questionBank = Array.isArray(questions) ? questions : [];
                 updateAll();
+                if (refs.questionBankFeedback) {
+                    refs.questionBankFeedback.textContent = `Loaded ${state.questionBank.length} question(s) matching your filters.`;
+                }
             } else {
                 console.error('Failed to sync question bank: HTTP', response.status);
+                if (refs.questionBankFeedback) {
+                    refs.questionBankFeedback.textContent = 'Could not load questions. Please try again.';
+                }
+                window.EmsToast?.error('Failed to load question bank.');
             }
         } catch (err) {
             console.error('Failed to sync question bank:', err);
+            if (refs.questionBankFeedback) {
+                refs.questionBankFeedback.textContent = 'Network error while loading questions.';
+            }
+            window.EmsToast?.error('Network error while loading questions.');
+        } finally {
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove('is-loading');
+            }
+            bankSection?.classList.remove('is-loading');
         }
     }
     window.syncQuestionBankFromServer = syncQuestionBankFromServer;
@@ -3258,7 +3351,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
         const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
         const timerComplete = !timerEnabled || durationMinutes > 0;
-        const examFormatComplete = Boolean(state.selectedExamFormat);
+        const examFormatComplete = state.selectedExamFormat instanceof Set
+            ? state.selectedExamFormat.size > 0
+            : Boolean(state.selectedExamFormat);
         const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
         const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
         const scheduleStartAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
@@ -3323,8 +3418,7 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.snapshotTimer.textContent = timerEnabled ? `${durationMinutes} min` : 'Disabled';
         }
         if (refs.snapshotExamFormat) {
-            const selectedFormat = getExamFormatById(state.selectedExamFormat);
-            refs.snapshotExamFormat.textContent = selectedFormat ? selectedFormat.label : '-';
+            refs.snapshotExamFormat.textContent = getSelectedExamFormatLabels().join(', ') || '-';
         }
         if (refs.snapshotSchedule) {
             const scheduleStartLabel = formatScheduleDateTimeForDisplay(scheduleStartAt);
@@ -3353,18 +3447,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initRichTextEditors() {
-        if (!window.EmsRichTextEditor || typeof window.EmsRichTextEditor.initAll !== 'function') {
-            if (refs.description) {
-                refs.description.classList.remove('hidden');
-                refs.description.classList.add('panel-input');
+        if (state.richEditorsInitializing || state.richEditorsReady) {
+            return state.richEditors;
+        }
+        state.richEditorsInitializing = true;
+
+        const revealFallback = (input) => {
+            if (!input) return;
+            input.classList.remove('hidden');
+            input.classList.add('panel-input', 'rich-editor-fallback');
+            input.removeAttribute('hidden');
+            input.style.display = 'block';
+            if (!input.style.minHeight) {
+                input.style.minHeight = '180px';
             }
+            const host = document.querySelector(`[data-editor-input="${input.id}"]`);
+            if (host) {
+                host.hidden = true;
+                host.classList.add('is-fallback');
+                host.classList.remove('is-ready');
+            }
+        };
+
+        if (!window.EmsRichTextEditor || typeof window.EmsRichTextEditor.initAll !== 'function') {
+            revealFallback(refs.description);
+            revealFallback(refs.instructions);
             if (refs.instructions) {
-                refs.instructions.classList.remove('hidden');
-                refs.instructions.classList.add('panel-input');
                 refs.instructions.addEventListener('input', updateInstructionCounter);
             }
             updateInstructionCounter();
-            return;
+            state.richEditorsReady = true;
+            state.richEditorsInitializing = false;
+            return state.richEditors;
         }
 
         let registry = new Map();
@@ -3377,17 +3491,24 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
         } catch (error) {
             console.warn(error);
-            if (refs.description) {
-                refs.description.classList.remove('hidden');
-                refs.description.classList.add('panel-input');
-            }
+            revealFallback(refs.description);
+            revealFallback(refs.instructions);
             if (refs.instructions) {
-                refs.instructions.classList.remove('hidden');
-                refs.instructions.classList.add('panel-input');
                 refs.instructions.addEventListener('input', updateInstructionCounter);
             }
         }
         state.richEditors = registry instanceof Map ? registry : new Map();
+
+        // Guarantee visible editors even if adapters were skipped
+        if (!state.richEditors.has('exam_description')) {
+            revealFallback(refs.description);
+        }
+        if (!state.richEditors.has('candidate_instructions')) {
+            revealFallback(refs.instructions);
+            if (refs.instructions) {
+                refs.instructions.addEventListener('input', updateInstructionCounter);
+            }
+        }
 
         const descriptionEditor = getRichEditor('exam_description');
         const instructionEditor = getRichEditor('candidate_instructions');
@@ -3406,6 +3527,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateInstructionCounter();
+        state.richEditorsReady = true;
+        state.richEditorsInitializing = false;
+        return state.richEditors;
     }
 
     function applyInstructionTemplate() {
@@ -3701,7 +3825,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.lastFetchedMarks = currentMarksStr;
             state.lastFetchedFormats = currentFormatsStr;
 
-            syncQuestionBankFromServer();
+            scheduleQuestionBankSync(200);
         }
 
         if (refs.examFormatOptions && refs.examFormatHidden) {

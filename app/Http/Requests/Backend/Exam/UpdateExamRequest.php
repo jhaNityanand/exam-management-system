@@ -39,7 +39,7 @@ class UpdateExamRequest extends FormRequest
 
             // ── Section 3: Exam Format ────────────────────────────────────
             'exam_format'   => ['sometimes', 'required', 'array', 'min:1'],
-            'exam_format.*' => [Rule::in(['mcq', 'written', 'multi_select'])],
+            'exam_format.*' => [Rule::in(\App\Support\ExamFormOptions::examFormatIds())],
 
             // ── Section 4: Schedule & Attempts ───────────────────────────
             'schedule_type'       => ['sometimes', 'required', Rule::in(['any_time', 'fixed_window'])],
@@ -59,7 +59,7 @@ class UpdateExamRequest extends FormRequest
             'passing_marks'                => ['sometimes', 'required', 'integer', 'min:0'],
             'paper_sets'                   => ['sometimes', 'required', 'integer', 'min:1'],
             'fix_category_questions'       => ['sometimes', 'boolean'],
-            'distribution_type'            => ['nullable', Rule::in(['equal', 'weighted', 'manual'])],
+            'distribution_type'            => ['nullable', Rule::in(['mixed', 'category_wise', 'equal', 'weighted', 'manual'])],
             'selected_categories'          => ['nullable', 'json'],
             'extra_questions_categories'   => ['nullable', 'json'],
             'extra_questions_allocations'  => ['nullable', 'json'],
@@ -135,6 +135,10 @@ class UpdateExamRequest extends FormRequest
             'fix_marks_each_question'  => (bool) $this->input('fix_marks_each_question', false),
             'fix_category_questions'   => (bool) $this->input('fix_category_questions', false),
             'exam_format'              => $examFormat,
+            'attempt_limit_type'       => $this->input('attempt_limit_type') === 'fixed_count'
+                ? 'fixed'
+                : $this->input('attempt_limit_type'),
+            'category_id'              => $this->input('exam_category_id') ?: $this->input('category_id'),
         ]);
     }
 }

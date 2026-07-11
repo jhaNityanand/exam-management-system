@@ -89,8 +89,35 @@ class ExamController extends Controller
         abort_if($exam->organization_id !== $this->currentOrgId(), 403, 'Unauthorized access to this exam.');
 
         $stats = $this->examService->getAttemptStats($exam);
+        $questions = $exam->questions;
 
-        return view('backend.exams.show', compact('exam', 'stats'));
+        $difficultyDistribution = $questions
+            ->groupBy(fn ($q) => $q->difficulty ?: 'unknown')
+            ->map->count()
+            ->sortKeys();
+
+        $typeDistribution = $questions
+            ->groupBy(fn ($q) => $q->type ?: 'unknown')
+            ->map->count()
+            ->sortKeys();
+
+        $marksDistribution = $questions
+            ->groupBy(fn ($q) => (string) ($q->pivot->marks_override ?? $q->marks))
+            ->map->count()
+            ->sortKeysUsing(fn ($a, $b) => (int) $a <=> (int) $b);
+
+        $formatLabels = ExamFormOptions::formatLabels();
+        $formats = is_array($exam->exam_format) ? $exam->exam_format : [];
+
+        return view('backend.exams.show', compact(
+            'exam',
+            'stats',
+            'difficultyDistribution',
+            'typeDistribution',
+            'marksDistribution',
+            'formatLabels',
+            'formats'
+        ));
     }
 
     // ── Edit ──────────────────────────────────────────────────────────────────
@@ -237,38 +264,62 @@ class ExamController extends Controller
             }
         }
 
-        // Filter by formats/types
+        // Filter by formats → question types
         $formatsParam = $request->query('formats');
         if ($formatsParam) {
-            $formatList = array_filter(explode(',', $formatsParam));
-            if (!empty($formatList)) {
-                $query->where(function ($q) use ($formatList) {
+            $formatList = array_values(array_filter(explode(',', $formatsParam)));
+            $constraints = \App\Support\ExamFormOptions::examFormatQuestionConstraints();
+
+            if ($formatList !== []) {
+                $query->where(function ($q) use ($formatList, $constraints) {
                     foreach ($formatList as $format) {
-                        if ($format === 'mcq') {
-                            $q->orWhere(function ($sub) {
-                                $sub->where('type', 'mcq')->where('allows_multiple', false);
+                        $rules = $constraints[$format] ?? [];
+                        foreach ($rules as $rule) {
+                            $q->orWhere(function ($sub) use ($rule) {
+                                $sub->where('type', $rule['type']);
+                                if ($rule['allows_multiple'] !== null) {
+                                    $sub->where('allows_multiple', $rule['allows_multiple']);
+                                }
                             });
-                        } elseif ($format === 'multi_select') {
-                            $q->orWhere(function ($sub) {
-                                $sub->where('type', 'mcq')->where('allows_multiple', true);
-                            });
-                        } elseif ($format === 'written') {
-                            $q->orWhere('type', 'short_answer');
                         }
                     }
                 });
             }
         }
 
-        $questions = $query->get(['id', 'category_id', 'marks', 'difficulty', 'body']);
+        // Filter by difficulty
+        $difficultyParam = $request->query('difficulty');
+        if ($difficultyParam) {
+            $difficulties = array_values(array_filter(explode(',', $difficultyParam)));
+            if ($difficulties !== []) {
+                $query->whereIn('difficulty', $difficulties);
+            }
+        }
+
+        // Filter by question type (direct, optional)
+        $typesParam = $request->query('types');
+        if ($typesParam) {
+            $types = array_values(array_filter(explode(',', $typesParam)));
+            if ($types !== []) {
+                $query->whereIn('type', $types);
+            }
+        }
+
+        $questions = $query
+            ->with('category:id,name,parent_id')
+            ->orderBy('id')
+            ->limit(2000)
+            ->get(['id', 'category_id', 'marks', 'difficulty', 'type', 'allows_multiple', 'body']);
 
         $formatted = $questions->map(function ($q) {
             return [
-                'id'         => $q->id,
-                'categoryId' => (string) $q->category_id,
-                'marks'      => $q->marks,
-                'difficulty' => $q->difficulty,
-                'text'       => strip_tags($q->body),
+                'id'              => $q->id,
+                'categoryId'      => (string) $q->category_id,
+                'marks'           => $q->marks,
+                'difficulty'      => $q->difficulty,
+                'type'            => $q->type,
+                'allowsMultiple'  => (bool) $q->allows_multiple,
+                'text'            => strip_tags($q->body),
             ];
         });
 

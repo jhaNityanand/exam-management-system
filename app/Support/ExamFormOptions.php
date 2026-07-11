@@ -66,9 +66,53 @@ class ExamFormOptions
     public static function examFormats(): array
     {
         return [
-            ['id' => 'mcq', 'label' => 'MCQ'],
-            ['id' => 'written', 'label' => 'Written'],
-            ['id' => 'multi_select', 'label' => 'Multi Select'],
+            ['id' => 'mcq', 'label' => 'MCQ', 'description' => 'Single-correct objective questions.'],
+            ['id' => 'multi_select', 'label' => 'Multi Select', 'description' => 'MCQ with multiple correct choices.'],
+            ['id' => 'true_false', 'label' => 'True / False', 'description' => 'Binary true or false questions.'],
+            ['id' => 'written', 'label' => 'Written', 'description' => 'Short and long descriptive answers.'],
+            ['id' => 'fill_blank', 'label' => 'Fill in the Blanks', 'description' => 'Complete the missing words or phrases.'],
+        ];
+    }
+
+    /** @return list<string> */
+    public static function examFormatIds(): array
+    {
+        return collect(self::examFormats())->pluck('id')->all();
+    }
+
+    /**
+     * Map exam format IDs to question-bank query constraints.
+     * Each format yields a list of ['type' => ..., 'allows_multiple' => bool|null].
+     *
+     * @return array<string, list<array{type: string, allows_multiple: bool|null}>>
+     */
+    public static function examFormatQuestionConstraints(): array
+    {
+        return [
+            'mcq' => [
+                ['type' => 'mcq', 'allows_multiple' => false],
+            ],
+            'multi_select' => [
+                ['type' => 'mcq', 'allows_multiple' => true],
+            ],
+            'true_false' => [
+                ['type' => 'true_false', 'allows_multiple' => null],
+            ],
+            'written' => [
+                ['type' => 'short_answer', 'allows_multiple' => null],
+                ['type' => 'long_answer', 'allows_multiple' => null],
+            ],
+            'fill_blank' => [
+                ['type' => 'fill_blank', 'allows_multiple' => null],
+            ],
+        ];
+    }
+
+    public static function distributionTypes(): array
+    {
+        return [
+            ['id' => 'mixed', 'label' => 'Mixed Questions', 'description' => 'Random mix from selected categories'],
+            ['id' => 'category_wise', 'label' => 'Category-wise Questions', 'description' => 'Distribute questions per category strategy'],
         ];
     }
 
@@ -99,14 +143,6 @@ class ExamFormOptions
             ['id' => 'paid', 'label' => 'Paid', 'description' => 'Candidates pay before attempting'],
             ['id' => 'free', 'label' => 'Free', 'description' => 'Open access without payment'],
             ['id' => 'free_for_imported', 'label' => 'Free for Imported Candidates', 'description' => 'Only imported candidates get free access'],
-        ];
-    }
-
-    public static function distributionTypes(): array
-    {
-        return [
-            ['id' => 'mixed', 'label' => 'Mixed Questions', 'description' => 'Random mix from selected categories'],
-            ['id' => 'category_wise', 'label' => 'Category-wise Questions', 'description' => 'Distribute questions per category strategy'],
         ];
     }
 
