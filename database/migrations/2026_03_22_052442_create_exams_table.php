@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('exams', function (Blueprint $table) {
@@ -20,10 +19,11 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('status')->default('draft');      // draft | published | active | inactive | suspended
             $table->string('exam_mode')->default('standard'); // standard | practice | proctored
-            $table->string('exam_format')->default('mcq');   // mcq | written | multi_select | mixed
+            $table->json('exam_format')->nullable();
             $table->string('difficulty_level')->nullable();  // easy | medium | hard
             $table->string('visibility')->default('public'); // public | private | invite_only
             $table->json('tags')->nullable();
+            $table->text('instructions')->nullable();
 
             // Timer & Duration
             $table->unsignedSmallInteger('duration')->default(60); // minutes
@@ -76,6 +76,10 @@ return new class extends Migration
             $table->string('canonical_url')->nullable();
             $table->string('og_title')->nullable();
             $table->text('og_description')->nullable();
+
+            // ── AI flags (UI prepared; no AI logic yet) ────────────────────────
+            $table->boolean('ai_generated')->default(false); // category content was AI-generated
+            $table->boolean('ai_improve')->default(false);   // category queued for AI improvement
 
             // Audit
             $table->json('updated_by_history')->nullable();

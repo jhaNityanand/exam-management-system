@@ -38,7 +38,9 @@ class StoreExamRequest extends FormRequest
             'auto_submit_on_timer_end' => ['sometimes', 'boolean'],
 
             // ── Section 3: Exam Format ────────────────────────────────────
-            'exam_format' => ['required', Rule::in(['mcq', 'written', 'multi_select', 'mixed'])],
+            // ── Section 3: Exam Format ────────────────────────────────────
+            'exam_format'   => ['required', 'array', 'min:1'],
+            'exam_format.*' => [Rule::in(['mcq', 'written', 'multi_select'])],
 
             // ── Section 4: Schedule & Attempts ───────────────────────────
             'schedule_type'       => ['required', Rule::in(['any_time', 'fixed_window'])],
@@ -94,7 +96,7 @@ class StoreExamRequest extends FormRequest
             'status.required'               => 'Please select a status.',
             'exam_mode.required'            => 'Please select an exam mode.',
             'visibility.required'           => 'Please select a visibility option.',
-            'exam_format.required'          => 'Please select an exam format.',
+            'exam_format.required'          => 'Please select at least one exam format.',
             'schedule_type.required'        => 'Please select a schedule type.',
             'schedule_start_at.required_if' => 'Please set a start date for the fixed window.',
             'schedule_end_at.required_if'   => 'Please set an end date for the fixed window.',
@@ -115,6 +117,11 @@ class StoreExamRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $examFormat = $this->input('exam_format');
+        if (is_string($examFormat) && str_starts_with(trim($examFormat), '[')) {
+            $examFormat = json_decode($examFormat, true);
+        }
+
         $this->merge([
             // Map the form field name to the model's column name
             'duration'                 => $this->input('exam_duration_minutes'),
@@ -133,6 +140,7 @@ class StoreExamRequest extends FormRequest
 
             // Map exam_category_id → category_id (create form uses exam_category_id field name)
             'category_id'              => $this->input('exam_category_id') ?: $this->input('category_id'),
+            'exam_format'              => $examFormat,
         ]);
     }
 }

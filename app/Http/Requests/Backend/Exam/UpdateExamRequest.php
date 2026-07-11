@@ -38,7 +38,8 @@ class UpdateExamRequest extends FormRequest
             'auto_submit_on_timer_end' => ['sometimes', 'boolean'],
 
             // ── Section 3: Exam Format ────────────────────────────────────
-            'exam_format' => ['sometimes', 'required', Rule::in(['mcq', 'written', 'multi_select', 'mixed'])],
+            'exam_format'   => ['sometimes', 'required', 'array', 'min:1'],
+            'exam_format.*' => [Rule::in(['mcq', 'written', 'multi_select'])],
 
             // ── Section 4: Schedule & Attempts ───────────────────────────
             'schedule_type'       => ['sometimes', 'required', Rule::in(['any_time', 'fixed_window'])],
@@ -94,7 +95,7 @@ class UpdateExamRequest extends FormRequest
             'status.required'               => 'Please select a status.',
             'exam_mode.required'            => 'Please select an exam mode.',
             'visibility.required'           => 'Please select a visibility option.',
-            'exam_format.required'          => 'Please select an exam format.',
+            'exam_format.required'          => 'Please select at least one exam format.',
             'schedule_type.required'        => 'Please select a schedule type.',
             'schedule_start_at.required_if' => 'Please set a start date for the fixed window.',
             'schedule_end_at.required_if'   => 'Please set an end date for the fixed window.',
@@ -115,6 +116,11 @@ class UpdateExamRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $examFormat = $this->input('exam_format');
+        if (is_string($examFormat) && str_starts_with(trim($examFormat), '[')) {
+            $examFormat = json_decode($examFormat, true);
+        }
+
         $this->merge([
             'duration'                 => $this->input('exam_duration_minutes'),
             'scheduled_start'          => $this->input('schedule_start_at') ?: null,
@@ -128,6 +134,7 @@ class UpdateExamRequest extends FormRequest
             'enable_negative_marking'  => (bool) $this->input('enable_negative_marking', false),
             'fix_marks_each_question'  => (bool) $this->input('fix_marks_each_question', false),
             'fix_category_questions'   => (bool) $this->input('fix_category_questions', false),
+            'exam_format'              => $examFormat,
         ]);
     }
 }

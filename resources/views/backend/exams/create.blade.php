@@ -61,17 +61,12 @@
                             <div class="exam-grid exam-grid--3" id="basic-meta-grid">
                                 <div>
                                     <label for="exam_category_id" class="exam-label">Exam Category <span class="form-required">*</span></label>
-                                    <select id="exam_category_id" name="exam_category_id" class="panel-input">
-                                        <option value="" disabled selected>Select Category</option>
+                                    <select id="exam_category_id" name="exam_category_id" class="mt-1 block w-full">
+                                        <option value="">Search or select...</option>
                                         @foreach($categories as $cat)
-                                            <option value="{{ $cat->id }}" {{ old('exam_category_id') == $cat->id ? 'selected' : '' }}>
-                                                {{ $cat->name }}
+                                            <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}" {{ old('exam_category_id') == $cat->id ? 'selected' : '' }}>
+                                                {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
                                             </option>
-                                            @foreach($cat->children as $child)
-                                                <option value="{{ $child->id }}" {{ old('exam_category_id') == $child->id ? 'selected' : '' }}>
-                                                    &nbsp;&nbsp;— {{ $child->name }}
-                                                </option>
-                                            @endforeach
                                         @endforeach
                                     </select>
                                 </div>
@@ -91,7 +86,7 @@
                                     <label for="exam_visibility" class="exam-label">Visibility <span class="form-required">*</span></label>
                                     <select id="exam_visibility" name="visibility" class="panel-input"></select>
                                 </div>
-                                <div class="exam-grid-span-2">
+                                <div class="exam-grid-span-3">
                                     <label for="exam-tags-input" class="exam-label">Tags <span class="info-tip" tabindex="0" role="button" aria-label="Tags input info" data-tooltip="Press Enter to add each tag. Commas are ignored.">i</span></label>
                                     <div class="chip-input" data-chip-input="tags">
                                         <input id="exam-tags-input" type="text" placeholder="Type a tag and press Enter">
@@ -169,8 +164,8 @@
                             <div>
                                 <label class="exam-label">Exam Format <span class="form-required">*</span></label>
                                 <div id="exam-format-options" class="option-card-grid"></div>
-                                <input type="hidden" name="exam_format" id="exam_format" value="{{ old('exam_format', 'mcq') }}">
-                                <p class="exam-help">Select one format: MCQ, Written, Multi Select, or Mixed.</p>
+                                <input type="hidden" name="exam_format" id="exam_format" value="{{ old('exam_format', '["mcq"]') }}">
+                                <p class="exam-help">Select one or more formats: MCQ, Written, Multi Select.</p>
                             </div>
                         </div>
                     </section>
@@ -411,22 +406,24 @@
                                 </label>
                             </div>
 
-                            <div id="negative-marking-config" hidden>
-                                <label for="negative_marking_type" class="exam-label">Penalty per wrong answer</label>
-                                <select id="negative_marking_type" name="negative_marking_type" class="panel-input">
-                                    <option value="25">25% (1/4th of question marks)</option>
-                                    <option value="33.33">33.33% (1/3rd of question marks)</option>
-                                    <option value="50">50% (1/2 of question marks)</option>
-                                    <option value="100">100% (Full question marks)</option>
-                                </select>
-                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div class="md:col-span-9">
+                                    <label class="exam-label">Question Marks Filter</label>
+                                    <div id="question-marks-filter" class="pill-group"></div>
+                                    <input type="hidden" name="question_marks_filter" id="question_marks_filter" value="[]">
+                                    <p class="exam-help">Only questions that match selected marks are available in the question bank.</p>
+                                    <p class="exam-help"><strong id="selected-marks-count">0</strong> marks filters selected.</p>
+                                </div>
 
-                            <div>
-                                <label class="exam-label">Question Marks Filter</label>
-                                <div id="question-marks-filter" class="pill-group"></div>
-                                <input type="hidden" name="question_marks_filter" id="question_marks_filter" value="[]">
-                                <p class="exam-help">Only questions that match selected marks are available in the question bank.</p>
-                                <p class="exam-help"><strong id="selected-marks-count">0</strong> marks filters selected.</p>
+                                <div class="md:col-span-3" id="negative-marking-config" hidden style="margin-top: 0;">
+                                    <label for="negative_marking_type" class="exam-label">Penalty per wrong answer</label>
+                                    <select id="negative_marking_type" name="negative_marking_type" class="panel-input">
+                                        <option value="25">25% (1/4th of question marks)</option>
+                                        <option value="33.33">33.33% (1/3rd of question marks)</option>
+                                        <option value="50">50% (1/2 of question marks)</option>
+                                        <option value="100">100% (Full question marks)</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div id="marks-calculation-management" class="marks-management-card" hidden>
@@ -555,9 +552,16 @@
                     </section>
 
                     <section class="exam-section" id="question-bank-section">
-                        <div class="exam-section__head">
-                            <h2>9. Question Bank Management</h2>
-                            <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
+                        <div class="exam-section__head" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h2>9. Question Bank Management</h2>
+                                <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
+                            </div>
+                            <button type="button" id="refresh-question-bank" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition" title="Refresh Question Bank" style="background: none; border: none; padding: 0.5rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1.5rem; height: 1.5rem;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
+                                </svg>
+                            </button>
                         </div>
                         <div class="exam-section__body space-y-4" id="question-bank-container" data-question-bank>
                             <div class="question-bank-toolbar">
@@ -655,6 +659,132 @@
                 </aside>
             </div>
 
+            {{-- ═══════════════════════════════════════════════════════════════
+            SEO & METADATA SECTION (Identical across all Create & Edit views)
+            ════════════════════════════════════════════════════════════════ --}}
+            @php
+                $seoItem = $exam ?? null;
+            @endphp
+            <div id="metadata-section" class="category-builder__metadata" style="margin-top: 2rem;">
+                <div class="qcat-meta-header" id="meta-accordion-toggle" role="button" aria-expanded="false" tabindex="0">
+                    <div class="qcat-meta-header-left">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="qcat-meta-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="qcat-meta-title">SEO &amp; Metadata</span>
+                        <span class="qcat-meta-badge">Optional</span>
+                    </div>
+                    <svg class="qcat-meta-chevron" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+
+                <div id="meta-accordion-body" class="qcat-meta-body hidden pt-4 border-t border-slate-200/80 dark:border-slate-800">
+                    <p class="qcat-meta-hint mb-4">Add SEO keywords, meta details, and titles to index this content properly.</p>
+
+                    <!-- Row 1: AI Toggles -->
+                    <div class="qcat-seo-row qcat-seo-row--toggles">
+                        {{-- Create with AI --}}
+                        <div class="qcat-seo-col col-lg-4">
+                            <label class="qcat-ai-toggle-label" for="toggle-ai-create">
+                                <input type="hidden" name="ai_generated" value="0">
+                                <input type="checkbox" name="ai_generated" id="toggle-ai-create" value="1"
+                                    class="qcat-ai-checkbox" @checked(old('ai_generated', $seoItem?->ai_generated ?? false))>
+                                <span class="qcat-ai-toggle-wrap">
+                                    <span class="qcat-ai-thumb"></span>
+                                </span>
+                                <span class="qcat-ai-text">
+                                    <span class="qcat-ai-title">Create with AI</span>
+                                    <span class="qcat-ai-hint">Let AI generate details automatically</span>
+                                </span>
+                            </label>
+                        </div>
+
+                        {{-- Improve with AI --}}
+                        <div class="qcat-seo-col col-lg-4" id="improve-with-ai-wrapper">
+                            <label class="qcat-ai-toggle-label" for="toggle-ai-improve">
+                                <input type="hidden" name="ai_improve" value="0">
+                                <input type="checkbox" name="ai_improve" id="toggle-ai-improve" value="1"
+                                    class="qcat-ai-checkbox" @checked(old('ai_improve', $seoItem?->ai_improve ?? false))>
+                                <span class="qcat-ai-toggle-wrap">
+                                    <span class="qcat-ai-thumb"></span>
+                                </span>
+                                <span class="qcat-ai-text">
+                                    <span class="qcat-ai-title">Improve with AI</span>
+                                    <span class="qcat-ai-hint">Queue for AI improvement</span>
+                                </span>
+                            </label>
+                        </div>
+
+                        {{-- Empty column for layout balance --}}
+                        <div class="qcat-seo-col col-lg-4"></div>
+                    </div>
+
+                    <!-- Manual SEO Fields Wrapper -->
+                    <div id="manual-seo-fields-wrapper" class="space-y-4">
+                        <!-- Row 2: Meta Title, Slug, OG Title (col-lg-4 each) -->
+                        <div class="qcat-seo-row qcat-seo-row--three-cols">
+                            {{-- Meta Title --}}
+                            <div class="qcat-meta-field col-lg-4">
+                                <label class="qcat-meta-label" for="meta-title">Meta Title</label>
+                                <input type="text" id="meta-title" name="meta_title" value="{{ old('meta_title', $seoItem?->meta_title ?? '') }}" placeholder="e.g. Meta Title" class="panel-input qcat-meta-input">
+                                <span class="qcat-meta-count" data-max="255">0 / 255</span>
+                                @error('meta_title')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- Slug --}}
+                            <div class="qcat-meta-field col-lg-4">
+                                <label class="qcat-meta-label" for="meta-slug">Slug</label>
+                                <input type="text" id="meta-slug" name="slug" value="{{ old('slug', $seoItem?->slug ?? '') }}" placeholder="e.g. slug-value" class="panel-input qcat-meta-input">
+                                @error('slug')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- OG Title --}}
+                            <div class="qcat-meta-field col-lg-4">
+                                <label class="qcat-meta-label" for="meta-og-title">OG Title</label>
+                                <input type="text" id="meta-og-title" name="og_title" value="{{ old('og_title', $seoItem?->og_title ?? '') }}" placeholder="e.g. Open Graph Title" class="panel-input qcat-meta-input">
+                                @error('og_title')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Meta Description, OG Description (col-lg-6 each) -->
+                        <div class="qcat-seo-row qcat-seo-row--two-cols">
+                            {{-- Meta Description --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-desc">Meta Description</label>
+                                <textarea id="meta-desc" name="meta_description" rows="2" placeholder="Brief description for search engines (up to 500 characters)" class="panel-input qcat-meta-textarea">{{ old('meta_description', $seoItem?->meta_description ?? '') }}</textarea>
+                                <span class="qcat-meta-count" data-max="500">0 / 500</span>
+                                @error('meta_description')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- OG Description --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-og-desc">OG Description</label>
+                                <textarea id="meta-og-desc" name="og_description" rows="2" placeholder="Open Graph Description" class="panel-input qcat-meta-textarea">{{ old('og_description', $seoItem?->og_description ?? '') }}</textarea>
+                                @error('og_description')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <!-- Row 4: Meta Keywords, Canonical URL (col-lg-6 each) -->
+                        <div class="qcat-seo-row qcat-seo-row--two-cols">
+                            {{-- Meta Keywords --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-keywords">Meta Keywords</label>
+                                <input type="text" id="meta-keywords" name="meta_keywords" value="{{ old('meta_keywords', $seoItem?->meta_keywords ?? '') }}" placeholder="keywords, comma, separated" class="panel-input qcat-meta-input">
+                                @error('meta_keywords')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- Canonical URL --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-canonical">Canonical URL</label>
+                                <input type="url" id="meta-canonical" name="canonical_url" value="{{ old('canonical_url', $seoItem?->canonical_url ?? '') }}" placeholder="https://example.com/canonical" class="panel-input qcat-meta-input">
+                                @error('canonical_url')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="form-error-banner" class="form-error-banner" hidden></div>
             <footer class="exam-page-footer">
                 <a href="{{ route('admin.exams.index') }}" class="panel-button-secondary">Cancel</a>
@@ -662,40 +792,6 @@
             </footer>
         </form>
     </x-page-card>
-
-    <div id="add-question-modal" class="exam-modal" hidden>
-        <div class="exam-modal__backdrop" data-modal-close></div>
-        <div class="exam-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="add-question-modal-title">
-            <div class="exam-modal__head">
-                <h3 id="add-question-modal-title">Add Question</h3>
-                <button type="button" class="exam-modal__close" data-modal-close aria-label="Close">x</button>
-            </div>
-            <form id="add-question-form" class="space-y-3">
-                <div>
-                    <label for="new_question_category" class="exam-label">Category</label>
-                    <select id="new_question_category" class="panel-input"></select>
-                </div>
-                <div>
-                    <label for="new_question_text" class="exam-label">Question Text</label>
-                    <textarea id="new_question_text" rows="4" class="panel-input" placeholder="Write a concise question statement."></textarea>
-                </div>
-                <div class="exam-grid exam-grid--2">
-                    <div>
-                        <label for="new_question_marks" class="exam-label">Marks</label>
-                        <select id="new_question_marks" class="panel-input"></select>
-                    </div>
-                    <div>
-                        <label for="new_question_difficulty" class="exam-label">Difficulty</label>
-                        <select id="new_question_difficulty" class="panel-input"></select>
-                    </div>
-                </div>
-                <div class="exam-modal__footer">
-                    <button type="button" class="panel-button-secondary" data-modal-close>Cancel</button>
-                    <button type="submit" class="panel-button-primary">Add Question</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 @endsection
 
@@ -705,6 +801,83 @@
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/question-bank-accordion.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}?v={{ time() }}">
+    <style>
+        #exam_category_id + .ts-wrapper .ts-control {
+            border: 1px solid var(--field-border, #d8e2ee) !important;
+            border-radius: var(--field-radius, 0.82rem) !important;
+            padding: 0.52rem var(--field-padding-x, 0.88rem) !important;
+            min-height: var(--field-height, 2.75rem) !important;
+            background-color: #fff !important;
+            box-shadow: var(--field-shadow, 0 1px 2px rgba(15, 23, 42, 0.06)) !important;
+            display: flex;
+            align-items: center;
+        }
+        
+        .dark #exam_category_id + .ts-wrapper .ts-control {
+            border-color: #334155 !important;
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+        }
+
+        #exam_category_id + .ts-wrapper.focus .ts-control {
+            border-color: var(--field-focus, #2563eb) !important;
+            box-shadow: var(--field-focus-shadow), var(--field-shadow) !important;
+        }
+
+        #exam_category_id + .ts-wrapper .ts-dropdown {
+            border-radius: 0.5rem !important;
+            border-color: var(--field-border, #d8e2ee) !important;
+        }
+
+        .dark #exam_category_id + .ts-wrapper .ts-dropdown,
+        .dark #exam_category_id + .ts-wrapper .ts-dropdown .option {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        .dark #exam_category_id + .ts-wrapper .ts-dropdown .option.active {
+            background-color: #1e293b !important;
+        }
+
+        .exam-grid-span-3 {
+            grid-column: span 3;
+        }
+        @media (max-width: 900px) {
+            .exam-grid-span-3 {
+                grid-column: span 2;
+            }
+        }
+        @media (max-width: 600px) {
+            .exam-grid-span-3 {
+                grid-column: span 1;
+            }
+        }
+
+        .info-tip {
+            position: relative;
+        }
+        .info-tip:hover {
+            z-index: 99999 !important;
+        }
+        .info-tip::before {
+            left: 0.5rem !important;
+            transform: translateY(2px) !important;
+        }
+        .info-tip::after {
+            left: 0 !important;
+            transform: translateY(2px) !important;
+        }
+        .info-tip:hover::before,
+        .info-tip:focus-visible::before {
+            transform: translateY(0) !important;
+        }
+        .info-tip:hover::after,
+        .info-tip:focus-visible::after {
+            transform: translateY(0) !important;
+        }
+    </style>
 @endpush
 
 @push('scripts')
@@ -715,6 +888,7 @@
     <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/core/form-utils.js') }}?v={{ time() }}"></script>
     <script>
         window.examCreateConfig = {
@@ -733,6 +907,12 @@
                 currencies: "{{ asset('data/exam-create/currencies.json') }}"
             }
         };
+        document.addEventListener('DOMContentLoaded', function() {
+            new TomSelect('#exam_category_id', {
+                create: false,
+                placeholder: "Search for a category..."
+            });
+        });
     </script>
     <script src="{{ asset('js/backend/exam-create.js') }}?v={{ time() }}"></script>
 @endpush

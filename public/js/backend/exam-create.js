@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedDistributionType: '',
         selectedVisibility: '',
         selectedMode: '',
-        selectedExamFormat: 'mcq',
+        selectedExamFormat: new Set(['mcq']),
         selectedScheduleType: 'any_time',
         selectedAttemptLimitType: 'once',
         activeCandidateTab: 'import',
@@ -913,7 +913,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         renderCustomDiscounts();
 
-        state.selectedExamFormat = normalizeExamFormat(refs.examFormatHidden ? refs.examFormatHidden.value : 'mcq');
+        let initialFormats = ['mcq'];
+        if (refs.examFormatHidden && refs.examFormatHidden.value) {
+            try {
+                const parsed = JSON.parse(refs.examFormatHidden.value);
+                if (Array.isArray(parsed)) {
+                    initialFormats = parsed;
+                } else if (typeof parsed === 'string') {
+                    initialFormats = [parsed];
+                }
+            } catch (e) {
+                initialFormats = refs.examFormatHidden.value.split(',').map(s => s.trim()).filter(Boolean);
+            }
+        }
+        state.selectedExamFormat = new Set(initialFormats.map(f => normalizeExamFormat(f)));
         renderExamFormatOptions();
         state.selectedScheduleType = normalizeScheduleType(refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time');
         state.selectedAttemptLimitType = normalizeAttemptLimitType(refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once');
@@ -1543,9 +1556,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        refs.examFormatOptions.innerHTML = EXAM_FORMAT_OPTIONS
+        const activeOptions = EXAM_FORMAT_OPTIONS.filter((option) => option.id !== 'mixed');
+
+        refs.examFormatOptions.innerHTML = activeOptions
             .map((option) => {
-                const selected = state.selectedExamFormat === option.id ? 'is-selected' : '';
+                const selected = state.selectedExamFormat.has(option.id) ? 'is-selected' : '';
                 return `
                     <article class="option-card ${selected}" data-format-id="${escapeHtml(option.id)}">
                         <h4>${escapeHtml(option.label)}</h4>
@@ -1555,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .join('');
 
-        refs.examFormatHidden.value = state.selectedExamFormat;
+        refs.examFormatHidden.value = JSON.stringify([...state.selectedExamFormat]);
     }
 
     function renderScheduleTypeOptions() {
@@ -1731,17 +1746,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderModalSelects() {
         const categories = getAssignableCategories();
 
-        refs.newQuestionCategory.innerHTML = categories
-            .map((category) => buildCategoryOptionMarkup(category, state.config.categories))
-            .join('');
+        if (refs.newQuestionCategory) {
+            refs.newQuestionCategory.innerHTML = categories
+                .map((category) => buildCategoryOptionMarkup(category, state.config.categories))
+                .join('');
+        }
 
-        refs.newQuestionMarks.innerHTML = state.config.questionMarks
-            .map((mark) => `<option value="${Number(mark.value)}">${escapeHtml(mark.label)}</option>`)
-            .join('');
+        if (refs.newQuestionMarks) {
+            refs.newQuestionMarks.innerHTML = state.config.questionMarks
+                .map((mark) => `<option value="${Number(mark.value)}">${escapeHtml(mark.label)}</option>`)
+                .join('');
+        }
 
-        refs.newQuestionDifficulty.innerHTML = state.config.difficultyLevels
-            .map((level) => `<option value="${escapeHtml(level.id)}">${escapeHtml(level.label)}</option>`)
-            .join('');
+        if (refs.newQuestionDifficulty) {
+            refs.newQuestionDifficulty.innerHTML = state.config.difficultyLevels
+                .map((level) => `<option value="${escapeHtml(level.id)}">${escapeHtml(level.label)}</option>`)
+                .join('');
+        }
 
         if (!state.extraQuestionsCategoryIds.length && categories.length) {
             state.extraQuestionsCategoryIds = [categories[0].id];
@@ -1790,7 +1811,14 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.examFormatOptions.addEventListener('click', (event) => {
                 const card = event.target.closest('[data-format-id]');
                 if (!card) return;
-                state.selectedExamFormat = normalizeExamFormat(card.dataset.formatId);
+                const formatId = card.dataset.formatId;
+                if (state.selectedExamFormat.has(formatId)) {
+                    if (state.selectedExamFormat.size > 1) {
+                        state.selectedExamFormat.delete(formatId);
+                    }
+                } else {
+                    state.selectedExamFormat.add(formatId);
+                }
                 renderExamFormatOptions();
                 updateAll();
             });
@@ -2910,7 +2938,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (availableQuestions.length < categoryAllowedLimit) {
-            alert('Not enough questions available. Please add more questions.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Insufficient Questions',
+                text: 'Not enough questions available. Please add more questions.'
+            });
             return;
         }
 
@@ -2947,7 +2979,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
 
                 if (availableQuestions.length < categoryLimit) {
-                    alert(`Not enough questions available in ${getCategoryLabelById(categoryId)}. Please add more questions.`);
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Insufficient Questions',
+                        text: `Not enough questions available in ${getCategoryLabelById(categoryId)}. Please add more questions.`
+                    });
                     return;
                 }
 
@@ -2963,7 +2999,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
                 
             if (availableQuestions.length < totalQuestionsAllowed) {
-                alert('Not enough questions available globally. Please add more questions.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Insufficient Questions',
+                    text: 'Not enough questions available globally. Please add more questions.'
+                });
                 return;
             }
 
@@ -3352,14 +3392,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openAddQuestionModal(categoryId) {
+        const url = new URL('/admin/questions/create', window.location.origin);
         if (categoryId) {
-            if (window.EmsSelect && typeof window.EmsSelect.setValue === 'function') {
-                window.EmsSelect.setValue('new_question_category', categoryId);
-            } else {
-                refs.newQuestionCategory.value = categoryId;
-            }
+            url.searchParams.append('category_id', categoryId);
         }
-        refs.modal.hidden = false;
+        window.open(url.toString(), '_blank');
     }
 
     function closeAddQuestionModal() {
@@ -3418,7 +3455,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const attemptLimitCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
 
         if (cleanText(refs.title.value).length < 3) errors.push('Exam title must be at least 3 characters long.');
-        if (!state.selectedExamFormat) errors.push('Select one exam format.');
+        if (!state.selectedExamFormat || state.selectedExamFormat.size === 0) errors.push('Select at least one exam format.');
         if (timerEnabled && (!Number.isInteger(durationMinutes) || durationMinutes < 1)) {
             errors.push('Exam duration must be a whole number of at least 1 minute when timer is enabled.');
         }
@@ -3504,7 +3541,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.pricingOptionHidden.value = state.selectedPricing;
         refs.tagsHidden.value = JSON.stringify(state.tags);
         if (refs.examFormatHidden) {
-            refs.examFormatHidden.value = state.selectedExamFormat;
+            refs.examFormatHidden.value = JSON.stringify([...state.selectedExamFormat]);
         }
         if (refs.scheduleTypeHidden) {
             refs.scheduleTypeHidden.value = scheduleType;
@@ -3570,16 +3607,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAll() {
-        state.selectedExamFormat = normalizeExamFormat(
-            state.selectedExamFormat || (refs.examFormatHidden ? refs.examFormatHidden.value : 'mcq')
-        );
+        if (!state.selectedExamFormat || !(state.selectedExamFormat instanceof Set) || state.selectedExamFormat.size === 0) {
+            state.selectedExamFormat = new Set(['mcq']);
+        }
         state.selectedScheduleType = normalizeScheduleType(
             state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time')
         );
         state.selectedAttemptLimitType = normalizeAttemptLimitType(
             state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once')
         );
-        renderExamFormatOptions();
+        if (refs.examFormatOptions && refs.examFormatHidden) {
+            renderExamFormatOptions();
+        }
         renderScheduleTypeOptions();
         renderAttemptLimitOptions();
         updateScheduleConfigState();
@@ -3592,4 +3631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDiscountSummary();
         updateWorkflowAndSnapshot();
     }
+
+    window.examCreateState = state;
+    window.examCreateUpdateAll = updateAll;
 });

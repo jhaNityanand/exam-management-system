@@ -30,6 +30,15 @@ return new class extends Migration
             $table->unique(['exam_id', 'question_id']);
         });
 
+        // ── exam_question_category child relation ──────────────────────────────
+        Schema::create('exam_question_category', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('exam_id')->constrained('exams')->cascadeOnDelete();
+            $table->foreignId('question_category_id')->constrained('question_categories')->cascadeOnDelete();
+            $table->timestamps();
+            $table->unique(['exam_id', 'question_category_id']);
+        });
+
         // ── user_app_settings ─────────────────────────────────────────────────
         Schema::create('user_app_settings', function (Blueprint $table) {
             $table->id();
@@ -53,6 +62,7 @@ return new class extends Migration
         });
 
         Schema::dropIfExists('user_app_settings');
+        Schema::dropIfExists('exam_question_category');
         Schema::dropIfExists('exam_question');
     }
 };

@@ -169,7 +169,7 @@
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-slate-450 dark:text-slate-400">Format</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wide text-xs">
-                            {{ $exam->exam_format }}
+                            {{ is_array($exam->exam_format) ? implode(', ', $exam->exam_format) : $exam->exam_format }}
                         </span>
                     </div>
 

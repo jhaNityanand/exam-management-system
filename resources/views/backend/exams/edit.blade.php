@@ -79,22 +79,22 @@
                         <textarea id="edit_description" name="description" rows="4" class="panel-input"
                                   placeholder="Summarize scope, audience, and expected outcomes.">{{ old('description', $exam->description) }}</textarea>
                     </div>
+                    <div>
+                        <label for="edit_instructions" class="exam-label">Instructions</label>
+                        <textarea id="edit_instructions" name="instructions" rows="4" class="panel-input"
+                                  placeholder="Provide instructions to candidates before they start.">{{ old('instructions', $exam->instructions) }}</textarea>
+                    </div>
 
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {{-- Category --}}
                         <div>
                             <label for="edit_category_id" class="exam-label">Exam Category</label>
-                            <select id="edit_category_id" name="category_id" class="panel-input">
-                                <option value="">— None —</option>
+                            <select id="edit_category_id" name="category_id" class="mt-1 block w-full">
+                                <option value="">Select Category</option>
                                 @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}" @selected(old('category_id', $exam->category_id) == $cat->id)>
-                                        {{ $cat->name }}
+                                    <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}" @selected(old('category_id', $exam->category_id) == $cat->id)>
+                                        {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
                                     </option>
-                                    @foreach($cat->children as $child)
-                                        <option value="{{ $child->id }}" @selected(old('category_id', $exam->category_id) == $child->id)>
-                                            &nbsp;&nbsp;— {{ $child->name }}
-                                        </option>
-                                    @endforeach
                                 @endforeach
                             </select>
                         </div>
@@ -126,9 +126,12 @@
                         {{-- Exam Format --}}
                         <div>
                             <label for="edit_exam_format" class="exam-label">Exam Format <span class="form-required">*</span></label>
-                            <select id="edit_exam_format" name="exam_format" class="panel-input">
-                                @foreach(['mcq' => 'MCQ', 'written' => 'Written', 'multi_select' => 'Multi Select', 'mixed' => 'Mixed'] as $val => $label)
-                                    <option value="{{ $val }}" @selected(old('exam_format', $exam->exam_format) === $val)>
+                            <select id="edit_exam_format" name="exam_format[]" class="panel-input" multiple data-placeholder="Select format(s)">
+                                @php
+                                    $currentFormat = old('exam_format', is_array($exam->exam_format) ? $exam->exam_format : (json_decode($exam->exam_format, true) ?: [$exam->exam_format]));
+                                @endphp
+                                @foreach(['mcq' => 'MCQ', 'written' => 'Written', 'multi_select' => 'Multi Select'] as $val => $label)
+                                    <option value="{{ $val }}" @selected(in_array($val, $currentFormat))>
                                         {{ $label }}
                                     </option>
                                 @endforeach
@@ -301,6 +304,132 @@
                 </select>
             </section>
 
+            {{-- ═══════════════════════════════════════════════════════════════
+            SEO & METADATA SECTION (Identical across all Create & Edit views)
+            ════════════════════════════════════════════════════════════════ --}}
+            @php
+                $seoItem = $exam ?? null;
+            @endphp
+            <div id="metadata-section" class="category-builder__metadata" style="margin-top: 2rem; margin-bottom: 2rem;">
+                <div class="qcat-meta-header" id="meta-accordion-toggle" role="button" aria-expanded="false" tabindex="0">
+                    <div class="qcat-meta-header-left">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="qcat-meta-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="qcat-meta-title">SEO &amp; Metadata</span>
+                        <span class="qcat-meta-badge">Optional</span>
+                    </div>
+                    <svg class="qcat-meta-chevron" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+
+                <div id="meta-accordion-body" class="qcat-meta-body hidden pt-4 border-t border-slate-200/80 dark:border-slate-800">
+                    <p class="qcat-meta-hint mb-4">Add SEO keywords, meta details, and titles to index this content properly.</p>
+
+                    <!-- Row 1: AI Toggles -->
+                    <div class="qcat-seo-row qcat-seo-row--toggles">
+                        {{-- Create with AI --}}
+                        <div class="qcat-seo-col col-lg-4">
+                            <label class="qcat-ai-toggle-label" for="toggle-ai-create">
+                                <input type="hidden" name="ai_generated" value="0">
+                                <input type="checkbox" name="ai_generated" id="toggle-ai-create" value="1"
+                                    class="qcat-ai-checkbox" @checked(old('ai_generated', $seoItem?->ai_generated ?? false))>
+                                <span class="qcat-ai-toggle-wrap">
+                                    <span class="qcat-ai-thumb"></span>
+                                </span>
+                                <span class="qcat-ai-text">
+                                    <span class="qcat-ai-title">Create with AI</span>
+                                    <span class="qcat-ai-hint">Let AI generate details automatically</span>
+                                </span>
+                            </label>
+                        </div>
+
+                        {{-- Improve with AI --}}
+                        <div class="qcat-seo-col col-lg-4" id="improve-with-ai-wrapper">
+                            <label class="qcat-ai-toggle-label" for="toggle-ai-improve">
+                                <input type="hidden" name="ai_improve" value="0">
+                                <input type="checkbox" name="ai_improve" id="toggle-ai-improve" value="1"
+                                    class="qcat-ai-checkbox" @checked(old('ai_improve', $seoItem?->ai_improve ?? false))>
+                                <span class="qcat-ai-toggle-wrap">
+                                    <span class="qcat-ai-thumb"></span>
+                                </span>
+                                <span class="qcat-ai-text">
+                                    <span class="qcat-ai-title">Improve with AI</span>
+                                    <span class="qcat-ai-hint">Queue for AI improvement</span>
+                                </span>
+                            </label>
+                        </div>
+
+                        {{-- Empty column for layout balance --}}
+                        <div class="qcat-seo-col col-lg-4"></div>
+                    </div>
+
+                    <!-- Manual SEO Fields Wrapper -->
+                    <div id="manual-seo-fields-wrapper" class="space-y-4">
+                        <!-- Row 2: Meta Title, Slug, OG Title (col-lg-4 each) -->
+                        <div class="qcat-seo-row qcat-seo-row--three-cols">
+                            {{-- Meta Title --}}
+                            <div class="qcat-meta-field col-lg-4">
+                                <label class="qcat-meta-label" for="meta-title">Meta Title</label>
+                                <input type="text" id="meta-title" name="meta_title" value="{{ old('meta_title', $seoItem?->meta_title ?? '') }}" placeholder="e.g. Meta Title" class="panel-input qcat-meta-input">
+                                <span class="qcat-meta-count" data-max="255">0 / 255</span>
+                                @error('meta_title')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- Slug --}}
+                            <div class="qcat-meta-field col-lg-4">
+                                <label class="qcat-meta-label" for="meta-slug">Slug</label>
+                                <input type="text" id="meta-slug" name="slug" value="{{ old('slug', $seoItem?->slug ?? '') }}" placeholder="e.g. slug-value" class="panel-input qcat-meta-input">
+                                @error('slug')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- OG Title --}}
+                            <div class="qcat-meta-field col-lg-4">
+                                <label class="qcat-meta-label" for="meta-og-title">OG Title</label>
+                                <input type="text" id="meta-og-title" name="og_title" value="{{ old('og_title', $seoItem?->og_title ?? '') }}" placeholder="e.g. Open Graph Title" class="panel-input qcat-meta-input">
+                                @error('og_title')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Meta Description, OG Description (col-lg-6 each) -->
+                        <div class="qcat-seo-row qcat-seo-row--two-cols">
+                            {{-- Meta Description --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-desc">Meta Description</label>
+                                <textarea id="meta-desc" name="meta_description" rows="2" placeholder="Brief description for search engines (up to 500 characters)" class="panel-input qcat-meta-textarea">{{ old('meta_description', $seoItem?->meta_description ?? '') }}</textarea>
+                                <span class="qcat-meta-count" data-max="500">0 / 500</span>
+                                @error('meta_description')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- OG Description --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-og-desc">OG Description</label>
+                                <textarea id="meta-og-desc" name="og_description" rows="2" placeholder="Open Graph Description" class="panel-input qcat-meta-textarea">{{ old('og_description', $seoItem?->og_description ?? '') }}</textarea>
+                                @error('og_description')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <!-- Row 4: Meta Keywords, Canonical URL (col-lg-6 each) -->
+                        <div class="qcat-seo-row qcat-seo-row--two-cols">
+                            {{-- Meta Keywords --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-keywords">Meta Keywords</label>
+                                <input type="text" id="meta-keywords" name="meta_keywords" value="{{ old('meta_keywords', $seoItem?->meta_keywords ?? '') }}" placeholder="keywords, comma, separated" class="panel-input qcat-meta-input">
+                                @error('meta_keywords')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- Canonical URL --}}
+                            <div class="qcat-meta-field col-lg-6">
+                                <label class="qcat-meta-label" for="meta-canonical">Canonical URL</label>
+                                <input type="url" id="meta-canonical" name="canonical_url" value="{{ old('canonical_url', $seoItem?->canonical_url ?? '') }}" placeholder="https://example.com/canonical" class="panel-input qcat-meta-input">
+                                @error('canonical_url')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- ── Footer ───────────────────────────────────────────────────── --}}
             <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <a href="{{ route('admin.exams.show', $exam) }}" class="panel-button-secondary">Cancel</a>
@@ -310,3 +439,100 @@
     </x-page-card>
 </div>
 @endsection
+
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/backend/select.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
+    <style>
+        .ts-wrapper.panel-input {
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
+        }
+
+        #edit_category_id + .ts-wrapper .ts-control {
+            border: 1px solid var(--field-border, #d8e2ee) !important;
+            border-radius: var(--field-radius, 0.82rem) !important;
+            padding: 0.52rem var(--field-padding-x, 0.88rem) !important;
+            min-height: var(--field-height, 2.75rem) !important;
+            background-color: #fff !important;
+            box-shadow: var(--field-shadow, 0 1px 2px rgba(15, 23, 42, 0.06)) !important;
+            display: flex;
+            align-items: center;
+        }
+        
+        .dark #edit_category_id + .ts-wrapper .ts-control {
+            border-color: #334155 !important;
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+        }
+
+        #edit_category_id + .ts-wrapper.focus .ts-control {
+            border-color: var(--field-focus, #2563eb) !important;
+            box-shadow: var(--field-focus-shadow), var(--field-shadow) !important;
+        }
+
+        #edit_category_id + .ts-wrapper .ts-dropdown {
+            border-radius: 0.5rem !important;
+            border-color: var(--field-border, #d8e2ee) !important;
+        }
+
+        .dark #edit_category_id + .ts-wrapper .ts-dropdown,
+        .dark #edit_category_id + .ts-wrapper .ts-dropdown .option {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        .dark #edit_category_id + .ts-wrapper .ts-dropdown .option.active {
+            background-color: #1e293b !important;
+        }
+
+        .info-tip {
+            position: relative;
+        }
+        .info-tip:hover {
+            z-index: 99999 !important;
+        }
+        .info-tip::before {
+            left: 0.5rem !important;
+            transform: translateY(2px) !important;
+        }
+        .info-tip::after {
+            left: 0 !important;
+            transform: translateY(2px) !important;
+        }
+        .info-tip:hover::before,
+        .info-tip:focus-visible::before {
+            transform: translateY(0) !important;
+        }
+        .info-tip:hover::after,
+        .info-tip:focus-visible::after {
+            transform: translateY(0) !important;
+        }
+    </style>
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ asset('js/components/select.js') }}"></script>
+    <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Exclude edit_category_id from automatic EmsSelect loop
+            if (window.EmsSelect) {
+                window.EmsSelect.initAll(
+                    document,
+                    'select.panel-input:not(#edit_category_id)'
+                );
+            }
+            
+            // Manually initialize edit_category_id with clean TomSelect like Question Create page
+            new TomSelect('#edit_category_id', {
+                create: false,
+                placeholder: "Search for a category..."
+            });
+        });
+    </script>
+@endpush

@@ -47,6 +47,23 @@ class ExamService
             unset($data['exam_category_id']);
         }
 
+        // Handle JSON array/string fields safely
+        if (isset($data['exam_format'])) {
+            if (is_string($data['exam_format'])) {
+                if (str_starts_with(trim($data['exam_format']), '[')) {
+                    $data['exam_format'] = json_decode($data['exam_format'], true);
+                } else {
+                    $data['exam_format'] = [$data['exam_format']];
+                }
+            }
+        }
+        if (isset($data['selected_categories']) && is_string($data['selected_categories'])) {
+            $decoded = json_decode($data['selected_categories'], true);
+            if (is_array($decoded)) {
+                $data['selected_categories'] = $decoded;
+            }
+        }
+
         // Strip helper / UI-only keys
         unset($data['_token'], $data['_method']);
 
@@ -60,11 +77,17 @@ class ExamService
         $ids = $data['question_ids'] ?? [];
         unset($data['question_ids']);
 
+        $selectedCats = $data['selected_categories'] ?? [];
+
         $data['created_by'] = Auth::id();
         $data['status'] = $data['status'] ?? 'draft';
 
         $exam = Exam::create($data);
         $this->syncQuestions($exam, $ids);
+
+        if (!empty($selectedCats) && is_array($selectedCats)) {
+            $exam->selectedQuestionCategories()->sync($selectedCats);
+        }
 
         return $exam->fresh(['questions']);
     }
@@ -76,10 +99,16 @@ class ExamService
         $ids = $data['question_ids'] ?? null;
         unset($data['question_ids']);
 
+        $selectedCats = $data['selected_categories'] ?? null;
+
         $exam->update($data);
 
         if (is_array($ids)) {
             $this->syncQuestions($exam, $ids);
+        }
+
+        if (is_array($selectedCats)) {
+            $exam->selectedQuestionCategories()->sync($selectedCats);
         }
 
         return $exam->fresh(['questions']);

@@ -51,11 +51,8 @@ class ExamController extends Controller
 
     public function create(): View
     {
-        $categories = ExamCategory::query()
-            ->whereNull('parent_id')
-            ->with('children')
-            ->orderBy('name')
-            ->get(['id', 'name', 'parent_id']);
+        $orgId = $this->currentOrgId();
+        $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
 
         $questions = Question::query()
             ->orderBy('body')
@@ -110,11 +107,8 @@ class ExamController extends Controller
         $exam = $this->resolveExam((int) $id);
         abort_if($exam->exists && $exam->organization_id !== $this->currentOrgId(), 403, 'Unauthorized access to this exam.');
 
-        $categories = ExamCategory::query()
-            ->whereNull('parent_id')
-            ->with('children')
-            ->orderBy('name')
-            ->get(['id', 'name', 'parent_id']);
+        $orgId = $this->currentOrgId();
+        $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
 
         $questions = Question::query()
             ->orderBy('body')
@@ -191,7 +185,7 @@ class ExamController extends Controller
             'shuffle_questions'          => false,
             'shuffle_options'            => false,
             'exam_mode'                  => 'standard',
-            'exam_format'                => 'mcq',
+            'exam_format'                => ['mcq'],
             'visibility'                 => 'public',
             'category_id'                => null,
             'scheduled_start'            => null,

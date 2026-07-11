@@ -78,6 +78,7 @@ class Exam extends Model
         'canonical_url',
         'og_title',
         'og_description',
+        'instructions',
     ];
 
     protected function casts(): array
@@ -98,6 +99,7 @@ class Exam extends Model
 
             // JSON
             'tags'                       => 'array',
+            'exam_format'                => 'array',
             'selected_categories'        => 'array',
             'extra_questions_categories' => 'array',
             'extra_questions_allocations'=> 'array',
@@ -107,6 +109,11 @@ class Exam extends Model
             'manual_candidate_emails'    => 'array',
             'updated_by_history'         => 'array',
         ];
+    }
+
+    public function selectedQuestionCategories()
+    {
+        return $this->belongsToMany(QuestionCategory::class, 'exam_question_category', 'exam_id', 'question_category_id');
     }
 
     // ── Relationships ─────────────────────────────────────────────────────────

@@ -31,6 +31,40 @@ async function initializeQuestionBankAccordion() {
     // Store accordion instance on window for later access
     window.questionBankAccordion = accordion;
 
+    // Setup refresh button listener
+    const refreshBtn = document.getElementById('refresh-question-bank');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            const svg = refreshBtn.querySelector('svg');
+            if (svg) svg.classList.add('animate-spin');
+            refreshBtn.disabled = true;
+            try {
+                await accordion.reloadData();
+                
+                // Also reload exam-create.js's state.questionBank if it exists!
+                if (window.examCreateConfig && window.examCreateConfig.endpoints) {
+                    const response = await fetch(window.examCreateConfig.endpoints.questionBank, {
+                        headers: { Accept: 'application/json' }
+                    });
+                    if (response.ok) {
+                        const newQuestions = await response.json();
+                        if (window.examCreateState) {
+                            window.examCreateState.questionBank = newQuestions;
+                            if (typeof window.examCreateUpdateAll === 'function') {
+                                window.examCreateUpdateAll();
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to reload question bank:', err);
+            } finally {
+                if (svg) svg.classList.remove('animate-spin');
+                refreshBtn.disabled = false;
+            }
+        });
+    }
+
     // Listen for category selection changes
     setupCategorySelectionListener(accordion);
 

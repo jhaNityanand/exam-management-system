@@ -380,6 +380,21 @@ class QuestionBankAccordion {
         }
     }
 
+    async reloadData() {
+        this.showFeedback('Reloading question bank data...', 'info');
+        try {
+            await this.loadData();
+            // Refresh selections/views:
+            this.setSelectedCategories(Array.from(this.state.selectedCategories));
+            this.showFeedback('Question bank data reloaded successfully.', 'success');
+            // Hide feedback after 3 seconds
+            setTimeout(() => this.showFeedback(''), 3000);
+        } catch (error) {
+            console.error('QuestionBankAccordion reload error:', error);
+            this.showFeedback('Failed to reload question bank data.', 'error');
+        }
+    }
+
     /**
      * Get current state
      */
