@@ -1,10 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
     const typeSelect = document.getElementById('type');
     const sections = {
-        'mcq': document.getElementById('section-mcq'),
-        'true_false': document.getElementById('section-true-false'),
-        'short_answer': document.getElementById('section-short-answer')
+        mcq: document.getElementById('section-mcq'),
+        true_false: document.getElementById('section-true-false'),
+        short_answer: document.getElementById('section-short-answer'),
+        long_answer: document.getElementById('section-short-answer'),
+        fill_blank: document.getElementById('section-short-answer'),
     };
+
+    const isTextAnswerType = (type) => ['short_answer', 'long_answer', 'fill_blank'].includes(type);
 
     const allowsMultiple = document.getElementById('allows_multiple');
     const optionsContainer = document.getElementById('options-container');
@@ -88,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .create(document.querySelector('#editor-sa-answer'), editorConfig)
             .then(editor => {
                 saAnswerEditor = editor;
-                if (window.existingQuestion && window.existingQuestion.type === 'short_answer') {
+                if (window.existingQuestion && isTextAnswerType(window.existingQuestion.type)) {
                     editor.setData(window.existingQuestion.correct_answer || '');
                 }
                 editor.model.document.on('change:data', () => {
@@ -414,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showError(document.querySelector('input[name="tf_answer"]').closest('.flex'), 'You must select True or False.');
                 isValid = false;
             }
-        } else if (type === 'short_answer') {
+        } else if (isTextAnswerType(type)) {
             const saHtml = saAnswerEditor ? saAnswerEditor.getData().trim() : '';
             const saText = stripHtml(saHtml).trim();
             if (saText === '') {
@@ -485,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hidden.value = checked.value;
             hidden.classList.add('appended-option-input');
             form.appendChild(hidden);
-        } else if (type === 'short_answer') {
+        } else if (isTextAnswerType(type)) {
             const html = document.getElementById('sa_answer').value;
             const hidden = document.createElement('input');
             hidden.type = 'hidden';

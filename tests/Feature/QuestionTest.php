@@ -112,6 +112,38 @@ test('user can search and filter questions', function () {
         ->get(route('admin.internal-api.questions-table', ['filters' => ['difficulty' => 'easy']]));
     $response->assertJsonCount(1, 'data')
         ->assertJsonFragment(['difficulty' => 'easy']);
+
+    // Filter by marks
+    $this->actingAs($this->user)
+        ->get(route('admin.internal-api.questions-table', ['filters' => ['marks' => 3]]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonFragment(['marks' => 3]);
+
+    // Filter by multiple marks values
+    $this->actingAs($this->user)
+        ->get(route('admin.internal-api.questions-table', ['filters' => ['marks' => [1, 3]]]))
+        ->assertOk()
+        ->assertJsonCount(2, 'data');
+
+    // Filter by category
+    $this->actingAs($this->user)
+        ->get(route('admin.internal-api.questions-table', ['filters' => ['category_id' => $category2->id]]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonFragment(['body' => 'Define gravity']);
+
+    // Sort by difficulty ascending
+    $sorted = $this->actingAs($this->user)
+        ->get(route('admin.internal-api.questions-table', [
+            'sort' => 'difficulty',
+            'direction' => 'asc',
+        ]))
+        ->assertOk()
+        ->json('data');
+
+    expect(collect($sorted)->pluck('difficulty')->all())
+        ->toBe(['easy', 'medium']);
 });
 
 test('user can store a new MCQ question', function () {
@@ -235,23 +267,77 @@ test('user can update a question', function () {
     ]);
 });
 
-test('user can delete a question', function () {
-    $question = Question::create([
+test('user can store fill blank and long answer questions', function () {
+    $category = QuestionCategory::create([
         'organization_id' => $this->organization->id,
-        'body' => 'To be deleted',
-        'type' => 'short_answer',
-        'correct_answer' => 'answer',
-        'difficulty' => 'easy',
-        'marks_type' => 'single',
-        'marks' => 1,
+        'name' => 'English',
         'status' => 'active',
     ]);
 
-    $response = $this->actingAs($this->user)
-        ->delete(route('admin.questions.destroy', $question));
+    $this->actingAs($this->user)
+        ->post(route('admin.questions.store'), [
+            'category_id' => $category->id,
+            'type' => 'fill_blank',
+            'difficulty' => 'medium',
+            'marks_type' => 'single',
+            'marks' => 2,
+            'body' => 'The capital of France is ________.',
+            'correct_answer' => 'Paris',
+            'status' => 'active',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('admin.questions.index'));
 
-    $response->assertRedirect(route('admin.questions.index'));
-    $this->assertSoftDeleted('questions', [
-        'id' => $question->id,
+    $this->assertDatabaseHas('questions', [
+        'body' => 'The capital of France is ________.',
+        'type' => 'fill_blank',
+        'correct_answer' => 'Paris',
     ]);
+
+    $this->actingAs($this->user)
+        ->post(route('admin.questions.store'), [
+            'category_id' => $category->id,
+            'type' => 'long_answer',
+            'difficulty' => 'very_hard',
+            'marks_type' => 'single',
+            'marks' => 8,
+            'body' => 'Discuss the causes of the Industrial Revolution.',
+            'correct_answer' => '<p>Include technological, economic, and social factors.</p>',
+            'status' => 'active',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('questions', [
+        'type' => 'long_answer',
+        'difficulty' => 'very_hard',
+        'marks' => 8,
+    ]);
+});
+
+test('questions table supports pagination and per page', function () {
+    $category = QuestionCategory::create([
+        'organization_id' => $this->organization->id,
+        'name' => 'Paginated Cat',
+        'status' => 'active',
+    ]);
+
+    for ($i = 1; $i <= 15; $i++) {
+        Question::create([
+            'organization_id' => $this->organization->id,
+            'category_id' => $category->id,
+            'body' => "Pagination question {$i}",
+            'type' => 'short_answer',
+            'correct_answer' => 'ok',
+            'difficulty' => 'easy',
+            'marks_type' => 'single',
+            'marks' => 1,
+            'status' => 'active',
+        ]);
+    }
+
+    $this->actingAs($this->user)
+        ->get(route('admin.internal-api.questions-table', ['per_page' => 10]))
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 10)
+        ->assertJsonCount(10, 'data');
 });

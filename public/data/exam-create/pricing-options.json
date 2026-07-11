@@ -1,5 +1,0 @@
-[
-  { "id": "paid", "label": "Paid", "description": "Candidates pay before attempting" },
-  { "id": "free", "label": "Free", "description": "Open access without payment" },
-  { "id": "free_for_imported", "label": "Free for Imported Candidates", "description": "Only imported candidates get free access" }
-]

@@ -103,9 +103,9 @@
                         <div>
                             <label for="edit_status" class="exam-label">Status <span class="form-required">*</span></label>
                             <select id="edit_status" name="status" class="panel-input">
-                                @foreach(['draft', 'published', 'active', 'inactive', 'suspended'] as $s)
-                                    <option value="{{ $s }}" @selected(old('status', $exam->status) === $s)>
-                                        {{ ucfirst($s) }}
+                                @foreach(\App\Support\ExamFormOptions::statusLabels() as $val => $label)
+                                    <option value="{{ $val }}" @selected(old('status', $exam->status) === $val)>
+                                        {{ $label }}
                                     </option>
                                 @endforeach
                             </select>
@@ -115,9 +115,9 @@
                         <div>
                             <label for="edit_exam_mode" class="exam-label">Exam Mode <span class="form-required">*</span></label>
                             <select id="edit_exam_mode" name="exam_mode" class="panel-input">
-                                @foreach(['standard', 'practice', 'proctored'] as $m)
-                                    <option value="{{ $m }}" @selected(old('exam_mode', $exam->exam_mode) === $m)>
-                                        {{ ucfirst($m) }}
+                                @foreach(\App\Support\ExamFormOptions::modeLabels() as $val => $label)
+                                    <option value="{{ $val }}" @selected(old('exam_mode', $exam->exam_mode) === $val)>
+                                        {{ $label }}
                                     </option>
                                 @endforeach
                             </select>
@@ -130,7 +130,7 @@
                                 @php
                                     $currentFormat = old('exam_format', is_array($exam->exam_format) ? $exam->exam_format : (json_decode($exam->exam_format, true) ?: [$exam->exam_format]));
                                 @endphp
-                                @foreach(['mcq' => 'MCQ', 'written' => 'Written', 'multi_select' => 'Multi Select'] as $val => $label)
+                                @foreach(\App\Support\ExamFormOptions::formatLabels() as $val => $label)
                                     <option value="{{ $val }}" @selected(in_array($val, $currentFormat))>
                                         {{ $label }}
                                     </option>
@@ -142,7 +142,7 @@
                         <div>
                             <label for="edit_visibility" class="exam-label">Visibility <span class="form-required">*</span></label>
                             <select id="edit_visibility" name="visibility" class="panel-input">
-                                @foreach(['public' => 'Public', 'private' => 'Private', 'invite_only' => 'Invite Only'] as $val => $label)
+                                @foreach(\App\Support\ExamFormOptions::visibilityLabels() as $val => $label)
                                     <option value="{{ $val }}" @selected(old('visibility', $exam->visibility) === $val)>
                                         {{ $label }}
                                     </option>
@@ -155,7 +155,7 @@
                             <label for="edit_difficulty" class="exam-label">Difficulty Level</label>
                             <select id="edit_difficulty" name="difficulty_level" class="panel-input">
                                 <option value="">— Any —</option>
-                                @foreach(['beginner' => 'Beginner', 'intermediate' => 'Intermediate', 'advanced' => 'Advanced'] as $val => $label)
+                                @foreach(\App\Support\ExamFormOptions::difficultyLabels() as $val => $label)
                                     <option value="{{ $val }}" @selected(old('difficulty_level', $exam->difficulty_level) === $val)>
                                         {{ $label }}
                                     </option>
@@ -442,7 +442,7 @@
 
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/backend/select.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <style>
         .ts-wrapper.panel-input {
@@ -452,41 +452,15 @@
         }
 
         #edit_category_id + .ts-wrapper .ts-control {
-            border: 1px solid var(--field-border, #d8e2ee) !important;
             border-radius: var(--field-radius, 0.82rem) !important;
-            padding: 0.52rem var(--field-padding-x, 0.88rem) !important;
             min-height: var(--field-height, 2.75rem) !important;
-            background-color: #fff !important;
-            box-shadow: var(--field-shadow, 0 1px 2px rgba(15, 23, 42, 0.06)) !important;
             display: flex;
             align-items: center;
         }
-        
-        .dark #edit_category_id + .ts-wrapper .ts-control {
-            border-color: #334155 !important;
-            background-color: #0f172a !important;
+
+        .dark #edit_category_id + .ts-wrapper .ts-control .item,
+        .dark #edit_category_id + .ts-wrapper .ts-control input {
             color: #f8fafc !important;
-        }
-
-        #edit_category_id + .ts-wrapper.focus .ts-control {
-            border-color: var(--field-focus, #2563eb) !important;
-            box-shadow: var(--field-focus-shadow), var(--field-shadow) !important;
-        }
-
-        #edit_category_id + .ts-wrapper .ts-dropdown {
-            border-radius: 0.5rem !important;
-            border-color: var(--field-border, #d8e2ee) !important;
-        }
-
-        .dark #edit_category_id + .ts-wrapper .ts-dropdown,
-        .dark #edit_category_id + .ts-wrapper .ts-dropdown .option {
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            border-color: #334155 !important;
-        }
-
-        .dark #edit_category_id + .ts-wrapper .ts-dropdown .option.active {
-            background-color: #1e293b !important;
         }
 
         .info-tip {
@@ -517,6 +491,7 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/select.js') }}"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -527,12 +502,14 @@
                     'select.panel-input:not(#edit_category_id)'
                 );
             }
-            
-            // Manually initialize edit_category_id with clean TomSelect like Question Create page
-            new TomSelect('#edit_category_id', {
+
+            const categorySelect = new TomSelect('#edit_category_id', {
                 create: false,
-                placeholder: "Search for a category..."
+                placeholder: "Search for a category...",
+                closeAfterSelect: true,
             });
+            window.EmsTomSelectBlur?.attach(categorySelect);
+            window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
         });
     </script>
 @endpush

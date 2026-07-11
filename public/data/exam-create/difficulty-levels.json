@@ -1,5 +1,0 @@
-[
-  { "id": "easy", "label": "Easy", "description": "Basic recall and simple application" },
-  { "id": "medium", "label": "Medium", "description": "Scenario-based intermediate reasoning" },
-  { "id": "hard", "label": "Hard", "description": "Advanced conceptual and applied challenges" }
-]

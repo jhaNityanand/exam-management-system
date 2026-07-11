@@ -23,7 +23,7 @@
     </div>
 @else
 
-    <ul id="category-tree-root" class="space-y-4">
+    <ul id="category-tree-root" class="space-y-2">
         @foreach ($categories as $category)
             @include('backend.question-categories.partials.tree-node', [
                 'node'            => $category,

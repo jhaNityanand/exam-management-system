@@ -4,13 +4,84 @@ namespace App\Services;
 
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\ExamCategory;
 use App\Models\Organization;
 use App\Models\Question;
+use App\Models\QuestionCategory;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardService
 {
+    /**
+     * Org-scoped workspace stats for the current single-org admin dashboard.
+     */
+    public function workspaceStats(int $orgId): array
+    {
+        $topCategories = QuestionCategory::query()
+            ->forOrg($orgId)
+            ->withCount('questions')
+            ->orderByDesc('questions_count')
+            ->limit(8)
+            ->get(['id', 'name']);
+
+        $attemptDays = collect(range(6, 0))->map(function (int $daysAgo) use ($orgId) {
+            $day = Carbon::today()->subDays($daysAgo);
+
+            return [
+                'label' => $day->format('D'),
+                'count' => ExamAttempt::query()
+                    ->whereDate('created_at', $day)
+                    ->whereHas('exam', fn ($q) => $q->where('organization_id', $orgId))
+                    ->count(),
+            ];
+        });
+
+        return [
+            'total_questions' => Question::query()->forOrg($orgId)->count(),
+            'total_categories' => QuestionCategory::query()->forOrg($orgId)->count(),
+            'total_exam_categories' => ExamCategory::query()->forOrg($orgId)->count(),
+            'total_members' => User::query()
+                ->whereHas('organizations', fn ($q) => $q->where('organizations.id', $orgId))
+                ->count(),
+            'total_exams' => Exam::query()->forOrg($orgId)->count(),
+            'active_exams' => Exam::query()
+                ->forOrg($orgId)
+                ->whereIn('status', ['active', 'published'])
+                ->count(),
+            'draft_exams' => Exam::query()->forOrg($orgId)->where('status', 'draft')->count(),
+            'published_exams' => Exam::query()->forOrg($orgId)->where('status', 'published')->count(),
+            'recent_members' => User::query()
+                ->whereHas('organizations', fn ($q) => $q->where('organizations.id', $orgId))
+                ->latest()
+                ->limit(5)
+                ->get(['id', 'name', 'email', 'created_at']),
+            'recent_exams' => Exam::query()
+                ->forOrg($orgId)
+                ->latest()
+                ->limit(5)
+                ->get(['id', 'title', 'status', 'duration', 'pass_percentage', 'updated_at']),
+            'category_chart' => [
+                'labels' => $topCategories->pluck('name')->all(),
+                'values' => $topCategories->pluck('questions_count')->all(),
+            ],
+            'attempts_chart' => [
+                'labels' => $attemptDays->pluck('label')->all(),
+                'values' => $attemptDays->pluck('count')->all(),
+            ],
+            'exam_chart' => [
+                'labels' => ['Draft', 'Published', 'Active', 'Other'],
+                'values' => [
+                    Exam::query()->forOrg($orgId)->where('status', 'draft')->count(),
+                    Exam::query()->forOrg($orgId)->where('status', 'published')->count(),
+                    Exam::query()->forOrg($orgId)->where('status', 'active')->count(),
+                    Exam::query()->forOrg($orgId)->whereNotIn('status', ['draft', 'published', 'active'])->count(),
+                ],
+            ],
+        ];
+    }
+
     public function adminStats(): array
     {
         return [

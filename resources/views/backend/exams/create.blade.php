@@ -552,29 +552,31 @@
                     </section>
 
                     <section class="exam-section" id="question-bank-section">
-                        <div class="exam-section__head" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div class="exam-section__head" style="display: flex; justify-content: space-between; align-items: center; padding: 0.95rem 1rem 0.8rem;">
                             <div>
                                 <h2>9. Question Bank Management</h2>
                                 <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
                             </div>
-                            <button type="button" id="refresh-question-bank" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition" title="Refresh Question Bank" style="background: none; border: none; padding: 0.5rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1.5rem; height: 1.5rem;">
+                            <button type="button" id="refresh-question-bank" class="text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 rounded-full transition-all duration-200" title="Refresh Question Bank" style="background: transparent !important; border: none !important; box-shadow: none !important; width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1.25rem; height: 1.25rem;">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
                                 </svg>
                             </button>
                         </div>
                         <div class="exam-section__body space-y-4" id="question-bank-container" data-question-bank>
-                            <div class="question-bank-toolbar">
-                                <label class="question-search">
-                                    <span>Search Questions</span>
-                                    <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword" data-question-search-input>
+                            <div class="question-bank-toolbar" style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem;">
+                                <label class="question-search" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; min-width: 0;">
+                                    <span style="font-size: 0.875rem; font-weight: 500; color: #374151;">Search Questions</span>
+                                    <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword" data-question-search-input style="width: 100%;">
                                 </label>
-                                <div class="question-bank-global-actions" style="display: flex; align-items: flex-end; gap: 0.75rem;">
-                                    <div class="global-selection-stats" style="font-size: 0.82rem; font-weight: 700; color: var(--exam-primary); padding-bottom: 0.5rem;">
+                                <div class="question-bank-global-actions" style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; width: 280px; flex-shrink: 0;">
+                                    <div class="global-selection-stats" style="font-size: 0.875rem; font-weight: 600; color: var(--exam-primary); padding-bottom: 0.15rem; text-align: right; width: 100%;">
                                         Total Selected: <span id="global-selected-count">0</span> / <span id="global-allowed-count">0</span>
                                     </div>
-                                    <button type="button" id="global-random-select" class="panel-button-secondary">Random Select</button>
-                                    <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
+                                    <div class="global-action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
+                                        <button type="button" id="global-random-select" class="panel-button-secondary" style="flex: 1; white-space: nowrap; font-size: 0.875rem; padding: 0.5rem 0.75rem; height: 2.5rem; display: inline-flex; align-items: center; justify-content: center;">Random Select</button>
+                                        <button type="button" id="open-add-question-modal" class="panel-button-secondary" style="flex: 1; white-space: nowrap; font-size: 0.875rem; padding: 0.5rem 0.75rem; height: 2.5rem; display: inline-flex; align-items: center; justify-content: center;">Add Question</button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -798,47 +800,22 @@
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/question-bank-accordion.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}?v={{ time() }}">
     <style>
         #exam_category_id + .ts-wrapper .ts-control {
-            border: 1px solid var(--field-border, #d8e2ee) !important;
             border-radius: var(--field-radius, 0.82rem) !important;
-            padding: 0.52rem var(--field-padding-x, 0.88rem) !important;
             min-height: var(--field-height, 2.75rem) !important;
-            background-color: #fff !important;
-            box-shadow: var(--field-shadow, 0 1px 2px rgba(15, 23, 42, 0.06)) !important;
             display: flex;
             align-items: center;
         }
-        
-        .dark #exam_category_id + .ts-wrapper .ts-control {
-            border-color: #334155 !important;
-            background-color: #0f172a !important;
+
+        .dark #exam_category_id + .ts-wrapper .ts-control .item,
+        .dark #exam_category_id + .ts-wrapper .ts-control input {
             color: #f8fafc !important;
-        }
-
-        #exam_category_id + .ts-wrapper.focus .ts-control {
-            border-color: var(--field-focus, #2563eb) !important;
-            box-shadow: var(--field-focus-shadow), var(--field-shadow) !important;
-        }
-
-        #exam_category_id + .ts-wrapper .ts-dropdown {
-            border-radius: 0.5rem !important;
-            border-color: var(--field-border, #d8e2ee) !important;
-        }
-
-        .dark #exam_category_id + .ts-wrapper .ts-dropdown,
-        .dark #exam_category_id + .ts-wrapper .ts-dropdown .option {
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            border-color: #334155 !important;
-        }
-
-        .dark #exam_category_id + .ts-wrapper .ts-dropdown .option.active {
-            background-color: #1e293b !important;
         }
 
         .exam-grid-span-3 {
@@ -886,32 +863,27 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/core/form-utils.js') }}?v={{ time() }}"></script>
     <script>
         window.examCreateConfig = {
+            options: @json($formOptions),
             endpoints: {
-                difficultyLevels: "{{ asset('data/exam-create/difficulty-levels.json') }}",
-                examStatus: "{{ asset('data/exam-create/exam-status.json') }}",
-                examModes: "{{ asset('data/exam-create/exam-modes.json') }}",
-                visibilityOptions: "{{ asset('data/exam-create/visibility-options.json') }}",
-                categories: "{{ asset('data/exam-create/categories.json') }}",
-                discountRules: "{{ asset('data/exam-create/discount-rules.json') }}",
-                questionMarks: "{{ asset('data/exam-create/question-marks.json') }}",
-                questionBank: "{{ asset('data/exam-create/question-bank.json') }}",
-                pricingOptions: "{{ asset('data/exam-create/pricing-options.json') }}",
-                distributionTypes: "{{ asset('data/exam-create/distribution-types.json') }}",
-                instructionTemplates: "{{ asset('data/exam-create/instruction-templates.json') }}",
-                currencies: "{{ asset('data/exam-create/currencies.json') }}"
+                categories: @json(route('admin.api.question-bank.categories')),
+                questionBank: @json(route('admin.api.question-bank.questions')),
             }
         };
         document.addEventListener('DOMContentLoaded', function() {
-            new TomSelect('#exam_category_id', {
+            const categorySelect = new TomSelect('#exam_category_id', {
                 create: false,
-                placeholder: "Search for a category..."
+                placeholder: "Search for a category...",
+                closeAfterSelect: true,
             });
+            window.EmsTomSelectBlur?.attach(categorySelect);
+            window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
         });
     </script>
     <script src="{{ asset('js/backend/exam-create.js') }}?v={{ time() }}"></script>

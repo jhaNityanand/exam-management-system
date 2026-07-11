@@ -50,7 +50,7 @@
         </div>
     </div>
     <div class="category-node__children">
-        @foreach ($node->children as $child)
+        @foreach ($node->childrenRecursive as $child)
             @include('backend.exam-categories.partials.edit-tree-node', [
                 'node'  => $child,
                 'level' => $level + 1,

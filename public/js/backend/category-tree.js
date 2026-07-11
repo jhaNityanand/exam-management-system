@@ -1,32 +1,29 @@
 /**
- * category-list.js
+ * category-tree.js
  *
- * Handles the interactive behavior of the Question Category index (tree list) page:
- *   - AJAX loading on initial page load
- *   - Debounced real-time AJAX search
- *   - Instant AJAX status filtering
- *   - URL state synchronization using history.replaceState
- *   - Event delegation on tree container for nodes (expand/collapse, view modal, SweetAlert2 delete confirmation)
- *   - Category Details modal population from single category JSON endpoint
+ * Shared AJAX tree explorer for Question and Exam category index pages.
+ * Configure via window.categoryTreeConfig before this script loads:
+ *   - indexUrl            (named route for the list / AJAX HTML partial)
+ *   - detailsBaseUrl      (base URL for JSON show: {base}/{id})
+ *   - linkedResourceLabel (e.g. "questions" or "exams" — used in delete copy)
  */
 document.addEventListener('DOMContentLoaded', () => {
+    const config = window.categoryTreeConfig || {};
+    const indexUrl = config.indexUrl || window.location.pathname;
+    const detailsBaseUrl = (config.detailsBaseUrl || indexUrl).replace(/\/$/, '');
+    const linkedResourceLabel = config.linkedResourceLabel || 'items';
 
-    /* ------------------------------------------------------------------ */
-    /*  Element refs                                                        */
-    /* ------------------------------------------------------------------ */
     const persistentContainer = document.getElementById('category-tree-container');
-    const searchInput         = document.getElementById('category-search');
-    const statusFilter        = document.getElementById('status-filter');
-    const expandAllButton     = document.getElementById('expand-all-btn');
-    const expandAllIcon       = document.getElementById('expand-all-icon');
-    const detailsModalEl      = document.getElementById('categoryDetailsModal');
+    const searchInput = document.getElementById('category-search');
+    const statusFilter = document.getElementById('status-filter');
+    const expandAllButton = document.getElementById('expand-all-btn');
+    const expandAllIcon = document.getElementById('expand-all-icon');
+    const detailsModalEl = document.getElementById('categoryDetailsModal');
 
     if (!persistentContainer) return;
 
-    // Skeleton loader HTML matching hierarchy nodes visual structure
     const skeletonHTML = `
-        <div class="animate-pulse space-y-4">
-            <!-- Skeleton Root Node 1 -->
+        <div class="animate-pulse space-y-4" aria-hidden="true">
             <div class="rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex-1 space-y-3">
@@ -47,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </div>
-            <!-- Skeleton Child Node 1.1 -->
             <div class="ml-8 rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex-1 space-y-3">
@@ -66,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </div>
-            <!-- Skeleton Root Node 2 -->
             <div class="rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/80 dark:bg-slate-900/60 px-4 py-4 shadow-sm">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex-1 space-y-3">
@@ -88,27 +83,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
-    /* ------------------------------------------------------------------ */
-    /*  Debounce Helper                                                     */
-    /* ------------------------------------------------------------------ */
     const debounce = (func, wait) => {
         let timeout;
         return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
             clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
+            timeout = setTimeout(() => func(...args), wait);
         };
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Tree Node State Helpers                                             */
-    /* ------------------------------------------------------------------ */
     const setBranchState = (node, shouldOpen) => {
         const children = node.querySelector(':scope > .category-tree-children');
-        const toggle   = node.querySelector('.toggle-node-btn');
+        const toggle = node.querySelector('.toggle-node-btn');
         if (!children || !toggle) return;
 
         children.classList.toggle('hidden', !shouldOpen);
@@ -117,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateExpandAllLabel = () => {
-        const toggles     = persistentContainer.querySelectorAll('.toggle-node-btn');
+        const toggles = persistentContainer.querySelectorAll('.toggle-node-btn');
         if (toggles.length === 0) return;
         const allExpanded = Array.from(toggles).every(
             (t) => t.getAttribute('aria-expanded') === 'true'
@@ -128,18 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (expandAllIcon) expandAllIcon.style.transform = allExpanded ? 'rotate(180deg)' : '';
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  AJAX Loaders                                                        */
-    /* ------------------------------------------------------------------ */
     const loadCategories = () => {
         const query = searchInput ? searchInput.value.trim() : '';
         const status = statusFilter ? statusFilter.value : '';
 
-        // Trigger loading visual skeleton state
         persistentContainer.innerHTML = skeletonHTML;
 
-        // Build request URL containing filter state params
-        const url = new URL(window.location.href);
+        const url = new URL(indexUrl, window.location.origin);
         if (query) {
             url.searchParams.set('search', query);
         } else {
@@ -151,60 +131,55 @@ document.addEventListener('DOMContentLoaded', () => {
             url.searchParams.delete('status');
         }
 
-        // Sync browser history URL structure
         window.history.replaceState(null, '', url.toString());
 
-        // Perform AJAX GET
         fetch(url.toString(), {
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+                Accept: 'text/html',
+            },
         })
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to load categories hierarchy.');
-            return response.text();
-        })
-        .then(html => {
-            persistentContainer.innerHTML = html;
+            .then((response) => {
+                if (!response.ok) throw new Error('Failed to load categories hierarchy.');
+                return response.text();
+            })
+            .then((html) => {
+                persistentContainer.innerHTML = html;
 
-            const rootEl = document.getElementById('category-tree-root');
-            if (rootEl) {
-                const nodes = Array.from(rootEl.children).filter(c => c.classList.contains('category-tree-node'));
+                const rootEl = document.getElementById('category-tree-root');
+                if (rootEl) {
+                    const nodes = Array.from(rootEl.children).filter((c) =>
+                        c.classList.contains('category-tree-node')
+                    );
 
-                // Auto-expand all matching branches when search query is active
-                if (query) {
-                    rootEl.querySelectorAll('.category-tree-node').forEach(node => {
-                        setBranchState(node, true);
-                    });
-                } else {
-                    // Collapse all tree structures by default for general browsing
-                    nodes.forEach(node => {
-                        setBranchState(node, false);
-                    });
+                    if (query) {
+                        rootEl.querySelectorAll('.category-tree-node').forEach((node) => {
+                            setBranchState(node, true);
+                        });
+                    } else {
+                        nodes.forEach((node) => {
+                            setBranchState(node, false);
+                        });
+                    }
                 }
-            }
-            updateExpandAllLabel();
-        })
-        .catch(err => {
-            console.error('AJAX Load error:', err);
-            persistentContainer.innerHTML = `
+                updateExpandAllLabel();
+            })
+            .catch((err) => {
+                console.error('AJAX Load error:', err);
+                persistentContainer.innerHTML = `
                 <div class="rounded-3xl border border-dashed border-rose-300 bg-rose-50 px-6 py-12 text-center dark:border-rose-900/40 dark:bg-rose-900/10">
                     <h3 class="text-base font-semibold text-rose-900 dark:text-rose-400">Failed to retrieve categories</h3>
                     <p class="mt-1 text-sm text-rose-500 dark:text-rose-400">Please refresh or verify backend services.</p>
                 </div>
             `;
-        });
+            });
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Detailed View Modal Handlers                                      */
-    /* ------------------------------------------------------------------ */
     let detailsBackdrop = null;
 
     const openDetailsModal = (categoryId) => {
         if (!detailsModalEl) return;
 
-        // Render custom dark backdrop and prevent scrolling
         detailsBackdrop = document.createElement('div');
         detailsBackdrop.className = 'modal-backdrop fade';
         document.body.appendChild(detailsBackdrop);
@@ -217,114 +192,113 @@ document.addEventListener('DOMContentLoaded', () => {
             detailsModalEl.setAttribute('aria-modal', 'true');
         });
 
-        // Set skeleton loader state
         const skeleton = document.getElementById('modal-skeleton');
         const content = document.getElementById('modal-content');
         if (skeleton) skeleton.classList.remove('hidden');
         if (content) content.classList.add('hidden');
 
-        // Collapsed state default reset for SEO accordion
         const seoContent = document.getElementById('modal-seo-content');
         const seoToggleIcon = document.getElementById('modal-seo-toggle-icon');
         if (seoContent) seoContent.classList.add('hidden');
         if (seoToggleIcon) seoToggleIcon.classList.remove('rotate-180');
 
-        // Fetch detailed record JSON
-        fetch(`/admin/questions/categories/${categoryId}`, {
+        fetch(`${detailsBaseUrl}/${categoryId}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
+                Accept: 'application/json',
+            },
         })
-        .then(response => {
-            if (!response.ok) throw new Error('Could not fetch category profile.');
-            return response.json();
-        })
-        .then(data => {
-            // Map JSON properties to DOM nodes
-            document.getElementById('categoryDetailsModalLabel').textContent = data.name;
-            document.getElementById('modal-slug').textContent = data.slug || 'N/A';
+            .then((response) => {
+                if (!response.ok) throw new Error('Could not fetch category profile.');
+                return response.json();
+            })
+            .then((data) => {
+                document.getElementById('categoryDetailsModalLabel').textContent = data.name;
+                document.getElementById('modal-slug').textContent = data.slug || 'N/A';
 
-            // Status Badge
-            const statusEl = document.getElementById('modal-status-badge');
-            if (statusEl) {
-                statusEl.innerHTML = `
+                const statusEl = document.getElementById('modal-status-badge');
+                if (statusEl) {
+                    statusEl.innerHTML = `
                     <span class="qcat-status-badge qcat-status-badge--${data.status}">
                         ${data.status.charAt(0).toUpperCase() + data.status.slice(1)}
                     </span>
                 `;
-            }
-
-            // Parent category resolution
-            document.getElementById('modal-parent').textContent = data.parent ? data.parent.name : 'None';
-
-            // AI Generated Flag details
-            const aiFlagsEl = document.getElementById('modal-ai-flags');
-            if (aiFlagsEl) {
-                aiFlagsEl.innerHTML = '';
-                if (data.ai_generated) {
-                    aiFlagsEl.innerHTML += `<span class="qcat-ai-badge" title="Created via AI">AI Generated</span>`;
                 }
-                if (data.ai_improve) {
-                    aiFlagsEl.innerHTML += `
+
+                document.getElementById('modal-parent').textContent = data.parent
+                    ? data.parent.name
+                    : 'None';
+
+                const aiFlagsEl = document.getElementById('modal-ai-flags');
+                if (aiFlagsEl) {
+                    aiFlagsEl.innerHTML = '';
+                    if (data.ai_generated) {
+                        aiFlagsEl.innerHTML += `<span class="qcat-ai-badge" title="Created via AI">AI Generated</span>`;
+                    }
+                    if (data.ai_improve) {
+                        aiFlagsEl.innerHTML += `
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                             AI Improve Queue
                         </span>
                     `;
+                    }
+                    if (!data.ai_generated && !data.ai_improve) {
+                        aiFlagsEl.innerHTML = `<span class="text-xs text-slate-400 font-medium">None</span>`;
+                    }
                 }
-                if (!data.ai_generated && !data.ai_improve) {
-                    aiFlagsEl.innerHTML = `<span class="text-xs text-slate-400 font-medium">None</span>`;
+
+                document.getElementById('modal-description').textContent =
+                    data.description || 'No description added yet.';
+
+                const childrenEl = document.getElementById('modal-children');
+                if (childrenEl) {
+                    childrenEl.innerHTML = '';
+                    if (data.children && data.children.length > 0) {
+                        data.children.forEach((child) => {
+                            const badge = document.createElement('span');
+                            badge.className = 'child-category-badge';
+                            badge.textContent = child.name;
+                            childrenEl.appendChild(badge);
+                        });
+                    } else {
+                        childrenEl.innerHTML =
+                            '<span class="text-xs text-slate-400 font-medium">No sub-categories.</span>';
+                    }
                 }
-            }
 
-            // Description block
-            document.getElementById('modal-description').textContent = data.description || 'No description added yet.';
+                document.getElementById('modal-meta-title').textContent = data.meta_title || 'N/A';
+                document.getElementById('modal-canonical-url').textContent =
+                    data.canonical_url || 'N/A';
+                document.getElementById('modal-meta-keywords').textContent =
+                    data.meta_keywords || 'N/A';
+                document.getElementById('modal-meta-description').textContent =
+                    data.meta_description || 'N/A';
+                document.getElementById('modal-og-title').textContent = data.og_title || 'N/A';
+                document.getElementById('modal-og-description').textContent =
+                    data.og_description || 'N/A';
 
-            // Render sub-categories recursively
-            const childrenEl = document.getElementById('modal-children');
-            if (childrenEl) {
-                childrenEl.innerHTML = '';
-                if (data.children && data.children.length > 0) {
-                    data.children.forEach(child => {
-                        const badge = document.createElement('span');
-                        badge.className = 'child-category-badge';
-                        badge.textContent = child.name;
-                        childrenEl.appendChild(badge);
-                    });
-                } else {
-                    childrenEl.innerHTML = '<span class="text-xs text-slate-400 font-medium">No sub-categories.</span>';
-                }
-            }
+                document.getElementById('modal-created-at').textContent =
+                    data.formatted_created_at || 'N/A';
+                document.getElementById('modal-updated-at').textContent =
+                    data.formatted_updated_at || 'N/A';
 
-            // SEO Metadata
-            document.getElementById('modal-meta-title').textContent = data.meta_title || 'N/A';
-            document.getElementById('modal-canonical-url').textContent = data.canonical_url || 'N/A';
-            document.getElementById('modal-meta-keywords').textContent = data.meta_keywords || 'N/A';
-            document.getElementById('modal-meta-description').textContent = data.meta_description || 'N/A';
-            document.getElementById('modal-og-title').textContent = data.og_title || 'N/A';
-            document.getElementById('modal-og-description').textContent = data.og_description || 'N/A';
-
-            // Timestamps
-            document.getElementById('modal-created-at').textContent = data.formatted_created_at || 'N/A';
-            document.getElementById('modal-updated-at').textContent = data.formatted_updated_at || 'N/A';
-
-            // Swap skeleton for structured visual layout
-            if (skeleton) skeleton.classList.add('hidden');
-            if (content) content.classList.remove('hidden');
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById('categoryDetailsModalLabel').textContent = 'Error Loading Profile';
-            if (skeleton) skeleton.classList.add('hidden');
-            if (content) {
-                content.innerHTML = `
+                if (skeleton) skeleton.classList.add('hidden');
+                if (content) content.classList.remove('hidden');
+            })
+            .catch((err) => {
+                console.error(err);
+                document.getElementById('categoryDetailsModalLabel').textContent =
+                    'Error Loading Profile';
+                if (skeleton) skeleton.classList.add('hidden');
+                if (content) {
+                    content.innerHTML = `
                     <div class="text-center py-8 text-rose-600 dark:text-rose-400 font-medium">
                         Unable to fetch category details. Please close and try again.
                     </div>
                 `;
-                content.classList.remove('hidden');
-            }
-        });
+                    content.classList.remove('hidden');
+                }
+            });
     };
 
     const closeDetailsModal = () => {
@@ -334,14 +308,14 @@ document.addEventListener('DOMContentLoaded', () => {
         detailsModalEl.removeAttribute('aria-modal');
         if (detailsBackdrop) {
             detailsBackdrop.classList.remove('show');
-            window.setTimeout(() => { detailsBackdrop?.remove(); detailsBackdrop = null; }, 150);
+            window.setTimeout(() => {
+                detailsBackdrop?.remove();
+                detailsBackdrop = null;
+            }, 150);
         }
         document.body.style.overflow = '';
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  SweetAlert2 Delete Confirmation                                     */
-    /* ------------------------------------------------------------------ */
     const openDeleteConfirm = (categoryId, categoryName) => {
         if (!window.Swal) return;
 
@@ -349,8 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!form) return;
 
         Swal.fire({
-            showClass:  { popup: 'swal-cat-show' },
-            hideClass:  { popup: 'swal-cat-hide' },
+            showClass: { popup: 'swal-cat-show' },
+            hideClass: { popup: 'swal-cat-hide' },
             buttonsStyling: false,
             showCancelButton: true,
             reverseButtons: true,
@@ -367,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </svg>
                         </span>
                     </div>
-                    <p class="swal-cat-message">You are about to permanently delete</p>
+                    <p class="swal-cat-message">You are about to delete</p>
                     <div class="swal-cat-name-chip">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
@@ -375,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </svg>
                         <span>${categoryName}</span>
                     </div>
-                    <p class="swal-cat-warning">This action is <strong>irreversible</strong>. All sub-categories and questions linked to this entry will also be affected.</p>
+                    <p class="swal-cat-warning">This will soft-delete the category. Sub-categories and ${linkedResourceLabel} linked to this entry will also be affected.</p>
                 </div>
             `,
 
@@ -394,14 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
             `,
 
             customClass: {
-                popup:         'swal-cat-popup',
-                title:         'swal-cat-title',
+                popup: 'swal-cat-popup',
+                title: 'swal-cat-title',
                 htmlContainer: 'swal-cat-html',
                 confirmButton: 'swal-cat-confirm-btn',
-                cancelButton:  'swal-cat-cancel-btn',
-                actions:       'swal-cat-actions',
+                cancelButton: 'swal-cat-cancel-btn',
+                actions: 'swal-cat-actions',
             },
-
         }).then((result) => {
             if (result.isConfirmed) {
                 form.submit();
@@ -409,17 +382,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Event Delegation on Persistent Container                           */
-    /* ------------------------------------------------------------------ */
     persistentContainer.addEventListener('click', (event) => {
-        const toggle       = event.target.closest('.toggle-node-btn');
-        const viewButton   = event.target.closest('.view-node-btn');
+        const toggle = event.target.closest('.toggle-node-btn');
+        const viewButton = event.target.closest('.view-node-btn');
         const deleteButton = event.target.closest('.delete-node-btn');
 
         if (toggle) {
-            const node          = toggle.closest('.category-tree-node');
-            const childContainer= node?.querySelector(':scope > .category-tree-children');
+            const node = toggle.closest('.category-tree-node');
+            const childContainer = node?.querySelector(':scope > .category-tree-children');
             if (node && childContainer) {
                 const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
                 setBranchState(node, !isExpanded);
@@ -439,13 +409,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ------------------------------------------------------------------ */
-    /*  Input Observers                                                     */
-    /* ------------------------------------------------------------------ */
     if (searchInput) {
-        searchInput.addEventListener('input', debounce(() => {
-            loadCategories();
-        }, 300));
+        searchInput.addEventListener(
+            'input',
+            debounce(() => {
+                loadCategories();
+            }, 300)
+        );
     }
 
     if (statusFilter) {
@@ -454,9 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Header Controls                                                     */
-    /* ------------------------------------------------------------------ */
     expandAllButton?.addEventListener('click', () => {
         const shouldExpand = expandAllButton.dataset.expanded !== 'true';
         persistentContainer.querySelectorAll('.category-tree-node').forEach((node) => {
@@ -465,9 +432,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateExpandAllLabel();
     });
 
-    /* ------------------------------------------------------------------ */
-    /*  Modal wiring details                                                */
-    /* ------------------------------------------------------------------ */
     if (detailsModalEl) {
         detailsModalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
             btn.addEventListener('click', closeDetailsModal);
@@ -476,7 +440,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target === detailsModalEl) closeDetailsModal();
         });
 
-        // Accordion functionality for SEO section inside modal
         const seoToggle = document.getElementById('modal-seo-toggle');
         const seoContent = document.getElementById('modal-seo-content');
         const seoToggleIcon = document.getElementById('modal-seo-toggle-icon');
@@ -501,8 +464,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* ------------------------------------------------------------------ */
-    /*  Initial Load Trigger                                                */
-    /* ------------------------------------------------------------------ */
     loadCategories();
 });

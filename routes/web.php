@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Auth routes (Breeze / Jetstream)
+// Auth routes (Laravel Breeze)
 require __DIR__.'/auth.php';
 
 /*
@@ -61,6 +61,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::prefix('exams')->name('exams.')->group(function () {
         Route::resource('categories', ExamCategoryController::class)->names('categories');
     });
+    Route::get('api/question-bank/categories', [ExamController::class, 'apiCategories'])->name('api.question-bank.categories');
+    Route::get('api/question-bank/questions', [ExamController::class, 'apiQuestions'])->name('api.question-bank.questions');
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
 

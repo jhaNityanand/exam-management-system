@@ -50,21 +50,14 @@
                                 <span><i></i>Nested levels</span>
                             </div>
 
-                            {{-- Status Toggle Switch --}}
+                            {{-- Status select --}}
                             <div class="qcat-status-toggle-container">
                                 <span class="qcat-status-label">Status</span>
-                                <label class="qcat-status-toggle-btn" for="qcat-status-toggle">
-                                    <input type="hidden" name="status" value="inactive">
-                                    <input type="checkbox" id="qcat-status-toggle" name="status" value="active"
-                                        class="qcat-status-checkbox" @checked(old('status', 'active') === 'active')>
-                                    <span class="qcat-status-toggle-wrap">
-                                        <span class="qcat-status-thumb"></span>
-                                    </span>
-                                </label>
-                                <span id="qcat-status-indicator-label"
-                                    class="qcat-status-text-indicator {{ old('status', 'active') === 'active' ? 'status-active' : 'status-inactive' }}">
-                                    {{ old('status', 'active') === 'active' ? 'Active' : 'Inactive' }}
-                                </span>
+                                <select name="status" id="qcat-status-select" class="panel-input text-sm" style="width: auto; min-width: 8rem;">
+                                    @foreach (['active' => 'Active', 'inactive' => 'Inactive', 'suspended' => 'Suspended'] as $val => $label)
+                                        <option value="{{ $val }}" @selected(old('status', 'active') === $val)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                             @error('status')
                                 <p class="qcat-field-error is-visible text-right" style="margin-top: 0.1rem;">{{ $message }}</p>
@@ -139,7 +132,7 @@
                         </div>
 
                         <!-- Manual SEO Fields Wrapper -->
-                        <div id="manual-seo-fields-wrapper" class="space-y-4">
+                        <div id="manual-seo-fields-wrapper" class="space-y-3">
                             <!-- Row 2: Meta Title, Slug, OG Title (col-lg-4 each) -->
                             <div class="qcat-seo-row qcat-seo-row--three-cols">
                                 {{-- Meta Title --}}

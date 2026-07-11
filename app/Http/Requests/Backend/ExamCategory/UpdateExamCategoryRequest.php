@@ -23,9 +23,18 @@ class UpdateExamCategoryRequest extends FormRequest
         return [
             // ── Tree nodes (from the category-builder) ──────────────────────
             'categories'                => ['required', 'array', 'min:1'],
-            'categories.*.id'           => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
+            'categories.*.id'           => [
+                'nullable',
+                'integer',
+                Rule::exists('exam_categories', 'id')->where(function ($query) {
+                    $orgId = current_organization_id();
+                    if ($orgId !== null) {
+                        $query->where('organization_id', $orgId);
+                    }
+                }),
+            ],
             'categories.*.name'         => ['required', 'string', 'max:255'],
-            'categories.*.description'  => ['nullable', 'string'],
+            'categories.*.description'  => ['nullable', 'string', 'max:2000'],
 
             // Parent relationship map (JSON string) ─────────────────────────
             '_parent_map'               => ['nullable', 'string'],

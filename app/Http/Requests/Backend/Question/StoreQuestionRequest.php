@@ -16,9 +16,18 @@ class StoreQuestionRequest extends FormRequest
     {
         return [
             // Classification
-            'category_id'      => ['nullable', 'integer', Rule::exists('question_categories', 'id')],
-            'type'             => ['required', Rule::in(['mcq', 'true_false', 'short_answer'])],
-            'difficulty'       => ['required', Rule::in(['easy', 'medium', 'hard'])],
+            'category_id'      => [
+                'nullable',
+                'integer',
+                Rule::exists('question_categories', 'id')->where(function ($query) {
+                    $orgId = current_organization_id();
+                    if ($orgId !== null) {
+                        $query->where('organization_id', $orgId);
+                    }
+                }),
+            ],
+            'type'             => ['required', Rule::in(['mcq', 'true_false', 'short_answer', 'long_answer', 'fill_blank'])],
+            'difficulty'       => ['required', Rule::in(['easy', 'medium', 'hard', 'very_hard'])],
             'marks_type'       => ['required', Rule::in(['single', 'multiple'])],
             'marks'            => ['required_if:marks_type,single', 'nullable', 'integer', 'min:1', 'max:10'],
             'marks_list'       => ['required_if:marks_type,multiple', 'nullable', 'array', 'min:1'],
@@ -31,9 +40,9 @@ class StoreQuestionRequest extends FormRequest
             'allows_multiple'  => ['sometimes', 'boolean'],
             'options'          => ['required_if:type,mcq', 'array', 'min:2'],
             'options.*.text'   => ['nullable', 'string', 'max:2000'],
-            'correct_answer'   => ['required_without:correct_answers', 'nullable', 'string', 'max:500'],
+            'correct_answer'   => ['required_without:correct_answers', 'nullable', 'string'],
             'correct_answers'  => ['nullable', 'array', 'min:1'],
-            'correct_answers.*'=> ['string', 'max:500'],
+            'correct_answers.*'=> ['string', 'max:2000'],
             'explanation'      => ['nullable', 'string'],
 
             // SEO / Metadata

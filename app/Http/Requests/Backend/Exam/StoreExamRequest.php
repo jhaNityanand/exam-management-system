@@ -26,7 +26,7 @@ class StoreExamRequest extends FormRequest
             'description'      => ['nullable', 'string'],
             'exam_category_id' => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
             'category_id'      => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
-            'difficulty_level' => ['nullable', Rule::in(['beginner', 'intermediate', 'advanced'])],
+            'difficulty_level' => ['nullable', Rule::in(['easy', 'medium', 'hard'])],
             'status'           => ['required', Rule::in(['draft', 'published', 'active', 'inactive', 'suspended'])],
             'exam_mode'        => ['required', Rule::in(['standard', 'practice', 'proctored'])],
             'visibility'       => ['required', Rule::in(['public', 'private', 'invite_only'])],

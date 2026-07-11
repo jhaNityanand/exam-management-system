@@ -17,10 +17,10 @@ return new class extends Migration
 
             // Content
             $table->text('body');
-            $table->string('type')->default('mcq');          // mcq | true_false | short_answer
+            $table->string('type')->default('mcq');          // mcq | true_false | short_answer | long_answer | fill_blank
             $table->boolean('allows_multiple')->default(false);
             $table->json('options')->nullable();              // MCQ options array
-            $table->string('correct_answer')->nullable();
+            $table->text('correct_answer')->nullable();
             $table->json('correct_answers')->nullable();      // for multi-select MCQ
             $table->text('explanation')->nullable();
             $table->string('reference')->nullable();          // e.g. "UPSC Prelims 2023"
@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('marks_type')->default('single');
             $table->json('marks_list')->nullable();
             $table->unsignedTinyInteger('marks')->default(1);
-            $table->string('difficulty')->default('medium'); // easy | medium | hard
+            $table->string('difficulty')->default('medium'); // easy | medium | hard | very_hard
             $table->string('status')->default('active');     // active | inactive | suspended
 
             // SEO / Metadata

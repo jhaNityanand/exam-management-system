@@ -23,7 +23,6 @@ class AppServiceProvider extends ServiceProvider
             'backend.layouts.app',
             'layouts.app',
             'layouts.guest',
-            'backend.layouts.guest',
         ], function ($view) {
             $user = auth()->user();
             if (! $user) {

@@ -294,38 +294,12 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="{{ asset('js/backend/exam-category-list.js') }}"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        @if (session('success'))
-            Swal.fire({
-                toast: true, position: 'top-end',
-                icon: 'success', iconColor: '#10b981',
-                title: @json(session('success')),
-                showConfirmButton: false,
-                timer: 3200, timerProgressBar: true,
-                customClass: {
-                    popup: 'swal-cat-toast-popup',
-                    title: 'swal-cat-toast-title',
-                    timerProgressBar: 'swal-cat-toast-bar',
-                },
-            });
-        @endif
-
-        @if (session('error'))
-            Swal.fire({
-                toast: true, position: 'top-end',
-                icon: 'error', iconColor: '#f43f5e',
-                title: @json(session('error')),
-                showConfirmButton: false,
-                timer: 4000, timerProgressBar: true,
-                customClass: {
-                    popup: 'swal-cat-toast-popup',
-                    title: 'swal-cat-toast-title',
-                    timerProgressBar: 'swal-cat-toast-bar',
-                },
-            });
-        @endif
-    });
+        window.categoryTreeConfig = {
+            indexUrl: @json(route('admin.exams.categories.index')),
+            detailsBaseUrl: @json(url('/admin/exams/categories')),
+            linkedResourceLabel: 'exams',
+        };
     </script>
+    <script src="{{ asset('js/backend/category-tree.js') }}"></script>
 @endpush

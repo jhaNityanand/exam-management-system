@@ -10,25 +10,69 @@ use Illuminate\Http\Request;
 
 class QuestionDataController extends Controller
 {
+    private const ALLOWED_SORTS = [
+        'id',
+        'type',
+        'difficulty',
+        'marks',
+        'status',
+        'created_at',
+        'updated_at',
+        'body',
+    ];
+
+    private const ALLOWED_FILTERS = [
+        'type',
+        'difficulty',
+        'status',
+        'marks_type',
+        'marks',
+        'category_id',
+        'allows_multiple',
+    ];
+
     public function __invoke(Request $request): JsonResponse
     {
         $orgId = current_organization_id();
 
-        // SINGLE-ORG MODE: org is always available; abort only if DB has no org at all.
-        // MULTI-ORG MODE (future): restore → abort_if($orgId === null, 404);
         abort_if($orgId === null, 503, 'No organization found. Please run the database seeder.');
+
+        $sort = (string) $request->query('sort', 'id');
+        if (! in_array($sort, self::ALLOWED_SORTS, true)) {
+            $request->query->set('sort', 'id');
+        }
+
+        $filters = $request->query('filters', []);
+        if (is_array($filters)) {
+            $filters = array_intersect_key($filters, array_flip(self::ALLOWED_FILTERS));
+
+            if (isset($filters['marks'])) {
+                $marks = is_array($filters['marks']) ? $filters['marks'] : [$filters['marks']];
+                $marks = array_values(array_unique(array_filter(
+                    array_map('intval', $marks),
+                    fn (int $m) => $m >= 1 && $m <= 10
+                )));
+
+                if ($marks === []) {
+                    unset($filters['marks']);
+                } else {
+                    $filters['marks'] = count($marks) === 1 ? $marks[0] : $marks;
+                }
+            }
+
+            $request->query->set('filters', $filters);
+        }
 
         $query = Question::query()
             ->forOrg($orgId)
             ->with(['category', 'createdBy']);
 
-        DatatableQuery::apply($query, $request, ['body', 'type', 'difficulty', 'status'], 'id');
-
-        // Optional category filter
-        $categoryId = $request->query('filters.category_id') ?? $request->input('filters.category_id');
-        if ($categoryId) {
-            $query->where('category_id', (int) $categoryId);
-        }
+        DatatableQuery::apply(
+            $query,
+            $request,
+            ['body', 'type', 'difficulty', 'status', 'reference'],
+            'id'
+        );
 
         $paginator = $query->paginate(DatatableQuery::perPage($request));
 

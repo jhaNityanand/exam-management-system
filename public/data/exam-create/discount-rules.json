@@ -1,6 +1,0 @@
-[
-  { "id": "first_time", "label": "First Time User", "summary": "Apply a discount to first exam purchase.", "default_percentage": 10 },
-  { "id": "returning", "label": "Returning User", "summary": "Reward repeat candidates with a discount.", "default_percentage": 20 },
-  { "id": "coupon_code", "label": "Coupon Code Discount", "summary": "Allow promo-code based reductions.", "default_percentage": 5 },
-  { "id": "referral", "label": "Referral Discount", "summary": "Discount when referred by existing candidates.", "default_percentage": 10 }
-]

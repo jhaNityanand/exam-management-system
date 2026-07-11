@@ -1,0 +1,117 @@
+/**
+ * Shared Tom Select theme (light + dark).
+ * Fixes selected-item / input text contrast and focus/input-active white flash.
+ */
+
+.ts-wrapper {
+    width: 100%;
+}
+
+.ts-control {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    min-height: 2.5rem !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    color: #0f172a !important;
+}
+
+.ts-control input {
+    color: #0f172a !important;
+}
+
+.ts-control input::placeholder {
+    color: #94a3b8 !important;
+}
+
+.ts-control .item {
+    color: #0f172a !important;
+    background: transparent !important;
+}
+
+.ts-wrapper.single.input-active .ts-control,
+.ts-wrapper.focus .ts-control {
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 0 3px rgb(99 102 241 / 0.2);
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+}
+
+/* After selection we blur — keep idle look (no persistent focus ring) */
+.ts-wrapper.single:not(.focus):not(.input-active) .ts-control {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.ts-dropdown {
+    border: 1px solid #e2e8f0 !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    z-index: 80;
+}
+
+.ts-dropdown .option {
+    color: #0f172a !important;
+}
+
+.ts-dropdown .option.active,
+.ts-dropdown .option:hover {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+.ts-dropdown .option.selected {
+    background-color: #e0e7ff !important;
+    color: #312e81 !important;
+}
+
+/* ── Dark mode ─────────────────────────────────────────────────────────── */
+
+.dark .ts-control,
+.dark .ts-wrapper.single.input-active .ts-control,
+.dark .ts-wrapper.focus .ts-control {
+    border-color: #334155 !important;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    box-shadow: none;
+}
+
+.dark .ts-wrapper.focus .ts-control,
+.dark .ts-wrapper.single.input-active .ts-control {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgb(99 102 241 / 0.25);
+}
+
+.dark .ts-control input {
+    color: #f8fafc !important;
+}
+
+.dark .ts-control input::placeholder {
+    color: #94a3b8 !important;
+}
+
+.dark .ts-control .item {
+    color: #f8fafc !important;
+    background: transparent !important;
+}
+
+.dark .ts-dropdown {
+    border-color: #334155 !important;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+.dark .ts-dropdown .option {
+    color: #e2e8f0 !important;
+}
+
+.dark .ts-dropdown .option.active,
+.dark .ts-dropdown .option:hover {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+.dark .ts-dropdown .option.selected {
+    background-color: #312e81 !important;
+    color: #e0e7ff !important;
+}

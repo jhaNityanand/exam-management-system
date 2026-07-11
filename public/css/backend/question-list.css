@@ -4,9 +4,327 @@
 
 .q-body-preview {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-height: 1.35;
+}
+
+.question-list-row td {
+    vertical-align: middle;
+}
+
+/* Row action buttons — explicit dark-mode contrast (JS templates are not Tailwind-scanned) */
+.q-action-btn {
+    display: inline-flex;
+    height: 2rem;
+    width: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.q-action-btn svg {
+    height: 0.9rem;
+    width: 0.9rem;
+    stroke-width: 2.25;
+}
+
+.q-action-btn--view {
+    border-color: #c7d2fe;
+    background-color: #eef2ff;
+    color: #4338ca;
+}
+
+.q-action-btn--view:hover {
+    border-color: #a5b4fc;
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.q-action-btn--edit {
+    border-color: #bae6fd;
+    background-color: #f0f9ff;
+    color: #0369a1;
+}
+
+.q-action-btn--edit:hover {
+    border-color: #7dd3fc;
+    background-color: #e0f2fe;
+    color: #075985;
+}
+
+.q-action-btn--delete {
+    border-color: #fecdd3;
+    background-color: #fff1f2;
+    color: #e11d48;
+}
+
+.q-action-btn--delete:hover {
+    border-color: #fda4af;
+    background-color: #ffe4e6;
+    color: #be123c;
+}
+
+.dark .q-action-btn--view {
+    border-color: rgba(129, 140, 248, 0.55);
+    background-color: rgba(79, 70, 229, 0.28);
+    color: #c7d2fe;
+}
+
+.dark .q-action-btn--view:hover {
+    border-color: rgba(165, 180, 252, 0.75);
+    background-color: rgba(79, 70, 229, 0.42);
+    color: #e0e7ff;
+}
+
+.dark .q-action-btn--edit {
+    border-color: rgba(56, 189, 248, 0.55);
+    background-color: rgba(14, 165, 233, 0.28);
+    color: #7dd3fc;
+}
+
+.dark .q-action-btn--edit:hover {
+    border-color: rgba(125, 211, 252, 0.75);
+    background-color: rgba(14, 165, 233, 0.42);
+    color: #e0f2fe;
+}
+
+.dark .q-action-btn--delete {
+    border-color: rgba(251, 113, 133, 0.55);
+    background-color: rgba(244, 63, 94, 0.28);
+    color: #fda4af;
+}
+
+.dark .q-action-btn--delete:hover {
+    border-color: rgba(253, 164, 175, 0.75);
+    background-color: rgba(244, 63, 94, 0.42);
+    color: #ffe4e6;
+}
+
+/* Sortable column headers */
+.q-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    font-weight: 600;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.q-sort-btn:hover {
+    color: #4f46e5;
+}
+
+.dark .q-sort-btn:hover {
+    color: #a5b4fc;
+}
+
+.q-sort-btn.is-active {
+    color: #4f46e5;
+}
+
+.dark .q-sort-btn.is-active {
+    color: #a5b4fc;
+}
+
+.q-sort-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.85rem;
+    height: 0.85rem;
+    opacity: 0.55;
+    flex-shrink: 0;
+}
+
+.q-sort-btn:hover .q-sort-icon,
+.q-sort-btn.is-active .q-sort-icon {
+    opacity: 1;
+}
+
+.q-sort-icon svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    display: none;
+}
+
+.q-sort-icon .q-sort-icon__idle {
+    display: block;
+}
+
+.q-sort-btn.is-asc .q-sort-icon .q-sort-icon__idle,
+.q-sort-btn.is-desc .q-sort-icon .q-sort-icon__idle {
+    display: none;
+}
+
+.q-sort-btn.is-asc .q-sort-icon .q-sort-icon__asc {
+    display: block;
+}
+
+.q-sort-btn.is-desc .q-sort-icon .q-sort-icon__desc {
+    display: block;
+}
+
+/* Refresh button */
+.q-refresh-btn {
+    position: relative;
+}
+
+.q-refresh-btn.is-refreshing {
+    pointer-events: none;
+    opacity: 0.75;
+}
+
+.q-refresh-btn.is-refreshing .q-refresh-btn__icon {
+    animation: q-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes q-refresh-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Marks option buttons in filter drawer */
+.marks-options-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.marks-option-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.marks-option-btn:hover:not(:disabled) {
+    border-color: #818cf8;
+    color: #4338ca;
+    background: #eef2ff;
+}
+
+.marks-option-btn.is-selected {
+    border-color: #4f46e5;
+    background: #4f46e5;
+    color: #ffffff;
+}
+
+.marks-option-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.dark .marks-option-btn {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.dark .marks-option-btn:hover:not(:disabled) {
+    border-color: #818cf8;
+    color: #c7d2fe;
+    background: #1e1b4b;
+}
+
+.dark .marks-option-btn.is-selected {
+    border-color: #6366f1;
+    background: #4f46e5;
+    color: #ffffff;
+}
+
+/* Tom Select — category filter (light + dark) */
+#filter-drawer .ts-wrapper {
+    width: 100%;
+}
+
+#filter-drawer .ts-control {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 2.5rem;
+    background-color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    color: #0f172a;
+}
+
+#filter-drawer .ts-control input {
+    color: #0f172a !important;
+}
+
+#filter-drawer .ts-control .item {
+    color: #0f172a !important;
+    background: transparent !important;
+}
+
+#filter-drawer .ts-dropdown {
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+.dark #filter-drawer .ts-control {
+    border-color: #334155 !important;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    box-shadow: none;
+}
+
+.dark #filter-drawer .ts-control input {
+    color: #f8fafc !important;
+}
+
+.dark #filter-drawer .ts-control input::placeholder {
+    color: #94a3b8 !important;
+}
+
+.dark #filter-drawer .ts-control .item {
+    color: #f8fafc !important;
+    background: transparent !important;
+}
+
+.dark #filter-drawer .ts-wrapper.single.input-active .ts-control {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+.dark #filter-drawer .ts-dropdown {
+    border-color: #334155 !important;
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+.dark #filter-drawer .ts-dropdown .option {
+    color: #e2e8f0 !important;
+}
+
+.dark #filter-drawer .ts-dropdown .option.active,
+.dark #filter-drawer .ts-dropdown .option:hover {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+.dark #filter-drawer .ts-dropdown .option.selected {
+    background-color: #312e81 !important;
+    color: #e0e7ff !important;
 }
 
 /* ── Offcanvas Filter Drawer ────────────────────────────────────────── */
@@ -193,4 +511,24 @@
 
 .dark .table-loading-overlay {
     background-color: rgba(15, 23, 42, 0.65);
+}
+
+/* ── Table skeleton rows ─────────────────────────────────────────────── */
+
+.ajax-skeleton-bar {
+    height: 0.75rem;
+    border-radius: 0.375rem;
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: ajax-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.dark .ajax-skeleton-bar {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+}
+
+@keyframes ajax-skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }

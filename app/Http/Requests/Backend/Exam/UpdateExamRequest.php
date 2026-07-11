@@ -26,7 +26,7 @@ class UpdateExamRequest extends FormRequest
             'title'            => ['sometimes', 'required', 'string', 'max:255'],
             'description'      => ['nullable', 'string'],
             'category_id'      => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
-            'difficulty_level' => ['nullable', Rule::in(['beginner', 'intermediate', 'advanced'])],
+            'difficulty_level' => ['nullable', Rule::in(['easy', 'medium', 'hard'])],
             'status'           => ['sometimes', 'required', Rule::in(['draft', 'published', 'active', 'inactive', 'suspended'])],
             'exam_mode'        => ['sometimes', 'required', Rule::in(['standard', 'practice', 'proctored'])],
             'visibility'       => ['sometimes', 'required', Rule::in(['public', 'private', 'invite_only'])],

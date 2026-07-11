@@ -22,16 +22,22 @@ class AjaxTable {
         // Callbacks & Tuning
         this.rowTemplate = config.rowTemplate || ((item) => `<tr><td>${JSON.stringify(item)}</td></tr>`);
         this.onFetchSuccess = config.onFetchSuccess || null;
+        this.onFiltersChange = config.onFiltersChange || null;
         this.debounceTime = config.debounceTime || 350;
         this.defaultParams = config.defaultParams || {};
+        this.skeletonRows = config.skeletonRows ?? 6;
+        this.skeletonColumns = config.skeletonColumns ?? 5;
+        this.skeletonTemplate = config.skeletonTemplate || null;
 
         // Local state
         this.page = 1;
         this.per_page = 10;
         this.search = '';
         this.filters = {};
-        this.sort = config.defaultSort || 'id';
-        this.direction = config.defaultDirection || 'desc';
+        this.defaultSort = config.defaultSort || 'id';
+        this.defaultDirection = config.defaultDirection || 'desc';
+        this.sort = this.defaultSort;
+        this.direction = this.defaultDirection;
         
         // Element cache
         this.elements = {};
@@ -115,6 +121,7 @@ class AjaxTable {
             this.elements.drawerForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.applyFiltersFromForm();
+                this.notifyFiltersChange();
                 this.closeDrawer();
                 this.page = 1;
                 this.fetch();
@@ -135,8 +142,17 @@ class AjaxTable {
                         }
                     });
 
+                    // Restore default sort select value if present
+                    const sortSelect = this.elements.drawerForm.querySelector('[name="sort"]');
+                    if (sortSelect) {
+                        sortSelect.value = `${this.defaultSort}:${this.defaultDirection}`;
+                    }
+
                     this.filters = {};
+                    this.sort = this.defaultSort;
+                    this.direction = this.defaultDirection;
                     this.updateFilterBadge();
+                    this.notifyFiltersChange();
                     this.closeDrawer();
                     this.page = 1;
                     this.fetch();
@@ -162,6 +178,13 @@ class AjaxTable {
                 }
             });
         }
+
+        // 6. Escape closes filter drawer
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.elements.drawer?.classList.contains('is-open')) {
+                this.closeDrawer();
+            }
+        });
     }
 
     openDrawer() {
@@ -189,22 +212,86 @@ class AjaxTable {
 
         const formData = new FormData(this.elements.drawerForm);
         const newFilters = {};
-        
+
         formData.forEach((value, key) => {
-            // Only pull keys matching naming convention or exclude CSRF token
-            if (key === '_token') return;
-            
-            // Format check: if keys are named filters[name], extract name
-            const match = key.match(/^filters\[(.*?)\]$/);
+            if (key === '_token' || key === 'sort') return;
+
+            const match = key.match(/^filters\[(.*?)\](?:\[\])?$/);
             const filterKey = match ? match[1] : key;
 
-            if (value !== '' && value !== null) {
+            if (value === '' || value === null) return;
+
+            if (Object.prototype.hasOwnProperty.call(newFilters, filterKey)) {
+                if (!Array.isArray(newFilters[filterKey])) {
+                    newFilters[filterKey] = [newFilters[filterKey]];
+                }
+                newFilters[filterKey].push(value);
+            } else {
                 newFilters[filterKey] = value;
             }
         });
 
+        // Optional combined sort field: "column:direction"
+        const sortValue = formData.get('sort');
+        if (typeof sortValue === 'string' && sortValue.includes(':')) {
+            const [sortField, sortDir = 'desc'] = sortValue.split(':');
+            this.sort = sortField || this.defaultSort;
+            this.direction = sortDir === 'asc' ? 'asc' : 'desc';
+        }
+
         this.filters = newFilters;
         this.updateFilterBadge();
+    }
+
+    notifyFiltersChange() {
+        if (typeof this.onFiltersChange === 'function') {
+            this.onFiltersChange({
+                filters: { ...this.filters },
+                sort: this.sort,
+                direction: this.direction,
+            });
+        }
+    }
+
+    /**
+     * Clear a single applied filter (or reset sort) and refetch.
+     * Used by removable filter chips.
+     */
+    clearFilter(key) {
+        if (key === 'sort') {
+            this.sort = this.defaultSort;
+            this.direction = this.defaultDirection;
+            const sortSelect = this.elements.drawerForm?.querySelector('[name="sort"]');
+            if (sortSelect) {
+                sortSelect.value = `${this.defaultSort}:${this.defaultDirection}`;
+            }
+        } else {
+            delete this.filters[key];
+            const field = this.elements.drawerForm?.querySelector(`[name="filters[${key}]"]`);
+            if (field) {
+                if (field.tomselect) {
+                    field.tomselect.setValue('', true);
+                } else {
+                    field.value = '';
+                }
+            }
+
+            // Marks filter uses button chips + hidden inputs
+            if (key === 'marks') {
+                this.elements.drawerForm?.querySelectorAll('.marks-option-btn.is-selected').forEach((btn) => {
+                    btn.classList.remove('is-selected');
+                    btn.setAttribute('aria-pressed', 'false');
+                });
+                const host = this.elements.drawerForm?.querySelector('#drawer-marks-filter-values');
+                if (host) host.innerHTML = '';
+                const selectAll = document.getElementById('marks-select-all-btn');
+                if (selectAll) selectAll.textContent = 'Select All';
+            }
+        }
+        this.updateFilterBadge();
+        this.notifyFiltersChange();
+        this.page = 1;
+        this.fetch();
     }
 
     updateFilterBadge() {
@@ -245,7 +332,15 @@ class AjaxTable {
 
         // Append filters
         Object.entries(this.filters).forEach(([key, val]) => {
-            url.searchParams.set(`filters[${key}]`, val);
+            if (Array.isArray(val)) {
+                val.forEach((item) => {
+                    if (item !== '' && item !== null && item !== undefined) {
+                        url.searchParams.append(`filters[${key}][]`, item);
+                    }
+                });
+            } else if (val !== '' && val !== null && val !== undefined) {
+                url.searchParams.set(`filters[${key}]`, val);
+            }
         });
 
         // Append default custom parameters
@@ -270,10 +365,20 @@ class AjaxTable {
             const items = response.data || [];
             const meta = response.meta || { current_page: 1, last_page: 1, total: 0, per_page: this.per_page };
 
+            // Keep local page in sync with API (avoids stale S.No after refresh / pagination)
+            if (meta.current_page) {
+                this.page = Number(meta.current_page) || this.page;
+            }
+            if (meta.per_page) {
+                this.per_page = Number(meta.per_page) || this.per_page;
+            }
+
             // Render Rows
             if (this.elements.tableBody) {
                 if (items.length > 0) {
-                    this.elements.tableBody.innerHTML = items.map((item, index) => this.rowTemplate(item, index)).join('');
+                    this.elements.tableBody.innerHTML = items
+                        .map((item, index) => this.rowTemplate(item, index, meta))
+                        .join('');
                     if (this.elements.empty) this.elements.empty.classList.add('hidden');
                     this.elements.tableBody.closest('table').classList.remove('opacity-40');
                 } else {
@@ -306,9 +411,14 @@ class AjaxTable {
         if (this.elements.loading) {
             this.elements.loading.classList.remove('hidden');
         }
+        if (this.elements.empty) {
+            this.elements.empty.classList.add('hidden');
+        }
         if (this.elements.tableBody) {
             const table = this.elements.tableBody.closest('table');
             if (table) table.classList.add('opacity-40');
+            // Immediate skeleton feedback while waiting for the API
+            this.renderSkeleton();
         }
     }
 
@@ -316,6 +426,31 @@ class AjaxTable {
         if (this.elements.loading) {
             this.elements.loading.classList.add('hidden');
         }
+        if (this.elements.tableBody) {
+            const table = this.elements.tableBody.closest('table');
+            if (table) table.classList.remove('opacity-40');
+        }
+    }
+
+    renderSkeleton() {
+        if (!this.elements.tableBody) return;
+
+        if (typeof this.skeletonTemplate === 'function') {
+            this.elements.tableBody.innerHTML = Array.from({ length: this.skeletonRows }, (_, i) => this.skeletonTemplate(i)).join('');
+            return;
+        }
+
+        let html = '';
+        for (let i = 0; i < this.skeletonRows; i++) {
+            html += '<tr class="ajax-table-skeleton-row" aria-hidden="true">';
+            for (let c = 0; c < this.skeletonColumns; c++) {
+                const width = c === this.skeletonColumns - 1 ? '40%' : `${55 + ((i + c) % 4) * 10}%`;
+                const align = c === this.skeletonColumns - 1 ? 'text-right' : '';
+                html += `<td class="px-6 py-4 ${align}"><div class="ajax-skeleton-bar" style="width:${width}; margin-left:${c === this.skeletonColumns - 1 ? 'auto' : '0'}"></div></td>`;
+            }
+            html += '</tr>';
+        }
+        this.elements.tableBody.innerHTML = html;
     }
 
     renderPagination(meta) {

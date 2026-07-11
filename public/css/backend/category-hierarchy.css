@@ -13,7 +13,7 @@
 
 .hierarchy-children {
     position: relative;
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
     margin-left: 1.15rem;
     padding-left: 1.5rem;
 }
@@ -38,21 +38,21 @@
 }
 
 .hierarchy-node--nested::before {
-    top: 1.55rem;
+    top: 1.15rem;
     width: 1.15rem;
     border-top: 2px solid var(--hierarchy-color);
 }
 
 .hierarchy-node--nested::after {
-    top: -0.8rem;
-    bottom: calc(100% - 1.55rem);
+    top: -0.55rem;
+    bottom: calc(100% - 1.15rem);
     width: 0;
     border-left: 2px solid var(--hierarchy-color);
 }
 
 .hierarchy-children > .hierarchy-node:last-child::after {
     bottom: auto;
-    height: 2.35rem;
+    height: 1.7rem;
 }
 
 @media (max-width: 640px) {

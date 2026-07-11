@@ -1,6 +1,0 @@
-[
-  { "id": "draft", "label": "Draft", "description": "Visible only to administrators" },
-  { "id": "scheduled", "label": "Scheduled", "description": "Prepared and waiting for release" },
-  { "id": "active", "label": "Active", "description": "Open for candidates" },
-  { "id": "inactive", "label": "Inactive", "description": "Temporarily disabled" }
-]

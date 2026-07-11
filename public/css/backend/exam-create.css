@@ -1903,7 +1903,13 @@
 
 .dark .ts-wrapper.ems-select-wrapper.single .ts-control .item,
 .dark .ts-wrapper.ems-select-wrapper .ts-control>input {
-    color: #e2e8f0;
+    color: #f8fafc !important;
+}
+
+.dark .ts-wrapper.ems-select-wrapper.single.input-active .ts-control,
+.dark .ts-wrapper.ems-select-wrapper.focus .ts-control {
+    background-color: #0f172a;
+    color: #f8fafc;
 }
 
 .dark .ts-wrapper.ems-select-wrapper.is-multiple .ts-control .item {

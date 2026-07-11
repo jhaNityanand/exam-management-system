@@ -30,44 +30,6 @@
         return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
     }
 
-    function isVisibleFocusable(element) {
-        if (!element || element.disabled) {
-            return false;
-        }
-
-        if (element.matches('input[type="hidden"]')) {
-            return false;
-        }
-
-        if (element.closest('[hidden]')) {
-            return false;
-        }
-
-        return element.getClientRects().length > 0;
-    }
-
-    function focusNextFieldFrom(currentInput, selectElement) {
-        const form = selectElement.closest('form');
-        if (!form) {
-            return;
-        }
-
-        const focusables = [...form.querySelectorAll('input:not([type="hidden"]), textarea, select, button, [tabindex]:not([tabindex="-1"])')]
-            .filter(isVisibleFocusable);
-
-        const currentIndex = focusables.indexOf(currentInput);
-        if (currentIndex < 0) {
-            return;
-        }
-
-        const nextField = focusables.slice(currentIndex + 1).find((field) => isVisibleFocusable(field));
-        if (!nextField) {
-            return;
-        }
-
-        nextField.focus({ preventScroll: true });
-    }
-
     function readOptionHierarchyMeta(select, value) {
         const option = select.querySelector(`option[value="${CSS.escape(String(value))}"]`);
         if (!option) {
@@ -180,19 +142,18 @@
             onDropdownClose() {
                 this.dropdown.classList.remove('is-open');
             },
-            onChange() {
+            onChange(value) {
                 if (isMultiple) {
                     return;
                 }
 
-                const activeElement = document.activeElement;
-                if (!this.wrapper.contains(activeElement)) {
+                // Only clear focus after a real value is chosen (keep focus when cleared)
+                if (!safeTrim(value)) {
                     return;
                 }
 
                 window.setTimeout(() => {
                     this.blur();
-                    focusNextFieldFrom(this.control_input, select);
                 }, 0);
             },
         };

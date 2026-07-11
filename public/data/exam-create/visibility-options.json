@@ -1,5 +1,0 @@
-[
-  { "id": "public", "label": "Public", "description": "Anyone can discover and attempt" },
-  { "id": "private", "label": "Private", "description": "Invite-only with candidate access management" },
-  { "id": "invite", "label": "Link Only", "description": "Available to users with shared link" }
-]

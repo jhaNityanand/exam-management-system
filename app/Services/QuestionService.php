@@ -2,23 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\QuestionCategory;
 use App\Models\Question;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 
 class QuestionService
 {
-    public function getByOrganization(int $orgId, int $perPage = 20): LengthAwarePaginator
-    {
-        return Question::where('organization_id', $orgId)
-            ->with(['category', 'createdBy'])
-            ->latest()
-            ->paginate($perPage);
-    }
-
     public function create(array $data): Question
     {
         $data['created_by'] = Auth::id();
@@ -45,7 +33,7 @@ class QuestionService
         if (($data['marks_type'] ?? 'single') === 'multiple') {
             $marksList = array_map('intval', array_filter($data['marks_list'] ?? []));
             $data['marks_list'] = array_values(array_unique($marksList));
-            $data['marks'] = !empty($data['marks_list']) ? $data['marks_list'][0] : 1;
+            $data['marks'] = ! empty($data['marks_list']) ? $data['marks_list'][0] : 1;
         } else {
             $data['marks_list'] = null;
             $data['marks'] = isset($data['marks']) ? (int) $data['marks'] : 1;
@@ -54,24 +42,7 @@ class QuestionService
 
     public function delete(Question $question): bool
     {
-        return $question->delete();
-    }
-
-    public function getCategoriesForOrg(int $orgId): Collection
-    {
-        return QuestionCategory::where('organization_id', $orgId)->orderBy('name')->get();
-    }
-
-    public function getStats(int $orgId): array
-    {
-        return [
-            'total' => Question::where('organization_id', $orgId)->count(),
-            'by_category' => Question::where('organization_id', $orgId)
-                ->selectRaw('category_id, COUNT(*) as aggregate')
-                ->groupBy('category_id')
-                ->get()
-                ->load('category'),
-        ];
+        return (bool) $question->delete();
     }
 
     /**
@@ -85,27 +56,5 @@ class QuestionService
         } else {
             $data['correct_answers'] = null;
         }
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $options
-     * @return array<int, array{text: string, image_path: ?string}>
-     */
-    public function normalizeOptionsFromRequest(array $options, Request $request): array
-    {
-        $out = [];
-        foreach ($options as $i => $row) {
-            $text = is_array($row) ? (string) ($row['text'] ?? '') : '';
-            $imagePath = is_array($row) ? ($row['image_path'] ?? null) : null;
-            if ($request->hasFile("options.{$i}.image")) {
-                $imagePath = $request->file("options.{$i}.image")->store('question-options', 'public');
-            }
-            $out[] = [
-                'text' => $text,
-                'image_path' => $imagePath,
-            ];
-        }
-
-        return $out;
     }
 }

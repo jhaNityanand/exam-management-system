@@ -598,6 +598,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tags: [],
         expandedCards: new Set(),
         categoryTree: [],
+        lastFetchedCategories: '',
+        lastFetchedMarks: '',
+        lastFetchedFormats: '',
         extraQuestionsCategoryIds: [],
         extraQuestionsAllocations: {},
         extraQuestionsOptionsKey: '',
@@ -679,7 +682,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const endpoints = window.examCreateConfig?.endpoints || {};
-            const configData = await loadJsonMapWithTimeout(endpoints, 15000);
+            const staticOptions = window.examCreateConfig?.options || {};
+            // Only fetch live domain endpoints (categories / question bank).
+            // Form option lists are injected server-side from ExamFormOptions.
+            const remoteData = Object.keys(endpoints).length
+                ? await loadJsonMapWithTimeout(endpoints, 15000)
+                : {};
+            const configData = { ...staticOptions, ...remoteData };
             const categoryTree = Array.isArray(configData.categories) ? configData.categories : [];
             const flatCategories = flattenCategoryTree(categoryTree);
 
@@ -3031,14 +3040,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const filteredQuestions = state.questionBank
-            .filter((q) => selectedCategorySet.has(q.categoryId))
+            .filter((q) => {
+                if (selectedCategorySet.has(q.categoryId)) {
+                    return true;
+                }
+                for (const selId of selectedCategoryIds) {
+                    const descendants = getAllDescendantIds(selId, state.categoryHierarchyIndex);
+                    if (descendants.includes(q.categoryId)) {
+                        return true;
+                    }
+                }
+                return false;
+            })
             .filter((q) => !hasMarksFilter || state.selectedMarks.has(Number(q.marks)))
             .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
 
         const byCategory = new Map();
         for (const q of filteredQuestions) {
-            if (!byCategory.has(q.categoryId)) byCategory.set(q.categoryId, []);
-            byCategory.get(q.categoryId).push(q);
+            let targetCategoryId = null;
+            if (selectedCategorySet.has(q.categoryId)) {
+                targetCategoryId = q.categoryId;
+            } else {
+                for (const selId of selectedCategoryIds) {
+                    const descendants = getAllDescendantIds(selId, state.categoryHierarchyIndex);
+                    if (descendants.includes(q.categoryId)) {
+                        targetCategoryId = selId;
+                        break;
+                    }
+                }
+            }
+
+            if (targetCategoryId) {
+                if (!byCategory.has(targetCategoryId)) {
+                    byCategory.set(targetCategoryId, []);
+                }
+                byCategory.get(targetCategoryId).push(q);
+            }
         }
 
         let totalShown = filteredQuestions.length;
@@ -3158,6 +3195,40 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `Loaded ${totalShown} matching question(s) across ${selectedCategoryIds.length} selected categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}.`
             : `Showing all ${totalShown} question(s) across ${selectedCategoryIds.length} selected categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}. Use marks filter to narrow results.`;
     }
+
+    async function syncQuestionBankFromServer() {
+        const endpoints = window.examCreateConfig?.endpoints || {};
+        if (!endpoints.questionBank) return;
+
+        if (refs.questionBankFeedback) {
+            refs.questionBankFeedback.textContent = "Loading matching questions from server...";
+        }
+
+        const categoryIds = [...state.selectedCategories].join(',');
+        const marks = [...state.selectedMarks].join(',');
+        const formats = [...state.selectedExamFormat].join(',');
+
+        const url = new URL(endpoints.questionBank, window.location.origin);
+        if (categoryIds) url.searchParams.set('categories', categoryIds);
+        if (marks) url.searchParams.set('marks', marks);
+        if (formats) url.searchParams.set('formats', formats);
+
+        try {
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' }
+            });
+            if (response.ok) {
+                const questions = await response.json();
+                state.questionBank = questions;
+                updateAll();
+            } else {
+                console.error('Failed to sync question bank: HTTP', response.status);
+            }
+        } catch (err) {
+            console.error('Failed to sync question bank:', err);
+        }
+    }
+    window.syncQuestionBankFromServer = syncQuestionBankFromServer;
 
     function renderDiscountSummary() {
         if (!state.selectedDiscounts.size) {
@@ -3616,6 +3687,23 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedAttemptLimitType = normalizeAttemptLimitType(
             state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once')
         );
+
+        // Reactive question bank sync check
+        const currentCategoriesStr = [...state.selectedCategories].sort().join(',');
+        const currentMarksStr = [...state.selectedMarks].sort().join(',');
+        const currentFormatsStr = [...state.selectedExamFormat].sort().join(',');
+
+        if (state.lastFetchedCategories !== currentCategoriesStr ||
+            state.lastFetchedMarks !== currentMarksStr ||
+            state.lastFetchedFormats !== currentFormatsStr) {
+
+            state.lastFetchedCategories = currentCategoriesStr;
+            state.lastFetchedMarks = currentMarksStr;
+            state.lastFetchedFormats = currentFormatsStr;
+
+            syncQuestionBankFromServer();
+        }
+
         if (refs.examFormatOptions && refs.examFormatHidden) {
             renderExamFormatOptions();
         }

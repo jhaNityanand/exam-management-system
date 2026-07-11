@@ -488,7 +488,7 @@
 /* ============================================================ */
 
 @media (max-width: 1023px) {
-    .category-tree-item { padding: 1rem; }
+    .category-tree-item { padding: 0.5rem 0.75rem; }
 }
 
 @media (max-width: 640px) {

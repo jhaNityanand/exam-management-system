@@ -218,13 +218,7 @@ class QuestionCategoryController extends Controller
         abort_if($category->organization_id !== $orgId, 403, 'Unauthorized access to this category.');
 
         $category->load([
-            'children' => fn ($q) => $q->orderBy('name')
-                ->with([
-                    'children' => fn ($q2) => $q2->orderBy('name')
-                        ->with([
-                            'children' => fn ($q3) => $q3->orderBy('name'),
-                        ]),
-                ]),
+            'childrenRecursive' => fn ($q) => $q->orderBy('name'),
         ]);
 
         return view('backend.question-categories.edit', compact('category'));
@@ -263,7 +257,7 @@ class QuestionCategoryController extends Controller
         $this->service->updateTree($category, $data['categories'], $parentMap, $meta);
 
         return redirect()
-            ->route('admin.questions.categories.edit', $category)
+            ->route('admin.questions.categories.index')
             ->with('success', 'Category hierarchy updated successfully.');
     }
 

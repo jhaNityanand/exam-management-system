@@ -24,7 +24,17 @@
                         Manage your repository of questions across all categories and difficulties.
                     </p>
                 </div>
-                <div class="shrink-0">
+                <div class="shrink-0 flex items-center gap-2">
+                    <button type="button"
+                            id="btn-refresh-questions"
+                            class="q-refresh-btn inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                            title="Refresh list"
+                            aria-label="Refresh questions list">
+                        <svg class="q-refresh-btn__icon h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
                     <a href="{{ route('admin.questions.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition shadow-sm">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -70,14 +80,52 @@
         </div>
 
         <div class="relative overflow-x-auto min-h-[300px]" id="ajax-table-container">
-            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900/40 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+            <table class="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900/60 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                        <th scope="col" class="px-6 py-4 font-semibold">Question Details</th>
-                        <th scope="col" class="px-6 py-4 font-semibold">Type</th>
-                        <th scope="col" class="px-6 py-4 font-semibold">Category</th>
-                        <th scope="col" class="px-6 py-4 font-semibold">Marks</th>
-                        <th scope="col" class="px-6 py-4 font-semibold text-right">Actions</th>
+                        <th scope="col" class="px-3 py-2.5 font-semibold w-14 whitespace-nowrap">
+                            <button type="button" class="q-sort-btn" data-sort-key="id" title="Sort by serial number">
+                                <span>S.No</span>
+                                <span class="q-sort-icon" aria-hidden="true">
+                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
+                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
+                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
+                                </span>
+                            </button>
+                        </th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold">Question Details</th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold">
+                            <button type="button" class="q-sort-btn" data-sort-key="type" title="Sort by type">
+                                <span>Type</span>
+                                <span class="q-sort-icon" aria-hidden="true">
+                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
+                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
+                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
+                                </span>
+                            </button>
+                        </th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold">Category</th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold">
+                            <button type="button" class="q-sort-btn" data-sort-key="difficulty" title="Sort by difficulty">
+                                <span>Difficulty</span>
+                                <span class="q-sort-icon" aria-hidden="true">
+                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
+                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
+                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
+                                </span>
+                            </button>
+                        </th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold">
+                            <button type="button" class="q-sort-btn" data-sort-key="marks" title="Sort by marks">
+                                <span>Marks</span>
+                                <span class="q-sort-icon" aria-hidden="true">
+                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
+                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
+                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
+                                </span>
+                            </button>
+                        </th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="questions-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -155,6 +203,8 @@
                     <option value="mcq">Multiple Choice</option>
                     <option value="true_false">True / False</option>
                     <option value="short_answer">Short Answer</option>
+                    <option value="long_answer">Long Answer</option>
+                    <option value="fill_blank">Fill in the Blanks</option>
                 </select>
             </div>
 
@@ -166,16 +216,7 @@
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
-                </select>
-            </div>
-
-            {{-- Status Filter --}}
-            <div class="filter-group">
-                <label for="drawer-status-filter" class="filter-label">Status</label>
-                <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm">
-                    <option value="">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="very_hard">Very Hard</option>
                 </select>
             </div>
 
@@ -186,6 +227,52 @@
                     <option value="">All Marks Types</option>
                     <option value="single">Single Mark</option>
                     <option value="multiple">Multiple Marks</option>
+                </select>
+            </div>
+
+            {{-- Marks Options (clickable buttons; single or multi depending on Marks Type) --}}
+            <div class="filter-group" id="marks-options-group">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <span class="filter-label !mb-0">Marks</span>
+                    <button type="button" id="marks-select-all-btn" class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hidden">
+                        Select All
+                    </button>
+                </div>
+                <div id="marks-options-buttons" class="marks-options-grid" role="group" aria-label="Marks options" data-mode="">
+                    @for ($i = 1; $i <= 10; $i++)
+                        <button type="button"
+                                class="marks-option-btn"
+                                data-marks="{{ $i }}"
+                                aria-pressed="false"
+                                disabled>
+                            {{ $i }}
+                        </button>
+                    @endfor
+                </div>
+                <div id="drawer-marks-filter-values" class="hidden" aria-hidden="true"></div>
+                <p id="marks-filter-hint" class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    Choose a Marks Type above to enable marks filtering.
+                </p>
+            </div>
+
+            {{-- Status Filter --}}
+            <div class="filter-group">
+                <label for="drawer-status-filter" class="filter-label">Status</label>
+                <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+
+            {{-- Multi-select MCQ Filter --}}
+            <div class="filter-group">
+                <label for="drawer-allows-multiple-filter" class="filter-label">Answer Selection</label>
+                <select id="drawer-allows-multiple-filter" name="filters[allows_multiple]" class="panel-input w-full text-sm">
+                    <option value="">All</option>
+                    <option value="0">Single Correct</option>
+                    <option value="1">Multiple Correct</option>
                 </select>
             </div>
         </div>
@@ -211,44 +298,28 @@
 
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}">
-    <style>
-        .ts-control {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            min-height: 2.5rem;
-            background-color: #fff;
-            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        }
-        .dark .ts-control {
-            border-color: #334155;
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-        .dark .ts-dropdown, .dark .ts-dropdown .option {
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-        .dark .ts-dropdown .option.active {
-            background-color: #1e293b;
-        }
-    </style>
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.questionsApiUrl = @json(route('admin.internal-api.questions-table'));
         window.questionsIndexUrl = @json(route('admin.questions.index'));
 
         document.addEventListener('DOMContentLoaded', function() {
-            new TomSelect('#drawer-category-filter', {
+            const categoryFilter = new TomSelect('#drawer-category-filter', {
                 create: false,
-                placeholder: "All Categories",
-                maxOptions: null
+                placeholder: 'All Categories',
+                maxOptions: null,
+                allowEmptyOption: true,
+                closeAfterSelect: true,
             });
+            window.EmsTomSelectBlur?.attach(categoryFilter);
+            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
         });
     </script>
     <script src="{{ asset('js/backend/ajax-table.js') }}"></script>

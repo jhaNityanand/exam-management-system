@@ -49,7 +49,9 @@
                         <select id="type" name="type" class="panel-input mt-1 block w-full">
                             <option value="mcq" {{ old('type', $question->type) == 'mcq' ? 'selected' : '' }}>Multiple Choice</option>
                             <option value="true_false" {{ old('type', $question->type) == 'true_false' ? 'selected' : '' }}>True/False</option>
-                            <option value="short_answer" {{ old('type', $question->type) == 'short_answer' ? 'selected' : '' }}>Text Answer</option>
+                            <option value="short_answer" {{ old('type', $question->type) == 'short_answer' ? 'selected' : '' }}>Short Answer</option>
+                            <option value="long_answer" {{ old('type', $question->type) == 'long_answer' ? 'selected' : '' }}>Long Answer</option>
+                            <option value="fill_blank" {{ old('type', $question->type) == 'fill_blank' ? 'selected' : '' }}>Fill in the Blanks</option>
                         </select>
                         <p class="qcat-field-error" id="err-type"></p>
                     </div>
@@ -60,6 +62,7 @@
                             <option value="easy" {{ old('difficulty', $question->difficulty) == 'easy' ? 'selected' : '' }}>Easy</option>
                             <option value="medium" {{ old('difficulty', $question->difficulty) == 'medium' ? 'selected' : '' }}>Medium</option>
                             <option value="hard" {{ old('difficulty', $question->difficulty) == 'hard' ? 'selected' : '' }}>Hard</option>
+                            <option value="very_hard" {{ old('difficulty', $question->difficulty) == 'very_hard' ? 'selected' : '' }}>Very Hard</option>
                         </select>
                         <p class="qcat-field-error" id="err-difficulty"></p>
                     </div>
@@ -140,7 +143,7 @@
 
                             <label class="flex items-center cursor-pointer gap-2">
                                 <input type="checkbox" id="allows_multiple" name="allows_multiple" value="1" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" {{ old('allows_multiple', $question->allows_multiple) ? 'checked' : '' }}>
-                                <span class="text-sm text-slate-700 dark:text-slate-300 border border-slate-200 px-2 py-1 rounded-md hover:bg-slate-50 font-medium">Allow multiple answers</span>
+                                <span class="text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 px-2 py-1 rounded-md hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100 font-medium">Allow multiple answers</span>
                             </label>
                         </div>
                         <p class="text-sm text-slate-500 mb-2">Create at least 2 options and select the correct answer(s).</p>
@@ -365,44 +368,28 @@
 
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-create.css') }}">
-    <style>
-        .ts-control {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            min-height: 2.5rem;
-            background-color: #fff;
-        }
-        .dark .ts-control {
-            border-color: #334155;
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-        .dark .ts-dropdown, .dark .ts-dropdown .option {
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-        .dark .ts-dropdown .option.active {
-            background-color: #1e293b;
-        }
-    </style>
 @endpush
 
 @push('scripts')
     {{-- Using ClassicEditor build from CDN --}}
     <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.existingQuestion = {!! json_encode($question) !!};
         document.addEventListener('DOMContentLoaded', function() {
-            new TomSelect('#category_id',{
+            const categorySelect = new TomSelect('#category_id', {
                 create: false,
-                placeholder: "Search for a category..."
+                placeholder: "Search for a category...",
+                closeAfterSelect: true,
             });
+            window.EmsTomSelectBlur?.attach(categorySelect);
+            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('question-form') || document);
         });
     </script>
     <script src="{{ asset('js/backend/question-create.js') }}"></script>

@@ -30,7 +30,7 @@ class StoreQuestionCategoryRequest extends FormRequest
             // ── Tree nodes (from the category-builder) ──────────────────────
             'categories'                => ['required', 'array', 'min:1'],
             'categories.*.name'         => ['required', 'string', 'max:255'],
-            'categories.*.description'  => ['nullable', 'string'],
+            'categories.*.description'  => ['nullable', 'string', 'max:2000'],
 
             // Parent relationship map (JSON string) ─────────────────────────
             '_parent_map'               => ['nullable', 'string'],

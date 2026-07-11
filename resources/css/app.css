@@ -38,40 +38,64 @@
     }
 
     .question-type-badge {
-        @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset;
+        @apply inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset whitespace-nowrap;
     }
 
     .question-type-mcq {
-        @apply bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-500/20;
+        @apply bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-400/30;
     }
 
     .question-type-true-false {
-        @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-500/20;
+        @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30;
     }
 
     .question-type-short-answer {
-        @apply bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-500/20;
+        @apply bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30;
+    }
+
+    .question-type-long-answer {
+        @apply bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-400/30;
+    }
+
+    .question-type-fill-blank {
+        @apply bg-cyan-50 text-cyan-700 ring-cyan-600/20 dark:bg-cyan-500/15 dark:text-cyan-300 dark:ring-cyan-400/30;
     }
 
     .question-diff-badge {
-        @apply inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset;
+        @apply inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset;
     }
 
     .question-diff-easy {
-        @apply bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-500/20;
+        @apply bg-green-50 text-green-700 ring-green-600/25 dark:bg-green-500/15 dark:text-green-300 dark:ring-green-400/35;
     }
 
     .question-diff-medium {
-        @apply bg-yellow-50 text-yellow-700 ring-yellow-600/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-500/20;
+        @apply bg-amber-50 text-amber-800 ring-amber-600/25 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/35;
     }
 
     .question-diff-hard {
-        @apply bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-500/20;
+        @apply bg-red-50 text-red-700 ring-red-600/25 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-400/35;
+    }
+
+    .question-diff-very-hard {
+        @apply bg-purple-50 text-purple-700 ring-purple-600/25 dark:bg-purple-500/15 dark:text-purple-300 dark:ring-purple-400/35;
     }
 
     /* Tom Select — global dark mode overrides */
-    .dark .ts-wrapper .ts-control {
+    .dark .ts-wrapper .ts-control,
+    .dark .ts-wrapper.single.input-active .ts-control,
+    .dark .ts-wrapper.focus .ts-control {
         @apply border-slate-600 bg-slate-900 text-slate-100;
+    }
+
+    .dark .ts-wrapper .ts-control input,
+    .dark .ts-wrapper .ts-control .item {
+        @apply text-slate-100 !important;
+        background: transparent !important;
+    }
+
+    .dark .ts-wrapper .ts-control input::placeholder {
+        @apply text-slate-400;
     }
 
     .dark .ts-dropdown {
@@ -85,5 +109,22 @@
 
     .dark .ts-dropdown .selected {
         @apply bg-indigo-900/40 text-indigo-200;
+    }
+
+    .page-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+        height: 3px;
+        width: 0;
+        background: linear-gradient(90deg, #6366f1, #818cf8);
+        opacity: 0;
+        pointer-events: none;
+        transition: width 0.25s ease, opacity 0.2s ease;
+    }
+
+    .page-progress.is-active {
+        opacity: 1;
     }
 }

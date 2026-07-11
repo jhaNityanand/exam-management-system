@@ -136,8 +136,16 @@
                             </div>
                         </div>
 
-                    @elseif ($question->type === 'short_answer')
-                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider mb-3">Reference Answer</h3>
+                    @elseif (in_array($question->type, ['short_answer', 'long_answer', 'fill_blank'], true))
+                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
+                            @if($question->type === 'fill_blank')
+                                Expected Blank Answer
+                            @elseif($question->type === 'long_answer')
+                                Model / Reference Answer
+                            @else
+                                Reference Answer
+                            @endif
+                        </h3>
                         <div class="p-5 bg-emerald-50/30 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl">
                             <div class="prose prose-sm dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
                                 {!! $question->correct_answer !!}
@@ -215,28 +223,48 @@
                     </div>
 
                     <!-- Type -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-slate-450 dark:text-slate-400 font-semibold">Question Type</span>
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-950/20 px-3 py-1 rounded-xl border border-slate-200/40 dark:border-slate-800">
-                            @if($question->type === 'mcq')
-                                MCQ
-                            @elseif($question->type === 'true_false')
-                                True / False
-                            @else
-                                Short Answer
-                            @endif
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-sm text-slate-500 dark:text-slate-400 font-semibold">Question Type</span>
+                        @php
+                            $typeLabels = [
+                                'mcq' => 'Multiple Choice',
+                                'true_false' => 'True / False',
+                                'short_answer' => 'Short Answer',
+                                'long_answer' => 'Long Answer',
+                                'fill_blank' => 'Fill in the Blanks',
+                            ];
+                            $typeClasses = [
+                                'mcq' => 'question-type-mcq',
+                                'true_false' => 'question-type-true-false',
+                                'short_answer' => 'question-type-short-answer',
+                                'long_answer' => 'question-type-long-answer',
+                                'fill_blank' => 'question-type-fill-blank',
+                            ];
+                        @endphp
+                        <span class="question-type-badge {{ $typeClasses[$question->type] ?? '' }}">
+                            {{ $typeLabels[$question->type] ?? ucfirst(str_replace('_', ' ', $question->type)) }}
                         </span>
                     </div>
 
                     <!-- Difficulty -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-slate-450 dark:text-slate-400 font-semibold">Difficulty</span>
-                        <span class="inline-flex items-center px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wider
-                            {{ $question->difficulty === 'easy' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/30' : '' }}
-                            {{ $question->difficulty === 'medium' ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200/30' : '' }}
-                            {{ $question->difficulty === 'hard' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/30' : '' }}
-                        ">
-                            {{ $question->difficulty }}
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-sm text-slate-500 dark:text-slate-400 font-semibold">Difficulty</span>
+                        @php
+                            $diffLabels = [
+                                'easy' => 'Easy',
+                                'medium' => 'Medium',
+                                'hard' => 'Hard',
+                                'very_hard' => 'Very Hard',
+                            ];
+                            $diffClasses = [
+                                'easy' => 'question-diff-easy',
+                                'medium' => 'question-diff-medium',
+                                'hard' => 'question-diff-hard',
+                                'very_hard' => 'question-diff-very-hard',
+                            ];
+                        @endphp
+                        <span class="question-diff-badge {{ $diffClasses[$question->difficulty] ?? '' }}">
+                            {{ $diffLabels[$question->difficulty] ?? $question->difficulty }}
                         </span>
                     </div>
 

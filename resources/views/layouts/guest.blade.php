@@ -18,5 +18,6 @@
             {{ $slot }}
         </div>
     </div>
+    @include('partials.flash-toasts')
 </body>
 </html>
