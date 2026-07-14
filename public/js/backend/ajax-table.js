@@ -190,21 +190,25 @@ class AjaxTable {
     openDrawer() {
         if (this.elements.drawer) {
             this.elements.drawer.classList.add('is-open');
+            this.elements.drawer.setAttribute('aria-hidden', 'false');
         }
         const backdrop = document.querySelector('#offcanvas-backdrop');
         if (backdrop) {
             backdrop.classList.add('is-visible');
         }
+        document.body.style.overflow = 'hidden';
     }
 
     closeDrawer() {
         if (this.elements.drawer) {
             this.elements.drawer.classList.remove('is-open');
+            this.elements.drawer.setAttribute('aria-hidden', 'true');
         }
         const backdrop = document.querySelector('#offcanvas-backdrop');
         if (backdrop) {
             backdrop.classList.remove('is-visible');
         }
+        document.body.style.overflow = '';
     }
 
     applyFiltersFromForm() {

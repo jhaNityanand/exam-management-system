@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\Backend\GalleryController;
+use App\Http\Controllers\Api\Workspace\BlogDataController;
 use App\Http\Controllers\Api\Workspace\ExamDataController;
 use App\Http\Controllers\Api\Workspace\QuestionDataController;
+use App\Http\Controllers\Backend\BlogController;
+use App\Http\Controllers\Backend\BlogCategoryController;
 use App\Http\Controllers\Backend\CandidateController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\ExamController;
@@ -65,6 +68,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // ── Internal API (DataTable JSON endpoints) ───────────────────────────────
     Route::get('internal-api/exams-table',     ExamDataController::class)->name('internal-api.exams-table');
     Route::get('internal-api/questions-table', QuestionDataController::class)->name('internal-api.questions-table');
+    Route::get('internal-api/blogs-table',     BlogDataController::class)->name('internal-api.blogs-table');
 
     // ── Questions Module ──────────────────────────────────────────────────────
     Route::prefix('questions')->name('questions.')->group(function () {
@@ -86,6 +90,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
 
+    // ── Blogs ─────────────────────────────────────────────────────────────────
+    Route::prefix('blogs')->name('blogs.')->group(function () {
+        Route::resource('categories', BlogCategoryController::class)->names('categories');
+        Route::post('bulk-destroy', [BlogController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('bulk-restore', [BlogController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::patch('{blog}/restore', [BlogController::class, 'restore'])->name('restore')->withTrashed();
+    });
+    Route::resource('blogs', BlogController::class);
     // ── Settings ─────────────────────────────────────────────────────────────
     Route::get('settings',  [SettingController::class, 'edit'])->name('settings.index');
     Route::put('settings',  [SettingController::class, 'update'])->name('settings.update');

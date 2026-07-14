@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             ExamInstructionRuleSeeder::class,
             ExamCandidateInstructionTemplateSeeder::class,
             ExamSeeder::class,
+            BlogCategorySeeder::class,
+            BlogTagSeeder::class,
+            BlogSeeder::class,
         ]);
 
         $this->command->info('Demo logins (password: password):');
