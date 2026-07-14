@@ -55,14 +55,9 @@ class ExamController extends Controller
     {
         $orgId = $this->currentOrgId();
         $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
-        $formOptions = ExamFormOptions::all();
+        $formOptions = ExamFormOptions::all($orgId);
 
-        $questions = Question::query()
-            ->orderBy('body')
-            ->limit(500)
-            ->get(['id', 'body', 'category_id', 'marks', 'difficulty', 'type']);
-
-        return view('backend.exams.create', compact('categories', 'questions', 'formOptions'));
+        return view('backend.exams.create', compact('categories', 'formOptions'));
     }
 
     // ── Store ─────────────────────────────────────────────────────────────────
@@ -129,7 +124,7 @@ class ExamController extends Controller
 
         $orgId = $this->currentOrgId();
         $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
-        $formOptions = ExamFormOptions::all();
+        $formOptions = ExamFormOptions::all($orgId);
 
         $questions = Question::query()
             ->orderBy('body')

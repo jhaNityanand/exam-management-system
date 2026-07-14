@@ -1,16 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('questions-table-body');
+    const questionTypeMeta = window.questionTypeMeta || {};
 
     const getTypeBadge = (type) => {
-        const types = {
-            mcq: { label: 'Multiple Choice', class: 'question-type-mcq' },
-            true_false: { label: 'True / False', class: 'question-type-true-false' },
-            short_answer: { label: 'Short Answer', class: 'question-type-short-answer' },
-            long_answer: { label: 'Long Answer', class: 'question-type-long-answer' },
-            fill_blank: { label: 'Fill in the Blanks', class: 'question-type-fill-blank' },
-        };
-        const activeType = types[type] || { label: type, class: '' };
-        return `<span class="question-type-badge ${activeType.class}">${activeType.label}</span>`;
+        const activeType = questionTypeMeta[type] || { label: type, class: '' };
+        return `<span class="question-type-badge ${activeType.class || ''}">${activeType.label || type}</span>`;
     };
 
     const getDiffBadge = (diff) => {

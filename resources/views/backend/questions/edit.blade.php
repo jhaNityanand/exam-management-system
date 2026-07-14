@@ -36,8 +36,12 @@
                         <select id="category_id" name="category_id" class="mt-1 block w-full">
                             <option value="">Search or select...</option>
                             @foreach ($categories as $cat)
-                                <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}" {{ old('category_id', $question->category_id) == $cat->id ? 'selected' : '' }}>
-                                    {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
+                                <option value="{{ $cat->id }}"
+                                    data-level="{{ $cat->depth }}"
+                                    data-category-name="{{ $cat->name }}"
+                                    class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}"
+                                    {{ old('category_id', $question->category_id) == $cat->id ? 'selected' : '' }}>
+                                    {{ $cat->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -47,11 +51,9 @@
                     <div>
                         <label for="type" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question Type <span class="text-red-500">*</span></label>
                         <select id="type" name="type" class="panel-input mt-1 block w-full">
-                            <option value="mcq" {{ old('type', $question->type) == 'mcq' ? 'selected' : '' }}>Multiple Choice</option>
-                            <option value="true_false" {{ old('type', $question->type) == 'true_false' ? 'selected' : '' }}>True/False</option>
-                            <option value="short_answer" {{ old('type', $question->type) == 'short_answer' ? 'selected' : '' }}>Short Answer</option>
-                            <option value="long_answer" {{ old('type', $question->type) == 'long_answer' ? 'selected' : '' }}>Long Answer</option>
-                            <option value="fill_blank" {{ old('type', $question->type) == 'fill_blank' ? 'selected' : '' }}>Fill in the Blanks</option>
+                            @foreach(($questionTypes ?? \App\Support\ExamFormats::questionTypes()) as $type)
+                                <option value="{{ $type['id'] }}" {{ old('type', $question->type) == $type['id'] ? 'selected' : '' }}>{{ $type['label'] }}</option>
+                            @endforeach
                         </select>
                         <p class="qcat-field-error" id="err-type"></p>
                     </div>
@@ -379,11 +381,14 @@
     <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.existingQuestion = {!! json_encode($question) !!};
         document.addEventListener('DOMContentLoaded', function() {
-            const categorySelect = new TomSelect('#category_id', {
+            const categorySelect = window.EmsTomSelectHierarchy?.create('#category_id', {
+                placeholder: "Search for a category...",
+            }) || new TomSelect('#category_id', {
                 create: false,
                 placeholder: "Search for a category...",
                 closeAfterSelect: true,

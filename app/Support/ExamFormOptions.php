@@ -2,13 +2,16 @@
 
 namespace App\Support;
 
+use App\Models\ExamCandidateInstructionTemplate;
+use App\Models\ExamInstructionRule;
+
 /**
  * Single source of truth for exam create/edit select options.
  * Values must stay aligned with StoreExamRequest / UpdateExamRequest rules.
  */
 class ExamFormOptions
 {
-    public static function all(): array
+    public static function all(?int $organizationId = null): array
     {
         return [
             'difficultyLevels' => self::difficultyLevels(),
@@ -20,7 +23,8 @@ class ExamFormOptions
             'questionMarks' => self::questionMarks(),
             'pricingOptions' => self::pricingOptions(),
             'distributionTypes' => self::distributionTypes(),
-            'instructionTemplates' => self::instructionTemplates(),
+            'instructionTemplates' => self::instructionTemplates($organizationId),
+            'instructionRules' => self::instructionRules($organizationId),
             'currencies' => self::currencies(),
         ];
     }
@@ -65,47 +69,21 @@ class ExamFormOptions
 
     public static function examFormats(): array
     {
-        return [
-            ['id' => 'mcq', 'label' => 'MCQ', 'description' => 'Single-correct objective questions.'],
-            ['id' => 'multi_select', 'label' => 'Multi Select', 'description' => 'MCQ with multiple correct choices.'],
-            ['id' => 'true_false', 'label' => 'True / False', 'description' => 'Binary true or false questions.'],
-            ['id' => 'written', 'label' => 'Written', 'description' => 'Short and long descriptive answers.'],
-            ['id' => 'fill_blank', 'label' => 'Fill in the Blanks', 'description' => 'Complete the missing words or phrases.'],
-        ];
+        return ExamFormats::all();
     }
 
     /** @return list<string> */
     public static function examFormatIds(): array
     {
-        return collect(self::examFormats())->pluck('id')->all();
+        return ExamFormats::ids();
     }
 
     /**
-     * Map exam format IDs to question-bank query constraints.
-     * Each format yields a list of ['type' => ..., 'allows_multiple' => bool|null].
-     *
      * @return array<string, list<array{type: string, allows_multiple: bool|null}>>
      */
     public static function examFormatQuestionConstraints(): array
     {
-        return [
-            'mcq' => [
-                ['type' => 'mcq', 'allows_multiple' => false],
-            ],
-            'multi_select' => [
-                ['type' => 'mcq', 'allows_multiple' => true],
-            ],
-            'true_false' => [
-                ['type' => 'true_false', 'allows_multiple' => null],
-            ],
-            'written' => [
-                ['type' => 'short_answer', 'allows_multiple' => null],
-                ['type' => 'long_answer', 'allows_multiple' => null],
-            ],
-            'fill_blank' => [
-                ['type' => 'fill_blank', 'allows_multiple' => null],
-            ],
-        ];
+        return ExamFormats::questionConstraints();
     }
 
     public static function distributionTypes(): array
@@ -146,25 +124,64 @@ class ExamFormOptions
         ];
     }
 
-    public static function instructionTemplates(): array
+    /**
+     * Active candidate instruction templates for an organization.
+     *
+     * @return list<array{id: string, label: string, content: string, template_type: ?string, is_default: bool, version: ?string, icon: ?string}>
+     */
+    public static function instructionTemplates(?int $organizationId = null): array
     {
-        return [
-            [
-                'id' => 'default_general',
-                'label' => 'General Assessment Rules',
-                'content' => '<ul><li>Read each question carefully before answering.</li><li>Use the provided time effectively and avoid leaving questions unanswered.</li><li>Review your answers before final submission.</li></ul>',
-            ],
-            [
-                'id' => 'proctored_policy',
-                'label' => 'Proctored Compliance Rules',
-                'content' => '<ul><li>Keep camera enabled throughout the attempt.</li><li>Switching browser tabs may trigger warnings.</li><li>Any misconduct can lead to exam cancellation.</li></ul>',
-            ],
-            [
-                'id' => 'coding_guidelines',
-                'label' => 'Coding Round Guidelines',
-                'content' => '<ul><li>Explain assumptions in concise comments.</li><li>Write clear and testable logic.</li><li>Prefer readability over unnecessary optimization.</li></ul>',
-            ],
-        ];
+        $orgId = $organizationId ?? current_organization_id();
+        if (! $orgId) {
+            return [];
+        }
+
+        return ExamCandidateInstructionTemplate::query()
+            ->forOrg((int) $orgId)
+            ->active()
+            ->ordered()
+            ->get()
+            ->map(fn (ExamCandidateInstructionTemplate $template) => $template->toFormOption())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Active exam instruction/rules for an organization.
+     *
+     * @return list<array{id: string, label: string, description: string, category: ?string, icon: ?string, is_default: bool, is_required: bool}>
+     */
+    public static function instructionRules(?int $organizationId = null): array
+    {
+        $orgId = $organizationId ?? current_organization_id();
+        if (! $orgId) {
+            return [];
+        }
+
+        return ExamInstructionRule::query()
+            ->forOrg((int) $orgId)
+            ->active()
+            ->ordered()
+            ->get()
+            ->map(fn (ExamInstructionRule $rule) => $rule->toFormOption())
+            ->values()
+            ->all();
+    }
+
+    /** @return list<string> */
+    public static function instructionRuleIds(?int $organizationId = null): array
+    {
+        return collect(self::instructionRules($organizationId))->pluck('id')->all();
+    }
+
+    /** @return list<string> */
+    public static function defaultInstructionRuleIds(?int $organizationId = null): array
+    {
+        return collect(self::instructionRules($organizationId))
+            ->filter(fn (array $rule) => ! empty($rule['is_default']) || ! empty($rule['is_required']))
+            ->pluck('id')
+            ->values()
+            ->all();
     }
 
     public static function currencies(): array
@@ -179,7 +196,6 @@ class ExamFormOptions
         ];
     }
 
-    /** Simple id => label maps for Blade @foreach selects (edit form). */
     public static function statusLabels(): array
     {
         return collect(self::examStatus())->mapWithKeys(fn ($o) => [$o['id'] => $o['label']])->all();
@@ -202,6 +218,6 @@ class ExamFormOptions
 
     public static function formatLabels(): array
     {
-        return collect(self::examFormats())->mapWithKeys(fn ($o) => [$o['id'] => $o['label']])->all();
+        return ExamFormats::labels();
     }
 }

@@ -3,7 +3,9 @@
     const changeHandlers = new Map();
 
     function safeTrim(value) {
-        return String(value || '').trim();
+        return String(value || '')
+            .replace(/^[\s\u00A0\u2007\u202F\uFEFF]+/u, '')
+            .replace(/[\s\u00A0\u2007\u202F\uFEFF]+$/u, '');
     }
 
     function getPlaceholder(select) {

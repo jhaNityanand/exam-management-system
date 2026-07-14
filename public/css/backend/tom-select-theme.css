@@ -115,3 +115,44 @@
     background-color: #312e81 !important;
     color: #e0e7ff !important;
 }
+
+/* Hierarchical categories: indent only in the dropdown list, never in selected value */
+.ts-control .item,
+.ts-control .item .ems-item-row--selected {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    text-indent: 0 !important;
+}
+
+.ems-category-option {
+    display: block;
+    width: 100%;
+}
+
+.ems-category-label {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ems-category-option[data-level='0'] .ems-category-label {
+    font-weight: 700;
+}
+
+.ems-category-option[data-level='1'] .ems-category-label {
+    padding-left: 1.15rem;
+}
+
+.ems-category-option[data-level='2'] .ems-category-label {
+    padding-left: 2.3rem;
+}
+
+.ems-category-option[data-level='3'] .ems-category-label {
+    padding-left: 3.45rem;
+}
+
+.ems-category-option[data-level='4'] .ems-category-label,
+.ems-category-option[data-level='5'] .ems-category-label {
+    padding-left: 4.6rem;
+}

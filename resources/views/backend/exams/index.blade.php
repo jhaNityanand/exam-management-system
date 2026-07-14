@@ -138,8 +138,11 @@
                 <label for="drawer-category-filter" class="filter-label">Category</label>
                 <select id="drawer-category-filter" name="filters[category_id][]" multiple placeholder="All Categories">
                     @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
-                            {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
+                        <option value="{{ $cat->id }}"
+                            data-level="{{ $cat->depth }}"
+                            data-category-name="{{ $cat->name }}"
+                            class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
+                            {{ $cat->name }}
                         </option>
                     @endforeach
                 </select>
@@ -260,13 +263,20 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.examsApiUrl = @json(route('admin.internal-api.exams-table'));
         window.examsIndexUrl = @json(route('admin.exams.index'));
 
         document.addEventListener('DOMContentLoaded', function() {
-            const categoryFilter = new TomSelect('#drawer-category-filter', {
+            window.EmsTomSelectHierarchy?.create('#drawer-category-filter', {
+                plugins: ['remove_button'],
+                placeholder: 'Select categories…',
+                maxOptions: null,
+                maxItems: null,
+                closeAfterSelect: false,
+            }) || new TomSelect('#drawer-category-filter', {
                 create: false,
                 plugins: ['remove_button'],
                 placeholder: 'Select categories…',

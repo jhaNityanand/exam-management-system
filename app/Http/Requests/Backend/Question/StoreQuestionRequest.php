@@ -26,7 +26,7 @@ class StoreQuestionRequest extends FormRequest
                     }
                 }),
             ],
-            'type'             => ['required', Rule::in(['mcq', 'true_false', 'short_answer', 'long_answer', 'fill_blank'])],
+            'type'             => ['required', Rule::in(\App\Support\ExamFormats::questionTypeIds())],
             'difficulty'       => ['required', Rule::in(['easy', 'medium', 'hard', 'very_hard'])],
             'marks_type'       => ['required', Rule::in(['single', 'multiple'])],
             'marks'            => ['required_if:marks_type,single', 'nullable', 'integer', 'min:1', 'max:10'],

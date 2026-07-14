@@ -166,74 +166,6 @@ async function loadJsonMapWithTimeout(endpoints, timeoutMs = 15000) {
     }
 }
 
-const PREDEFINED_INSTRUCTION_RULES = [
-    {
-        id: 'no_revert_after_submit',
-        label: 'Once the exam is submitted, it cannot be reverted.',
-        description: 'Candidates cannot edit or reopen the submission after final submit.',
-    },
-    {
-        id: 'no_retake_after_submit',
-        label: 'Users cannot retake the exam after submission.',
-        description: 'The same candidate cannot attempt this exam again once completed.',
-    },
-    {
-        id: 'tab_switch_autosubmit',
-        label: 'Switching tabs may auto-submit the exam.',
-        description: 'Leaving the active exam window can immediately end the attempt.',
-    },
-    {
-        id: 'fullscreen_required',
-        label: 'Full-screen mode is required during the exam.',
-        description: 'Candidates must remain in full-screen mode for the full session.',
-    },
-    {
-        id: 'no_page_refresh',
-        label: 'Refreshing the exam page may end the attempt.',
-        description: 'Page reload can cause automatic submission or attempt lock.',
-    },
-    {
-        id: 'random_question_order',
-        label: 'Questions will appear in random order.',
-        description: 'Each candidate can receive the same questions in a different sequence.',
-    },
-    {
-        id: 'mandatory_questions_no_skip',
-        label: 'Candidates cannot skip mandatory questions.',
-        description: 'Mandatory items must be answered before moving forward.',
-    },
-    {
-        id: 'disable_copy_paste',
-        label: 'Disable copy/paste during the exam.',
-        description: 'Clipboard actions can be blocked while the exam is active.',
-    },
-    {
-        id: 'webcam_monitoring_enabled',
-        label: 'Webcam monitoring is enabled.',
-        description: 'Candidates may be monitored by camera during the attempt.',
-    },
-    {
-        id: 'disconnection_may_affect_session',
-        label: 'Internet disconnection may affect the exam session.',
-        description: 'Unstable connectivity can interrupt timing or answer sync.',
-    },
-    {
-        id: 'single_attempt_per_question',
-        label: 'Each question can be attempted only once.',
-        description: 'Candidates cannot return to revise an already attempted question.',
-    },
-    {
-        id: 'id_verification_required',
-        label: 'Identity verification is required before exam start.',
-        description: 'Candidates must complete required identity checks before launching the test.',
-    },
-    {
-        id: 'suspicious_activity_flagged',
-        label: 'Suspicious activity may be flagged for review.',
-        description: 'The platform may log unusual behavior for proctor/admin review.',
-    },
-];
-
 const EXAM_FORMAT_OPTIONS = []; // populated from ExamFormOptions via examCreateConfig
 
 const SCHEDULE_TYPE_OPTIONS = [
@@ -453,6 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryTargetHelper: document.getElementById('category-target-helper'),
 
         distributionTypeGroup: document.getElementById('distribution-type-group'),
+        distributionTypeHidden: document.getElementById('distribution_type'),
         categorySelectorWrap: document.getElementById('category-selector-wrap'),
         categorySelectionComplete: document.getElementById('category-selection-complete'),
         categorySelectionCompleteText: document.getElementById('category-selection-complete-text'),
@@ -513,6 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
         globalSelectedCount: document.getElementById('global-selected-count'),
         globalAllowedCount: document.getElementById('global-allowed-count'),
         globalRandomSelectBtn: document.getElementById('global-random-select'),
+        questionIdsHidden: document.getElementById('question_ids'),
 
         instructionTemplate: document.getElementById('instruction_template'),
         applyInstructionTemplate: document.getElementById('apply-instruction-template'),
@@ -562,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pricingOptions: [],
             distributionTypes: [],
             instructionTemplates: [],
+            instructionRules: [],
             currencies: [],
         },
         questionBank: [],
@@ -711,6 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pricingOptions: Array.isArray(configData.pricingOptions) ? configData.pricingOptions : [],
                 distributionTypes: Array.isArray(configData.distributionTypes) ? configData.distributionTypes : [],
                 instructionTemplates: Array.isArray(configData.instructionTemplates) ? configData.instructionTemplates : [],
+                instructionRules: Array.isArray(configData.instructionRules) ? configData.instructionRules : [],
                 currencies: Array.isArray(configData.currencies) ? configData.currencies : [],
             };
             state.categoryTree = categoryTree;
@@ -759,6 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         pricingOptions: staticOptions.pricingOptions || [],
                         distributionTypes: staticOptions.distributionTypes || [],
                         instructionTemplates: staticOptions.instructionTemplates || [],
+                        instructionRules: staticOptions.instructionRules || [],
                         currencies: staticOptions.currencies || [],
                         categories: state.config.categories || [],
                         questionBank: [],
@@ -979,12 +916,16 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTimerConfigState();
 
         renderInstructionTemplates();
-        const defaultInstructionRules = normalizeInstructionRuleSelection(
-            jsonSafeParse(refs.instructionRulesHidden ? refs.instructionRulesHidden.value : '[]')
-        );
+        const parsedRules = jsonSafeParse(refs.instructionRulesHidden ? refs.instructionRulesHidden.value : '[]');
+        const seedRules = Array.isArray(parsedRules) && parsedRules.length
+            ? parsedRules
+            : defaultInstructionRuleIds();
+        const defaultInstructionRules = normalizeInstructionRuleSelection(seedRules);
         state.selectedInstructionRules = new Set(defaultInstructionRules);
         renderInstructionRules();
-        renderModalSelects();
+        if (refs.modal || refs.newQuestionCategory) {
+            renderModalSelects();
+        }
         refs.manualEmailFeedback.textContent = 'Type email and press Enter to add.';
 
         const defaultTags = jsonSafeParse(refs.tagsHidden.value);
@@ -1048,6 +989,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderDistributionTypes() {
+        if (!refs.distributionTypeGroup) {
+            return;
+        }
+
         if (!state.selectedDistributionType && state.config.distributionTypes.length) {
             state.selectedDistributionType = state.config.distributionTypes[0].id;
         }
@@ -1058,6 +1003,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `<button type="button" class="pill ${active}" data-distribution-id="${escapeHtml(type.id)}">${escapeHtml(type.label)}</button>`;
             })
             .join('');
+
+        if (refs.distributionTypeHidden) {
+            refs.distributionTypeHidden.value = state.selectedDistributionType || '';
+        }
     }
 
     function applyMainCategorySelectionRules(rawIds, limit) {
@@ -1434,6 +1383,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 refs.discountHidden.value = JSON.stringify(
                     [...state.selectedDiscounts].map(id => ({ id, percentage: state.discountPercentages[id] }))
                 );
+                renderDiscountSummary();
                 updateWorkflowAndSnapshot();
             });
         });
@@ -1746,21 +1696,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderInstructionTemplates() {
+        const templates = Array.isArray(state.config.instructionTemplates)
+            ? state.config.instructionTemplates
+            : [];
+
         refs.instructionTemplate.innerHTML = [`<option value="">Choose template</option>`]
             .concat(
-                state.config.instructionTemplates.map(
+                templates.map(
                     (template) => `<option value="${escapeHtml(template.id)}">${escapeHtml(template.label)}</option>`
                 )
             )
             .join('');
+
+        const defaultTemplate = templates.find((template) => template.is_default);
+        if (defaultTemplate) {
+            refs.instructionTemplate.value = defaultTemplate.id;
+        }
+    }
+
+    function getInstructionRulesConfig() {
+        return Array.isArray(state.config.instructionRules) ? state.config.instructionRules : [];
     }
 
     function normalizeInstructionRuleSelection(rawValues) {
-        const validIds = new Set(PREDEFINED_INSTRUCTION_RULES.map((rule) => rule.id));
+        const validIds = new Set(getInstructionRulesConfig().map((rule) => rule.id));
         const source = Array.isArray(rawValues) ? rawValues : [];
         return [...new Set(source
             .map((value) => cleanText(String(value || '')))
             .filter((value) => validIds.has(value)))];
+    }
+
+    function defaultInstructionRuleIds() {
+        return getInstructionRulesConfig()
+            .filter((rule) => rule.is_default || rule.is_required)
+            .map((rule) => rule.id);
     }
 
     function syncInstructionRulesHidden() {
@@ -1775,14 +1744,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        refs.instructionRulesList.innerHTML = PREDEFINED_INSTRUCTION_RULES
+        const rules = getInstructionRulesConfig();
+        if (!rules.length) {
+            refs.instructionRulesList.innerHTML = `
+                <p class="exam-help">No instruction rules are configured for this organization yet.</p>
+            `;
+            if (refs.instructionRulesCount) {
+                refs.instructionRulesCount.textContent = '0';
+            }
+            syncInstructionRulesHidden();
+            return;
+        }
+
+        refs.instructionRulesList.innerHTML = rules
             .map((rule) => {
                 const checked = state.selectedInstructionRules.has(rule.id);
                 const cardState = checked ? 'is-active' : '';
+                const requiredAttr = rule.is_required ? 'data-required="1"' : '';
                 return `
                     <article class="instruction-rule-card ${cardState}">
                         <label class="switch-control" style="cursor: pointer;">
-                            <input type="checkbox" data-rule-id="${escapeHtml(rule.id)}" ${checked ? 'checked' : ''}>
+                            <input type="checkbox" data-rule-id="${escapeHtml(rule.id)}" ${requiredAttr} ${checked ? 'checked' : ''}>
                             <span class="switch-control__track"></span>
                             <span class="switch-control__label">${escapeHtml(rule.label)}</span>
                         </label>
@@ -1799,6 +1781,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderModalSelects() {
+        if (!refs.modal && !refs.newQuestionCategory && !refs.newQuestionMarks && !refs.newQuestionDifficulty) {
+            return;
+        }
+
         const categories = getAssignableCategories();
 
         if (refs.newQuestionCategory) {
@@ -1818,19 +1804,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 .map((level) => `<option value="${escapeHtml(level.id)}">${escapeHtml(level.label)}</option>`)
                 .join('');
         }
-
-        if (!state.extraQuestionsCategoryIds.length && categories.length) {
-            state.extraQuestionsCategoryIds = [categories[0].id];
-        }
-        syncExtraQuestionsHidden();
     }
 
     function bindEvents() {
         if (state.eventsBound) {
             return;
         }
-        state.eventsBound = true;
 
+        try {
+            bindEventsInternal();
+            state.eventsBound = true;
+        } catch (error) {
+            state.eventsBound = false;
+            throw error;
+        }
+    }
+
+    function bindEventsInternal() {
         refs.mode.addEventListener('change', () => {
             state.selectedMode = refs.mode.value;
             updateAll();
@@ -1928,17 +1918,20 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.paperSets,
             refs.fixCategoryQuestions,
         ].forEach((field) => {
+            if (!field) return;
             field.addEventListener('input', updateAll);
             field.addEventListener('change', updateAll);
         });
 
-        refs.distributionTypeGroup.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-distribution-id]');
-            if (!button) return;
-            state.selectedDistributionType = button.dataset.distributionId;
-            renderDistributionTypes();
-            updateAll();
-        });
+        if (refs.distributionTypeGroup) {
+            refs.distributionTypeGroup.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-distribution-id]');
+                if (!button) return;
+                state.selectedDistributionType = button.dataset.distributionId;
+                renderDistributionTypes();
+                updateAll();
+            });
+        }
 
         bindMainCategorySelect();
 
@@ -2162,12 +2155,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        refs.openAddQuestionModal.addEventListener('click', () => openAddQuestionModal(''));
+        if (refs.openAddQuestionModal) {
+            refs.openAddQuestionModal.addEventListener('click', () => openAddQuestionModal(''));
+        }
+
         refs.modalCloseButtons.forEach((button) => button.addEventListener('click', closeAddQuestionModal));
-        refs.addQuestionForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            addQuestionFromModal();
-        });
+
+        if (refs.addQuestionForm) {
+            refs.addQuestionForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                addQuestionFromModal();
+            });
+        }
 
         if (refs.customDiscountsBtn) {
             refs.customDiscountsBtn.addEventListener('click', () => {
@@ -2195,8 +2194,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const card = checkbox.closest('.instruction-rule-card');
+                const isRequired = checkbox.dataset.required === '1';
 
                 if (checkbox.checked) {
+                    state.selectedInstructionRules.add(ruleId);
+                    card?.classList.add('is-active');
+                } else if (isRequired) {
+                    checkbox.checked = true;
                     state.selectedInstructionRules.add(ruleId);
                     card?.classList.add('is-active');
                 } else {
@@ -3268,13 +3272,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const refreshBtn = document.getElementById('refresh-question-bank');
         const bankSection = document.getElementById('question-bank-section');
+        const managedByButton = Boolean(refreshBtn?.classList.contains('is-loading'));
 
         if (refs.questionBankFeedback) {
             refs.questionBankFeedback.textContent = 'Loading matching questions from server...';
         }
-        if (refreshBtn) {
+        if (refreshBtn && !managedByButton) {
             refreshBtn.disabled = true;
             refreshBtn.classList.add('is-loading');
+            refreshBtn.setAttribute('aria-busy', 'true');
         }
         bankSection?.classList.add('is-loading');
 
@@ -3314,9 +3320,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             window.EmsToast?.error('Network error while loading questions.');
         } finally {
-            if (refreshBtn) {
+            if (refreshBtn && !managedByButton) {
                 refreshBtn.disabled = false;
                 refreshBtn.classList.remove('is-loading');
+                refreshBtn.removeAttribute('aria-busy');
             }
             bankSection?.classList.remove('is-loading');
         }
@@ -3595,8 +3602,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeAddQuestionModal() {
-        refs.modal.hidden = true;
-        refs.addQuestionForm.reset();
+        if (refs.modal) {
+            refs.modal.hidden = true;
+        }
+        if (refs.addQuestionForm) {
+            refs.addQuestionForm.reset();
+        }
 
         if (window.EmsSelect && typeof window.EmsSelect.setValue === 'function') {
             ['new_question_category', 'new_question_marks', 'new_question_difficulty'].forEach((fieldId) => {
@@ -3609,9 +3620,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addQuestionFromModal() {
+        if (!refs.addQuestionForm || !refs.newQuestionCategory || !refs.newQuestionText) {
+            return;
+        }
+
         const categoryId = refs.newQuestionCategory.value;
-        const marks = toInt(refs.newQuestionMarks.value, 1);
-        const difficulty = refs.newQuestionDifficulty.value || 'medium';
+        const marks = toInt(refs.newQuestionMarks?.value, 1);
+        const difficulty = refs.newQuestionDifficulty?.value || 'medium';
         const text = cleanText(refs.newQuestionText.value);
 
         if (!categoryId || !text) {
@@ -3732,8 +3747,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
         refs.marksHidden.value = JSON.stringify([...state.selectedMarks]);
-        refs.discountHidden.value = JSON.stringify([...state.selectedDiscounts]);
-        refs.pricingOptionHidden.value = state.selectedPricing;
+        if (refs.discountHidden) {
+            refs.discountHidden.value = JSON.stringify(
+                [...state.selectedDiscounts].map((id) => ({
+                    id,
+                    percentage: state.discountPercentages[id],
+                }))
+            );
+        }
+        if (refs.customDiscountsHidden) {
+            refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts || []);
+        }
+        if (refs.pricingOptionHidden) {
+            refs.pricingOptionHidden.value = state.selectedPricing || '';
+        }
+        if (refs.distributionTypeHidden) {
+            refs.distributionTypeHidden.value = state.selectedDistributionType || '';
+        }
+        if (refs.questionIdsHidden) {
+            refs.questionIdsHidden.value = JSON.stringify(
+                [...state.selectedQuestions].map((id) => Number(id)).filter((id) => id > 0)
+            );
+        }
         refs.tagsHidden.value = JSON.stringify(state.tags);
         if (refs.examFormatHidden) {
             refs.examFormatHidden.value = JSON.stringify([...state.selectedExamFormat]);

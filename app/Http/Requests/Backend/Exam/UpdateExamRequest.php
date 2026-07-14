@@ -30,7 +30,7 @@ class UpdateExamRequest extends FormRequest
             'status'           => ['sometimes', 'required', Rule::in(['draft', 'published', 'active', 'inactive', 'suspended'])],
             'exam_mode'        => ['sometimes', 'required', Rule::in(['standard', 'practice', 'proctored'])],
             'visibility'       => ['sometimes', 'required', Rule::in(['public', 'private', 'invite_only'])],
-            'tags'             => ['nullable', 'json'],
+            'tags'             => ['nullable'],
 
             // ── Section 2: Timer & Duration ───────────────────────────────
             'enable_exam_timer'        => ['sometimes', 'boolean'],
@@ -49,8 +49,10 @@ class UpdateExamRequest extends FormRequest
             'attempt_limit_count' => ['required_if:attempt_limit_type,fixed', 'nullable', 'integer', 'min:2'],
 
             // ── Section 5: Candidate Access ───────────────────────────────
-            'imported_candidates'    => ['nullable', 'json'],
-            'manual_candidate_emails'=> ['nullable', 'json'],
+            'imported_candidates'          => ['nullable'],
+            'manual_candidate_emails'      => ['nullable'],
+            'free_imported_candidates'     => ['nullable'],
+            'free_manual_candidate_emails' => ['nullable'],
 
             // ── Section 6: Exam Configuration ─────────────────────────────
             'total_questions'              => ['sometimes', 'required', 'integer', 'min:1'],
@@ -60,22 +62,36 @@ class UpdateExamRequest extends FormRequest
             'paper_sets'                   => ['sometimes', 'required', 'integer', 'min:1'],
             'fix_category_questions'       => ['sometimes', 'boolean'],
             'distribution_type'            => ['nullable', Rule::in(['mixed', 'category_wise', 'equal', 'weighted', 'manual'])],
-            'selected_categories'          => ['nullable', 'json'],
-            'extra_questions_categories'   => ['nullable', 'json'],
-            'extra_questions_allocations'  => ['nullable', 'json'],
+            'selected_categories'          => ['nullable'],
+            'extra_questions_categories'   => ['nullable'],
+            'extra_questions_allocations'  => ['nullable'],
+            'question_ids'                 => ['nullable'],
+            'question_ids.*'               => ['integer', Rule::exists('questions', 'id')],
 
             // ── Section 7: Question Rules & Filters ───────────────────────
             'fix_marks_each_question'    => ['sometimes', 'boolean'],
             'enable_negative_marking'    => ['sometimes', 'boolean'],
             'negative_marking_type'      => ['nullable', 'string', 'max:10'],
             'negative_mark_per_question' => ['nullable', 'numeric', 'min:0'],
-            'question_marks_filter'      => ['nullable', 'json'],
+            'question_marks_filter'      => ['nullable'],
             'shuffle_questions'          => ['sometimes', 'boolean'],
             'shuffle_options'            => ['sometimes', 'boolean'],
-            'category_question_rules'    => ['nullable', 'json'],
+            'category_question_rules'    => ['nullable'],
+
+            // ── Pricing & Discounts ───────────────────────────────────────
+            'pricing_option'     => ['nullable', Rule::in(['paid', 'free', 'free_for_imported'])],
+            'exam_currency'      => ['nullable', 'string', 'max:10'],
+            'exam_amount'        => ['nullable', 'numeric', 'min:0'],
+            'selected_discounts' => ['nullable'],
+            'custom_discounts'   => ['nullable'],
 
             // ── Instructions ──────────────────────────────────────────────
-            'instructions'               => ['nullable', 'string'],
+            'instructions'                   => ['nullable', 'string'],
+            'predefined_instruction_rules'   => ['nullable'],
+            'predefined_instruction_rules.*' => [
+                'string',
+                Rule::in(\App\Support\ExamFormOptions::instructionRuleIds()),
+            ],
 
             // ── SEO / Metadata ────────────────────────────────────────────
             'meta_title'       => ['nullable', 'string', 'max:255'],
@@ -85,6 +101,8 @@ class UpdateExamRequest extends FormRequest
             'canonical_url'    => ['nullable', 'url', 'max:500'],
             'og_title'         => ['nullable', 'string', 'max:255'],
             'og_description'   => ['nullable', 'string', 'max:500'],
+            'ai_generated'     => ['sometimes', 'boolean'],
+            'ai_improve'       => ['sometimes', 'boolean'],
         ];
     }
 
@@ -116,17 +134,7 @@ class UpdateExamRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $examFormat = $this->input('exam_format');
-        if (is_string($examFormat) && str_starts_with(trim($examFormat), '[')) {
-            $examFormat = json_decode($examFormat, true);
-        }
-
-        $this->merge([
-            'duration'                 => $this->input('exam_duration_minutes'),
-            'scheduled_start'          => $this->input('schedule_start_at') ?: null,
-            'scheduled_end'            => $this->input('schedule_end_at') ?: null,
-            'max_attempts'             => $this->input('attempt_limit_count', 1),
-
+        $payload = [
             'enable_exam_timer'        => (bool) $this->input('enable_exam_timer', false),
             'auto_submit_on_timer_end' => (bool) $this->input('auto_submit_on_timer_end', false),
             'shuffle_questions'        => (bool) $this->input('shuffle_questions', false),
@@ -134,11 +142,104 @@ class UpdateExamRequest extends FormRequest
             'enable_negative_marking'  => (bool) $this->input('enable_negative_marking', false),
             'fix_marks_each_question'  => (bool) $this->input('fix_marks_each_question', false),
             'fix_category_questions'   => (bool) $this->input('fix_category_questions', false),
-            'exam_format'              => $examFormat,
+            'ai_generated'             => (bool) $this->input('ai_generated', false),
+            'ai_improve'               => (bool) $this->input('ai_improve', false),
             'attempt_limit_type'       => $this->input('attempt_limit_type') === 'fixed_count'
                 ? 'fixed'
                 : $this->input('attempt_limit_type'),
             'category_id'              => $this->input('exam_category_id') ?: $this->input('category_id'),
-        ]);
+        ];
+
+        if ($this->exists('exam_duration_minutes')) {
+            $payload['duration'] = $this->input('exam_duration_minutes');
+        }
+        if ($this->exists('schedule_start_at')) {
+            $payload['scheduled_start'] = $this->input('schedule_start_at') ?: null;
+        }
+        if ($this->exists('schedule_end_at')) {
+            $payload['scheduled_end'] = $this->input('schedule_end_at') ?: null;
+        }
+        if ($this->exists('attempt_limit_count')) {
+            $payload['max_attempts'] = $this->input('attempt_limit_count', 1);
+        }
+
+        if ($this->exists('exam_format')) {
+            $examFormat = $this->decodeJsonValue($this->input('exam_format'));
+            if (is_string($examFormat) && filled($examFormat)) {
+                $examFormat = [$examFormat];
+            }
+            $payload['exam_format'] = is_array($examFormat) ? $examFormat : [];
+        }
+
+        $jsonListFields = [
+            'predefined_instruction_rules',
+            'tags',
+            'selected_categories',
+            'question_marks_filter',
+            'manual_candidate_emails',
+            'free_manual_candidate_emails',
+            'extra_questions_categories',
+        ];
+
+        foreach ($jsonListFields as $field) {
+            if ($this->exists($field)) {
+                $payload[$field] = $this->normalizeJsonList($this->input($field, []));
+            }
+        }
+
+        if ($this->exists('question_ids')) {
+            $payload['question_ids'] = array_values(array_filter(array_map(
+                'intval',
+                $this->normalizeJsonList($this->input('question_ids', []))
+            )));
+        }
+
+        $jsonObjectFields = [
+            'imported_candidates',
+            'free_imported_candidates',
+            'extra_questions_allocations',
+            'selected_discounts',
+            'custom_discounts',
+            'category_question_rules',
+        ];
+
+        foreach ($jsonObjectFields as $field) {
+            if ($this->exists($field)) {
+                $payload[$field] = $this->decodeJsonValue($this->input($field, []));
+            }
+        }
+
+        $this->merge($payload);
+    }
+
+    protected function normalizeJsonList(mixed $value): array
+    {
+        $decoded = $this->decodeJsonValue($value);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static function ($item) {
+                if (is_string($item) || is_numeric($item)) {
+                    return trim((string) $item);
+                }
+
+                return $item;
+            },
+            $decoded
+        ), static fn ($item) => $item !== '' && $item !== null));
+    }
+
+    protected function decodeJsonValue(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        return $value;
     }
 }

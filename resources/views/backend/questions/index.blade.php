@@ -187,8 +187,11 @@
                 <label for="drawer-category-filter" class="filter-label">Category</label>
                 <select id="drawer-category-filter" name="filters[category_id][]" multiple placeholder="All Categories">
                     @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
-                            {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
+                        <option value="{{ $cat->id }}"
+                            data-level="{{ $cat->depth }}"
+                            data-category-name="{{ $cat->name }}"
+                            class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
+                            {{ $cat->name }}
                         </option>
                     @endforeach
                 </select>
@@ -200,11 +203,9 @@
                 <label for="drawer-type-filter" class="filter-label">Question Type</label>
                 <select id="drawer-type-filter" name="filters[type]" class="panel-input w-full text-sm">
                     <option value="">All Types</option>
-                    <option value="mcq">Multiple Choice</option>
-                    <option value="true_false">True / False</option>
-                    <option value="short_answer">Short Answer</option>
-                    <option value="long_answer">Long Answer</option>
-                    <option value="fill_blank">Fill in the Blanks</option>
+                    @foreach(\App\Support\ExamFormats::questionTypes() as $type)
+                        <option value="{{ $type['id'] }}">{{ $type['label'] }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -305,13 +306,25 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.questionsApiUrl = @json(route('admin.internal-api.questions-table'));
         window.questionsIndexUrl = @json(route('admin.questions.index'));
+        window.questionTypeMeta = @json(
+            collect(\App\Support\ExamFormats::questionTypes())->mapWithKeys(
+                fn ($type) => [$type['id'] => ['label' => $type['label'], 'class' => $type['badge_class']]]
+            )
+        );
 
         document.addEventListener('DOMContentLoaded', function() {
-            const categoryFilter = new TomSelect('#drawer-category-filter', {
+            window.EmsTomSelectHierarchy?.create('#drawer-category-filter', {
+                plugins: ['remove_button'],
+                placeholder: 'Select categories…',
+                maxOptions: null,
+                maxItems: null,
+                closeAfterSelect: false,
+            }) || new TomSelect('#drawer-category-filter', {
                 create: false,
                 plugins: ['remove_button'],
                 placeholder: 'Select categories…',

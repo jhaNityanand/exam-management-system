@@ -79,11 +79,69 @@
                         <textarea id="edit_description" name="description" rows="4" class="panel-input"
                                   placeholder="Summarize scope, audience, and expected outcomes.">{{ old('description', $exam->description) }}</textarea>
                     </div>
-                    <div>
-                        <label for="edit_instructions" class="exam-label">Instructions</label>
-                        <textarea id="edit_instructions" name="instructions" rows="4" class="panel-input"
+                    <div class="space-y-3">
+                        <label for="edit_instructions" class="exam-label">Candidate Instructions</label>
+                        @php
+                            $instructionTemplates = $formOptions['instructionTemplates'] ?? [];
+                            $instructionRules = $formOptions['instructionRules'] ?? [];
+                            $selectedRules = old('predefined_instruction_rules');
+                            if ($selectedRules === null) {
+                                $selectedRules = is_array($exam->predefined_instruction_rules)
+                                    ? $exam->predefined_instruction_rules
+                                    : collect($instructionRules)
+                                        ->filter(fn ($rule) => ! empty($rule['is_default']) || ! empty($rule['is_required']))
+                                        ->pluck('id')
+                                        ->all();
+                            }
+                        @endphp
+                        @if(count($instructionTemplates))
+                            <div class="flex flex-wrap items-end gap-2">
+                                <div class="flex-1 min-w-[14rem]">
+                                    <label for="edit_instruction_template" class="exam-label">Instruction Template</label>
+                                    <select id="edit_instruction_template" class="panel-input">
+                                        <option value="">Choose template</option>
+                                        @foreach($instructionTemplates as $template)
+                                            <option value="{{ $template['id'] }}">
+                                                {{ $template['label'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <button type="button" id="edit-apply-instruction-template" class="panel-button-secondary">Apply Template</button>
+                            </div>
+                        @endif
+                        <textarea id="edit_instructions" name="instructions" rows="10" class="panel-input"
                                   placeholder="Provide instructions to candidates before they start.">{{ old('instructions', $exam->instructions) }}</textarea>
+                        <p class="exam-help">Select a template to load structured candidate instructions into the editor field.</p>
                     </div>
+
+                    @if(count($instructionRules))
+                        <div class="space-y-2">
+                            <label class="exam-label">Exam Instructions &amp; Rules</label>
+                            <p class="exam-help">Enable the rules that apply to this exam session.</p>
+                            <div class="grid gap-2 md:grid-cols-2">
+                                @foreach($instructionRules as $rule)
+                                    <label class="flex items-start gap-2 rounded-lg border border-slate-200 dark:border-slate-700 p-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            name="predefined_instruction_rules[]"
+                                            value="{{ $rule['id'] }}"
+                                            class="mt-1"
+                                            @checked(in_array($rule['id'], $selectedRules, true))
+                                            @disabled(!empty($rule['is_required']))
+                                        >
+                                        <span>
+                                            <span class="block text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $rule['label'] }}</span>
+                                            <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ $rule['description'] }}</span>
+                                        </span>
+                                        @if(!empty($rule['is_required']))
+                                            <input type="hidden" name="predefined_instruction_rules[]" value="{{ $rule['id'] }}">
+                                        @endif
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {{-- Category --}}
@@ -92,8 +150,12 @@
                             <select id="edit_category_id" name="category_id" class="mt-1 block w-full">
                                 <option value="">Select Category</option>
                                 @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}" @selected(old('category_id', $exam->category_id) == $cat->id)>
-                                        {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
+                                    <option value="{{ $cat->id }}"
+                                        data-level="{{ $cat->depth }}"
+                                        data-category-name="{{ $cat->name }}"
+                                        class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}"
+                                        @selected(old('category_id', $exam->category_id) == $cat->id)>
+                                        {{ $cat->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -492,8 +554,14 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/select.js') }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
     <script>
+        window.examEditInstructionTemplates = @json(
+            collect($formOptions['instructionTemplates'] ?? [])
+                ->mapWithKeys(fn ($template) => [$template['id'] => $template['content'] ?? ''])
+        );
+
         document.addEventListener('DOMContentLoaded', function() {
             // Exclude edit_category_id from automatic EmsSelect loop
             if (window.EmsSelect) {
@@ -503,13 +571,27 @@
                 );
             }
 
-            const categorySelect = new TomSelect('#edit_category_id', {
+            const categorySelect = window.EmsTomSelectHierarchy?.create('#edit_category_id', {
+                placeholder: "Search for a category...",
+            }) || new TomSelect('#edit_category_id', {
                 create: false,
                 placeholder: "Search for a category...",
                 closeAfterSelect: true,
             });
             window.EmsTomSelectBlur?.attach(categorySelect);
             window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
+
+            const applyBtn = document.getElementById('edit-apply-instruction-template');
+            const templateSelect = document.getElementById('edit_instruction_template');
+            const instructionsField = document.getElementById('edit_instructions');
+            applyBtn?.addEventListener('click', () => {
+                if (!templateSelect || !instructionsField) return;
+                const templateId = templateSelect.value;
+                const content = window.examEditInstructionTemplates?.[templateId] || '';
+                if (!content) return;
+                instructionsField.value = content;
+                instructionsField.dispatchEvent(new Event('input', { bubbles: true }));
+            });
         });
     </script>
 @endpush

@@ -26,6 +26,11 @@ class Exam extends Model
         'difficulty_level',
         'visibility',
         'tags',
+        'pricing_option',
+        'exam_currency',
+        'exam_amount',
+        'selected_discounts',
+        'custom_discounts',
 
         // Timer & Duration
         'duration',
@@ -69,6 +74,8 @@ class Exam extends Model
         // Candidate Access
         'imported_candidates',
         'manual_candidate_emails',
+        'free_imported_candidates',
+        'free_manual_candidate_emails',
 
         // SEO / Metadata
         'meta_title',
@@ -79,6 +86,11 @@ class Exam extends Model
         'og_title',
         'og_description',
         'instructions',
+        'predefined_instruction_rules',
+
+        // AI flags
+        'ai_generated',
+        'ai_improve',
     ];
 
     protected function casts(): array
@@ -92,10 +104,15 @@ class Exam extends Model
             'enable_negative_marking'    => 'boolean',
             'fix_marks_each_question'    => 'boolean',
             'fix_category_questions'     => 'boolean',
+            'ai_generated'               => 'boolean',
+            'ai_improve'                 => 'boolean',
 
             // Dates
             'scheduled_start'            => 'datetime',
             'scheduled_end'              => 'datetime',
+
+            // Numbers
+            'exam_amount'                => 'decimal:2',
 
             // JSON
             'tags'                       => 'array',
@@ -105,9 +122,14 @@ class Exam extends Model
             'extra_questions_allocations'=> 'array',
             'question_marks_filter'      => 'array',
             'category_question_rules'    => 'array',
-            'imported_candidates'        => 'array',
-            'manual_candidate_emails'    => 'array',
-            'updated_by_history'         => 'array',
+            'imported_candidates'             => 'array',
+            'manual_candidate_emails'         => 'array',
+            'free_imported_candidates'        => 'array',
+            'free_manual_candidate_emails'    => 'array',
+            'selected_discounts'              => 'array',
+            'custom_discounts'                => 'array',
+            'predefined_instruction_rules'    => 'array',
+            'updated_by_history'              => 'array',
         ];
     }
 

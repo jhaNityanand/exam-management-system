@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
             QuestionCategorySeeder::class,
             QuestionSeeder::class,
             ExamCategorySeeder::class,
+            ExamInstructionRuleSeeder::class,
+            ExamCandidateInstructionTemplateSeeder::class,
             ExamSeeder::class,
         ]);
 

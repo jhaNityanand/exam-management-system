@@ -226,20 +226,8 @@
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-sm text-slate-500 dark:text-slate-400 font-semibold">Question Type</span>
                         @php
-                            $typeLabels = [
-                                'mcq' => 'Multiple Choice',
-                                'true_false' => 'True / False',
-                                'short_answer' => 'Short Answer',
-                                'long_answer' => 'Long Answer',
-                                'fill_blank' => 'Fill in the Blanks',
-                            ];
-                            $typeClasses = [
-                                'mcq' => 'question-type-mcq',
-                                'true_false' => 'question-type-true-false',
-                                'short_answer' => 'question-type-short-answer',
-                                'long_answer' => 'question-type-long-answer',
-                                'fill_blank' => 'question-type-fill-blank',
-                            ];
+                            $typeLabels = \App\Support\ExamFormats::questionTypeLabels();
+                            $typeClasses = \App\Support\ExamFormats::questionTypeBadgeClasses();
                         @endphp
                         <span class="question-type-badge {{ $typeClasses[$question->type] ?? '' }}">
                             {{ $typeLabels[$question->type] ?? ucfirst(str_replace('_', ' ', $question->type)) }}

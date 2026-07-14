@@ -64,14 +64,18 @@
                                     <select id="exam_category_id" name="exam_category_id" class="mt-1 block w-full">
                                         <option value="">Search or select...</option>
                                         @foreach($categories as $cat)
-                                            <option value="{{ $cat->id }}" class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}" {{ old('exam_category_id') == $cat->id ? 'selected' : '' }}>
-                                                {!! str_repeat('&nbsp;', $cat->depth * 4) !!}{{ $cat->name }}
+                                            <option value="{{ $cat->id }}"
+                                                data-level="{{ $cat->depth }}"
+                                                data-category-name="{{ $cat->name }}"
+                                                class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}"
+                                                {{ old('exam_category_id') == $cat->id ? 'selected' : '' }}>
+                                                {{ $cat->name }}
                                             </option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div>
-                                    <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-bs-tooltip="Used for filtering and recommendation in reports.">i</span></label>
+                                    <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-tooltip="Used for filtering and recommendation in reports.">i</span></label>
                                     <select id="difficulty_level" name="difficulty_level" class="panel-input"></select>
                                 </div>
                                 <div>
@@ -317,6 +321,7 @@
                             <div>
                                 <label class="exam-label">Question Distribution Type</label>
                                 <div id="distribution-type-group" class="pill-group"></div>
+                                <input type="hidden" name="distribution_type" id="distribution_type" value="">
                             </div>
 
                             <div id="category-selector-wrap">
@@ -552,15 +557,25 @@
                     </section>
 
                     <section class="exam-section" id="question-bank-section">
-                        <div class="exam-section__head" style="display: flex; justify-content: space-between; align-items: center; padding: 0.95rem 1rem 0.8rem;">
-                            <div>
+                        <div class="exam-section__head exam-section__head--with-action">
+                            <div class="exam-section__head-copy">
                                 <h2>9. Question Bank Management</h2>
                                 <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
                             </div>
-                            <button type="button" id="refresh-question-bank" class="text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 rounded-full transition-all duration-200" title="Refresh Question Bank" style="background: transparent !important; border: none !important; box-shadow: none !important; width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1.25rem; height: 1.25rem;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" />
-                                </svg>
+                            <button
+                                type="button"
+                                id="refresh-question-bank"
+                                class="question-bank-refresh-btn"
+                                title="Refresh question bank"
+                                aria-label="Refresh question bank"
+                            >
+                                <span class="question-bank-refresh-btn__icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                                        <polyline points="21 3 21 9 15 9"/>
+                                    </svg>
+                                </span>
+                                <span class="question-bank-refresh-btn__label">Refresh</span>
                             </button>
                         </div>
                         <div class="exam-section__body space-y-4" id="question-bank-container" data-question-bank>
@@ -576,6 +591,7 @@
                                     <div class="global-action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
                                         <button type="button" id="global-random-select" class="panel-button-secondary" style="flex: 1; white-space: nowrap; font-size: 0.875rem; padding: 0.5rem 0.75rem; height: 2.5rem; display: inline-flex; align-items: center; justify-content: center;">Random Select</button>
                                         <button type="button" id="open-add-question-modal" class="panel-button-secondary" style="flex: 1; white-space: nowrap; font-size: 0.875rem; padding: 0.5rem 0.75rem; height: 2.5rem; display: inline-flex; align-items: center; justify-content: center;">Add Question</button>
+                                        <input type="hidden" name="question_ids" id="question_ids" value="[]">
                                     </div>
                                 </div>
                             </div>
@@ -600,7 +616,7 @@
                                 type="hidden"
                                 name="predefined_instruction_rules"
                                 id="predefined_instruction_rules"
-                                value="{{ json_encode(old('predefined_instruction_rules', ['no_revert_after_submit', 'no_retake_after_submit', 'tab_switch_autosubmit'])) }}"
+                                value="{{ json_encode(old('predefined_instruction_rules', collect($formOptions['instructionRules'] ?? [])->where(fn ($r) => !empty($r['is_default']) || !empty($r['is_required']))->pluck('id')->values()->all())) }}"
                             >
                         </div>
                     </section>
@@ -866,6 +882,7 @@
     <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ time() }}"></script>
@@ -883,12 +900,16 @@
             },
         };
         document.addEventListener('DOMContentLoaded', function() {
-            const categorySelect = new TomSelect('#exam_category_id', {
+            const categorySelect = window.EmsTomSelectHierarchy?.create('#exam_category_id', {
+                placeholder: "Search for a category...",
+            }) || new TomSelect('#exam_category_id', {
                 create: false,
                 placeholder: "Search for a category...",
                 closeAfterSelect: true,
             });
-            window.EmsTomSelectBlur?.attach(categorySelect);
+            if (!window.EmsTomSelectHierarchy) {
+                window.EmsTomSelectBlur?.attach(categorySelect);
+            }
             window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
         });
     </script>

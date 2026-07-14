@@ -53,8 +53,9 @@ class QuestionController extends Controller
     {
         $orgId = $this->currentOrgId();
         $categories = $this->categoryService->getHierarchicalList($orgId);
+        $questionTypes = \App\Support\ExamFormats::questionTypes();
 
-        return view('backend.questions.create', compact('categories'));
+        return view('backend.questions.create', compact('categories', 'questionTypes'));
     }
 
     public function store(StoreQuestionRequest $request): RedirectResponse
@@ -86,8 +87,9 @@ class QuestionController extends Controller
         abort_if($question->organization_id !== $orgId, 403, 'Unauthorized access to this question.');
 
         $categories = $this->categoryService->getHierarchicalList($orgId);
+        $questionTypes = \App\Support\ExamFormats::questionTypes();
 
-        return view('backend.questions.edit', compact('question', 'categories'));
+        return view('backend.questions.edit', compact('question', 'categories', 'questionTypes'));
     }
 
     public function update(UpdateQuestionRequest $request, $id): RedirectResponse

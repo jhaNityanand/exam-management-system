@@ -30,7 +30,7 @@ class StoreExamRequest extends FormRequest
             'status'           => ['required', Rule::in(['draft', 'published', 'active', 'inactive', 'suspended'])],
             'exam_mode'        => ['required', Rule::in(['standard', 'practice', 'proctored'])],
             'visibility'       => ['required', Rule::in(['public', 'private', 'invite_only'])],
-            'tags'             => ['nullable', 'json'],
+            'tags'             => ['nullable'],
 
             // ── Section 2: Timer & Duration ───────────────────────────────
             'enable_exam_timer'        => ['sometimes', 'boolean'],
@@ -49,8 +49,10 @@ class StoreExamRequest extends FormRequest
             'attempt_limit_count' => ['required_if:attempt_limit_type,fixed', 'nullable', 'integer', 'min:2'],
 
             // ── Section 5: Candidate Access ───────────────────────────────
-            'imported_candidates'    => ['nullable', 'json'],
-            'manual_candidate_emails'=> ['nullable', 'json'],
+            'imported_candidates'          => ['nullable'],
+            'manual_candidate_emails'      => ['nullable'],
+            'free_imported_candidates'     => ['nullable'],
+            'free_manual_candidate_emails' => ['nullable'],
 
             // ── Section 6: Exam Configuration ─────────────────────────────
             'total_questions'              => ['required', 'integer', 'min:1'],
@@ -60,22 +62,36 @@ class StoreExamRequest extends FormRequest
             'paper_sets'                   => ['required', 'integer', 'min:1'],
             'fix_category_questions'       => ['sometimes', 'boolean'],
             'distribution_type'            => ['nullable', Rule::in(['mixed', 'category_wise', 'equal', 'weighted', 'manual'])],
-            'selected_categories'          => ['nullable', 'json'],
-            'extra_questions_categories'   => ['nullable', 'json'],
-            'extra_questions_allocations'  => ['nullable', 'json'],
+            'selected_categories'          => ['nullable'],
+            'extra_questions_categories'   => ['nullable'],
+            'extra_questions_allocations'  => ['nullable'],
+            'question_ids'                 => ['nullable'],
+            'question_ids.*'               => ['integer', Rule::exists('questions', 'id')],
 
             // ── Section 7: Question Rules & Filters ───────────────────────
-            'fix_marks_each_question'  => ['sometimes', 'boolean'],
-            'enable_negative_marking'  => ['sometimes', 'boolean'],
-            'negative_marking_type'    => ['nullable', 'string', 'max:10'],
+            'fix_marks_each_question'    => ['sometimes', 'boolean'],
+            'enable_negative_marking'    => ['sometimes', 'boolean'],
+            'negative_marking_type'      => ['nullable', 'string', 'max:10'],
             'negative_mark_per_question' => ['nullable', 'numeric', 'min:0'],
-            'question_marks_filter'    => ['nullable', 'json'],
-            'shuffle_questions'        => ['sometimes', 'boolean'],
-            'shuffle_options'          => ['sometimes', 'boolean'],
-            'category_question_rules'  => ['nullable', 'json'],
+            'question_marks_filter'      => ['nullable'],
+            'shuffle_questions'          => ['sometimes', 'boolean'],
+            'shuffle_options'            => ['sometimes', 'boolean'],
+            'category_question_rules'    => ['nullable'],
 
-            // ── Section 9: Instructions (mapped from 'instructions' field) ─
-            'instructions'             => ['nullable', 'string'],
+            // ── Pricing & Discounts ───────────────────────────────────────
+            'pricing_option'     => ['nullable', Rule::in(['paid', 'free', 'free_for_imported'])],
+            'exam_currency'      => ['nullable', 'string', 'max:10'],
+            'exam_amount'        => ['nullable', 'numeric', 'min:0'],
+            'selected_discounts' => ['nullable'],
+            'custom_discounts'   => ['nullable'],
+
+            // ── Instructions ──────────────────────────────────────────────
+            'instructions'                   => ['nullable', 'string'],
+            'predefined_instruction_rules'   => ['nullable'],
+            'predefined_instruction_rules.*' => [
+                'string',
+                Rule::in(\App\Support\ExamFormOptions::instructionRuleIds()),
+            ],
 
             // ── SEO / Metadata ────────────────────────────────────────────
             'meta_title'       => ['nullable', 'string', 'max:255'],
@@ -85,6 +101,8 @@ class StoreExamRequest extends FormRequest
             'canonical_url'    => ['nullable', 'url', 'max:500'],
             'og_title'         => ['nullable', 'string', 'max:255'],
             'og_description'   => ['nullable', 'string', 'max:500'],
+            'ai_generated'     => ['sometimes', 'boolean'],
+            'ai_improve'       => ['sometimes', 'boolean'],
         ];
     }
 
@@ -116,19 +134,17 @@ class StoreExamRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $examFormat = $this->input('exam_format');
-        if (is_string($examFormat) && str_starts_with(trim($examFormat), '[')) {
-            $examFormat = json_decode($examFormat, true);
+        $examFormat = $this->decodeJsonValue($this->input('exam_format'));
+        if (is_string($examFormat) && filled($examFormat)) {
+            $examFormat = [$examFormat];
         }
 
         $this->merge([
-            // Map the form field name to the model's column name
             'duration'                 => $this->input('exam_duration_minutes'),
             'scheduled_start'          => $this->input('schedule_start_at') ?: null,
             'scheduled_end'            => $this->input('schedule_end_at') ?: null,
             'max_attempts'             => $this->input('attempt_limit_count', 1),
 
-            // Normalise checkboxes (absent = false)
             'enable_exam_timer'        => (bool) $this->input('enable_exam_timer', false),
             'auto_submit_on_timer_end' => (bool) $this->input('auto_submit_on_timer_end', false),
             'shuffle_questions'        => (bool) $this->input('shuffle_questions', false),
@@ -136,14 +152,64 @@ class StoreExamRequest extends FormRequest
             'enable_negative_marking'  => (bool) $this->input('enable_negative_marking', false),
             'fix_marks_each_question'  => (bool) $this->input('fix_marks_each_question', false),
             'fix_category_questions'   => (bool) $this->input('fix_category_questions', false),
+            'ai_generated'             => (bool) $this->input('ai_generated', false),
+            'ai_improve'               => (bool) $this->input('ai_improve', false),
 
-            // Map exam_category_id → category_id (create form uses exam_category_id field name)
             'category_id'              => $this->input('exam_category_id') ?: $this->input('category_id'),
-            'exam_format'              => $examFormat,
-            // Normalize UI id fixed_count → stored validation id fixed
+            'exam_format'              => is_array($examFormat) ? $examFormat : [],
             'attempt_limit_type'       => $this->input('attempt_limit_type') === 'fixed_count'
                 ? 'fixed'
                 : $this->input('attempt_limit_type'),
+            'predefined_instruction_rules' => $this->normalizeJsonList(
+                $this->input('predefined_instruction_rules')
+            ),
+            'tags' => $this->normalizeJsonList($this->input('tags')),
+            'selected_categories' => $this->normalizeJsonList($this->input('selected_categories')),
+            'question_marks_filter' => $this->normalizeJsonList($this->input('question_marks_filter')),
+            'question_ids' => array_values(array_filter(array_map(
+                'intval',
+                $this->normalizeJsonList($this->input('question_ids'))
+            ))),
+            'imported_candidates' => $this->decodeJsonValue($this->input('imported_candidates', [])),
+            'manual_candidate_emails' => $this->normalizeJsonList($this->input('manual_candidate_emails')),
+            'free_imported_candidates' => $this->decodeJsonValue($this->input('free_imported_candidates', [])),
+            'free_manual_candidate_emails' => $this->normalizeJsonList($this->input('free_manual_candidate_emails')),
+            'extra_questions_categories' => $this->normalizeJsonList($this->input('extra_questions_categories')),
+            'extra_questions_allocations' => $this->decodeJsonValue($this->input('extra_questions_allocations', [])),
+            'selected_discounts' => $this->decodeJsonValue($this->input('selected_discounts', [])),
+            'custom_discounts' => $this->decodeJsonValue($this->input('custom_discounts', [])),
+            'category_question_rules' => $this->decodeJsonValue($this->input('category_question_rules', [])),
         ]);
+    }
+
+    protected function normalizeJsonList(mixed $value): array
+    {
+        $decoded = $this->decodeJsonValue($value);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static function ($item) {
+                if (is_string($item) || is_numeric($item)) {
+                    return trim((string) $item);
+                }
+
+                return $item;
+            },
+            $decoded
+        ), static fn ($item) => $item !== '' && $item !== null));
+    }
+
+    protected function decodeJsonValue(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        return $value;
     }
 }

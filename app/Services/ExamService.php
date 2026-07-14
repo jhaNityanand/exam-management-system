@@ -47,25 +47,54 @@ class ExamService
             unset($data['exam_category_id']);
         }
 
-        // Handle JSON array/string fields safely
-        if (isset($data['exam_format'])) {
-            if (is_string($data['exam_format'])) {
-                if (str_starts_with(trim($data['exam_format']), '[')) {
-                    $data['exam_format'] = json_decode($data['exam_format'], true);
-                } else {
-                    $data['exam_format'] = [$data['exam_format']];
+        foreach ([
+            'exam_format',
+            'selected_categories',
+            'predefined_instruction_rules',
+            'tags',
+            'question_marks_filter',
+            'imported_candidates',
+            'manual_candidate_emails',
+            'free_imported_candidates',
+            'free_manual_candidate_emails',
+            'extra_questions_categories',
+            'extra_questions_allocations',
+            'category_question_rules',
+            'selected_discounts',
+            'custom_discounts',
+            'question_ids',
+        ] as $jsonField) {
+            if (! array_key_exists($jsonField, $data)) {
+                continue;
+            }
+            if (is_string($data[$jsonField])) {
+                $decoded = json_decode($data[$jsonField], true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $data[$jsonField] = $decoded;
+                } elseif ($jsonField === 'exam_format' && filled($data[$jsonField])) {
+                    $data[$jsonField] = [$data[$jsonField]];
                 }
             }
         }
-        if (isset($data['selected_categories']) && is_string($data['selected_categories'])) {
-            $decoded = json_decode($data['selected_categories'], true);
-            if (is_array($decoded)) {
-                $data['selected_categories'] = $decoded;
-            }
+
+        if (isset($data['total_marks'], $data['passing_marks'])) {
+            $totalMarks = max(0, (int) $data['total_marks']);
+            $passingMarks = max(0, (int) $data['passing_marks']);
+            $data['pass_percentage'] = $totalMarks > 0
+                ? round(($passingMarks / $totalMarks) * 100, 2)
+                : ($data['pass_percentage'] ?? 0);
         }
 
+        $data['ai_generated'] = (bool) ($data['ai_generated'] ?? false);
+        $data['ai_improve'] = (bool) ($data['ai_improve'] ?? false);
+
         // Strip helper / UI-only keys
-        unset($data['_token'], $data['_method']);
+        unset(
+            $data['_token'],
+            $data['_method'],
+            $data['free_candidate_excel_file'],
+            $data['candidate_excel_file']
+        );
 
         return $data;
     }
@@ -83,9 +112,9 @@ class ExamService
         $data['status'] = $data['status'] ?? 'draft';
 
         $exam = Exam::create($data);
-        $this->syncQuestions($exam, $ids);
+        $this->syncQuestions($exam, is_array($ids) ? $ids : []);
 
-        if (!empty($selectedCats) && is_array($selectedCats)) {
+        if (! empty($selectedCats) && is_array($selectedCats)) {
             $exam->selectedQuestionCategories()->sync($selectedCats);
         }
 
@@ -118,10 +147,13 @@ class ExamService
     {
         $sync = [];
         foreach (array_values($questionIds) as $i => $id) {
-            $sync[(int) $id] = [
-                'sort_order' => $i,
-                'status' => 'active',
-            ];
+            $qid = (int) $id;
+            if ($qid > 0) {
+                $sync[$qid] = [
+                    'sort_order' => $i,
+                    'status' => 'active',
+                ];
+            }
         }
         $exam->questions()->sync($sync);
     }
@@ -135,7 +167,7 @@ class ExamService
 
     public function delete(Exam $exam): bool
     {
-        return $exam->delete();
+        return (bool) $exam->delete();
     }
 
     public function getStats(int $orgId): array
