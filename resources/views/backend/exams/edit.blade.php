@@ -75,12 +75,18 @@
                                placeholder="e.g. Senior Laravel Assessment – June 2026">
                     </div>
                     <div>
-                        <label for="edit_description" class="exam-label">Description</label>
-                        <textarea id="edit_description" name="description" rows="4" class="panel-input"
-                                  placeholder="Summarize scope, audience, and expected outcomes.">{{ old('description', $exam->description) }}</textarea>
+                        <x-rich-text-editor
+                            label="Description"
+                            input-id="edit_description"
+                            name="description"
+                            :value="old('description', $exam->description)"
+                            placeholder="Summarize scope, audience, and expected outcomes."
+                            :height="240"
+                            preset="full"
+                        />
                     </div>
                     <div class="space-y-3">
-                        <label for="edit_instructions" class="exam-label">Candidate Instructions</label>
+                        <label class="exam-label">Candidate Instructions</label>
                         @php
                             $instructionTemplates = $formOptions['instructionTemplates'] ?? [];
                             $instructionRules = $formOptions['instructionRules'] ?? [];
@@ -110,9 +116,15 @@
                                 <button type="button" id="edit-apply-instruction-template" class="panel-button-secondary">Apply Template</button>
                             </div>
                         @endif
-                        <textarea id="edit_instructions" name="instructions" rows="10" class="panel-input"
-                                  placeholder="Provide instructions to candidates before they start.">{{ old('instructions', $exam->instructions) }}</textarea>
-                        <p class="exam-help">Select a template to load structured candidate instructions into the editor field.</p>
+                        <x-rich-text-editor
+                            input-id="edit_instructions"
+                            name="instructions"
+                            :value="old('instructions', $exam->instructions)"
+                            placeholder="Provide instructions to candidates before they start."
+                            :height="320"
+                            preset="full"
+                            help="Select a template to load structured candidate instructions into the editor."
+                        />
                     </div>
 
                     @if(count($instructionRules))
@@ -505,6 +517,7 @@
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <style>
         .ts-wrapper.panel-input {
@@ -552,6 +565,7 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/components/select.js') }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
@@ -562,8 +576,11 @@
                 ->mapWithKeys(fn ($template) => [$template['id'] => $template['content'] ?? ''])
         );
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Exclude edit_category_id from automatic EmsSelect loop
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (window.EmsRichTextEditor?.initAll) {
+                await window.EmsRichTextEditor.initAll(document);
+            }
+
             if (window.EmsSelect) {
                 window.EmsSelect.initAll(
                     document,
@@ -583,14 +600,25 @@
 
             const applyBtn = document.getElementById('edit-apply-instruction-template');
             const templateSelect = document.getElementById('edit_instruction_template');
-            const instructionsField = document.getElementById('edit_instructions');
             applyBtn?.addEventListener('click', () => {
-                if (!templateSelect || !instructionsField) return;
+                if (!templateSelect) return;
                 const templateId = templateSelect.value;
                 const content = window.examEditInstructionTemplates?.[templateId] || '';
                 if (!content) return;
-                instructionsField.value = content;
-                instructionsField.dispatchEvent(new Event('input', { bubbles: true }));
+                const adapter = window.EmsRichTextEditor?.get('edit_instructions');
+                if (adapter) {
+                    adapter.setData(content);
+                } else {
+                    const field = document.getElementById('edit_instructions');
+                    if (field) {
+                        field.value = content;
+                        field.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            });
+
+            document.querySelector('form')?.addEventListener('submit', () => {
+                window.EmsRichTextEditor?.syncAll();
             });
         });
     </script>

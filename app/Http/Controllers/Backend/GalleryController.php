@@ -1,0 +1,269 @@
+<?php
+
+namespace App\Http\Controllers\Backend;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Backend\Gallery\StoreEditorGalleryRequest;
+use App\Http\Requests\Backend\Gallery\StoreGalleryRequest;
+use App\Http\Requests\Backend\Gallery\UpdateGalleryRequest;
+use App\Models\Gallery;
+use App\Models\UserOrganization;
+use App\Services\GalleryService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class GalleryController extends Controller
+{
+    public function __construct(protected GalleryService $galleryService) {}
+
+    public function index(): View
+    {
+        $orgId = $this->currentOrgId();
+        $stats = $this->galleryService->stats($orgId);
+
+        return view('backend.gallery.index', [
+            'stats' => $stats,
+            'perPageOptions' => config('gallery.per_page_options', [12, 24, 48, 96]),
+            'endpoints' => [
+                'list' => route('admin.gallery.data'),
+                'store' => route('admin.gallery.store'),
+                'bulkDelete' => route('admin.gallery.bulk-delete'),
+                'bulkRestore' => route('admin.gallery.bulk-restore'),
+                'bulkForceDelete' => route('admin.gallery.bulk-force-delete'),
+                'stats' => route('admin.gallery.stats'),
+            ],
+        ]);
+    }
+
+    public function data(Request $request): JsonResponse
+    {
+        $orgId = $this->currentOrgId();
+        $paginator = $this->galleryService->paginate($orgId, [
+            'search' => $request->string('search')->toString(),
+            'kind' => $request->string('kind')->toString() ?: 'all',
+            'sort' => $request->string('sort')->toString() ?: 'newest',
+            'trash' => $request->string('trash')->toString() ?: 'active',
+            'folder' => $request->string('folder')->toString(),
+            'source' => $request->string('source')->toString(),
+            'per_page' => $request->integer('per_page', config('gallery.per_page_default', 24)),
+            'page' => $request->integer('page', 1),
+        ]);
+
+        return response()->json([
+            'data' => collect($paginator->items())->map(fn (Gallery $item) => $this->galleryService->toArray($item))->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+            'stats' => $this->galleryService->stats($orgId),
+        ]);
+    }
+
+    public function stats(): JsonResponse
+    {
+        return response()->json([
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    public function store(StoreGalleryRequest $request): JsonResponse
+    {
+        $orgId = $this->currentOrgId();
+        $created = $this->galleryService->uploadMany($request->uploadedFiles(), $orgId, [
+            'source' => $request->input('source', 'gallery'),
+            'alt_text' => $request->input('alt_text'),
+            'description' => $request->input('description'),
+        ]);
+
+        return response()->json([
+            'message' => count($created) === 1
+                ? 'File uploaded successfully.'
+                : count($created).' files uploaded successfully.',
+            'data' => array_map(fn (Gallery $item) => $this->galleryService->toArray($item), $created),
+            'stats' => $this->galleryService->stats($orgId),
+        ], 201);
+    }
+
+    /**
+     * Rich-text editor upload — stores gallery record(s) and returns TinyMCE location.
+     * For images with an original file, creates original + adjusted rows.
+     */
+    public function storeEditor(StoreEditorGalleryRequest $request): JsonResponse
+    {
+        $orgId = $this->currentOrgId();
+        $kind = (string) $request->input('kind', 'file');
+        $file = $request->file('file');
+        $original = $request->file('original');
+
+        $pair = $this->galleryService->uploadForEditor($file, $orgId, $original, [
+            'kind' => $kind === 'file' ? null : $kind,
+            'display_name' => $request->input('display_name'),
+        ]);
+
+        return response()->json($this->galleryService->editorUploadResponse($pair));
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        $gallery = $this->findOrFailScoped($id, true);
+
+        return response()->json([
+            'data' => $this->galleryService->toArray($gallery),
+        ]);
+    }
+
+    public function update(UpdateGalleryRequest $request, int $id): JsonResponse
+    {
+        $gallery = $this->findOrFailScoped($id);
+
+        if ($request->filled('original_name')) {
+            $gallery = $this->galleryService->rename($gallery, (string) $request->input('original_name'));
+        }
+
+        if ($request->hasAny(['alt_text', 'description', 'status'])) {
+            $gallery = $this->galleryService->updateMeta($gallery, $request->validated());
+        }
+
+        return response()->json([
+            'message' => 'File updated successfully.',
+            'data' => $this->galleryService->toArray($gallery),
+        ]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $gallery = $this->findOrFailScoped($id);
+        $this->galleryService->softDelete($gallery);
+
+        return response()->json([
+            'message' => 'File moved to bin.',
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    public function restore(int $id): JsonResponse
+    {
+        $gallery = $this->findOrFailScoped($id, true);
+        abort_unless($gallery->trashed(), 422, 'File is not in the bin.');
+
+        $restored = $this->galleryService->restore($gallery);
+
+        return response()->json([
+            'message' => 'File restored successfully.',
+            'data' => $this->galleryService->toArray($restored),
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    public function forceDestroy(int $id): JsonResponse
+    {
+        $gallery = $this->findOrFailScoped($id, true);
+        $this->galleryService->forceDelete($gallery);
+
+        return response()->json([
+            'message' => 'File permanently deleted.',
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        $ids = $this->validatedIds($request);
+        $count = $this->galleryService->softDeleteMany($this->currentOrgId(), $ids);
+
+        return response()->json([
+            'message' => "{$count} file(s) moved to bin.",
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    public function bulkRestore(Request $request): JsonResponse
+    {
+        $ids = $this->validatedIds($request);
+        $count = $this->galleryService->restoreMany($this->currentOrgId(), $ids);
+
+        return response()->json([
+            'message' => "{$count} file(s) restored.",
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    public function bulkForceDelete(Request $request): JsonResponse
+    {
+        $ids = $this->validatedIds($request);
+        $count = $this->galleryService->forceDeleteMany($this->currentOrgId(), $ids);
+
+        return response()->json([
+            'message' => "{$count} file(s) permanently deleted.",
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    public function download(int $id): StreamedResponse
+    {
+        $gallery = $this->findOrFailScoped($id, true);
+        $disk = $gallery->disk ?: 'public';
+
+        abort_unless(
+            \Illuminate\Support\Facades\Storage::disk($disk)->exists($gallery->file_path),
+            404,
+            'File not found on disk.'
+        );
+
+        return \Illuminate\Support\Facades\Storage::disk($disk)->download(
+            $gallery->file_path,
+            $gallery->original_name
+        );
+    }
+
+    protected function findOrFailScoped(int $id, bool $withTrashed = false): Gallery
+    {
+        $query = Gallery::query()->forOrg($this->currentOrgId());
+        if ($withTrashed) {
+            $query->withTrashed();
+        }
+
+        $gallery = $query->findOrFail($id);
+        abort_if($gallery->organization_id !== $this->currentOrgId(), 403, 'Unauthorized access to this file.');
+
+        return $gallery;
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected function validatedIds(Request $request): array
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        return array_values(array_unique(array_map('intval', $validated['ids'])));
+    }
+
+    protected function currentOrgId(): int
+    {
+        if (Auth::check()) {
+            $orgId = UserOrganization::where('user_id', Auth::id())
+                ->where('status', 'active')
+                ->value('organization_id');
+
+            if ($orgId) {
+                return (int) $orgId;
+            }
+        }
+
+        $id = current_organization_id();
+        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
+
+        return $id;
+    }
+}

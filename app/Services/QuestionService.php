@@ -7,22 +7,43 @@ use Illuminate\Support\Facades\Auth;
 
 class QuestionService
 {
+    public function __construct(protected GalleryService $gallery) {}
+
     public function create(array $data): Question
     {
         $data['created_by'] = Auth::id();
         $this->normalizeAnswers($data);
         $this->normalizeMarks($data);
+        $data = $this->gallery->sanitizeHtmlFields($data, [
+            'body',
+            'explanation',
+            'correct_answer',
+            'options',
+            'correct_answers',
+        ]);
 
-        return Question::create($data);
+        $question = Question::create($data);
+        $this->syncGalleryMedia($question);
+
+        return $question;
     }
 
     public function update(Question $question, array $data): Question
     {
         $this->normalizeAnswers($data);
         $this->normalizeMarks($data);
+        $data = $this->gallery->sanitizeHtmlFields($data, [
+            'body',
+            'explanation',
+            'correct_answer',
+            'options',
+            'correct_answers',
+        ]);
         $question->update($data);
+        $question = $question->fresh();
+        $this->syncGalleryMedia($question);
 
-        return $question->fresh();
+        return $question;
     }
 
     /**
@@ -42,6 +63,8 @@ class QuestionService
 
     public function delete(Question $question): bool
     {
+        $this->gallery->purgeForModel($question);
+
         return (bool) $question->delete();
     }
 
@@ -56,5 +79,16 @@ class QuestionService
         } else {
             $data['correct_answers'] = null;
         }
+    }
+
+    protected function syncGalleryMedia(Question $question): void
+    {
+        $this->gallery->syncForModel($question, [
+            $question->body,
+            $question->explanation,
+            $question->correct_answer,
+            $question->options,
+            is_array($question->correct_answers) ? $question->correct_answers : null,
+        ], (int) $question->organization_id);
     }
 }

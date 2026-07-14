@@ -74,17 +74,13 @@
             <!-- Description Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                 <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Description</h2>
-                <div class="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 text-sm leading-relaxed">
-                    {!! $exam->description ?: '<p class="text-slate-400 italic">No description added yet.</p>' !!}
-                </div>
+                <x-rich-text-content :content="$exam->description ?: '<p class=\"text-slate-400 italic\">No description added yet.</p>'" class="text-sm leading-relaxed text-slate-800 dark:text-slate-100" />
             </div>
 
             <!-- Instructions -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                 <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Instructions</h2>
-                <div class="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 text-sm leading-relaxed">
-                    {!! $exam->instructions ?: '<p class="text-slate-400 italic">No instructions added yet.</p>' !!}
-                </div>
+                <x-rich-text-content :content="$exam->instructions ?: '<p class=\"text-slate-400 italic\">No instructions added yet.</p>'" class="text-sm leading-relaxed text-slate-800 dark:text-slate-100" />
             </div>
 
             <!-- Distributions -->

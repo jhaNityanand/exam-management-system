@@ -1,25 +1,46 @@
 @props([
     'label' => '',
-    'inputId',
+    'inputId' => null,
     'name',
     'value' => '',
     'placeholder' => '',
-    'height' => 180,
+    'height' => 280,
     'required' => false,
-    'toolbar' => ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo'],
-    'rows' => 6,
+    'preset' => 'full',
+    'toolbar' => null,
+    'rows' => 8,
     'help' => null,
     'wrapperClass' => '',
+    'readonly' => false,
 ])
 
 @php
+    $inputId = $inputId ?: str_replace(['[', ']'], ['_', ''], $name) . '_field';
     $resolvedValue = old($name, $value);
-    $hostId = $inputId . '_editor';
+    $presetToolbars = config('editor.toolbar_presets', []);
+    $resolvedToolbar = $toolbar ?? ($presetToolbars[$preset] ?? $presetToolbars['full'] ?? '');
+    $uploadUrl = route('admin.editor.media.store');
+    $cdnBase = rtrim((string) config('editor.cdn.base_url'), '/');
 @endphp
 
-<div class="rich-editor-block {{ $wrapperClass }}">
+<div
+    class="ems-rich-editor {{ $wrapperClass }}"
+    data-ems-rich-editor
+    data-editor-input="{{ $inputId }}"
+    data-editor-placeholder="{{ $placeholder }}"
+    data-editor-height="{{ (int) $height }}"
+    data-editor-required="{{ $required ? '1' : '0' }}"
+    data-editor-preset="{{ $preset }}"
+    data-editor-toolbar="{{ $resolvedToolbar }}"
+    data-editor-upload-url="{{ $uploadUrl }}"
+    data-editor-cdn-base="{{ $cdnBase }}"
+    data-editor-readonly="{{ $readonly ? '1' : '0' }}"
+    data-editor-max-image-kb="{{ (int) config('editor.max_image_kb', 2048) }}"
+    data-editor-max-video-kb="{{ (int) config('editor.max_video_kb', 20480) }}"
+    data-editor-max-file-kb="{{ (int) config('editor.max_file_kb', 10240) }}"
+>
     @if($label)
-        <label for="{{ $inputId }}" class="exam-label">
+        <label for="{{ $inputId }}" class="exam-label ems-rich-editor__label">
             {{ $label }}
             @if($required)
                 <span class="form-required">*</span>
@@ -27,28 +48,22 @@
         </label>
     @endif
 
-    {{-- Visible textarea until CKEditor mounts; never leave an empty gap if JS/CDN fails. --}}
-    <textarea
-        id="{{ $inputId }}"
-        name="{{ $name }}"
-        rows="{{ $rows }}"
-        class="panel-input rich-editor-input rich-editor-fallback"
-        placeholder="{{ $placeholder }}"
-        style="min-height: {{ max(120, (int) $height) }}px;"
-        @if($required) required @endif
-    >{{ $resolvedValue }}</textarea>
-
-    <div
-        id="{{ $hostId }}"
-        class="editor-shell rich-editor-shell"
-        data-rich-editor
-        data-editor-input="{{ $inputId }}"
-        data-editor-placeholder="{{ $placeholder }}"
-        data-editor-height="{{ $height }}"
-        data-editor-required="{{ $required ? '1' : '0' }}"
-        data-editor-toolbar='@json($toolbar)'
-        hidden
-    ></div>
+    <div class="ems-rich-editor__surface">
+        <textarea
+            id="{{ $inputId }}"
+            name="{{ $name }}"
+            rows="{{ $rows }}"
+            class="panel-input ems-rich-editor__textarea"
+            placeholder="{{ $placeholder }}"
+            data-ems-rich-textarea
+            @if($required) required @endif
+            @if($readonly) readonly @endif
+        >{{ $resolvedValue }}</textarea>
+        <div class="ems-rich-editor__progress" hidden data-editor-progress>
+            <div class="ems-rich-editor__progress-bar" data-editor-progress-bar></div>
+            <span class="ems-rich-editor__progress-label" data-editor-progress-label>Uploading…</span>
+        </div>
+    </div>
 
     @if($help)
         <p class="exam-help">{{ $help }}</p>

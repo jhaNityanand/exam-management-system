@@ -53,8 +53,8 @@
                                     name="description"
                                     :value="old('description')"
                                     placeholder="Summarize scope, audience, and expected outcomes."
-                                    :height="210"
-                                    :toolbar="['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']"
+                                    :height="240"
+                                    preset="full"
                                 />
                             </div>
 
@@ -641,10 +641,10 @@
                                     input-id="candidate_instructions"
                                     name="instructions"
                                     :value="old('instructions')"
-                                    placeholder="Add concise instructions for candidates before they start the exam."
-                                    :height="220"
-                                    :toolbar="['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']"
-                                    help="Supports bullet points, numbered lists, and short emphasis formatting."
+                                    placeholder="Add clear instructions for candidates before they start the exam."
+                                    :height="320"
+                                    preset="full"
+                                    help="Supports rich formatting, media, tables, attachments, and HTML source view."
                                 />
                             </div>
                             <div class="instruction-footer">
@@ -821,6 +821,7 @@
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/question-bank-accordion.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}?v={{ time() }}">
     <style>
@@ -876,7 +877,6 @@
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>

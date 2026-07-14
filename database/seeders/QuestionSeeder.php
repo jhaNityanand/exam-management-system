@@ -201,7 +201,7 @@ class QuestionSeeder extends Seeder
         return [
             'body'            => "<p>Which of the following best describes a central focus of <strong>{$topic}</strong>?</p>",
             'type'            => 'mcq',
-            'allows_multiple' => false,
+                    'allows_multiple' => false,
             'options'         => [
                 ['text' => $correct, 'image_path' => null],
                 ['text' => ucfirst($facts['distractor_a']), 'image_path' => null],
@@ -209,7 +209,7 @@ class QuestionSeeder extends Seeder
                 ['text' => ucfirst($facts['distractor_c']), 'image_path' => null],
             ],
             'correct_answer'  => $correct,
-            'correct_answers' => null,
+                    'correct_answers' => null,
             'marks_type'      => 'single',
             'marks_list'      => null,
             'marks'           => $marks,
@@ -233,10 +233,10 @@ class QuestionSeeder extends Seeder
         return [
             'body'            => "<p>True or False: {$statement}</p>",
             'type'            => 'true_false',
-            'allows_multiple' => false,
+                    'allows_multiple' => false,
             'options'         => null,
             'correct_answer'  => $isTrue ? 'True' : 'False',
-            'correct_answers' => null,
+                    'correct_answers' => null,
             'marks_type'      => 'single',
             'marks_list'      => null,
             'marks'           => 1,
@@ -257,10 +257,10 @@ class QuestionSeeder extends Seeder
         return [
             'body'            => "<p>In one or two sentences, define <strong>{$topic}</strong> and state why it matters for learners.</p>",
             'type'            => 'short_answer',
-            'allows_multiple' => false,
+                    'allows_multiple' => false,
             'options'         => null,
             'correct_answer'  => "<p>{$topic} focuses on {$facts['concept']}. It matters because mastery of {$facts['related']} improves exam performance and applied decision-making.</p>",
-            'correct_answers' => null,
+                    'correct_answers' => null,
             'marks_type'      => 'single',
             'marks_list'      => null,
             'marks'           => 3,

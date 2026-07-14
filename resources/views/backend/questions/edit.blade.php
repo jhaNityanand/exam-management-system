@@ -129,10 +129,17 @@
 
                 <!-- Question Body -->
                 <div class="w-full relative z-0 pt-4">
-                    <label for="body" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question Content <span class="text-red-500">*</span></label>
-                    <textarea id="body" name="body" class="w-full hidden">{{ old('body', $question->body) }}</textarea>
-                    <!-- CKEditor container -->
-                    <div id="editor-body" class="ck-editor-container"></div>
+                    <x-rich-text-editor
+                        label="Question Content"
+                        input-id="body"
+                        name="body"
+                        :value="old('body', $question->body)"
+                        placeholder="Type your question content here…"
+                        :height="260"
+                        preset="full"
+                        :required="true"
+                        wrapper-class="ems-rich-editor--question"
+                    />
                     <p class="qcat-field-error" id="err-body"></p>
                 </div>
 
@@ -187,19 +194,32 @@
                             <h4 class="text-base font-semibold text-slate-900 dark:text-white">Reference Answer <span class="text-red-500">*</span></h4>
                         </div>
                         <div>
-                            <textarea id="sa_answer" name="sa_answer" class="w-full hidden">{{ old('correct_answer', $question->correct_answer) }}</textarea>
-                            <div id="editor-sa-answer" class="ck-editor-container"></div>
+                            <x-rich-text-editor
+                                label="Reference Answer"
+                                input-id="sa_answer"
+                                name="sa_answer"
+                                :value="old('correct_answer', $question->correct_answer)"
+                                placeholder="Provide a reference answer for graders…"
+                                :height="200"
+                                preset="standard"
+                                help="Text answer grading is typically manual, but you can provide a reference answer here for graders."
+                            />
                             <p class="qcat-field-error" id="err-sa"></p>
-                            <p class="mt-2 text-xs text-slate-500">Text answer grading is typically manual, but you can provide a reference answer here for graders.</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Explanation Section -->
                 <div class="w-full relative z-0 border-t border-slate-200 dark:border-slate-800 pt-6 mt-4">
-                    <label for="explanation" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Answer Explanation</label>
-                    <textarea id="explanation" name="explanation" class="w-full hidden">{{ old('explanation', $question->explanation) }}</textarea>
-                    <div id="editor-explanation" class="ck-editor-container"></div>
+                    <x-rich-text-editor
+                        label="Answer Explanation"
+                        input-id="explanation"
+                        name="explanation"
+                        :value="old('explanation', $question->explanation)"
+                        placeholder="Optional explanation shown after grading…"
+                        :height="220"
+                        preset="full"
+                    />
                 </div>
 
             </div>
@@ -354,7 +374,7 @@
             </div>
 
             <div class="flex-grow min-w-0 relative z-0">
-                <div class="option-editor-container min-h-[100px] border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden bg-white dark:bg-slate-950"></div>
+                <textarea class="option-editor-textarea panel-input min-h-[100px]" rows="3" data-option-editor placeholder="Enter option text…"></textarea>
             </div>
 
             <div class="flex-shrink-0">
@@ -374,14 +394,14 @@
     <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-create.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ time() }}">
 @endpush
 
 @push('scripts')
-    {{-- Using ClassicEditor build from CDN --}}
-    <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.existingQuestion = {!! json_encode($question) !!};
@@ -397,6 +417,6 @@
             window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('question-form') || document);
         });
     </script>
-    <script src="{{ asset('js/backend/question-create.js') }}"></script>
+    <script src="{{ asset('js/backend/question-create.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
 @endpush

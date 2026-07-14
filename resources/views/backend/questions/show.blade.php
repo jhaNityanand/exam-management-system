@@ -56,9 +56,7 @@
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
                 <div>
                     <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider mb-3">Question Content</h2>
-                    <div class="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 text-lg leading-relaxed font-medium">
-                        {!! $question->body !!}
-                    </div>
+                    <x-rich-text-content :content="$question->body" class="text-lg leading-relaxed font-medium text-slate-800 dark:text-slate-100" />
                 </div>
 
                 <!-- Answer options -->
@@ -159,9 +157,7 @@
                     <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
                         <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider mb-3">Answer Explanation</h3>
                         <div class="p-5 bg-amber-50/30 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
-                            <div class="prose prose-sm dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 leading-relaxed">
-                                {!! $question->explanation !!}
-                            </div>
+                            <x-rich-text-content :content="$question->explanation" class="prose-sm text-slate-800 dark:text-slate-200 leading-relaxed" />
                         </div>
                     </div>
                 @endif

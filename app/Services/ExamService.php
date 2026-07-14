@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 
 class ExamService
 {
+    public function __construct(protected GalleryService $gallery) {}
+
     public function getByOrganization(int $orgId, int $perPage = 20): LengthAwarePaginator
     {
         return Exam::where('organization_id', $orgId)
@@ -96,7 +98,10 @@ class ExamService
             $data['candidate_excel_file']
         );
 
-        return $data;
+        return app(GalleryService::class)->sanitizeHtmlFields($data, [
+            'description',
+            'instructions',
+        ]);
     }
 
     public function create(array $data): Exam
@@ -117,6 +122,8 @@ class ExamService
         if (! empty($selectedCats) && is_array($selectedCats)) {
             $exam->selectedQuestionCategories()->sync($selectedCats);
         }
+
+        $this->syncGalleryMedia($exam);
 
         return $exam->fresh(['questions']);
     }
@@ -139,6 +146,8 @@ class ExamService
         if (is_array($selectedCats)) {
             $exam->selectedQuestionCategories()->sync($selectedCats);
         }
+
+        $this->syncGalleryMedia($exam->fresh());
 
         return $exam->fresh(['questions']);
     }
@@ -167,7 +176,17 @@ class ExamService
 
     public function delete(Exam $exam): bool
     {
+        $this->gallery->purgeForModel($exam);
+
         return (bool) $exam->delete();
+    }
+
+    protected function syncGalleryMedia(Exam $exam): void
+    {
+        $this->gallery->syncForModel($exam, [
+            $exam->description,
+            $exam->instructions,
+        ], (int) $exam->organization_id);
     }
 
     public function getStats(int $orgId): array

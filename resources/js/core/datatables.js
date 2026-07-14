@@ -436,34 +436,20 @@ function loadScriptOnce(src) {
 }
 
 async function initRichTextEditors() {
-    const editors = [...document.querySelectorAll('[data-rich-text]')];
+    if (window.EmsRichTextEditor && typeof window.EmsRichTextEditor.initAll === 'function') {
+        await window.EmsRichTextEditor.initAll(document);
+        return;
+    }
+
+    const editors = [...document.querySelectorAll('[data-rich-text], [data-ems-rich-editor] textarea')];
     if (!editors.length) {
         return;
     }
 
-    if (typeof window.tinymce === 'undefined') {
-        try {
-            await loadScriptOnce('https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js');
-        } catch (error) {
-            return;
-        }
+    await loadScriptOnce('/js/components/editor.js');
+    if (window.EmsRichTextEditor) {
+        await window.EmsRichTextEditor.initAll(document);
     }
-
-    editors.forEach((editor) => {
-        if (!editor.id || editor.dataset.editorReady === '1') {
-            return;
-        }
-
-        editor.dataset.editorReady = '1';
-        window.tinymce.init({
-            selector: `#${editor.id}`,
-            height: Number.parseInt(editor.dataset.editorHeight || '220', 10),
-            menubar: false,
-            plugins: 'lists link',
-            toolbar: editor.dataset.editorToolbar || 'undo redo | bold italic | bullist numlist | link',
-            promotion: false,
-        });
-    });
 }
 
 export function initDataTablesAndForms() {

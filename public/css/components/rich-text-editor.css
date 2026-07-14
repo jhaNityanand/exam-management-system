@@ -1,0 +1,386 @@
+/* Shared EMS Rich Text Editor (TinyMCE) — light + dark */
+
+.ems-rich-editor {
+    width: 100%;
+}
+
+.ems-rich-editor__label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+
+.ems-rich-editor__surface {
+    position: relative;
+    border-radius: 0.75rem;
+    width: 100%;
+}
+
+.ems-rich-editor__textarea {
+    min-height: 10rem;
+    width: 100%;
+}
+
+.ems-rich-editor.is-ready .ems-rich-editor__textarea {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.ems-rich-editor__progress {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+}
+
+.ems-rich-editor__progress-bar {
+    flex: 1;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    transform-origin: left center;
+    transform: scaleX(0.05);
+    transition: transform 0.15s ease;
+}
+
+.ems-rich-editor__progress-label {
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.ems-rich-editor .tox-tinymce {
+    border-radius: 0.75rem !important;
+    border: 1px solid #cbd5e1 !important;
+    overflow: hidden;
+    width: 100% !important;
+}
+
+.ems-rich-editor .tox .tox-editor-header {
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.ems-rich-editor .tox .tox-toolbar-overlord,
+.ems-rich-editor .tox .tox-toolbar__primary {
+    background: #ffffff !important;
+}
+
+.ems-rich-editor .tox .tox-toolbar,
+.ems-rich-editor .tox .tox-toolbar__primary,
+.ems-rich-editor .tox .tox-menubar,
+.ems-rich-editor .tox .tox-edit-area__iframe {
+    background: #ffffff !important;
+}
+
+.ems-rich-editor .tox .tox-toolbar__group {
+    padding: 0.15rem 0.25rem !important;
+}
+
+.ems-rich-editor .tox .tox-statusbar {
+    border-top: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+}
+
+.ems-rich-editor.is-focused .tox-tinymce {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+.dark .ems-rich-editor .tox-tinymce {
+    border-color: #334155 !important;
+}
+
+.dark .ems-rich-editor .tox .tox-toolbar,
+.dark .ems-rich-editor .tox .tox-toolbar__primary,
+.dark .ems-rich-editor .tox .tox-toolbar-overlord,
+.dark .ems-rich-editor .tox .tox-menubar,
+.dark .ems-rich-editor .tox .tox-edit-area__iframe,
+.dark .ems-rich-editor .tox .tox-sidebar-wrap {
+    background: #0f172a !important;
+}
+
+.dark .ems-rich-editor .tox .tox-tbtn svg,
+.dark .ems-rich-editor .tox .tox-mbtn__select-label,
+.dark .ems-rich-editor .tox .tox-statusbar {
+    color: #e2e8f0 !important;
+}
+
+.dark .ems-rich-editor .tox .tox-tbtn:hover,
+.dark .ems-rich-editor .tox .tox-tbtn--enabled,
+.dark .ems-rich-editor .tox .tox-mbtn:hover,
+.dark .ems-rich-editor .tox .tox-mbtn--active {
+    background: #1e293b !important;
+}
+
+.dark .ems-rich-editor .tox .tox-statusbar {
+    border-top-color: #334155 !important;
+    background: #0b1220 !important;
+}
+
+.dark .ems-rich-editor.is-focused .tox-tinymce {
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.22);
+}
+
+/* Fullscreen must escape admin panel overflow:hidden wrappers */
+html.ems-editor-fullscreen,
+html.ems-editor-fullscreen body {
+    overflow: hidden !important;
+}
+
+html.ems-editor-fullscreen #panel-root,
+html.ems-editor-fullscreen #panel-content,
+html.ems-editor-fullscreen #panel-main,
+html.ems-editor-fullscreen .exam-create-layout,
+html.ems-editor-fullscreen .exam-create-main {
+    overflow: visible !important;
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+}
+
+.tox.tox-tinymce.tox-fullscreen,
+.tox-fullscreen {
+    z-index: 200000 !important;
+}
+
+.tox-tinymce-aux {
+    z-index: 200010 !important;
+}
+
+.tox.tox-tinymce.tox-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+}
+
+#ems-toast-root {
+    z-index: 210000 !important;
+}
+
+/* Content display */
+.ems-rich-content {
+    overflow-wrap: anywhere;
+}
+
+.ems-rich-content img,
+.ems-rich-content video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+.ems-rich-content table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ems-rich-content table th,
+.ems-rich-content table td {
+    border: 1px solid #cbd5e1;
+    padding: 0.5rem 0.75rem;
+}
+
+.dark .ems-rich-content table th,
+.dark .ems-rich-content table td {
+    border-color: #475569;
+}
+
+.ems-rich-content ul[data-ems-checklist] {
+    list-style: none;
+    padding-left: 0.25rem;
+}
+
+.ems-rich-content ul[data-ems-checklist] li {
+    position: relative;
+    padding-left: 1.75rem;
+    margin: 0.35rem 0;
+}
+
+.ems-rich-content ul[data-ems-checklist] li::before {
+    content: '☐';
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.ems-rich-content ul[data-ems-checklist] li[data-checked="true"]::before {
+    content: '☑';
+}
+
+.ems-rich-editor--compact .tox .tox-editor-header {
+    padding: 0 !important;
+}
+
+/* Image adjust (Cropper) modal */
+body.ems-image-adjust-open {
+    overflow: hidden;
+}
+
+.ems-image-adjust {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgb(2 6 23 / 0.72);
+    backdrop-filter: blur(4px);
+}
+
+.ems-image-adjust__dialog {
+    width: min(920px, 100%);
+    max-height: min(92vh, 860px);
+    overflow: auto;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 25px 60px rgb(0 0 0 / 0.4);
+}
+
+.dark .ems-image-adjust__dialog {
+    background: rgb(15 23 42);
+    color: #e2e8f0;
+}
+
+.ems-image-adjust__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgb(226 232 240);
+}
+
+.dark .ems-image-adjust__header {
+    border-color: rgb(51 65 85);
+}
+
+.ems-image-adjust__header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.ems-image-adjust__header p {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.ems-image-adjust__icon {
+    border: 0;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+}
+
+.ems-image-adjust__stage {
+    height: min(52vh, 420px);
+    background: #0f172a;
+    overflow: hidden;
+}
+
+.ems-image-adjust__stage img {
+    display: block;
+    max-width: 100%;
+}
+
+.ems-image-adjust__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgb(226 232 240);
+}
+
+.dark .ems-image-adjust__toolbar {
+    border-color: rgb(51 65 85);
+}
+
+.ems-image-adjust__toolbar button {
+    border: 1px solid rgb(203 213 225);
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: #334155;
+}
+
+.dark .ems-image-adjust__toolbar button {
+    background: rgb(30 41 59);
+    border-color: rgb(51 65 85);
+    color: #e2e8f0;
+}
+
+.ems-image-adjust__toolbar button.is-active {
+    border-color: #4f46e5;
+    color: #4f46e5;
+}
+
+.ems-image-adjust__sep {
+    width: 1px;
+    align-self: stretch;
+    background: rgb(203 213 225);
+    margin: 0 0.25rem;
+}
+
+.ems-image-adjust__footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.ems-image-adjust__btn {
+    border: 1px solid rgb(203 213 225);
+    background: #fff;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: #334155;
+}
+
+.dark .ems-image-adjust__btn {
+    background: rgb(30 41 59);
+    border-color: rgb(51 65 85);
+    color: #e2e8f0;
+}
+
+.ems-image-adjust__btn--primary {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+}
+
+.dark .ems-image-adjust__btn--primary {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+}

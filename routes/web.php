@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Backend\GalleryController;
 use App\Http\Controllers\Api\Workspace\ExamDataController;
 use App\Http\Controllers\Api\Workspace\QuestionDataController;
 use App\Http\Controllers\Backend\CandidateController;
@@ -41,6 +42,25 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile',  [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('editor/media', [GalleryController::class, 'storeEditor'])->name('editor.media.store');
+
+    // ── Gallery ───────────────────────────────────────────────────────────────
+    Route::prefix('gallery')->name('gallery.')->group(function () {
+        Route::get('/', [GalleryController::class, 'index'])->name('index');
+        Route::get('/data', [GalleryController::class, 'data'])->name('data');
+        Route::get('/stats', [GalleryController::class, 'stats'])->name('stats');
+        Route::post('/', [GalleryController::class, 'store'])->name('store');
+        Route::post('/bulk-delete', [GalleryController::class, 'bulkDelete'])->name('bulk-delete');
+        Route::post('/bulk-restore', [GalleryController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::post('/bulk-force-delete', [GalleryController::class, 'bulkForceDelete'])->name('bulk-force-delete');
+        Route::get('/{id}', [GalleryController::class, 'show'])->name('show')->whereNumber('id');
+        Route::get('/{id}/download', [GalleryController::class, 'download'])->name('download')->whereNumber('id');
+        Route::put('/{id}', [GalleryController::class, 'update'])->name('update')->whereNumber('id');
+        Route::patch('/{id}/restore', [GalleryController::class, 'restore'])->name('restore')->whereNumber('id');
+        Route::delete('/{id}', [GalleryController::class, 'destroy'])->name('destroy')->whereNumber('id');
+        Route::delete('/{id}/force', [GalleryController::class, 'forceDestroy'])->name('force-destroy')->whereNumber('id');
+    });
 
     // ── Internal API (DataTable JSON endpoints) ───────────────────────────────
     Route::get('internal-api/exams-table',     ExamDataController::class)->name('internal-api.exams-table');

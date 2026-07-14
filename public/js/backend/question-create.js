@@ -23,16 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const pillButtons = document.querySelectorAll('.marks-pill-btn');
 
     let optionCount = 0;
-    const optionEditors = {}; // To store CKEditor instances
+    const optionEditors = {}; // EmsRichTextEditor adapters keyed by option index
 
-    // CKEditor Config
-    const editorConfig = {
-        toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo'],
-        placeholder: 'Type your content here...'
+    let bodyEditor = null;
+    let explanationEditor = null;
+    let saAnswerEditor = null;
+
+    const getEditorData = (adapter, fallbackId) => {
+        if (adapter && typeof adapter.getData === 'function') {
+            return String(adapter.getData() || '');
+        }
+        const el = fallbackId ? document.getElementById(fallbackId) : null;
+        return el ? String(el.value || '') : '';
     };
-
-    // Initialize main editors
-    let bodyEditor, explanationEditor, saAnswerEditor;
 
     // Helper: Strip HTML for length verification
     function stripHtml(html) {
@@ -70,50 +73,40 @@ document.addEventListener('DOMContentLoaded', () => {
         field.addEventListener('change', () => clearError(field));
     });
 
-    // ── CKEditor Initialization ───────────────────────────────────────────
-    ClassicEditor
-        .create(document.querySelector('#editor-body'), editorConfig)
-        .then(editor => {
-            bodyEditor = editor;
-            if (window.existingQuestion) {
-                editor.setData(window.existingQuestion.body || '');
-            }
-            editor.model.document.on('change:data', () => {
-                const text = stripHtml(editor.getData()).trim();
-                if (text !== '') {
-                    clearError(document.getElementById('editor-body'));
-                }
-            });
-        })
-        .catch(error => { console.error(error); });
+    // ── Rich text editor initialization (central EmsRichTextEditor / TinyMCE) ─
+    async function initQuestionEditors() {
+        if (!window.EmsRichTextEditor?.initAll) {
+            return;
+        }
 
-    if (document.querySelector('#editor-sa-answer')) {
-        ClassicEditor
-            .create(document.querySelector('#editor-sa-answer'), editorConfig)
-            .then(editor => {
-                saAnswerEditor = editor;
-                if (window.existingQuestion && isTextAnswerType(window.existingQuestion.type)) {
-                    editor.setData(window.existingQuestion.correct_answer || '');
+        await window.EmsRichTextEditor.initAll(document);
+        bodyEditor = window.EmsRichTextEditor.get('body');
+        explanationEditor = window.EmsRichTextEditor.get('explanation');
+        saAnswerEditor = window.EmsRichTextEditor.get('sa_answer');
+
+        bodyEditor?.onChange(() => {
+            if (stripHtml(bodyEditor.getData()).trim() !== '') {
+                clearError(document.getElementById('body')?.closest('.ems-rich-editor') || document.getElementById('body'));
+                const err = document.getElementById('err-body');
+                if (err) {
+                    err.textContent = '';
+                    err.classList.remove('is-visible');
                 }
-                editor.model.document.on('change:data', () => {
-                    const text = stripHtml(editor.getData()).trim();
-                    if (text !== '') {
-                        clearError(document.getElementById('editor-sa-answer'));
-                    }
-                });
-            })
-            .catch(error => { console.error(error); });
+            }
+        });
+
+        saAnswerEditor?.onChange(() => {
+            if (stripHtml(saAnswerEditor.getData()).trim() !== '') {
+                const err = document.getElementById('err-sa');
+                if (err) {
+                    err.textContent = '';
+                    err.classList.remove('is-visible');
+                }
+            }
+        });
     }
 
-    ClassicEditor
-        .create(document.querySelector('#editor-explanation'), editorConfig)
-        .then(editor => {
-            explanationEditor = editor;
-            if (window.existingQuestion) {
-                editor.setData(window.existingQuestion.explanation || '');
-            }
-        })
-        .catch(error => { console.error(error); });
+    initQuestionEditors().catch((error) => console.error(error));
 
 
     // ── Question Type Change ───────────────────────────────────────────────
@@ -224,18 +217,56 @@ document.addEventListener('DOMContentLoaded', () => {
         // Insert into DOM
         optionsContainer.appendChild(clone);
 
-        // Initialize CKEditor for this option
-        const editorDiv = item.querySelector('.option-editor-container');
-        ClassicEditor
-            .create(editorDiv, editorConfig)
-            .then(editor => {
-                optionEditors[idx] = editor;
-                editor.setData(text);
-                editor.model.document.on('change:data', () => {
-                    clearError(optionsContainer);
+        const textarea = item.querySelector('[data-option-editor]');
+        if (textarea) {
+            if (!textarea.id) {
+                textarea.id = `option_editor_${idx}_${Date.now()}`;
+            }
+            const mountOption = async () => {
+                if (!window.EmsRichTextEditor?.mount) {
+                    textarea.value = text || '';
+                    optionEditors[idx] = {
+                        getData: () => textarea.value,
+                        setData: (value) => { textarea.value = String(value || ''); },
+                        destroy: () => {},
+                    };
+                    return;
+                }
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'ems-rich-editor ems-rich-editor--compact';
+                wrapper.setAttribute('data-ems-rich-editor', '');
+                wrapper.setAttribute('data-editor-input', textarea.id);
+                wrapper.setAttribute('data-editor-height', '140');
+                wrapper.setAttribute('data-editor-preset', 'compact');
+                wrapper.setAttribute(
+                    'data-editor-upload-url',
+                    document.querySelector('[data-editor-upload-url]')?.getAttribute('data-editor-upload-url') || '/admin/editor/media'
+                );
+                wrapper.setAttribute(
+                    'data-editor-cdn-base',
+                    document.querySelector('[data-editor-cdn-base]')?.getAttribute('data-editor-cdn-base') || 'https://cdn.jsdelivr.net/npm/tinymce@7.6.1'
+                );
+                textarea.parentNode.insertBefore(wrapper, textarea);
+                wrapper.appendChild(textarea);
+
+                const adapter = await window.EmsRichTextEditor.mount(textarea, {
+                    wrapper,
+                    height: 140,
+                    preset: 'compact',
+                    menubar: false,
+                    toolbar: window.EmsRichTextEditor.presets?.compact,
+                    placeholder: 'Enter option text…',
                 });
-            })
-            .catch(error => { console.error(error); });
+                optionEditors[idx] = adapter;
+                if (text) {
+                    adapter.setData(text);
+                }
+                adapter.onChange?.(() => clearError(optionsContainer));
+            };
+
+            mountOption().catch((error) => console.error(error));
+        }
     };
 
     // Add Option button listener
@@ -248,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = btn.closest('.option-item');
             const idx = item.dataset.index;
             if (optionEditors[idx]) {
-                optionEditors[idx].destroy();
+                optionEditors[idx].destroy?.();
                 delete optionEditors[idx];
             }
             item.remove();
@@ -374,10 +405,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 5. Question Body validation
-        const qBodyHtml = bodyEditor ? bodyEditor.getData().trim() : '';
+        window.EmsRichTextEditor?.syncAll?.();
+        const qBodyHtml = getEditorData(bodyEditor || window.EmsRichTextEditor?.get('body'), 'body').trim();
         const qBodyText = stripHtml(qBodyHtml).trim();
         if (qBodyText === '') {
-            showError(document.getElementById('editor-body'), 'Question content cannot be empty.');
+            showError(document.getElementById('body')?.closest('.ems-rich-editor') || document.getElementById('err-body'), 'Question content cannot be empty.');
             isValid = false;
         }
         document.getElementById('body').value = qBodyHtml;
@@ -419,10 +451,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 isValid = false;
             }
         } else if (isTextAnswerType(type)) {
-            const saHtml = saAnswerEditor ? saAnswerEditor.getData().trim() : '';
+            const saHtml = getEditorData(saAnswerEditor || window.EmsRichTextEditor?.get('sa_answer'), 'sa_answer').trim();
             const saText = stripHtml(saHtml).trim();
             if (saText === '') {
-                showError(document.getElementById('editor-sa-answer'), 'Reference answer is required.');
+                showError(document.getElementById('sa_answer')?.closest('.ems-rich-editor') || document.getElementById('err-sa'), 'Reference answer is required.');
                 isValid = false;
             }
             document.getElementById('sa_answer').value = saHtml;
@@ -441,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!isValid) {
             // Scroll to the first invalid field
-            const firstInvalid = form.querySelector('.is-invalid, .ck-editor-container.is-invalid, .ts-control.is-invalid');
+            const firstInvalid = form.querySelector('.is-invalid, .ems-rich-editor.is-invalid, .ts-control.is-invalid');
             if (firstInvalid) {
                 firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
@@ -449,8 +481,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- All Validations Passed ---
-        // Copy explanation editor data
-        document.getElementById('explanation').value = explanationEditor ? explanationEditor.getData() : '';
+        window.EmsRichTextEditor?.syncAll?.();
+        document.getElementById('explanation').value = getEditorData(
+            explanationEditor || window.EmsRichTextEditor?.get('explanation'),
+            'explanation'
+        );
 
         // Clean up previous hidden inputs for options
         document.querySelectorAll('.appended-option-input').forEach(el => el.remove());
