@@ -69,6 +69,7 @@ class BlogController extends Controller
             'category',
             'author',
             'bannerImage',
+            'banners',
             'ogImage',
             'tags',
             'galleryAttachments',
@@ -82,7 +83,7 @@ class BlogController extends Controller
         $this->authorizeBlog($blog);
         $orgId = $this->currentOrgId();
 
-        $blog->load(['tags', 'galleryAttachments', 'bannerImage', 'ogImage']);
+        $blog->load(['tags', 'galleryAttachments', 'bannerImage', 'banners', 'ogImage']);
 
         return view('backend.blogs.edit', [
             'blog' => $blog,

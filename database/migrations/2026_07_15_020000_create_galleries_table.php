@@ -45,7 +45,9 @@ return new class extends Migration
             $table->string('alt_text')->nullable();
             $table->text('description')->nullable();
             $table->string('status', 30)->default('active'); // active | archived
-            $table->string('source', 50)->nullable(); // gallery | editor | import
+            $table->string('source', 50)->nullable(); // gallery | editor | import | news | blog
+            $table->string('module', 50)->nullable(); // originating app module (news, blog, profile, …)
+            $table->string('thumbnail_path')->nullable();
             $table->nullableMorphs('attachable');
             $table->timestamp('last_referenced_at')->nullable();
             $table->foreignId('uploaded_by')->nullable()->constrained('users')->nullOnDelete();
@@ -59,6 +61,7 @@ return new class extends Migration
             $table->index(['organization_id', 'kind']);
             $table->index(['organization_id', 'status']);
             $table->index(['organization_id', 'source']);
+            $table->index(['organization_id', 'module']);
             $table->index(['organization_id', 'deleted_at']);
             $table->index(['organization_id', 'created_at']);
             $table->index('file_name');

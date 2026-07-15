@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             BlogCategorySeeder::class,
             BlogTagSeeder::class,
             BlogSeeder::class,
+            NewsSeeder::class,
+            FrontendCmsSeeder::class,
         ]);
 
         $this->command->info('Demo logins (password: password):');

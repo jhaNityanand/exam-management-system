@@ -45,6 +45,16 @@ if (! function_exists('current_organization_id')) {
     }
 }
 
+if (! function_exists('site_setting')) {
+    /**
+     * Read a CMS site setting (group.key), e.g. site_setting('brand.site_name').
+     */
+    function site_setting(string $key, mixed $default = null): mixed
+    {
+        return app(\App\Services\Frontend\SiteCmsService::class)->setting($key, $default);
+    }
+}
+
 if (! function_exists('versioned_asset')) {
     /**
      * Generate an asset URL with a filemtime-based cache-buster.

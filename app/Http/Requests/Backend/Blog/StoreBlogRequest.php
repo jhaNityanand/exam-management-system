@@ -51,6 +51,8 @@ class StoreBlogRequest extends FormRequest
             'excerpt' => ['nullable', 'string'],
             'content' => ['nullable', 'string'],
             'banner_image_id' => ['nullable', 'integer', $orgScoped('galleries')],
+            'banner_ids' => ['nullable', 'array', 'max:12'],
+            'banner_ids.*' => ['integer', $orgScoped('galleries')],
             'og_image_id' => ['nullable', 'integer', $orgScoped('galleries')],
             'author_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'author_name' => ['nullable', 'string', 'max:255'],

@@ -1465,8 +1465,20 @@
     background: #fff;
     color: #334155;
     font-size: 0.7rem;
-    padding: 0.28rem 0.48rem;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
     cursor: pointer;
+}
+
+.icon-btn svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    display: block;
 }
 
 .question-progress {
@@ -1786,13 +1798,25 @@
 .exam-modal__close {
     border: 1px solid #cbd5e1;
     border-radius: 0.55rem;
-    width: 1.8rem;
-    height: 1.8rem;
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
     background: #fff;
     color: #334155;
     font-size: 0.9rem;
-    line-height: 1;
+    line-height: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+}
+
+.exam-modal__close svg {
+    width: 1rem;
+    height: 1rem;
+    display: block;
 }
 
 .exam-modal__footer {

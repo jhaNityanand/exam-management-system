@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Cms\BlogComment;
 use App\Models\Concerns\BelongsToOrganization;
-
 use App\Traits\HasAuditTrails;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -94,6 +95,14 @@ class Blog extends Model
         return $this->belongsTo(Gallery::class, 'banner_image_id');
     }
 
+    public function banners(): BelongsToMany
+    {
+        return $this->belongsToMany(Gallery::class, 'blog_banners', 'blog_id', 'gallery_id')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
     public function ogImage(): BelongsTo
     {
         return $this->belongsTo(Gallery::class, 'og_image_id');
@@ -121,6 +130,16 @@ class Blog extends Model
             ->withTimestamps();
     }
 
+    public function comments(): HasMany
+    {
+        return $this->hasMany(BlogComment::class);
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_PUBLISHED);
+    }
+
     public function statusLabel(): string
     {
         return self::statuses()[$this->status] ?? ucfirst(str_replace('_', ' ', (string) $this->status));
@@ -128,6 +147,7 @@ class Blog extends Model
 
     public function bannerUrl(): ?string
     {
-        return $this->bannerImage?->file_url;
+        return $this->bannerImage?->file_url
+            ?? $this->banners->first()?->file_url;
     }
 }

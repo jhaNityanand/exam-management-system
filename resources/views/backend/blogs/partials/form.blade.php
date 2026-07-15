@@ -3,7 +3,33 @@
     $seoItem = $blog;
     $selectedTags = old('tags', $blog ? $blog->tags->pluck('name')->all() : []);
     $attachmentIds = old('attachment_ids', $blog ? $blog->galleryAttachments->pluck('id')->all() : []);
-    $publishedAtValue = old('published_at', $blog?->published_at ? $blog->published_at->format('Y-m-d\TH:i') : '');
+    $bannerIds = old(
+        'banner_ids',
+        $blog
+            ? (
+                $blog->relationLoaded('banners') && $blog->banners->isNotEmpty()
+                    ? $blog->banners->pluck('id')->all()
+                    : array_values(array_filter([(int) $blog->banner_image_id]))
+            )
+            : []
+    );
+    $bannerItems = [];
+    if ($blog?->relationLoaded('banners')) {
+        foreach ($blog->banners as $gallery) {
+            $bannerItems[] = [
+                'id' => $gallery->id,
+                'url' => $gallery->file_url,
+                'name' => $gallery->original_name,
+            ];
+        }
+    } elseif ($blog?->bannerImage) {
+        $bannerItems[] = [
+            'id' => $blog->bannerImage->id,
+            'url' => $blog->bannerImage->file_url,
+            'name' => $blog->bannerImage->original_name,
+        ];
+    }
+    $publishedAtValue = old('published_at', $blog?->published_at);
 @endphp
 
 <div class="px-4 py-5 sm:p-6 space-y-8">
@@ -49,8 +75,14 @@
             @error('status')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
         </div>
         <div>
-            <label for="published_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Published At</label>
-            <input type="datetime-local" id="published_at" name="published_at" value="{{ $publishedAtValue }}" class="panel-input mt-1 block w-full">
+            <x-date-time-picker
+                name="published_at"
+                id="published_at"
+                mode="datetime"
+                label="Published At"
+                :value="$publishedAtValue"
+                help="Leave empty to publish immediately when status is Published."
+            />
             @error('published_at')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
         </div>
     </div>
@@ -85,16 +117,16 @@
         @error('excerpt')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
 
-    {{-- Banner --}}
-    <div class="max-w-md">
-        @include('backend.partials.gallery-picker', [
-            'name' => 'banner_image_id',
-            'label' => 'Banner Image',
-            'multiple' => false,
-            'value' => old('banner_image_id', $blog?->banner_image_id ?? null),
-            'kind' => 'image',
+    {{-- Banners (multi) --}}
+    <div>
+        @include('backend.partials.blog-banner-uploader', [
+            'name' => 'banner_ids',
+            'label' => 'Banner Images',
+            'value' => $bannerIds,
+            'items' => $bannerItems,
         ])
-        @error('banner_image_id')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+        @error('banner_ids')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
+        @error('banner_ids.*')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
 
     {{-- Content --}}
@@ -112,9 +144,9 @@
     </div>
 
     {{-- Tags --}}
-    <div>
+    <div class="blog-tags-field">
         <label for="tags" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tags</label>
-        <select id="tags" name="tags[]" multiple placeholder="Add tags…">
+        <select id="tags" name="tags[]" multiple placeholder="Type a tag and press Enter…" class="blog-tags-select">
             @foreach ($tags as $tag)
                 <option value="{{ $tag->name }}" {{ in_array($tag->name, $selectedTags, true) ? 'selected' : '' }}>{{ $tag->name }}</option>
             @endforeach
@@ -124,6 +156,7 @@
                 @endif
             @endforeach
         </select>
+        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Press Enter to add. Duplicates are ignored automatically.</p>
         @error('tags')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
 

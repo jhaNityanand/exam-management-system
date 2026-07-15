@@ -1,0 +1,108 @@
+﻿/**
+ * Shared icon-button centering fixes (frontend + backend).
+ */
+
+.et-icon-btn,
+.et-announce__dismiss,
+.et-auth__logo-mark,
+.et-logo__mark,
+.et-contact__icon,
+.et-faq__icon,
+.et-profile__avatar,
+.offcanvas-close,
+.category-desc-modal-close,
+.gallery-icon-btn,
+.blog-banner-icon-btn,
+.gallery-picker-modal__close,
+.exam-modal__close,
+.icon-btn,
+.blog-action-btn,
+.news-action-btn,
+.qcat-icon-btn,
+.panel-icon-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0;
+    line-height: 0 !important;
+    text-align: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.et-icon-btn svg,
+.et-announce__dismiss svg,
+.offcanvas-close svg,
+.category-desc-modal-close svg,
+.gallery-icon-btn svg,
+.blog-banner-icon-btn svg,
+.gallery-picker-modal__close svg,
+.exam-modal__close svg,
+.icon-btn svg,
+.blog-action-btn svg,
+.news-action-btn svg,
+.qcat-icon-btn svg,
+.panel-icon-btn svg,
+.et-btn svg {
+    display: block !important;
+    flex-shrink: 0;
+    margin: 0 !important;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.et-icon-btn { width: 2.4rem; height: 2.4rem; }
+.et-announce__dismiss { width: 1.85rem; height: 1.85rem; }
+.et-announce__dismiss svg { width: 0.95rem; height: 0.95rem; }
+.et-icon-btn svg { width: 1.1rem; height: 1.1rem; }
+
+.offcanvas-close,
+.category-desc-modal-close { width: 2.25rem; height: 2.25rem; }
+.offcanvas-close svg,
+.category-desc-modal-close svg { width: 1rem; height: 1rem; }
+
+.gallery-icon-btn { width: 2.5rem; height: 2.5rem; }
+.gallery-icon-btn svg { width: 1.1rem; height: 1.1rem; }
+
+.blog-banner-icon-btn { width: 1.85rem; height: 1.85rem; }
+.blog-banner-icon-btn svg { width: 0.9rem; height: 0.9rem; }
+
+.gallery-picker-modal__close,
+.exam-modal__close {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
+}
+.gallery-picker-modal__close svg,
+.exam-modal__close svg { width: 1rem; height: 1rem; }
+
+.et-btn,
+.panel-button-primary,
+.panel-button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    line-height: 1.2;
+}
+.et-btn svg { width: 1rem; height: 1rem; }
+
+.et-pagination a,
+.et-pagination span,
+.et-pagination button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.btn-close {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    background-position: center !important;
+}

@@ -59,5 +59,10 @@ class AppServiceProvider extends ServiceProvider
                 'sidebarCollapsedSetting' => (bool) ($user->appSettings?->sidebar_collapsed ?? false),
             ]);
         });
+
+        View::composer(
+            ['frontend.*'],
+            \App\View\Composers\FrontendLayoutComposer::class
+        );
     }
 }

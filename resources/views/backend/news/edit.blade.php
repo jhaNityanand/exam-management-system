@@ -1,0 +1,89 @@
+@extends('backend.layouts.app')
+
+@section('title', 'Edit News')
+@section('page-title', 'Edit News')
+@section('content-container-class', 'max-w-none')
+
+@section('breadcrumbs')
+    <x-breadcrumb :items="[
+        ['label' => 'Admin', 'url' => route('admin.dashboard')],
+        ['label' => 'News', 'url' => route('admin.news.index')],
+        ['label' => $news->title],
+    ]" />
+@endsection
+
+@section('content')
+<div class="w-full relative">
+    <x-page-card class="category-builder-card overflow-visible relative z-10 w-full">
+        <form action="{{ route('admin.news.update', $news) }}" method="POST" id="news-form" enctype="multipart/form-data" class="category-builder">
+            @csrf
+            @method('PUT')
+            <div class="category-builder__header px-4 py-6 sm:px-6">
+                <div>
+                    <h1 class="category-builder__title tracking-tight text-slate-900 dark:text-white">Edit News Item</h1>
+                    <p class="category-builder__subtitle text-slate-500">Update content, metadata, and publishing settings.</p>
+                </div>
+            </div>
+
+            @include('backend.news.partials.form', ['news' => $news])
+
+            <div class="category-builder__footer px-4 py-4 sm:px-6 bg-slate-50 dark:bg-slate-900/50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 rounded-b-2xl">
+                <a href="{{ route('admin.news.show', $news) }}" class="panel-button-secondary text-center">Cancel</a>
+                <button type="submit" class="panel-button-primary" id="btn-submit">Save Changes</button>
+            </div>
+        </form>
+    </x-page-card>
+
+    @include('backend.partials.image-editor-modal')
+</div>
+@endsection
+
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/news-create.css') }}?v={{ filemtime(public_path('css/backend/news-create.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+    <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ filemtime(public_path('css/backend/gallery.css')) }}">
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+    <script src="{{ asset('js/backend/gallery-editor.js') }}?v={{ filemtime(public_path('js/backend/gallery-editor.js')) }}"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}"></script>
+    <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
+    <script src="{{ asset('js/components/editor.js') }}?v={{ filemtime(public_path('js/components/editor.js')) }}"></script>
+    @php
+        $newsExistingMedia = [
+            'og_image_id' => $news->ogImage?->file_url,
+            'featured_image_id' => $news->featuredImage?->file_url,
+            'attachment_ids' => $news->galleryAttachments
+                ->mapWithKeys(static function ($gallery) {
+                    return [$gallery->id => $gallery->file_url];
+                })
+                ->all(),
+        ];
+    @endphp
+    <script>
+        window.galleryDataUrl = @json(route('admin.gallery.data'));
+        window.galleryStoreUrl = @json(route('admin.gallery.store'));
+        window.galleryCommitUrl = @json(route('admin.gallery.commit'));
+        window.galleryCsrf = @json(csrf_token());
+        window.newsBaseUrl = @json(url('/news'));
+        window.newsExistingMedia = @json($newsExistingMedia);
+        document.addEventListener('DOMContentLoaded', () => {
+            const catSelect = window.EmsTomSelectHierarchy?.create('#news_category_id', { placeholder: 'Select category…' });
+            window.EmsTomSelectBlur?.attach(catSelect);
+            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('news-form') || document);
+            window.EmsDateTimePicker?.initAll?.(document);
+        });
+    </script>
+    <script src="{{ asset('js/backend/blog-banners.js') }}?v={{ filemtime(public_path('js/backend/blog-banners.js')) }}"></script>
+    <script src="{{ asset('js/backend/news-create.js') }}?v={{ filemtime(public_path('js/backend/news-create.js')) }}"></script>
+    <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
+@endpush

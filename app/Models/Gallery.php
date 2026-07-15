@@ -37,6 +37,8 @@ class Gallery extends Model
         'description',
         'status',
         'source',
+        'module',
+        'thumbnail_path',
         'attachable_type',
         'attachable_id',
         'last_referenced_at',

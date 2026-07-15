@@ -70,15 +70,39 @@ document.addEventListener('DOMContentLoaded', () => {
     syncSeoSlugPreview();
     updateSeoPreview();
 
-    // Tags TomSelect with create
+    // Tags TomSelect with badge-style items
     const tagsEl = document.getElementById('tags');
     if (tagsEl && window.TomSelect) {
+        const seen = new Set();
         const tagsSelect = new TomSelect(tagsEl, {
             plugins: ['remove_button'],
             create: true,
             persist: false,
             maxItems: null,
-            placeholder: 'Add tags…',
+            duplicates: false,
+            placeholder: 'Type a tag and press Enter…',
+            render: {
+                item: (data, escape) => `<div class="item blog-tag-item">${escape(data.text)}</div>`,
+                option: (data, escape) => `<div class="option">${escape(data.text)}</div>`,
+            },
+            onItemAdd(value) {
+                const normalized = String(value || '').trim().toLowerCase();
+                if (!normalized) {
+                    this.removeItem(value, true);
+                    return;
+                }
+                if (seen.has(normalized)) {
+                    this.removeItem(value, true);
+                    return;
+                }
+                seen.add(normalized);
+            },
+            onInitialize() {
+                this.items.forEach((value) => seen.add(String(value).trim().toLowerCase()));
+            },
+            onItemRemove(value) {
+                seen.delete(String(value || '').trim().toLowerCase());
+            },
         });
         window.EmsTomSelectBlur?.attach(tagsSelect);
     }
@@ -152,9 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const preview = fieldRoot.querySelector('.gallery-picker-preview');
         if (!preview) return;
 
-        if (name === 'banner_image_id' && existing.banner_image_id) {
-            renderThumb(preview, { id: fieldRoot.querySelector('input[type="hidden"]')?.value, file_url: existing.banner_image_id, kind: 'image' }, false, fieldRoot);
-        }
         if (name === 'og_image_id' && existing.og_image_id) {
             renderThumb(preview, { id: fieldRoot.querySelector('input[type="hidden"]')?.value, file_url: existing.og_image_id, kind: 'image' }, false, fieldRoot);
         }

@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\Question;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ExamSeeder extends Seeder
 {
@@ -101,8 +102,13 @@ class ExamSeeder extends Seeder
                 array_merge($data, [
                     'organization_id' => $orgId,
                     'created_by'      => $admin->id,
+                    'slug'            => Str::slug($data['title']),
                 ])
             );
+
+            if (blank($exam->slug)) {
+                $exam->forceFill(['slug' => Str::slug($exam->title)])->save();
+            }
 
             // Attach first few questions if available
             if ($questions->isNotEmpty()) {

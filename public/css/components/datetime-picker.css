@@ -1,0 +1,116 @@
+/* EMS Date / Time picker (Flatpickr skin) */
+
+.ems-dtp__control {
+    position: relative;
+}
+
+.ems-dtp__input {
+    padding-right: 2.5rem !important;
+}
+
+.ems-dtp__icon {
+    position: absolute;
+    right: 0.55rem;
+    top: 50%;
+    transform: translateY(-35%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.75rem;
+    width: 1.75rem;
+    border: 0;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.ems-dtp__icon:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.dark .ems-dtp__icon:hover {
+    background: #1e293b;
+    color: #fff;
+}
+
+.flatpickr-calendar {
+    border-radius: 0.85rem !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14) !important;
+    font-family: inherit !important;
+}
+
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-weekdays,
+span.flatpickr-weekday {
+    background: #fff !important;
+    color: #0f172a !important;
+    fill: #0f172a !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected:hover {
+    background: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+}
+
+.flatpickr-day:hover {
+    background: #eef2ff !important;
+    border-color: #eef2ff !important;
+}
+
+.flatpickr-time input:hover,
+.flatpickr-time .flatpickr-am-pm:hover {
+    background: #eef2ff !important;
+}
+
+.flatpickr-calendar.ems-dtp-calendar--dark,
+.dark .flatpickr-calendar {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-months .flatpickr-month,
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-weekdays,
+.flatpickr-calendar.ems-dtp-calendar--dark span.flatpickr-weekday,
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-day,
+.dark .flatpickr-months .flatpickr-month,
+.dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+.dark .flatpickr-weekdays,
+.dark span.flatpickr-weekday,
+.dark .flatpickr-day {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+    fill: #e2e8f0 !important;
+}
+
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-day.flatpickr-disabled,
+.dark .flatpickr-day.flatpickr-disabled {
+    color: #475569 !important;
+}
+
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-day:hover,
+.dark .flatpickr-day:hover {
+    background: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-time input,
+.flatpickr-calendar.ems-dtp-calendar--dark .flatpickr-time .flatpickr-am-pm,
+.dark .flatpickr-time input,
+.dark .flatpickr-time .flatpickr-am-pm {
+    color: #e2e8f0 !important;
+}
+
+@media (max-width: 480px) {
+    .flatpickr-calendar {
+        width: min(320px, calc(100vw - 1.5rem)) !important;
+    }
+}

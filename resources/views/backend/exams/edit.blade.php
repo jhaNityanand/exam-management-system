@@ -288,13 +288,23 @@
                     </div>
                     <div>
                         <label for="edit_scheduled_start" class="exam-label">Scheduled Start</label>
-                        <input id="edit_scheduled_start" name="scheduled_start" type="datetime-local" class="panel-input"
-                               value="{{ old('scheduled_start', optional($exam->scheduled_start)->format('Y-m-d\TH:i')) }}">
+                        <x-date-time-picker
+                            name="scheduled_start"
+                            id="edit_scheduled_start"
+                            mode="datetime"
+                            :value="old('scheduled_start', $exam->scheduled_start)"
+                            input-class="panel-input"
+                        />
                     </div>
                     <div>
                         <label for="edit_scheduled_end" class="exam-label">Scheduled End</label>
-                        <input id="edit_scheduled_end" name="scheduled_end" type="datetime-local" class="panel-input"
-                               value="{{ old('scheduled_end', optional($exam->scheduled_end)->format('Y-m-d\TH:i')) }}">
+                        <x-date-time-picker
+                            name="scheduled_end"
+                            id="edit_scheduled_end"
+                            mode="datetime"
+                            :value="old('scheduled_end', $exam->scheduled_end)"
+                            input-class="panel-input"
+                        />
                     </div>
                     <div>
                         <label for="edit_attempt_limit_type" class="exam-label">Attempt Limit</label>
@@ -539,6 +549,7 @@
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}?v={{ filemtime(public_path('css/backend/tom-select-theme.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ filemtime(public_path('css/modules/form-utils.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}?v={{ filemtime(public_path('css/backend/question-category-form.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-edit.css') }}?v={{ filemtime(public_path('css/backend/exam-edit.css')) }}">
 @endpush
@@ -549,6 +560,7 @@
     <script src="{{ asset('js/components/select.js') }}?v={{ filemtime(public_path('js/components/select.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}?v={{ filemtime(public_path('js/components/tom-select-blur.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ filemtime(public_path('js/components/tom-select-hierarchy.js')) }}"></script>
+    <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ filemtime(public_path('js/backend/seo-manager.js')) }}"></script>
     <script>
         window.examEditInstructionTemplates = @json(

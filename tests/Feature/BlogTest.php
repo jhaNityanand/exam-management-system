@@ -5,6 +5,7 @@ use App\Models\BlogCategory;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserOrganization;
+use Illuminate\Support\Facades\Storage;
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -44,6 +45,59 @@ test('authenticated user can view blog categories page', function () {
         ->get(route('admin.blogs.categories.index'))
         ->assertOk()
         ->assertViewIs('backend.blog-categories.index');
+});
+
+test('user can create a blog with multiple banner images', function () {
+    Storage::fake('public');
+
+    $bannerOne = \App\Models\Gallery::create([
+        'organization_id' => $this->organization->id,
+        'original_name' => 'banner-1.png',
+        'file_name' => 'banner-1.png',
+        'file_path' => 'gallery/1/banner-1.png',
+        'file_url' => '/storage/gallery/1/banner-1.png',
+        'original_file_path' => 'gallery/1/banner-1.png',
+        'mime_type' => 'image/png',
+        'kind' => 'image',
+        'file_size' => 1200,
+        'status' => 'active',
+        'source' => 'gallery_ui',
+        'module' => 'blog',
+        'uploaded_by' => $this->user->id,
+        'created_by' => $this->user->id,
+    ]);
+    $bannerTwo = \App\Models\Gallery::create([
+        'organization_id' => $this->organization->id,
+        'original_name' => 'banner-2.png',
+        'file_name' => 'banner-2.png',
+        'file_path' => 'gallery/1/banner-2.png',
+        'file_url' => '/storage/gallery/1/banner-2.png',
+        'original_file_path' => 'gallery/1/banner-2.png',
+        'mime_type' => 'image/png',
+        'kind' => 'image',
+        'file_size' => 1400,
+        'status' => 'active',
+        'source' => 'gallery_ui',
+        'module' => 'blog',
+        'uploaded_by' => $this->user->id,
+        'created_by' => $this->user->id,
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('admin.blogs.store'), [
+            'title' => 'Banner Showcase',
+            'slug' => 'banner-showcase',
+            'content' => '<p>With several banners.</p>',
+            'status' => 'published',
+            'banner_ids' => [$bannerOne->id, $bannerTwo->id],
+        ]);
+
+    $blog = Blog::query()->where('slug', 'banner-showcase')->first();
+    expect($blog)->not->toBeNull();
+    expect($blog->banner_image_id)->toBe($bannerOne->id);
+    expect($blog->banners()->count())->toBe(2);
+
+    $response->assertRedirect(route('admin.blogs.show', $blog));
 });
 
 test('user can create a published blog post', function () {

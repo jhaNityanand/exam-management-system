@@ -15,7 +15,8 @@ class BlogService
     {
         $tags = $data['tags'] ?? [];
         $attachmentIds = $data['attachment_ids'] ?? [];
-        unset($data['tags'], $data['attachment_ids']);
+        $bannerIds = $data['banner_ids'] ?? [];
+        unset($data['tags'], $data['attachment_ids'], $data['banner_ids']);
 
         $data['organization_id'] = $orgId;
         $data['created_by'] = Auth::id();
@@ -30,6 +31,7 @@ class BlogService
 
         $data['slug'] = $this->uniqueSlug($data['slug'] ?? $data['title'] ?? '', $orgId);
         $this->applyPublishedAt($data);
+        $data = $this->applyPrimaryBanner($data, is_array($bannerIds) ? $bannerIds : []);
 
         $data = $this->gallery->sanitizeHtmlFields($data, ['content', 'excerpt']);
 
@@ -37,15 +39,17 @@ class BlogService
         $this->syncGalleryMedia($blog);
         $this->syncTags($blog, is_array($tags) ? $tags : [], $orgId);
         $this->syncAttachments($blog, is_array($attachmentIds) ? $attachmentIds : []);
+        $this->syncBanners($blog, is_array($bannerIds) ? $bannerIds : []);
 
-        return $blog->fresh();
+        return $blog->fresh(['banners', 'bannerImage', 'tags']);
     }
 
     public function update(Blog $blog, array $data): Blog
     {
         $tags = $data['tags'] ?? null;
         $attachmentIds = $data['attachment_ids'] ?? null;
-        unset($data['tags'], $data['attachment_ids']);
+        $bannerIds = $data['banner_ids'] ?? null;
+        unset($data['tags'], $data['attachment_ids'], $data['banner_ids']);
 
         if (array_key_exists('slug', $data) || array_key_exists('title', $data)) {
             $slugSource = $data['slug'] ?? $data['title'] ?? $blog->title;
@@ -54,6 +58,10 @@ class BlogService
 
         if (array_key_exists('status', $data) || array_key_exists('published_at', $data)) {
             $this->applyPublishedAt($data, $blog);
+        }
+
+        if ($bannerIds !== null) {
+            $data = $this->applyPrimaryBanner($data, is_array($bannerIds) ? $bannerIds : []);
         }
 
         $data = $this->gallery->sanitizeHtmlFields($data, ['content', 'excerpt']);
@@ -68,8 +76,11 @@ class BlogService
         if ($attachmentIds !== null) {
             $this->syncAttachments($blog, is_array($attachmentIds) ? $attachmentIds : []);
         }
+        if ($bannerIds !== null) {
+            $this->syncBanners($blog, is_array($bannerIds) ? $bannerIds : []);
+        }
 
-        return $blog;
+        return $blog->fresh(['banners', 'bannerImage', 'tags']);
     }
 
     public function delete(Blog $blog): bool
@@ -143,6 +154,34 @@ class BlogService
     {
         $galleryIds = array_values(array_unique(array_filter(array_map('intval', $galleryIds))));
         $blog->galleryAttachments()->sync($galleryIds);
+    }
+
+    /**
+     * @param  list<int|string>  $galleryIds
+     */
+    public function syncBanners(Blog $blog, array $galleryIds): void
+    {
+        $galleryIds = array_values(array_unique(array_filter(array_map('intval', $galleryIds))));
+        $sync = [];
+        foreach ($galleryIds as $index => $galleryId) {
+            $sync[$galleryId] = ['sort_order' => $index];
+        }
+        $blog->banners()->sync($sync);
+    }
+
+    /**
+     * Keep legacy banner_image_id in sync with the first ordered banner.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  list<int|string>  $bannerIds
+     * @return array<string, mixed>
+     */
+    protected function applyPrimaryBanner(array $data, array $bannerIds): array
+    {
+        $bannerIds = array_values(array_unique(array_filter(array_map('intval', $bannerIds))));
+        $data['banner_image_id'] = $bannerIds[0] ?? ($data['banner_image_id'] ?? null);
+
+        return $data;
     }
 
     public function uniqueSlug(string $titleOrSlug, int $orgId, ?int $ignoreId = null): string

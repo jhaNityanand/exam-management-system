@@ -1,0 +1,195 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToOrganization;
+use App\Traits\HasAuditTrails;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class News extends Model
+{
+    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
+
+    protected $table = 'news';
+
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_PENDING_REVIEW = 'pending_review';
+
+    public const STATUS_PUBLISHED = 'published';
+
+    public const STATUS_ARCHIVED = 'archived';
+
+    public const VISIBILITY_PUBLIC = 'public';
+
+    public const VISIBILITY_PRIVATE = 'private';
+
+    public const VISIBILITY_UNLISTED = 'unlisted';
+
+    protected $fillable = [
+        'organization_id',
+        'news_category_id',
+        'title',
+        'slug',
+        'short_description',
+        'excerpt',
+        'content',
+        'banner_image_id',
+        'featured_image_id',
+        'author_id',
+        'author_name',
+        'status',
+        'visibility',
+        'is_featured',
+        'is_breaking',
+        'is_trending',
+        'published_at',
+        'expires_at',
+        'breaking_until',
+        'sort_order',
+        'view_count',
+        'seo_title',
+        'seo_description',
+        'seo_keywords',
+        'og_title',
+        'og_description',
+        'og_image_id',
+        'canonical_url',
+        'robots',
+        'schema_markup',
+        'ai_generated',
+        'ai_improve',
+        'created_by',
+        'updated_by',
+        'updated_by_history',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+            'expires_at' => 'datetime',
+            'breaking_until' => 'datetime',
+            'view_count' => 'integer',
+            'sort_order' => 'integer',
+            'is_featured' => 'boolean',
+            'is_breaking' => 'boolean',
+            'is_trending' => 'boolean',
+            'ai_generated' => 'boolean',
+            'ai_improve' => 'boolean',
+            'updated_by_history' => 'array',
+        ];
+    }
+
+    public static function statuses(): array
+    {
+        return [
+            self::STATUS_DRAFT => 'Draft',
+            self::STATUS_PENDING_REVIEW => 'Pending Review',
+            self::STATUS_PUBLISHED => 'Published',
+            self::STATUS_ARCHIVED => 'Archived',
+        ];
+    }
+
+    public static function visibilities(): array
+    {
+        return [
+            self::VISIBILITY_PUBLIC => 'Public',
+            self::VISIBILITY_PRIVATE => 'Private',
+            self::VISIBILITY_UNLISTED => 'Unlisted',
+        ];
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(NewsCategory::class, 'news_category_id');
+    }
+
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function bannerImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'banner_image_id');
+    }
+
+    public function featuredImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'featured_image_id');
+    }
+
+    public function banners(): BelongsToMany
+    {
+        return $this->belongsToMany(Gallery::class, 'news_banners', 'news_id', 'gallery_id')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
+    public function ogImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'og_image_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(NewsTag::class, 'news_tag_relations', 'news_id', 'tag_id')
+            ->withTimestamps();
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(NewsAttachment::class);
+    }
+
+    public function galleryAttachments(): BelongsToMany
+    {
+        return $this->belongsToMany(Gallery::class, 'news_attachments', 'news_id', 'gallery_id')
+            ->withTimestamps();
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_PUBLISHED)
+            ->where('visibility', self::VISIBILITY_PUBLIC);
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statuses()[$this->status] ?? ucfirst(str_replace('_', ' ', (string) $this->status));
+    }
+
+    public function visibilityLabel(): string
+    {
+        return self::visibilities()[$this->visibility] ?? ucfirst((string) $this->visibility);
+    }
+
+    public function bannerUrl(): ?string
+    {
+        return $this->bannerImage?->file_url
+            ?? $this->banners->first()?->file_url;
+    }
+
+    public function featuredImageUrl(): ?string
+    {
+        return $this->featuredImage?->file_url;
+    }
+}

@@ -53,7 +53,7 @@
         </button>
         <label class="gallery-picker-upload panel-button-secondary text-sm cursor-pointer">
             Upload
-            <input type="file" class="sr-only gallery-picker-upload-input" accept="image/*,video/*,.pdf">
+            <input type="file" class="sr-only gallery-picker-upload-input" accept="{{ $kind === 'image' ? 'image/*' : 'image/*,video/*,.pdf' }}">
         </label>
     </div>
 </div>
