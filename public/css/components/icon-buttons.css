@@ -1,5 +1,6 @@
 ﻿/**
  * Shared icon-button centering fixes (frontend + backend).
+ * Prefer SVG icons over text characters (+, ×, X) for reliable centering.
  */
 
 .et-icon-btn,
@@ -13,6 +14,7 @@
 .category-desc-modal-close,
 .gallery-icon-btn,
 .blog-banner-icon-btn,
+.blog-banner-picker-modal__close,
 .gallery-picker-modal__close,
 .exam-modal__close,
 .icon-btn,
@@ -32,12 +34,27 @@
     vertical-align: middle;
 }
 
+.category-node__btn,
+.category-node__icon {
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    margin: 0;
+    line-height: 0 !important;
+    text-align: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
+    overflow: hidden;
+}
+
 .et-icon-btn svg,
 .et-announce__dismiss svg,
 .offcanvas-close svg,
 .category-desc-modal-close svg,
 .gallery-icon-btn svg,
 .blog-banner-icon-btn svg,
+.blog-banner-picker-modal__close svg,
 .gallery-picker-modal__close svg,
 .exam-modal__close svg,
 .icon-btn svg,
@@ -45,12 +62,15 @@
 .news-action-btn svg,
 .qcat-icon-btn svg,
 .panel-icon-btn svg,
+.category-node__btn svg,
+.category-node__icon svg,
 .et-btn svg {
     display: block !important;
     flex-shrink: 0;
     margin: 0 !important;
     max-width: 100%;
     max-height: 100%;
+    pointer-events: none;
 }
 
 .et-icon-btn { width: 2.4rem; height: 2.4rem; }
@@ -70,14 +90,47 @@
 .blog-banner-icon-btn svg { width: 0.9rem; height: 0.9rem; }
 
 .gallery-picker-modal__close,
-.exam-modal__close {
+.exam-modal__close,
+.blog-banner-picker-modal__close {
     width: 2rem;
     height: 2rem;
     min-width: 2rem;
     min-height: 2rem;
 }
 .gallery-picker-modal__close svg,
-.exam-modal__close svg { width: 1rem; height: 1rem; }
+.exam-modal__close svg,
+.blog-banner-picker-modal__close svg { width: 1rem; height: 1rem; }
+
+.category-node__btn,
+.category-node__icon {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
+}
+.category-node__btn svg,
+.category-node__icon svg {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+.blog-banner-picker-modal__close {
+    border: 0;
+    border-radius: 999px;
+    background: rgb(241 245 249);
+    color: rgb(71 85 105);
+    cursor: pointer;
+}
+.dark .blog-banner-picker-modal__close {
+    background: rgb(30 41 59);
+    color: rgb(203 213 225);
+}
+.blog-banner-picker-modal__close:hover {
+    color: rgb(15 23 42);
+}
+.dark .blog-banner-picker-modal__close:hover {
+    color: rgb(248 250 252);
+}
 
 .et-btn,
 .panel-button-primary,

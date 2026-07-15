@@ -222,12 +222,12 @@
 @endsection
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/category-manager.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/question-category-form.css') }}">
 @endpush
 
 @push('scripts')
-    <script src="{{ asset('js/backend/category-manager.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/category-manager.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/category-form.js') }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
 @endpush

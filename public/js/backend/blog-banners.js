@@ -194,7 +194,9 @@
                     <div class="blog-banner-picker-modal__panel" role="dialog" aria-modal="true">
                         <header class="blog-banner-picker-modal__header">
                             <h3>Select banner images</h3>
-                            <button type="button" data-close aria-label="Close">&times;</button>
+                            <button type="button" class="blog-banner-picker-modal__close" data-close aria-label="Close">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                            </button>
                         </header>
                         <div class="blog-banner-picker-modal__grid">
                             ${items.map((item) => `

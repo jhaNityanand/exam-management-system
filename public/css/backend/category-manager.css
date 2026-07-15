@@ -289,31 +289,48 @@
 
 .category-node__btn,
 .category-node__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     width: 2rem;
     height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0;
+    margin: 0;
     border: 0;
     border-radius: 999px;
+    line-height: 0;
+    text-align: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
+    overflow: hidden;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.category-node__btn svg,
+.category-node__icon svg {
+    display: block;
+    width: 0.95rem;
+    height: 0.95rem;
+    margin: 0;
+    padding: 0;
+    flex-shrink: 0;
+    pointer-events: none;
+    overflow: visible;
 }
 
 .category-node__btn {
     background: color-mix(in srgb, var(--tree-color) 10%, white);
     color: var(--tree-color);
-    font-size: 1.1rem;
-    font-weight: 800;
-    line-height: 1;
 }
 
 .category-node__icon {
     background: rgb(248 250 252);
     color: rgb(239 68 68);
-    font-size: 0.85rem;
-    font-weight: 900;
-    line-height: 1;
 }
 
 .dark .category-node__btn {
@@ -422,12 +439,13 @@
     }
 
     .category-node__card {
-        grid-template-columns: 48px minmax(260px, 1fr) minmax(260px, 1fr) auto;
+        grid-template-columns: 48px minmax(200px, 1fr) minmax(200px, 1fr) auto;
         align-items: start;
     }
 
     .category-node__actions {
-        padding-top: 1.35rem;
+        align-self: start;
+        padding-top: 1.55rem;
     }
 }
 

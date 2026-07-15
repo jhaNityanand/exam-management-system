@@ -3,8 +3,8 @@
     $userName = $user->name ?? 'User';
     $notificationCount = 5;
     $notificationBadge = $notificationCount > 99 ? '99+' : (string) $notificationCount;
-    $topbarIconButtonClasses = 'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white';
-    $topbarIconShellClasses = 'pointer-events-none flex h-8 w-8 items-center justify-center rounded-lg text-current';
+    $topbarIconButtonClasses = 'panel-icon-btn relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-0 text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white';
+    $topbarIconShellClasses = 'pointer-events-none inline-flex h-5 w-5 items-center justify-center text-current';
     $nameParts = explode(' ', trim($userName));
     if (count($nameParts) >= 2) {
         $userInitials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
@@ -16,17 +16,17 @@
 <div class="flex items-center gap-2 sm:gap-3">
     <!-- Theme Toggle -->
     <button id="theme-toggle-btn" type="button"
-        class="{{ $topbarIconButtonClasses }} overflow-visible p-0.5"
+        class="{{ $topbarIconButtonClasses }}"
         aria-label="Toggle theme">
         <!-- Sun icon (shows in dark mode) -->
-        <span class="{{ $topbarIconShellClasses }} hidden dark:flex">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] overflow-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+        <span class="{{ $topbarIconShellClasses }} hidden dark:inline-flex">
+            <svg xmlns="http://www.w3.org/2000/svg" class="block h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
             </svg>
         </span>
         <!-- Moon icon (shows in light mode) -->
         <span class="{{ $topbarIconShellClasses }} dark:hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] overflow-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="block h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
             </svg>
         </span>
@@ -35,11 +35,11 @@
     <!-- Notifications -->
     <div data-dropdown data-open="0" class="relative">
         <button type="button" data-dropdown-trigger
-            class="{{ $topbarIconButtonClasses }} overflow-visible"
+            class="{{ $topbarIconButtonClasses }}"
             aria-label="Open notifications">
 
             <span class="{{ $topbarIconShellClasses }}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" class="block h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M12 2.25a4.5 4.5 0 0 0-4.5 4.5v.794a5.25 5.25 0 0 1-1.537 3.712l-.815.815a2.25 2.25 0 0 0 1.591 3.84h10.522a2.25 2.25 0 0 0 1.591-3.84l-.815-.815A5.25 5.25 0 0 1 16.5 7.544V6.75A4.5 4.5 0 0 0 12 2.25Zm0 19.5a3 3 0 0 0 2.815-1.965.75.75 0 0 0-.703-1.035H9.888a.75.75 0 0 0-.703 1.035A3 3 0 0 0 12 21.75Z" />
                 </svg>
             </span>
@@ -84,10 +84,10 @@
 
     <div data-dropdown data-open="0" class="relative">
         <button type="button" data-dropdown-trigger
-            class="{{ $topbarIconButtonClasses }} p-1"
+            class="{{ $topbarIconButtonClasses }}"
             aria-label="User menu">
             <span
-                class="flex h-full w-full items-center justify-center rounded-lg bg-slate-950 text-sm font-bold uppercase text-white dark:bg-white dark:text-slate-950">
+                class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold uppercase leading-none text-white dark:bg-white dark:text-slate-950">
                 {{ $userInitials }}
             </span>
         </button>

@@ -43,9 +43,13 @@
         <input type="hidden" name="categories[{{ $id }}][id]" value="{{ $node->id }}">
 
         <div class="category-node__actions">
-            <button type="button" class="category-node__btn add-child-btn" aria-label="Add child category" title="Add child">+</button>
+            <button type="button" class="category-node__btn add-child-btn" aria-label="Add child category" title="Add child">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
             @if ($level > 0)
-                <button type="button" class="category-node__icon remove-node-btn" aria-label="Delete category" title="Remove category">X</button>
+                <button type="button" class="category-node__icon remove-node-btn" aria-label="Delete category" title="Remove category">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
             @endif
         </div>
     </div>
