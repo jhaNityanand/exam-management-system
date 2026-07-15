@@ -4,7 +4,11 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+/**
+ * Creates the exams table (full schema — no follow-up alter migrations required).
+ */
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('exams', function (Blueprint $table) {
@@ -17,13 +21,19 @@ return new class extends Migration {
             // Identity
             $table->string('title');
             $table->text('description')->nullable();
-            $table->string('status')->default('draft');      // draft | published | active | inactive | suspended
+            $table->string('status')->default('draft'); // draft | published | active | inactive | suspended
             $table->string('exam_mode')->default('standard'); // standard | practice | proctored
             $table->json('exam_format')->nullable();
-            $table->string('difficulty_level')->nullable();  // easy | medium | hard
+            $table->string('difficulty_level')->nullable(); // easy | medium | hard
             $table->string('visibility')->default('public'); // public | private | invite_only
+            $table->string('pricing_option')->default('free'); // free | paid | free_for_imported
+            $table->string('exam_currency', 10)->nullable();
+            $table->decimal('exam_amount', 12, 2)->nullable();
+            $table->json('selected_discounts')->nullable();
+            $table->json('custom_discounts')->nullable();
             $table->json('tags')->nullable();
             $table->text('instructions')->nullable();
+            $table->json('predefined_instruction_rules')->nullable();
 
             // Timer & Duration
             $table->unsignedSmallInteger('duration')->default(60); // minutes
@@ -53,7 +63,7 @@ return new class extends Migration {
             $table->unsignedSmallInteger('total_categories')->nullable();
             $table->unsignedTinyInteger('paper_sets')->default(1);
             $table->boolean('fix_category_questions')->default(false);
-            $table->string('distribution_type')->nullable();     // equal | weighted | manual
+            $table->string('distribution_type')->nullable(); // mixed | category_wise | equal | weighted | manual
             $table->json('selected_categories')->nullable();
             $table->json('extra_questions_categories')->nullable();
             $table->json('extra_questions_allocations')->nullable();
@@ -67,8 +77,10 @@ return new class extends Migration {
             // Candidate Access
             $table->json('imported_candidates')->nullable();
             $table->json('manual_candidate_emails')->nullable();
+            $table->json('free_imported_candidates')->nullable();
+            $table->json('free_manual_candidate_emails')->nullable();
 
-            // SEO / Metadata
+            // SEO / Metadata (taxonomy/content meta_* convention)
             $table->string('meta_title')->nullable();
             $table->text('meta_description')->nullable();
             $table->string('meta_keywords')->nullable();
@@ -77,14 +89,18 @@ return new class extends Migration {
             $table->string('og_title')->nullable();
             $table->text('og_description')->nullable();
 
-            // ── AI flags (UI prepared; no AI logic yet) ────────────────────────
-            $table->boolean('ai_generated')->default(false); // category content was AI-generated
-            $table->boolean('ai_improve')->default(false);   // category queued for AI improvement
+            // AI flags
+            $table->boolean('ai_generated')->default(false);
+            $table->boolean('ai_improve')->default(false);
 
             // Audit
             $table->json('updated_by_history')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['organization_id', 'status']);
+            $table->index(['organization_id', 'category_id']);
+            $table->index(['organization_id', 'slug']);
         });
     }
 

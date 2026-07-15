@@ -17,6 +17,7 @@ class ExamAttempt extends Model
         'status',
         'created_by',
         'updated_by',
+        'updated_by_history',
         'score',
         'passed',
         'started_at',
@@ -29,6 +30,7 @@ class ExamAttempt extends Model
         return [
             'passed' => 'boolean',
             'answers' => 'array',
+            'updated_by_history' => 'array',
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
         ];

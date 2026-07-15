@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOrganization;
+
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BlogCategory extends Model
 {
-    use HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $table = 'blog_categories';
 
@@ -100,7 +102,7 @@ class BlogCategory extends Model
 
     public function blogs()
     {
-        return $this->hasMany(Blog::class, 'category_id');
+        return $this->hasMany(Blog::class, 'blog_category_id');
     }
 
     // ── Scopes ────────────────────────────────────────────────────────────────
@@ -112,10 +114,6 @@ class BlogCategory extends Model
     }
 
     /** Filter to a specific organization. */
-    public function scopeForOrg($query, int $orgId)
-    {
-        return $query->where('organization_id', $orgId);
-    }
 
     /** Filter by status. */
     public function scopeWithStatus($query, string $status)

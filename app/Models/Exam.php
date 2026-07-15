@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOrganization;
+
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Exam extends Model
 {
-    use HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $fillable = [
         // Identity
@@ -147,7 +149,7 @@ class Exam extends Model
 
     public function category()
     {
-        return $this->belongsTo(ExamCategory::class);
+        return $this->belongsTo(ExamCategory::class, 'category_id');
     }
 
     public function createdBy()
@@ -177,10 +179,5 @@ class Exam extends Model
     public function scopeDraft($query)
     {
         return $query->where('status', 'draft');
-    }
-
-    public function scopeForOrg($query, int $orgId)
-    {
-        return $query->where('organization_id', $orgId);
     }
 }

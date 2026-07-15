@@ -2,42 +2,23 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Exam\StoreExamRequest;
 use App\Http\Requests\Backend\Exam\UpdateExamRequest;
 use App\Models\Exam;
 use App\Models\Question;
-use App\Models\UserOrganization;
 use App\Services\ExamService;
 use App\Support\ExamFormOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ExamController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __construct(protected ExamService $examService) {}
-
-    // ── Org helper ────────────────────────────────────────────────────────────
-
-    protected function currentOrgId(): int
-    {
-        if (Auth::check()) {
-            $orgId = UserOrganization::where('user_id', Auth::id())
-                ->where('status', 'active')
-                ->value('organization_id');
-
-            if ($orgId) {
-                return (int) $orgId;
-            }
-        }
-
-        $id = current_organization_id();
-        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
-
-        return $id;
-    }
 
     // ── List ──────────────────────────────────────────────────────────────────
 
@@ -67,7 +48,7 @@ class ExamController extends Controller
         $data = $request->validated();
 
         // Attach current organisation
-        $data['organization_id'] = current_organization_id();
+        $data['organization_id'] = $this->currentOrgId();
 
         $exam = $this->examService->create($data);
 
@@ -127,6 +108,7 @@ class ExamController extends Controller
         $formOptions = ExamFormOptions::all($orgId);
 
         $questions = Question::query()
+            ->forOrg($orgId)
             ->orderBy('body')
             ->limit(500)
             ->get(['id', 'body', 'category_id', 'marks', 'difficulty', 'type']);

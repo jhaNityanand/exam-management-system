@@ -56,7 +56,7 @@
                         </select>
                     </div>
 
-                    <button id="btn-toggle-filters" type="button" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
+                    <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/>
                         </svg>
@@ -254,16 +254,16 @@
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/backend/exam-list.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}?v={{ filemtime(public_path('css/backend/tom-select-theme.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}?v={{ filemtime(public_path('css/backend/question-list.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/exam-list.css') }}?v={{ filemtime(public_path('css/backend/exam-list.css')) }}">
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
-    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}?v={{ filemtime(public_path('js/components/tom-select-blur.js')) }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ filemtime(public_path('js/components/tom-select-hierarchy.js')) }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.examsApiUrl = @json(route('admin.internal-api.exams-table'));
@@ -287,6 +287,7 @@
             window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
         });
     </script>
-    <script src="{{ asset('js/backend/ajax-table.js') }}"></script>
-    <script src="{{ asset('js/backend/exam-list.js') }}"></script>
+    <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/exam-list.js') }}"></script>
 @endpush

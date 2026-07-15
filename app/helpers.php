@@ -44,3 +44,21 @@ if (! function_exists('current_organization_id')) {
         return $cachedId ? (int) $cachedId : null;
     }
 }
+
+if (! function_exists('versioned_asset')) {
+    /**
+     * Generate an asset URL with a filemtime-based cache-buster.
+     */
+    function versioned_asset(string $path): string
+    {
+        $relative = ltrim(str_replace('\\', '/', $path), '/');
+        $url = asset($relative);
+        $fullPath = public_path($relative);
+
+        if (is_file($fullPath)) {
+            return $url.'?v='.filemtime($fullPath);
+        }
+
+        return $url;
+    }
+}

@@ -80,43 +80,33 @@ class GalleryService
     }
 
     /**
+     * Store an uploaded file as a single gallery row.
+     * Always sets original_file_path; modified stays null until edited.
+     *
      * @param  array<string, mixed>  $meta
      */
     public function upload(UploadedFile $file, int $organizationId, array $meta = []): Gallery
     {
         $kind = $this->detectKind($file, $meta['kind'] ?? null);
         $disk = (string) config('gallery.disk', 'public');
-        $directory = trim((string) config('gallery.directory', 'gallery'), '/');
-        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
-        $baseSlug = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'file';
-        $unique = Str::uuid()->toString();
-        $fileName = "{$unique}_{$baseSlug}.{$extension}";
-        $relativeDir = sprintf('%s/%d/%s', $directory, $organizationId, now()->format('Y/m'));
-        $relativePath = "{$relativeDir}/{$fileName}";
-
-        Storage::disk($disk)->putFileAs($relativeDir, $file, $fileName);
-
-        if (! Storage::disk($disk)->exists($relativePath)) {
-            throw new \RuntimeException('Failed to store gallery file on disk.');
-        }
-
+        $stored = $this->storeUploadedFile($file, $organizationId, $disk);
         [$width, $height] = $this->readImageDimensions($file, $kind);
 
         return Gallery::create([
             'organization_id' => $organizationId,
-            'parent_id' => $meta['parent_id'] ?? null,
-            'variant' => $meta['variant'] ?? Gallery::VARIANT_ORIGINAL,
             'original_name' => $meta['original_name'] ?? $file->getClientOriginalName(),
-            'file_name' => $fileName,
-            'file_path' => $relativePath,
-            'file_url' => $this->publicUrl($disk, $relativePath),
-            'file_extension' => $extension,
+            'file_name' => $stored['file_name'],
+            'file_path' => $stored['path'],
+            'file_url' => $this->publicUrl($disk, $stored['path']),
+            'original_file_path' => $stored['path'],
+            'modified_file_path' => null,
+            'file_extension' => $stored['extension'],
             'mime_type' => $file->getMimeType(),
             'kind' => $kind,
             'file_size' => $file->getSize() ?: 0,
             'width' => $width,
             'height' => $height,
-            'folder' => $meta['folder'] ?? $directory,
+            'folder' => $meta['folder'] ?? trim((string) config('gallery.directory', 'gallery'), '/'),
             'disk' => $disk,
             'alt_text' => $meta['alt_text'] ?? null,
             'description' => $meta['description'] ?? null,
@@ -129,9 +119,8 @@ class GalleryService
     }
 
     /**
-     * Editor upload: always stores a gallery row for the insertable file.
-     * When an original file is also provided (images), stores two rows:
-     * original + adjusted, linked by parent_id.
+     * Editor upload: one gallery row.
+     * When both original + adjusted files are provided, both paths are stored on that row.
      *
      * @param  array<string, mixed>  $meta
      * @return array{primary: Gallery, original: Gallery, adjusted: ?Gallery}
@@ -147,39 +136,121 @@ class GalleryService
         $isImagePair = $kind === 'image' && $original instanceof UploadedFile && $original->isValid();
 
         if ($isImagePair) {
-            $originalRow = $this->upload($original, $organizationId, array_merge($meta, [
+            $row = $this->upload($original, $organizationId, array_merge($meta, [
                 'kind' => 'image',
-                'variant' => Gallery::VARIANT_ORIGINAL,
-                'parent_id' => null,
-            ]));
-
-            $adjustedRow = $this->upload($file, $organizationId, array_merge($meta, [
-                'kind' => 'image',
-                'variant' => Gallery::VARIANT_ADJUSTED,
-                'parent_id' => $originalRow->id,
                 'original_name' => (string) ($meta['display_name']
                     ?? $original->getClientOriginalName()
                     ?? $file->getClientOriginalName()),
             ]));
 
+            $row = $this->saveModifiedFile($row, $file);
+
             return [
-                'primary' => $adjustedRow->fresh(),
-                'original' => $originalRow->fresh(),
-                'adjusted' => $adjustedRow->fresh(),
+                'primary' => $row,
+                'original' => $row,
+                'adjusted' => $row,
             ];
         }
 
-        // Non-image or single-file upload: one original row.
-        $row = $this->upload($file, $organizationId, array_merge($meta, [
-            'variant' => Gallery::VARIANT_ORIGINAL,
-            'parent_id' => null,
-        ]));
+        $row = $this->upload($file, $organizationId, $meta);
 
         return [
             'primary' => $row,
             'original' => $row,
             'adjusted' => null,
         ];
+    }
+
+    /**
+     * Save (or replace) a modified image for an existing gallery row.
+     * Deletes any previous modified file; leaves the original untouched.
+     */
+    public function saveModifiedFile(Gallery $gallery, UploadedFile $file): Gallery
+    {
+        $disk = $gallery->disk ?: (string) config('gallery.disk', 'public');
+
+        return DB::transaction(function () use ($gallery, $file, $disk) {
+            $oldModified = $gallery->modified_file_path;
+            if ($oldModified
+                && $oldModified !== $gallery->original_file_path
+                && Storage::disk($disk)->exists($oldModified)
+            ) {
+                Storage::disk($disk)->delete($oldModified);
+            }
+
+            $stored = $this->storeUploadedFile(
+                $file,
+                (int) $gallery->organization_id,
+                $disk,
+                'edited'
+            );
+            [$width, $height] = $this->readImageDimensions($file, 'image');
+
+            $gallery->forceFill([
+                'modified_file_path' => $stored['path'],
+                'file_path' => $stored['path'],
+                'file_url' => $this->publicUrl($disk, $stored['path']),
+                'file_name' => $stored['file_name'],
+                'file_extension' => $stored['extension'],
+                'mime_type' => $file->getMimeType() ?: $gallery->mime_type,
+                'file_size' => $file->getSize() ?: 0,
+                'width' => $width,
+                'height' => $height,
+                'kind' => 'image',
+                'updated_by' => Auth::id(),
+            ])->save();
+
+            return $gallery->fresh(['uploader']);
+        });
+    }
+
+    /**
+     * Clear the modified file and revert display to the original.
+     */
+    public function revertToOriginal(Gallery $gallery): Gallery
+    {
+        $disk = $gallery->disk ?: (string) config('gallery.disk', 'public');
+        $originalPath = $gallery->original_file_path;
+
+        if (! $originalPath || ! Storage::disk($disk)->exists($originalPath)) {
+            throw new \RuntimeException('Original file is missing on disk.');
+        }
+
+        return DB::transaction(function () use ($gallery, $disk, $originalPath) {
+            $oldModified = $gallery->modified_file_path;
+            if ($oldModified
+                && $oldModified !== $originalPath
+                && Storage::disk($disk)->exists($oldModified)
+            ) {
+                Storage::disk($disk)->delete($oldModified);
+            }
+
+            [$width, $height] = [null, null];
+            try {
+                $full = Storage::disk($disk)->path($originalPath);
+                $size = @getimagesize($full);
+                if (is_array($size)) {
+                    $width = (int) ($size[0] ?? 0) ?: null;
+                    $height = (int) ($size[1] ?? 0) ?: null;
+                }
+            } catch (\Throwable) {
+                // ignore
+            }
+
+            $gallery->forceFill([
+                'modified_file_path' => null,
+                'file_path' => $originalPath,
+                'file_url' => $this->publicUrl($disk, $originalPath),
+                'file_name' => basename($originalPath),
+                'file_extension' => strtolower(pathinfo($originalPath, PATHINFO_EXTENSION) ?: $gallery->file_extension),
+                'file_size' => Storage::disk($disk)->size($originalPath) ?: $gallery->file_size,
+                'width' => $width,
+                'height' => $height,
+                'updated_by' => Auth::id(),
+            ])->save();
+
+            return $gallery->fresh(['uploader']);
+        });
     }
 
     /**
@@ -238,57 +309,42 @@ class GalleryService
 
         return DB::transaction(function () use ($gallery) {
             $disk = $gallery->disk ?: (string) config('gallery.disk', 'public');
-            $binRoot = trim((string) config('gallery.bin_directory', 'bin'), '/');
-            $currentPath = $gallery->file_path;
+            $displayPath = $gallery->displayPath();
 
-            $binPath = sprintf(
-                '%s/%d/%s/%s',
-                $binRoot,
-                $gallery->organization_id,
-                now()->format('Y/m'),
-                basename($currentPath)
-            );
+            $uniquePaths = array_values(array_unique(array_filter([
+                $gallery->original_file_path,
+                $gallery->modified_file_path,
+                $displayPath,
+            ])));
 
-            // Ensure unique bin name if collision.
-            if (Storage::disk($disk)->exists($binPath)) {
-                $binPath = sprintf(
-                    '%s/%d/%s/%s_%s',
-                    $binRoot,
-                    $gallery->organization_id,
-                    now()->format('Y/m'),
-                    Str::uuid()->toString(),
-                    basename($currentPath)
-                );
+            $moved = [];
+            foreach ($uniquePaths as $path) {
+                $moved[$path] = $this->movePathToBin($disk, $gallery, $path);
             }
 
-            if (Storage::disk($disk)->exists($currentPath)) {
-                Storage::disk($disk)->makeDirectory(dirname($binPath));
-                try {
-                    Storage::disk($disk)->move($currentPath, $binPath);
-                } catch (\Throwable) {
-                    // Fallback copy+delete for drivers that dislike move.
-                    Storage::disk($disk)->copy($currentPath, $binPath);
-                    Storage::disk($disk)->delete($currentPath);
-                }
-            }
+            $newOriginal = $gallery->original_file_path
+                ? ($moved[$gallery->original_file_path] ?? $gallery->original_file_path)
+                : null;
+            $newModified = $gallery->modified_file_path
+                ? ($moved[$gallery->modified_file_path] ?? $gallery->modified_file_path)
+                : null;
+            $newDisplay = $displayPath
+                ? ($moved[$displayPath] ?? ($newModified ?: $newOriginal))
+                : ($newModified ?: $newOriginal);
 
             $gallery->forceFill([
-                'original_path' => $gallery->original_path ?: $currentPath,
-                'bin_path' => $binPath,
-                'file_path' => $binPath,
-                'file_url' => $this->publicUrl($disk, $binPath),
+                'original_file_path' => $newOriginal,
+                'modified_file_path' => $newModified,
+                'original_path' => $displayPath ?: $gallery->original_path,
+                'bin_path' => $newDisplay,
+                'file_path' => $newDisplay ?: $gallery->file_path,
+                'file_url' => $newDisplay
+                    ? $this->publicUrl($disk, $newDisplay)
+                    : $gallery->file_url,
                 'updated_by' => Auth::id(),
             ])->save();
 
             $gallery->delete();
-
-            // Soft-delete linked adjusted variants with the original.
-            if (! $gallery->parent_id) {
-                Gallery::query()
-                    ->where('parent_id', $gallery->id)
-                    ->get()
-                    ->each(fn (Gallery $child) => $this->softDelete($child));
-            }
 
             return $gallery->fresh();
         });
@@ -317,40 +373,29 @@ class GalleryService
 
         return DB::transaction(function () use ($gallery) {
             $disk = $gallery->disk ?: (string) config('gallery.disk', 'public');
-            $binPath = $gallery->bin_path ?: $gallery->file_path;
-            $restorePath = $gallery->original_path;
 
-            if (! $restorePath) {
-                $directory = trim((string) config('gallery.directory', 'gallery'), '/');
-                $restorePath = sprintf(
-                    '%s/%d/%s/%s',
-                    $directory,
-                    $gallery->organization_id,
-                    now()->format('Y/m'),
-                    $gallery->file_name
-                );
-            }
+            $restoredOriginal = $this->restorePathFromBin($disk, $gallery, $gallery->original_file_path);
+            $restoredModified = $this->restorePathFromBin($disk, $gallery, $gallery->modified_file_path);
 
-            if (Storage::disk($disk)->exists($restorePath) && $restorePath !== $binPath) {
-                $restorePath = sprintf(
-                    '%s/%s_%s',
-                    dirname($restorePath),
-                    Str::uuid()->toString(),
-                    basename($restorePath)
-                );
-            }
+            $displayRestore = $gallery->original_path;
+            $displaySource = $gallery->bin_path ?: $gallery->file_path;
 
-            if ($binPath && Storage::disk($disk)->exists($binPath)) {
-                Storage::disk($disk)->makeDirectory(dirname($restorePath));
-                Storage::disk($disk)->move($binPath, $restorePath);
+            // Prefer reconstructed original/modified; fall back to legacy single-path restore.
+            $newDisplay = $restoredModified ?: $restoredOriginal;
+            if (! $newDisplay && $displaySource) {
+                $target = $displayRestore ?: $this->defaultGalleryPath($gallery, basename((string) $displaySource));
+                $newDisplay = $this->relocateDiskPath($disk, (string) $displaySource, $target);
             }
 
             $gallery->restore();
 
             $gallery->forceFill([
-                'file_path' => $restorePath,
-                'file_url' => $this->publicUrl($disk, $restorePath),
+                'original_file_path' => $restoredOriginal ?: $gallery->original_file_path,
+                'modified_file_path' => $restoredModified,
+                'file_path' => $newDisplay ?: $gallery->file_path,
+                'file_url' => $this->publicUrl($disk, $newDisplay ?: $gallery->file_path),
                 'bin_path' => null,
+                'original_path' => null,
                 'restored_at' => now(),
                 'updated_by' => Auth::id(),
             ])->save();
@@ -382,6 +427,8 @@ class GalleryService
                 $gallery->file_path,
                 $gallery->bin_path,
                 $gallery->original_path,
+                $gallery->original_file_path,
+                $gallery->modified_file_path,
             ]);
 
             foreach (array_unique($paths) as $path) {
@@ -411,14 +458,22 @@ class GalleryService
 
     public function toArray(Gallery $gallery): array
     {
+        $disk = $gallery->disk ?: 'public';
+        $displayPath = $gallery->displayPath();
+        $originalPath = $gallery->original_file_path;
+        $modifiedPath = $gallery->hasModification() ? $gallery->modified_file_path : null;
+
         return [
             'id' => $gallery->id,
-            'parent_id' => $gallery->parent_id,
-            'variant' => $gallery->variant ?: Gallery::VARIANT_ORIGINAL,
             'original_name' => $gallery->original_name,
             'file_name' => $gallery->file_name,
-            'file_path' => $gallery->file_path,
-            'file_url' => $this->freshPublicUrl($gallery),
+            'file_path' => $displayPath,
+            'file_url' => $this->publicUrl($disk, $displayPath),
+            'original_file_path' => $originalPath,
+            'modified_file_path' => $modifiedPath,
+            'original_url' => $originalPath ? $this->publicUrl($disk, $originalPath) : null,
+            'modified_url' => $modifiedPath ? $this->publicUrl($disk, $modifiedPath) : null,
+            'has_modification' => $gallery->hasModification(),
             'file_extension' => $gallery->file_extension,
             'mime_type' => $gallery->mime_type,
             'kind' => $gallery->kind,
@@ -440,12 +495,11 @@ class GalleryService
             'deleted_at' => optional($gallery->deleted_at)?->toIso8601String(),
             'is_trashed' => $gallery->trashed(),
             'is_image' => $gallery->isImage(),
-            'is_adjusted' => $gallery->isAdjusted(),
         ];
     }
 
     /**
-     * TinyMCE / editor JSON shape.
+     * TinyMCE / editor JSON shape (single-row compatible).
      *
      * @param  array{primary: Gallery, original: Gallery, adjusted: ?Gallery}  $pair
      * @return array<string, mixed>
@@ -453,9 +507,10 @@ class GalleryService
     public function editorUploadResponse(array $pair): array
     {
         $primary = $pair['primary'];
-        $original = $pair['original'];
-        $adjusted = $pair['adjusted'];
         $location = $this->freshPublicUrl($primary);
+        $disk = $primary->disk ?: 'public';
+        $originalPath = $primary->original_file_path ?: $primary->file_path;
+        $modifiedPath = $primary->hasModification() ? $primary->modified_file_path : null;
 
         return [
             'location' => $location,
@@ -468,20 +523,20 @@ class GalleryService
             'width' => $primary->width,
             'height' => $primary->height,
             'original' => [
-                'id' => $original->id,
-                'url' => $this->freshPublicUrl($original),
-                'path' => $original->file_path,
-                'size' => $original->file_size,
-                'width' => $original->width,
-                'height' => $original->height,
+                'id' => $primary->id,
+                'url' => $this->publicUrl($disk, (string) $originalPath),
+                'path' => $originalPath,
+                'size' => $primary->file_size,
+                'width' => $primary->width,
+                'height' => $primary->height,
             ],
-            'adjusted' => $adjusted ? [
-                'id' => $adjusted->id,
-                'url' => $this->freshPublicUrl($adjusted),
-                'path' => $adjusted->file_path,
-                'size' => $adjusted->file_size,
-                'width' => $adjusted->width,
-                'height' => $adjusted->height,
+            'adjusted' => $modifiedPath ? [
+                'id' => $primary->id,
+                'url' => $this->publicUrl($disk, $modifiedPath),
+                'path' => $modifiedPath,
+                'size' => $primary->file_size,
+                'width' => $primary->width,
+                'height' => $primary->height,
             ] : null,
         ];
     }
@@ -558,7 +613,11 @@ class GalleryService
                         $query->orWhere('file_url', $url)
                             ->orWhere('file_url', 'like', '%'.($path !== '' ? $path : $url).'%')
                             ->orWhere('file_path', $path)
-                            ->orWhere('file_path', 'like', '%'.basename($path).'%');
+                            ->orWhere('file_path', 'like', '%'.basename($path).'%')
+                            ->orWhere('original_file_path', $path)
+                            ->orWhere('modified_file_path', $path)
+                            ->orWhere('original_file_path', 'like', '%'.basename($path).'%')
+                            ->orWhere('modified_file_path', 'like', '%'.basename($path).'%');
                     }
                 })
                 ->get();
@@ -570,31 +629,6 @@ class GalleryService
                     'last_referenced_at' => now(),
                 ])->save();
                 $keepIds[] = $media->id;
-
-                // Keep linked original/adjusted siblings attached together.
-                if ($media->parent_id) {
-                    $parent = Gallery::query()->find($media->parent_id);
-                    if ($parent) {
-                        $parent->forceFill([
-                            'attachable_type' => $model->getMorphClass(),
-                            'attachable_id' => $model->getKey(),
-                            'last_referenced_at' => now(),
-                        ])->save();
-                        $keepIds[] = $parent->id;
-                    }
-                }
-
-                Gallery::query()
-                    ->where('parent_id', $media->id)
-                    ->get()
-                    ->each(function (Gallery $child) use ($model, &$keepIds) {
-                        $child->forceFill([
-                            'attachable_type' => $model->getMorphClass(),
-                            'attachable_id' => $model->getKey(),
-                            'last_referenced_at' => now(),
-                        ])->save();
-                        $keepIds[] = $child->id;
-                    });
             }
         }
 
@@ -637,7 +671,6 @@ class GalleryService
             ->where('source', 'editor')
             ->whereNull('attachable_id')
             ->where('created_at', '<', $cutoff)
-            ->whereNull('parent_id') // prune from originals; softDelete cascades adjusted
             ->get();
 
         $count = 0;
@@ -769,7 +802,7 @@ class GalleryService
 
     public function freshPublicUrl(Gallery $gallery): string
     {
-        return $this->publicUrl($gallery->disk ?: 'public', $gallery->file_path);
+        return $this->publicUrl($gallery->disk ?: 'public', $gallery->displayPath());
     }
 
     public function publicUrl(string $disk, string $path): string
@@ -793,6 +826,128 @@ class GalleryService
         }
 
         return $url;
+    }
+
+    /**
+     * @return array{path: string, file_name: string, extension: string}
+     */
+    protected function storeUploadedFile(
+        UploadedFile $file,
+        int $organizationId,
+        string $disk,
+        string $suffix = ''
+    ): array {
+        $directory = trim((string) config('gallery.directory', 'gallery'), '/');
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+        $baseSlug = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'file';
+        if ($suffix !== '') {
+            $baseSlug .= '_'.$suffix;
+        }
+        $unique = Str::uuid()->toString();
+        $fileName = "{$unique}_{$baseSlug}.{$extension}";
+        $relativeDir = sprintf('%s/%d/%s', $directory, $organizationId, now()->format('Y/m'));
+        $relativePath = "{$relativeDir}/{$fileName}";
+
+        Storage::disk($disk)->putFileAs($relativeDir, $file, $fileName);
+
+        if (! Storage::disk($disk)->exists($relativePath)) {
+            throw new \RuntimeException('Failed to store gallery file on disk.');
+        }
+
+        return [
+            'path' => $relativePath,
+            'file_name' => $fileName,
+            'extension' => $extension,
+        ];
+    }
+
+    protected function movePathToBin(string $disk, Gallery $gallery, ?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (! Storage::disk($disk)->exists($path)) {
+            // Already gone — keep the path reference if it looks like a bin path.
+            return $path;
+        }
+
+        $binRoot = trim((string) config('gallery.bin_directory', 'bin'), '/');
+        $binPath = sprintf(
+            '%s/%d/%s/%s',
+            $binRoot,
+            $gallery->organization_id,
+            now()->format('Y/m'),
+            basename($path)
+        );
+
+        if (Storage::disk($disk)->exists($binPath)) {
+            $binPath = sprintf(
+                '%s/%d/%s/%s_%s',
+                $binRoot,
+                $gallery->organization_id,
+                now()->format('Y/m'),
+                Str::uuid()->toString(),
+                basename($path)
+            );
+        }
+
+        return $this->relocateDiskPath($disk, $path, $binPath);
+    }
+
+    protected function restorePathFromBin(string $disk, Gallery $gallery, ?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        $binRoot = trim((string) config('gallery.bin_directory', 'bin'), '/');
+        if (! str_starts_with($path, $binRoot.'/')) {
+            // Not in bin — leave as-is if it exists.
+            return Storage::disk($disk)->exists($path) ? $path : null;
+        }
+
+        $target = $this->defaultGalleryPath($gallery, basename($path));
+
+        return $this->relocateDiskPath($disk, $path, $target);
+    }
+
+    protected function defaultGalleryPath(Gallery $gallery, string $basename): string
+    {
+        $directory = trim((string) config('gallery.directory', 'gallery'), '/');
+
+        return sprintf(
+            '%s/%d/%s/%s',
+            $directory,
+            $gallery->organization_id,
+            now()->format('Y/m'),
+            $basename
+        );
+    }
+
+    protected function relocateDiskPath(string $disk, string $from, string $to): string
+    {
+        if ($from === $to) {
+            return $to;
+        }
+
+        if (! Storage::disk($disk)->exists($from)) {
+            return $to;
+        }
+
+        if (Storage::disk($disk)->exists($to)) {
+            $to = sprintf('%s/%s_%s', dirname($to), Str::uuid()->toString(), basename($to));
+        }
+
+        Storage::disk($disk)->makeDirectory(dirname($to));
+        try {
+            Storage::disk($disk)->move($from, $to);
+        } catch (\Throwable) {
+            Storage::disk($disk)->copy($from, $to);
+            Storage::disk($disk)->delete($from);
+        }
+
+        return $to;
     }
 
     protected function detectKind(UploadedFile $file, mixed $preferred = null): string

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Blog\StoreBlogRequest;
 use App\Http\Requests\Backend\Blog\UpdateBlogRequest;
@@ -13,33 +14,16 @@ use App\Services\BlogCategoryService;
 use App\Services\BlogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class BlogController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __construct(
         protected BlogService $service,
         protected BlogCategoryService $categoryService,
     ) {}
-
-    protected function currentOrgId(): int
-    {
-        if (Auth::check()) {
-            $orgId = UserOrganization::where('user_id', Auth::id())
-                ->where('status', 'active')
-                ->value('organization_id');
-
-            if ($orgId) {
-                return (int) $orgId;
-            }
-        }
-
-        $id = current_organization_id();
-        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
-
-        return $id;
-    }
 
     public function index(): View
     {

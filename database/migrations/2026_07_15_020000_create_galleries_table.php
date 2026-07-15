@@ -4,6 +4,21 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Central media library. Editor uploads and gallery UI share this table.
+ *
+ * Content modules sync HTML references via morph attachable_* columns.
+ * Blogs also use explicit FKs (banner_image_id / og_image_id) + blog_attachments.
+ *
+ * Dual-path images:
+ * - original_file_path = untouched upload
+ * - modified_file_path = edited version (nullable)
+ * - file_path / file_url  = display path (modified when present, else original)
+ *
+ * Soft-delete recycle pointers:
+ * - original_path = pre-bin restore destination for the display file
+ * - bin_path = current bin location of the display file
+ */
 return new class extends Migration
 {
     public function up(): void
@@ -11,17 +26,17 @@ return new class extends Migration
         Schema::create('galleries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained('organizations')->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('galleries')->nullOnDelete();
-            $table->string('variant', 20)->default('original'); // original|adjusted
             $table->string('original_name');
             $table->string('file_name');
             $table->string('file_path');
-            $table->string('file_url');
+            $table->string('file_url', 500);
+            $table->string('original_file_path')->nullable();
+            $table->string('modified_file_path')->nullable();
             $table->string('original_path')->nullable();
             $table->string('bin_path')->nullable();
             $table->string('file_extension', 20)->nullable();
             $table->string('mime_type', 120)->nullable();
-            $table->string('kind', 20)->default('image'); // image|video|document|file
+            $table->string('kind', 20)->default('image'); // image | video | document | file
             $table->unsignedBigInteger('file_size')->default(0);
             $table->unsignedInteger('width')->nullable();
             $table->unsignedInteger('height')->nullable();
@@ -29,8 +44,8 @@ return new class extends Migration
             $table->string('disk', 50)->default('public');
             $table->string('alt_text')->nullable();
             $table->text('description')->nullable();
-            $table->string('status', 30)->default('active'); // active|archived
-            $table->string('source', 50)->nullable(); // gallery|editor|import
+            $table->string('status', 30)->default('active'); // active | archived
+            $table->string('source', 50)->nullable(); // gallery | editor | import
             $table->nullableMorphs('attachable');
             $table->timestamp('last_referenced_at')->nullable();
             $table->foreignId('uploaded_by')->nullable()->constrained('users')->nullOnDelete();
@@ -42,12 +57,11 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index(['organization_id', 'kind']);
+            $table->index(['organization_id', 'status']);
+            $table->index(['organization_id', 'source']);
             $table->index(['organization_id', 'deleted_at']);
-            $table->index(['organization_id', 'mime_type']);
             $table->index(['organization_id', 'created_at']);
-            $table->index(['organization_id', 'variant']);
             $table->index('file_name');
-            $table->index(['organization_id', 'file_url']);
         });
     }
 

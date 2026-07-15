@@ -12,56 +12,71 @@
 @endsection
 
 @section('content')
-<div class="gallery-page space-y-6" id="gallery-app"
+<div class="gallery-page" id="gallery-app"
      data-csrf="{{ csrf_token() }}"
      data-endpoints='@json($endpoints)'>
-    {{-- Header --}}
     <section class="panel-card overflow-hidden">
-        <div class="border-b border-slate-200/80 px-4 py-4 sm:px-6 dark:border-slate-800">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <h2 class="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">Media Gallery</h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        {{-- Header --}}
+        <div class="gallery-header">
+            <div class="gallery-header__row">
+                <div class="min-w-0">
+                    <h2 class="gallery-header__title">Media Gallery</h2>
+                    <p class="gallery-header__subtitle">
                         Central library for images and media used across exams and questions.
                     </p>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="gallery-header__actions">
                     <button type="button" id="gallery-refresh" class="gallery-icon-btn" title="Refresh" aria-label="Refresh gallery">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     </button>
-                    <div class="gallery-view-toggle" role="group" aria-label="View mode">
-                        <button type="button" data-view="grid" class="is-active" title="Grid view">
+                    <div class="gallery-segmented" id="gallery-view-toggle" role="group" aria-label="View mode">
+                        <button type="button" data-view="grid" class="is-active" title="Grid view" aria-pressed="true">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                         </button>
-                        <button type="button" data-view="list" title="List view">
+                        <button type="button" data-view="list" title="List view" aria-pressed="false">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
                     </div>
-                    <button type="button" id="gallery-open-upload" class="panel-button-primary inline-flex items-center gap-2">
+                    <button type="button" id="gallery-open-upload" class="panel-button-primary gallery-upload-trigger">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         Upload
                     </button>
                 </div>
             </div>
 
-            {{-- Stats --}}
-            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" id="gallery-stats">
-                <div class="gallery-stat"><span class="gallery-stat__label">Total</span><strong data-stat="total">{{ $stats['total'] ?? 0 }}</strong></div>
-                <div class="gallery-stat"><span class="gallery-stat__label">Images</span><strong data-stat="images">{{ $stats['images'] ?? 0 }}</strong></div>
-                <div class="gallery-stat"><span class="gallery-stat__label">Videos</span><strong data-stat="videos">{{ $stats['videos'] ?? 0 }}</strong></div>
-                <div class="gallery-stat"><span class="gallery-stat__label">Documents</span><strong data-stat="documents">{{ $stats['documents'] ?? 0 }}</strong></div>
-                <div class="gallery-stat"><span class="gallery-stat__label">Bin</span><strong data-stat="bin">{{ $stats['bin'] ?? 0 }}</strong></div>
+            {{-- Stats (clickable filters) --}}
+            <div class="gallery-stats" id="gallery-stats" role="tablist" aria-label="Filter by type">
+                <button type="button" class="gallery-stat is-active" data-stat-filter="all" role="tab" aria-selected="true">
+                    <span class="gallery-stat__label">Total</span>
+                    <strong data-stat="total">{{ $stats['total'] ?? 0 }}</strong>
+                </button>
+                <button type="button" class="gallery-stat" data-stat-filter="image" role="tab" aria-selected="false">
+                    <span class="gallery-stat__label">Images</span>
+                    <strong data-stat="images">{{ $stats['images'] ?? 0 }}</strong>
+                </button>
+                <button type="button" class="gallery-stat" data-stat-filter="video" role="tab" aria-selected="false">
+                    <span class="gallery-stat__label">Videos</span>
+                    <strong data-stat="videos">{{ $stats['videos'] ?? 0 }}</strong>
+                </button>
+                <button type="button" class="gallery-stat" data-stat-filter="document" role="tab" aria-selected="false">
+                    <span class="gallery-stat__label">Documents</span>
+                    <strong data-stat="documents">{{ $stats['documents'] ?? 0 }}</strong>
+                </button>
+                <button type="button" class="gallery-stat gallery-stat--bin" data-stat-filter="bin" role="tab" aria-selected="false">
+                    <span class="gallery-stat__label">Bin</span>
+                    <strong data-stat="bin">{{ $stats['bin'] ?? 0 }}</strong>
+                </button>
             </div>
 
-            {{-- Filters --}}
-            <div class="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div class="relative w-full lg:max-w-md">
+            {{-- Toolbar --}}
+            <div class="gallery-toolbar">
+                <div class="gallery-toolbar__search">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
                     <input type="search" id="gallery-search" class="panel-input w-full pl-9 text-sm" placeholder="Search by name, alt text…">
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="gallery-toolbar__filters">
                     <select id="gallery-kind" class="panel-input text-sm w-auto min-w-[8rem]">
                         <option value="all">All types</option>
                         <option value="image">Images</option>
@@ -82,7 +97,7 @@
                             <option value="{{ $n }}" @selected($n == 24)>{{ $n }} / page</option>
                         @endforeach
                     </select>
-                    <div class="gallery-trash-toggle" role="group" aria-label="Library or bin">
+                    <div class="gallery-segmented gallery-segmented--text" id="gallery-trash-toggle" role="group" aria-label="Library or bin">
                         <button type="button" data-trash="active" class="is-active">Library</button>
                         <button type="button" data-trash="bin">Bin</button>
                     </div>
@@ -92,8 +107,8 @@
 
         {{-- Bulk bar --}}
         <div id="gallery-bulk-bar" class="gallery-bulk-bar" hidden>
-            <div class="flex flex-wrap items-center gap-3">
-                <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <div class="gallery-bulk-bar__inner">
+                <label class="gallery-bulk-bar__select">
                     <input type="checkbox" id="gallery-select-all" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                     <span><span id="gallery-selected-count">0</span> selected</span>
                 </label>
@@ -104,36 +119,70 @@
                     <button type="button" data-bulk="restore" class="gallery-bulk-btn">Restore</button>
                     <button type="button" data-bulk="force" class="gallery-bulk-btn gallery-bulk-btn--danger">Delete forever</button>
                 </div>
+                <button type="button" id="gallery-clear-selection" class="gallery-bulk-btn gallery-bulk-btn--ghost">Clear</button>
             </div>
         </div>
 
-        {{-- Dropzone (inline) --}}
+        {{-- Staged uploads (not yet saved to DB) --}}
+        <div id="gallery-pending" class="gallery-pending" hidden>
+            <div class="gallery-pending__header">
+                <div>
+                    <h3 class="gallery-pending__title">Pending uploads</h3>
+                    <p class="gallery-pending__subtitle">
+                        Review, edit, or remove files before saving. Nothing is stored until you click Save.
+                    </p>
+                </div>
+                <div class="gallery-pending__actions">
+                    <button type="button" id="gallery-pending-clear" class="gallery-bulk-btn gallery-bulk-btn--ghost">Clear all</button>
+                    <button type="button" id="gallery-pending-save-all" class="panel-button-primary text-sm">Save all</button>
+                </div>
+            </div>
+            <div id="gallery-pending-grid" class="gallery-pending-grid"></div>
+        </div>
+
+        {{-- Upload strip --}}
         <div id="gallery-dropzone" class="gallery-dropzone" hidden>
             <input type="file" id="gallery-file-input" class="sr-only" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip">
             <div class="gallery-dropzone__inner">
-                <svg class="h-10 w-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                <p class="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Drag & drop files here</p>
-                <p class="mt-1 text-xs text-slate-500">or <button type="button" id="gallery-browse-btn" class="text-indigo-600 hover:underline dark:text-indigo-400">browse</button> to upload</p>
-                <div id="gallery-upload-progress" class="gallery-upload-progress" hidden>
-                    <div class="gallery-upload-progress__bar" id="gallery-upload-progress-bar"></div>
-                    <span id="gallery-upload-progress-label">Uploading…</span>
+                <div class="gallery-dropzone__icon" aria-hidden="true">
+                    <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                 </div>
+                <div class="gallery-dropzone__copy">
+                    <p class="gallery-dropzone__title">Drop files to stage</p>
+                    <p class="gallery-dropzone__hint">or <button type="button" id="gallery-browse-btn" class="gallery-link">browse</button> · review before saving</p>
+                </div>
+                <button type="button" id="gallery-browse-btn-secondary" class="panel-button-primary gallery-dropzone__cta text-sm">Choose files</button>
+                <button type="button" id="gallery-close-dropzone" class="gallery-icon-btn gallery-dropzone__close" title="Close" aria-label="Close upload area">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
         </div>
 
         {{-- Content --}}
-        <div class="p-4 sm:p-6">
-            <div id="gallery-grid" class="gallery-grid" data-view="grid"></div>
+        <div class="gallery-content">
+            <div id="gallery-grid" class="gallery-grid" data-mode="grid"></div>
             <div id="gallery-skeleton" class="gallery-grid" hidden></div>
             <div id="gallery-empty" class="gallery-empty" hidden>
-                <svg class="h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <h3 class="mt-3 text-base font-semibold text-slate-800 dark:text-slate-100">No media yet</h3>
-                <p class="mt-1 text-sm text-slate-500">Upload images or files to build your central media library.</p>
-                <button type="button" class="panel-button-primary mt-4" id="gallery-empty-upload">Upload files</button>
+                <div class="gallery-empty__drop" id="gallery-empty-drop" tabindex="0" role="button" aria-label="Upload files">
+                    <div class="gallery-empty__icon" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="gallery-empty__title" id="gallery-empty-title">No media found</h3>
+                    <p class="gallery-empty__text" id="gallery-empty-text">Upload files to get started. You can review and edit them before saving.</p>
+                    <button type="button" class="panel-button-primary gallery-empty__btn" id="gallery-empty-upload">Upload files</button>
+                </div>
             </div>
             <div id="gallery-pagination" class="gallery-pagination"></div>
         </div>
     </section>
+
+    {{-- Page-level drag overlay --}}
+    <div id="gallery-drag-overlay" class="gallery-drag-overlay" hidden aria-hidden="true">
+        <div class="gallery-drag-overlay__card">
+            <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p>Drop files to stage</p>
+        </div>
+    </div>
 
     {{-- Preview modal --}}
     <div id="gallery-preview-modal" class="gallery-modal" hidden aria-hidden="true">
@@ -165,6 +214,12 @@
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
+                    <div class="mt-4" id="gallery-variant-toggle" hidden>
+                        <div class="gallery-segmented gallery-segmented--text w-full" role="group" aria-label="Original or edited">
+                            <button type="button" data-preview-variant="modified" class="is-active flex-1">Edited</button>
+                            <button type="button" data-preview-variant="original" class="flex-1">Original</button>
+                        </div>
+                    </div>
                     <dl class="gallery-meta-list mt-4">
                         <div><dt>Resolution</dt><dd id="meta-dimensions">—</dd></div>
                         <div><dt>File size</dt><dd id="meta-size">—</dd></div>
@@ -178,14 +233,93 @@
             </div>
         </div>
     </div>
+
+    {{-- Image editor modal --}}
+    <div id="gallery-image-editor" class="gallery-editor-modal" hidden aria-hidden="true">
+        <div class="gallery-editor-modal__backdrop" data-gie-close></div>
+        <div class="gallery-editor-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="gallery-editor-title">
+            <header class="gallery-editor-modal__header">
+                <div class="min-w-0">
+                    <h3 id="gallery-editor-title" class="gallery-editor-modal__title" data-gie-title>Edit image</h3>
+                    <p class="gallery-editor-modal__meta" data-gie-meta></p>
+                </div>
+                <button type="button" class="gallery-icon-btn" data-gie-close aria-label="Close editor">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </header>
+            <div class="gallery-editor-modal__body">
+                <div class="gallery-editor-modal__stage" data-gie-stage>
+                    <img data-gie-image alt="Edit preview" />
+                </div>
+                <aside class="gallery-editor-modal__panel">
+                    <div class="gallery-editor-tools">
+                        <p class="gallery-editor-label">Transform</p>
+                        <div class="gallery-editor-toolrow">
+                            <button type="button" data-gie-action="rotate-left" title="Rotate left">↺</button>
+                            <button type="button" data-gie-action="rotate-right" title="Rotate right">↻</button>
+                            <button type="button" data-gie-action="flip-h" title="Flip horizontal">⇋</button>
+                            <button type="button" data-gie-action="flip-v" title="Flip vertical">⇅</button>
+                            <button type="button" data-gie-action="reset" title="Reset">Reset</button>
+                        </div>
+
+                        <p class="gallery-editor-label">Shape</p>
+                        <div class="gallery-editor-toolrow" data-gie-shapes>
+                            <button type="button" data-shape="rectangle" class="is-active">Rectangle</button>
+                            <button type="button" data-shape="square">Square</button>
+                            <button type="button" data-shape="circle">Circle</button>
+                        </div>
+
+                        <label class="gallery-editor-field">
+                            <span>Brightness <strong data-gie-brightness-val>0</strong></span>
+                            <input type="range" min="-40" max="40" step="1" value="0" data-gie-brightness>
+                        </label>
+
+                        <label class="gallery-editor-field">
+                            <span>Quality <strong data-gie-quality-val>85%</strong></span>
+                            <input type="range" min="40" max="100" step="1" value="85" data-gie-quality>
+                        </label>
+
+                        <div class="gallery-editor-size">
+                            <label class="gallery-editor-field">
+                                <span>Width</span>
+                                <input type="number" min="1" data-gie-width class="panel-input text-sm">
+                            </label>
+                            <label class="gallery-editor-field">
+                                <span>Height</span>
+                                <input type="number" min="1" data-gie-height class="panel-input text-sm">
+                            </label>
+                        </div>
+                        <label class="gallery-editor-check">
+                            <input type="checkbox" data-gie-lock-ratio checked>
+                            <span>Lock aspect ratio</span>
+                        </label>
+
+                        <div class="gallery-editor-preview-wrap" data-gie-preview-wrap hidden>
+                            <p class="gallery-editor-label">Export preview</p>
+                            <img data-gie-preview alt="Edited preview" class="gallery-editor-preview">
+                        </div>
+                    </div>
+
+                    <div class="gallery-editor-actions">
+                        <button type="button" class="gallery-action-btn" data-gie-action="preview">Preview</button>
+                        <button type="button" class="gallery-action-btn" data-gie-action="skip">Keep original</button>
+                        <button type="button" class="panel-button-primary" data-gie-action="save">Save edited</button>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
 @push('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
     <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ time() }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+    <script src="{{ asset('js/backend/gallery-editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/gallery.js') }}?v={{ time() }}"></script>
 @endpush

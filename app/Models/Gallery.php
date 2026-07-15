@@ -2,31 +2,27 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOrganization;
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Gallery extends Model
 {
-    use HasAuditTrails, HasFactory, SoftDeletes;
-
-    public const VARIANT_ORIGINAL = 'original';
-
-    public const VARIANT_ADJUSTED = 'adjusted';
+    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'organization_id',
-        'parent_id',
-        'variant',
         'original_name',
         'file_name',
         'file_path',
         'file_url',
+        'original_file_path',
+        'modified_file_path',
         'original_path',
         'bin_path',
         'file_extension',
@@ -64,11 +60,6 @@ class Gallery extends Model
         ];
     }
 
-    public function scopeForOrg(Builder $query, int $orgId): Builder
-    {
-        return $query->where('organization_id', $orgId);
-    }
-
     public function scopeOnlyTrashedBin(Builder $query): Builder
     {
         return $query->onlyTrashed();
@@ -82,21 +73,6 @@ class Gallery extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
-    }
-
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(self::class, 'parent_id');
-    }
-
-    public function children(): HasMany
-    {
-        return $this->hasMany(self::class, 'parent_id');
-    }
-
-    public function adjusted(): HasMany
-    {
-        return $this->children()->where('variant', self::VARIANT_ADJUSTED);
     }
 
     public function attachable(): MorphTo
@@ -119,9 +95,19 @@ class Gallery extends Model
         return $this->kind === 'image' || str_starts_with((string) $this->mime_type, 'image/');
     }
 
-    public function isAdjusted(): bool
+    public function hasModification(): bool
     {
-        return $this->variant === self::VARIANT_ADJUSTED;
+        return filled($this->modified_file_path)
+            && $this->modified_file_path !== $this->original_file_path;
+    }
+
+    public function displayPath(): string
+    {
+        if ($this->hasModification()) {
+            return (string) $this->modified_file_path;
+        }
+
+        return (string) ($this->original_file_path ?: $this->file_path);
     }
 
     public function humanSize(): string

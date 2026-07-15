@@ -79,12 +79,12 @@ class ExamService
             }
         }
 
-        if (isset($data['total_marks'], $data['passing_marks'])) {
+        if (isset($data['total_marks'], $data['passing_marks']) && ! array_key_exists('pass_percentage', $data)) {
             $totalMarks = max(0, (int) $data['total_marks']);
             $passingMarks = max(0, (int) $data['passing_marks']);
             $data['pass_percentage'] = $totalMarks > 0
                 ? round(($passingMarks / $totalMarks) * 100, 2)
-                : ($data['pass_percentage'] ?? 0);
+                : 0;
         }
 
         $data['ai_generated'] = (bool) ($data['ai_generated'] ?? false);

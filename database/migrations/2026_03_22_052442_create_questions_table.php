@@ -4,6 +4,9 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Creates the questions table.
+ */
 return new class extends Migration
 {
     public function up(): void
@@ -11,26 +14,27 @@ return new class extends Migration
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('category_id')->nullable()->constrained('question_categories')->cascadeOnDelete();
+            // Soft-delete of categories is handled in the model; null FK on category removal.
+            $table->foreignId('category_id')->nullable()->constrained('question_categories')->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
 
             // Content
             $table->text('body');
-            $table->string('type')->default('mcq');          // mcq | true_false | short_answer | long_answer | fill_blank
+            $table->string('type')->default('mcq'); // mcq | true_false | short_answer | long_answer | fill_blank
             $table->boolean('allows_multiple')->default(false);
-            $table->json('options')->nullable();              // MCQ options array
+            $table->json('options')->nullable();
             $table->text('correct_answer')->nullable();
-            $table->json('correct_answers')->nullable();      // for multi-select MCQ
+            $table->json('correct_answers')->nullable();
             $table->text('explanation')->nullable();
-            $table->string('reference')->nullable();          // e.g. "UPSC Prelims 2023"
+            $table->string('reference')->nullable();
 
             // Scoring & Classification
             $table->string('marks_type')->default('single');
             $table->json('marks_list')->nullable();
             $table->unsignedTinyInteger('marks')->default(1);
             $table->string('difficulty')->default('medium'); // easy | medium | hard | very_hard
-            $table->string('status')->default('active');     // active | inactive | suspended
+            $table->string('status')->default('active'); // active | inactive | suspended
 
             // SEO / Metadata
             $table->string('meta_title')->nullable();
@@ -47,6 +51,11 @@ return new class extends Migration
             $table->json('updated_by_history')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['organization_id', 'status']);
+            $table->index(['organization_id', 'category_id']);
+            $table->index(['organization_id', 'type']);
+            $table->index(['organization_id', 'difficulty']);
         });
     }
 

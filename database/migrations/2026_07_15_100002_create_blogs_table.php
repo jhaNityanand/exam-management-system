@@ -4,6 +4,12 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Creates the blogs table.
+ *
+ * Blog content SEO uses seo_* columns (richer set: robots, schema, OG image FK).
+ * Taxonomy modules (categories / exams / questions) use the meta_* convention.
+ */
 return new class extends Migration
 {
     public function up(): void
@@ -22,11 +28,10 @@ return new class extends Migration
             $table->foreignId('author_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('author_name')->nullable();
 
-            $table->string('status')->default('published'); // draft|pending_review|published|archived
+            $table->string('status')->default('published'); // draft | pending_review | published | archived
             $table->timestamp('published_at')->nullable();
             $table->unsignedBigInteger('view_count')->default(0);
 
-            // SEO
             $table->string('seo_title')->nullable();
             $table->text('seo_description')->nullable();
             $table->string('seo_keywords')->nullable();
@@ -34,7 +39,7 @@ return new class extends Migration
             $table->text('og_description')->nullable();
             $table->foreignId('og_image_id')->nullable()->constrained('galleries')->nullOnDelete();
             $table->string('canonical_url')->nullable();
-            $table->string('robots')->nullable()->default('index,follow');
+            $table->string('robots')->default('index,follow');
             $table->longText('schema_markup')->nullable();
 
             $table->boolean('ai_generated')->default(false);

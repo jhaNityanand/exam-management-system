@@ -54,12 +54,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('/data', [GalleryController::class, 'data'])->name('data');
         Route::get('/stats', [GalleryController::class, 'stats'])->name('stats');
         Route::post('/', [GalleryController::class, 'store'])->name('store');
+        Route::post('/commit', [GalleryController::class, 'commit'])->name('commit');
         Route::post('/bulk-delete', [GalleryController::class, 'bulkDelete'])->name('bulk-delete');
         Route::post('/bulk-restore', [GalleryController::class, 'bulkRestore'])->name('bulk-restore');
         Route::post('/bulk-force-delete', [GalleryController::class, 'bulkForceDelete'])->name('bulk-force-delete');
         Route::get('/{id}', [GalleryController::class, 'show'])->name('show')->whereNumber('id');
         Route::get('/{id}/download', [GalleryController::class, 'download'])->name('download')->whereNumber('id');
         Route::put('/{id}', [GalleryController::class, 'update'])->name('update')->whereNumber('id');
+        Route::post('/{id}/edit', [GalleryController::class, 'saveEdit'])->name('edit')->whereNumber('id');
+        Route::post('/{id}/revert', [GalleryController::class, 'revert'])->name('revert')->whereNumber('id');
         Route::patch('/{id}/restore', [GalleryController::class, 'restore'])->name('restore')->whereNumber('id');
         Route::delete('/{id}', [GalleryController::class, 'destroy'])->name('destroy')->whereNumber('id');
         Route::delete('/{id}/force', [GalleryController::class, 'forceDestroy'])->name('force-destroy')->whereNumber('id');

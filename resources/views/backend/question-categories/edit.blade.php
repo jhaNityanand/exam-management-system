@@ -236,6 +236,6 @@
 
 @push('scripts')
     <script src="{{ asset('js/backend/category-manager.js') }}"></script>
-    <script src="{{ asset('js/backend/question-category-form.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/category-form.js') }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
 @endpush

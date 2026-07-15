@@ -2,44 +2,24 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Question\StoreQuestionRequest;
 use App\Http\Requests\Backend\Question\UpdateQuestionRequest;
 use App\Models\Question;
-use App\Models\UserOrganization;
 use App\Services\QuestionCategoryService;
 use App\Services\QuestionService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class QuestionController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __construct(
         protected QuestionService $service,
         protected QuestionCategoryService $categoryService
     ) {}
-
-    /**
-     * Resolve the active organization ID.
-     */
-    protected function currentOrgId(): int
-    {
-        if (Auth::check()) {
-            $orgId = UserOrganization::where('user_id', Auth::id())
-                ->where('status', 'active')
-                ->value('organization_id');
-
-            if ($orgId) {
-                return (int) $orgId;
-            }
-        }
-
-        $id = current_organization_id();
-        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
-
-        return $id;
-    }
 
     public function index(): View
     {

@@ -335,6 +335,7 @@
             window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
         });
     </script>
-    <script src="{{ asset('js/backend/ajax-table.js') }}"></script>
-    <script src="{{ asset('js/backend/question-list.js') }}"></script>
+    <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/question-list.js') }}"></script>
 @endpush

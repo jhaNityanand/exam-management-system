@@ -18,6 +18,8 @@ class ExamFormOptions
             'examStatus' => self::examStatus(),
             'examModes' => self::examModes(),
             'visibilityOptions' => self::visibilityOptions(),
+            'scheduleTypes' => self::scheduleTypes(),
+            'attemptLimitTypes' => self::attemptLimitTypes(),
             'examFormats' => self::examFormats(),
             'discountRules' => self::discountRules(),
             'questionMarks' => self::questionMarks(),
@@ -64,6 +66,23 @@ class ExamFormOptions
             ['id' => 'public', 'label' => 'Public', 'description' => 'Anyone can discover and attempt'],
             ['id' => 'private', 'label' => 'Private', 'description' => 'Invite-only with candidate access management'],
             ['id' => 'invite_only', 'label' => 'Invite Only', 'description' => 'Available only to invited candidates'],
+        ];
+    }
+
+    public static function scheduleTypes(): array
+    {
+        return [
+            ['id' => 'any_time', 'label' => 'Any Time', 'description' => 'Candidates may start whenever the exam is available'],
+            ['id' => 'fixed_window', 'label' => 'Fixed Window', 'description' => 'Only available between scheduled start and end'],
+        ];
+    }
+
+    public static function attemptLimitTypes(): array
+    {
+        return [
+            ['id' => 'once', 'label' => 'Once', 'description' => 'Single attempt only'],
+            ['id' => 'fixed', 'label' => 'Fixed Count', 'description' => 'Limited to a maximum number of attempts'],
+            ['id' => 'unlimited', 'label' => 'Unlimited', 'description' => 'No attempt limit'],
         ];
     }
 
@@ -214,6 +233,16 @@ class ExamFormOptions
     public static function difficultyLabels(): array
     {
         return collect(self::difficultyLevels())->mapWithKeys(fn ($o) => [$o['id'] => $o['label']])->all();
+    }
+
+    public static function scheduleTypeLabels(): array
+    {
+        return collect(self::scheduleTypes())->mapWithKeys(fn ($o) => [$o['id'] => $o['label']])->all();
+    }
+
+    public static function attemptLimitLabels(): array
+    {
+        return collect(self::attemptLimitTypes())->mapWithKeys(fn ($o) => [$o['id'] => $o['label']])->all();
     }
 
     public static function formatLabels(): array

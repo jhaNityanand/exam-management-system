@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\ExamCategory\StoreExamCategoryRequest;
 use App\Http\Requests\Backend\ExamCategory\UpdateExamCategoryRequest;
 use App\Models\ExamCategory;
-use App\Models\UserOrganization;
 use App\Services\ExamCategoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 /**
@@ -24,32 +23,11 @@ use Illuminate\View\View;
  */
 class ExamCategoryController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __construct(
         protected ExamCategoryService $service
     ) {}
-
-    // ── Organization helper ───────────────────────────────────────────────────
-
-    /**
-     * Resolve the authenticated user's active organization ID.
-     */
-    protected function currentOrgId(): int
-    {
-        if (Auth::check()) {
-            $orgId = UserOrganization::where('user_id', Auth::id())
-                ->where('status', 'active')
-                ->value('organization_id');
-
-            if ($orgId) {
-                return (int) $orgId;
-            }
-        }
-
-        $id = current_organization_id();
-        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
-
-        return $id;
-    }
 
     // ── CRUD actions ──────────────────────────────────────────────────────────
 

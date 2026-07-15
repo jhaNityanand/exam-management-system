@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOrganization;
+
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,7 +36,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class QuestionCategory extends Model
 {
-    use HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $table = 'question_categories';
 
@@ -50,6 +52,7 @@ class QuestionCategory extends Model
         'name',
         'description',
         'status',
+        'sort_order',
 
         // SEO / Metadata
         'meta_title',
@@ -71,6 +74,7 @@ class QuestionCategory extends Model
             'updated_by_history' => 'array',
             'ai_generated'       => 'boolean',
             'ai_improve'         => 'boolean',
+            'sort_order'         => 'integer',
         ];
     }
 
@@ -129,10 +133,6 @@ class QuestionCategory extends Model
     }
 
     /** Filter to a specific organization. */
-    public function scopeForOrg($query, int $orgId)
-    {
-        return $query->where('organization_id', $orgId);
-    }
 
     /** Filter by status. */
     public function scopeWithStatus($query, string $status)

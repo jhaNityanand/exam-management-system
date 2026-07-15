@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Creates the blog_categories table (hierarchical, org-scoped).
+ * Parity with question_categories / exam_categories.
+ */
 return new class extends Migration
 {
     public function up(): void
@@ -11,12 +15,12 @@ return new class extends Migration
         Schema::create('blog_categories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained('organizations')->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('blog_categories')->cascadeOnDelete();
+            $table->foreignId('parent_id')->nullable()->constrained('blog_categories')->nullOnDelete();
 
             $table->string('name');
             $table->string('slug')->nullable();
             $table->text('description')->nullable();
-            $table->string('status')->default('active'); // active|inactive|suspended
+            $table->string('status')->default('active'); // active | inactive | suspended
             $table->unsignedInteger('sort_order')->default(0);
 
             $table->string('meta_title')->nullable();
@@ -37,6 +41,7 @@ return new class extends Migration
 
             $table->index(['organization_id', 'status']);
             $table->index(['organization_id', 'parent_id']);
+            $table->index(['organization_id', 'sort_order']);
             $table->unique(['organization_id', 'slug']);
         });
     }

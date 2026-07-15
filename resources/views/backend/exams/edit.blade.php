@@ -275,7 +275,17 @@
                 <div class="border-b border-slate-100 dark:border-slate-800 pb-2 mb-5">
                     <h2 class="text-base font-semibold text-slate-800 dark:text-slate-200">3. Schedule & Attempt Limits</h2>
                 </div>
-                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                        <label for="edit_schedule_type" class="exam-label">Schedule Type</label>
+                        <select id="edit_schedule_type" name="schedule_type" class="panel-input">
+                            @foreach(\App\Support\ExamFormOptions::scheduleTypeLabels() as $val => $label)
+                                <option value="{{ $val }}" @selected(old('schedule_type', $exam->schedule_type) === $val)>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div>
                         <label for="edit_scheduled_start" class="exam-label">Scheduled Start</label>
                         <input id="edit_scheduled_start" name="scheduled_start" type="datetime-local" class="panel-input"
@@ -287,10 +297,20 @@
                                value="{{ old('scheduled_end', optional($exam->scheduled_end)->format('Y-m-d\TH:i')) }}">
                     </div>
                     <div>
+                        <label for="edit_attempt_limit_type" class="exam-label">Attempt Limit</label>
+                        <select id="edit_attempt_limit_type" name="attempt_limit_type" class="panel-input">
+                            @foreach(\App\Support\ExamFormOptions::attemptLimitLabels() as $val => $label)
+                                <option value="{{ $val }}" @selected(old('attempt_limit_type', $exam->attempt_limit_type) === $val)>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
                         <label for="edit_max_attempts" class="exam-label">Max Attempts</label>
                         <input id="edit_max_attempts" name="max_attempts" type="number" class="panel-input"
                                min="0" value="{{ old('max_attempts', $exam->max_attempts) }}"
-                               placeholder="0 = Unlimited">
+                               placeholder="Used when limit is fixed">
                     </div>
                     <div>
                         <label for="edit_pass_percentage" class="exam-label">Pass Percentage</label>
@@ -367,9 +387,9 @@
             <section>
                 <div class="border-b border-slate-100 dark:border-slate-800 pb-2 mb-5">
                     <h2 class="text-base font-semibold text-slate-800 dark:text-slate-200">6. Linked Questions</h2>
-                    <p class="text-sm text-slate-400 dark:text-slate-500 mt-0.5">Hold Ctrl / ⌘ to select multiple questions.</p>
+                    <p class="exam-edit-questions-hint">Hold Ctrl / ⌘ to select multiple questions. On smaller screens, scroll within the list.</p>
                 </div>
-                <select name="question_ids[]" multiple size="14" class="panel-input font-mono text-xs w-full">
+                <select name="question_ids[]" multiple size="14" class="panel-input font-mono text-xs w-full" aria-label="Linked questions">
                     @foreach ($questions as $question)
                         <option value="{{ $question->id }}" @selected(in_array($question->id, $selectedQuestions))>
                             #{{ $question->id }} — {{ \Illuminate\Support\Str::limit(strip_tags($question->body), 100) }}
@@ -384,7 +404,7 @@
             @php
                 $seoItem = $exam ?? null;
             @endphp
-            <div id="metadata-section" class="category-builder__metadata" style="margin-top: 2rem; margin-bottom: 2rem;">
+            <div id="metadata-section" class="category-builder__metadata mt-8 mb-8">
                 <div class="qcat-meta-header" id="meta-accordion-toggle" role="button" aria-expanded="false" tabindex="0">
                     <div class="qcat-meta-header-left">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="qcat-meta-icon">
@@ -516,110 +536,25 @@
 
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
-    <style>
-        .ts-wrapper.panel-input {
-            padding: 0 !important;
-            border: none !important;
-            background: transparent !important;
-        }
-
-        #edit_category_id + .ts-wrapper .ts-control {
-            border-radius: var(--field-radius, 0.82rem) !important;
-            min-height: var(--field-height, 2.75rem) !important;
-            display: flex;
-            align-items: center;
-        }
-
-        .dark #edit_category_id + .ts-wrapper .ts-control .item,
-        .dark #edit_category_id + .ts-wrapper .ts-control input {
-            color: #f8fafc !important;
-        }
-
-        .info-tip {
-            position: relative;
-        }
-        .info-tip:hover {
-            z-index: 99999 !important;
-        }
-        .info-tip::before {
-            left: 0.5rem !important;
-            transform: translateY(2px) !important;
-        }
-        .info-tip::after {
-            left: 0 !important;
-            transform: translateY(2px) !important;
-        }
-        .info-tip:hover::before,
-        .info-tip:focus-visible::before {
-            transform: translateY(0) !important;
-        }
-        .info-tip:hover::after,
-        .info-tip:focus-visible::after {
-            transform: translateY(0) !important;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}?v={{ filemtime(public_path('css/backend/tom-select-theme.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ filemtime(public_path('css/modules/form-utils.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}?v={{ filemtime(public_path('css/backend/question-category-form.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/exam-edit.css') }}?v={{ filemtime(public_path('css/backend/exam-edit.css')) }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/components/select.js') }}"></script>
-    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
-    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
+    <script src="{{ asset('js/components/editor.js') }}?v={{ filemtime(public_path('js/components/editor.js')) }}"></script>
+    <script src="{{ asset('js/components/select.js') }}?v={{ filemtime(public_path('js/components/select.js')) }}"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}?v={{ filemtime(public_path('js/components/tom-select-blur.js')) }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ filemtime(public_path('js/components/tom-select-hierarchy.js')) }}"></script>
+    <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ filemtime(public_path('js/backend/seo-manager.js')) }}"></script>
     <script>
         window.examEditInstructionTemplates = @json(
             collect($formOptions['instructionTemplates'] ?? [])
                 ->mapWithKeys(fn ($template) => [$template['id'] => $template['content'] ?? ''])
         );
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (window.EmsRichTextEditor?.initAll) {
-                await window.EmsRichTextEditor.initAll(document);
-            }
-
-            if (window.EmsSelect) {
-                window.EmsSelect.initAll(
-                    document,
-                    'select.panel-input:not(#edit_category_id)'
-                );
-            }
-
-            const categorySelect = window.EmsTomSelectHierarchy?.create('#edit_category_id', {
-                placeholder: "Search for a category...",
-            }) || new TomSelect('#edit_category_id', {
-                create: false,
-                placeholder: "Search for a category...",
-                closeAfterSelect: true,
-            });
-            window.EmsTomSelectBlur?.attach(categorySelect);
-            window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
-
-            const applyBtn = document.getElementById('edit-apply-instruction-template');
-            const templateSelect = document.getElementById('edit_instruction_template');
-            applyBtn?.addEventListener('click', () => {
-                if (!templateSelect) return;
-                const templateId = templateSelect.value;
-                const content = window.examEditInstructionTemplates?.[templateId] || '';
-                if (!content) return;
-                const adapter = window.EmsRichTextEditor?.get('edit_instructions');
-                if (adapter) {
-                    adapter.setData(content);
-                } else {
-                    const field = document.getElementById('edit_instructions');
-                    if (field) {
-                        field.value = content;
-                        field.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                }
-            });
-
-            document.querySelector('form')?.addEventListener('submit', () => {
-                window.EmsRichTextEditor?.syncAll();
-            });
-        });
     </script>
+    <script src="{{ asset('js/backend/exam-edit.js') }}?v={{ filemtime(public_path('js/backend/exam-edit.js')) }}"></script>
 @endpush

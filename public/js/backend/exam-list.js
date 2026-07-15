@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const chipLabels = {
         category_id: { label: 'Category' },
+        exam_format: { label: 'Format' },
         status: {
             label: 'Status',
             map: {
@@ -44,12 +45,39 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     };
 
-    const escapeHtml = (v) => String(v ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    const escapeHtml = (v) => (window.EmsDom?.escapeHtml
+        ? window.EmsDom.escapeHtml(v)
+        : String(v ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;'));
+
+    const stripHtml = (v) => (window.EmsDom?.stripHtml
+        ? window.EmsDom.stripHtml(v)
+        : String(v ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+
+    const truncate = (text, max = 140) => (window.EmsDom?.truncate
+        ? window.EmsDom.truncate(text, max)
+        : (() => {
+            const value = String(text ?? '');
+            if (!value) return '';
+            return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+        })());
+
+    const hasFilterValue = (val) => {
+        if (Array.isArray(val)) {
+            return val.some((item) => item !== '' && item !== null && item !== undefined);
+        }
+        return val !== '' && val !== null && val !== undefined;
+    };
+
+    const resolveOptionLabel = (selectEl, value) => {
+        if (!selectEl) return String(value);
+        const option = selectEl.querySelector(`option[value="${CSS.escape(String(value))}"]`);
+        return option ? option.textContent.trim() : String(value);
+    };
 
     const formatDate = (value) => {
         if (!value) return 'Not scheduled';
@@ -66,19 +94,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const chips = [];
         const categorySelect = document.getElementById('drawer-category-filter');
+        const formatSelect = document.getElementById('drawer-format-filter');
 
         Object.entries(filters).forEach(([key, val]) => {
-            if (!val) return;
-            let display = chipLabels[key]?.map?.[val] || val;
-            if (key === 'category_id' && categorySelect) {
-                const option = categorySelect.querySelector(`option[value="${CSS.escape(String(val))}"]`);
-                display = option ? option.textContent.trim() : val;
+            if (!hasFilterValue(val)) return;
+
+            const values = Array.isArray(val) ? val.filter(hasFilterValue) : [val];
+            let display;
+            if (key === 'category_id') {
+                display = values.map((v) => resolveOptionLabel(categorySelect, v)).join(', ');
+            } else if (key === 'exam_format') {
+                display = values.map((v) => resolveOptionLabel(formatSelect, v)).join(', ');
+            } else if (values.length > 1) {
+                display = values.map((v) => chipLabels[key]?.map?.[v] || v).join(', ');
+            } else {
+                display = chipLabels[key]?.map?.[values[0]] || values[0];
             }
+
             const label = chipLabels[key]?.label || key;
             chips.push(`
                 <button type="button" class="exam-filter-chip" data-chip-key="${escapeHtml(key)}">
                     <span>${escapeHtml(label)}: <strong>${escapeHtml(display)}</strong></span>
-                    <svg class="exam-filter-chip__x h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="exam-filter-chip__x h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
@@ -91,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chips.push(`
                 <button type="button" class="exam-filter-chip" data-chip-key="sort">
                     <span>Sort: <strong>${escapeHtml(display)}</strong></span>
-                    <svg class="exam-filter-chip__x h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="exam-filter-chip__x h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
@@ -140,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusCls = statusClassMap[row.status] || 'exam-status-draft';
             const categoryName = row.category ? row.category.name : 'Uncategorized';
             const ownerName = row.created_by ? row.created_by.name : 'System';
+            const descriptionPreview = truncate(stripHtml(row.description), 140) || 'No description';
             const tagsHtml = Array.isArray(row.tags)
                 ? row.tags.map((t) => `<span class="exam-meta-chip">${escapeHtml(t)}</span>`).join('')
                 : '';
@@ -152,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <h3 class="exam-title-preview text-sm font-semibold text-slate-900 dark:text-white">${escapeHtml(row.title)}</h3>
                                 <span class="exam-status-badge ${statusCls}">${escapeHtml(row.status)}</span>
                             </div>
-                            <p class="exam-description-preview text-xs leading-relaxed text-slate-500 dark:text-slate-400">${escapeHtml(row.description)}</p>
+                            <p class="exam-description-preview text-xs leading-relaxed text-slate-500 dark:text-slate-400">${escapeHtml(descriptionPreview)}</p>
                             <div class="flex flex-wrap gap-1.5">
                                 <span class="exam-meta-chip">${escapeHtml(categoryName)}</span>
                                 <span class="exam-meta-chip">${escapeHtml(row.exam_mode)}</span>
@@ -185,24 +223,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="flex items-center justify-end gap-2">
                             <a href="${showUrl}"
                                class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-200"
-                               title="View Details">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               title="View Details"
+                               aria-label="View exam details">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
                             </a>
                             <a href="${editUrl}"
                                class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:border-sky-500/40 dark:hover:bg-sky-500/20 dark:hover:text-sky-200"
-                               title="Edit">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               title="Edit"
+                               aria-label="Edit exam">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                 </svg>
                             </a>
                             <button type="button"
                                     class="js-delete-exam inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:border-rose-500/40 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
                                     data-id="${escapeHtml(row.id)}"
-                                    title="Delete">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    title="Delete"
+                                    aria-label="Delete exam">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
                             </button>

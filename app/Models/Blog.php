@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOrganization;
+
 use App\Traits\HasAuditTrails;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Blog extends Model
 {
-    use HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
 
     public const STATUS_DRAFT = 'draft';
 
@@ -71,11 +72,6 @@ class Blog extends Model
             self::STATUS_PUBLISHED => 'Published',
             self::STATUS_ARCHIVED => 'Archived',
         ];
-    }
-
-    public function scopeForOrg(Builder $query, int $orgId): Builder
-    {
-        return $query->where('organization_id', $orgId);
     }
 
     public function organization(): BelongsTo

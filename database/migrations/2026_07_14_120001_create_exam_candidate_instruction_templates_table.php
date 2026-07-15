@@ -8,16 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('exam_candidate_instruction_templates')) {
-            return;
-        }
-
         Schema::create('exam_candidate_instruction_templates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('slug');
-            $table->longText('description')->nullable(); // rich HTML content
+            $table->longText('description')->nullable();
             $table->string('status')->default('active'); // active | inactive
             $table->unsignedInteger('sort_order')->default(0);
             $table->boolean('is_default')->default(false);

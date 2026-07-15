@@ -44,6 +44,7 @@ test('user can upload image to gallery via ajax', function () {
 
     $response->assertCreated()
         ->assertJsonPath('data.0.original_name', 'banner.png')
+        ->assertJsonPath('data.0.has_modification', false)
         ->assertJsonStructure(['data', 'stats', 'message']);
 
     $this->assertDatabaseHas('galleries', [
@@ -54,12 +55,103 @@ test('user can upload image to gallery via ajax', function () {
     ]);
 
     $filePath = (string) $response->json('data.0.file_path');
+    $originalPath = (string) $response->json('data.0.original_file_path');
     expect($filePath)->not->toBeEmpty();
+    expect($originalPath)->toBe($filePath);
+    expect($response->json('data.0.modified_file_path'))->toBeNull();
     Storage::disk('public')->assertExists($filePath);
 
     $fileUrl = (string) $response->json('data.0.file_url');
     expect($fileUrl)->toStartWith(rtrim(url('/'), '/'));
     expect(parse_url($fileUrl, PHP_URL_PATH))->toContain('/storage/gallery/');
+});
+
+test('user can commit a staged file with optional edited original', function () {
+    $original = UploadedFile::fake()->image('staged.png', 240, 180);
+    $edited = UploadedFile::fake()->image('staged-edited.jpg', 120, 120);
+
+    $response = $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.commit'), [
+            'file' => $edited,
+            'original' => $original,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.has_modification', true);
+
+    $row = Gallery::query()->findOrFail((int) $response->json('data.id'));
+    expect($row->original_file_path)->not->toBeEmpty();
+    expect($row->modified_file_path)->not->toBeEmpty();
+    expect($row->original_file_path)->not->toBe($row->modified_file_path);
+    Storage::disk('public')->assertExists($row->original_file_path);
+    Storage::disk('public')->assertExists($row->modified_file_path);
+});
+
+test('user can commit a staged file without editing', function () {
+    $file = UploadedFile::fake()->image('plain.png', 80, 60);
+
+    $response = $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.commit'), [
+            'file' => $file,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.has_modification', false);
+
+    $row = Gallery::query()->findOrFail((int) $response->json('data.id'));
+    expect($row->original_file_path)->toBe($row->file_path);
+    expect($row->modified_file_path)->toBeNull();
+});
+
+test('user can save an edited image while keeping the original', function () {
+    $upload = $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.store'), [
+            'files' => [UploadedFile::fake()->image('photo.png', 200, 120)],
+        ])
+        ->assertCreated();
+
+    $galleryId = (int) $upload->json('data.0.id');
+    $originalPath = (string) $upload->json('data.0.original_file_path');
+
+    $edited = UploadedFile::fake()->image('photo-edited.jpg', 100, 80);
+
+    $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.edit', ['id' => $galleryId]), [
+            'file' => $edited,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.has_modification', true);
+
+    $gallery = Gallery::query()->findOrFail($galleryId);
+    expect($gallery->original_file_path)->toBe($originalPath);
+    expect($gallery->modified_file_path)->not->toBeEmpty();
+    expect($gallery->modified_file_path)->not->toBe($originalPath);
+    expect($gallery->file_path)->toBe($gallery->modified_file_path);
+    Storage::disk('public')->assertExists($originalPath);
+    Storage::disk('public')->assertExists($gallery->modified_file_path);
+
+    $oldModified = $gallery->modified_file_path;
+
+    $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.edit', ['id' => $galleryId]), [
+            'file' => UploadedFile::fake()->image('photo-edited-2.jpg', 90, 70),
+        ])
+        ->assertOk();
+
+    $gallery->refresh();
+    expect($gallery->original_file_path)->toBe($originalPath);
+    expect($gallery->modified_file_path)->not->toBe($oldModified);
+    Storage::disk('public')->assertExists($originalPath);
+    Storage::disk('public')->assertExists($gallery->modified_file_path);
+    Storage::disk('public')->assertMissing($oldModified);
+
+    $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.revert', ['id' => $galleryId]))
+        ->assertOk()
+        ->assertJsonPath('data.has_modification', false);
+
+    $gallery->refresh();
+    expect($gallery->modified_file_path)->toBeNull();
+    expect($gallery->file_path)->toBe($originalPath);
+    Storage::disk('public')->assertExists($originalPath);
 });
 
 test('user can soft delete gallery item into bin and restore it', function () {
@@ -146,7 +238,7 @@ test('gallery data endpoint supports search and trash filter', function () {
         ->assertJsonPath('data.0.original_name', 'beta.png');
 });
 
-test('editor upload also creates gallery original and adjusted records', function () {
+test('editor upload stores original and modified on one gallery row', function () {
     $original = UploadedFile::fake()->image('editor-shot.png', 120, 80);
     $adjusted = UploadedFile::fake()->image('editor-shot.jpg', 80, 60);
 
@@ -159,23 +251,12 @@ test('editor upload also creates gallery original and adjusted records', functio
         ->assertOk()
         ->assertJsonStructure(['location', 'id', 'original', 'adjusted']);
 
-    $this->assertDatabaseHas('galleries', [
-        'organization_id' => $this->organization->id,
-        'source' => 'editor',
-        'variant' => 'original',
-    ]);
+    expect(Gallery::query()->where('organization_id', $this->organization->id)->count())->toBe(1);
 
-    $this->assertDatabaseHas('galleries', [
-        'organization_id' => $this->organization->id,
-        'source' => 'editor',
-        'variant' => 'adjusted',
-    ]);
-
-    expect(
-        Gallery::query()
-            ->where('organization_id', $this->organization->id)
-            ->where('variant', 'adjusted')
-            ->whereNotNull('parent_id')
-            ->count()
-    )->toBe(1);
+    $row = Gallery::query()->where('organization_id', $this->organization->id)->first();
+    expect($row->source)->toBe('editor');
+    expect($row->original_file_path)->not->toBeEmpty();
+    expect($row->modified_file_path)->not->toBeEmpty();
+    Storage::disk('public')->assertExists($row->original_file_path);
+    Storage::disk('public')->assertExists($row->modified_file_path);
 });

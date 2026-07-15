@@ -61,6 +61,11 @@ class Organization extends Model
         return $this->hasMany(Exam::class);
     }
 
+    public function examCategories()
+    {
+        return $this->hasMany(ExamCategory::class);
+    }
+
     public function questionCategories()
     {
         return $this->hasMany(QuestionCategory::class);
@@ -69,5 +74,20 @@ class Organization extends Model
     public function questions()
     {
         return $this->hasMany(Question::class);
+    }
+
+    public function blogCategories()
+    {
+        return $this->hasMany(BlogCategory::class);
+    }
+
+    public function blogs()
+    {
+        return $this->hasMany(Blog::class);
+    }
+
+    public function galleries()
+    {
+        return $this->hasMany(Gallery::class);
     }
 }

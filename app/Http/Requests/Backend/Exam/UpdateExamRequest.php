@@ -8,9 +8,8 @@ use Illuminate\Validation\Rule;
 /**
  * UpdateExamRequest
  *
- * Validates all fields submitted from the exam edit form.
- * Identical to StoreExamRequest with `sometimes` guards so only
- * submitted fields trigger validation.
+ * Validates fields from the exam edit form (DB column names) while still
+ * accepting create-wizard aliases for shared tooling.
  */
 class UpdateExamRequest extends FormRequest
 {
@@ -25,6 +24,7 @@ class UpdateExamRequest extends FormRequest
             // ── Section 1: Basic Information ──────────────────────────────
             'title'            => ['sometimes', 'required', 'string', 'max:255'],
             'description'      => ['nullable', 'string'],
+            'exam_category_id' => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
             'category_id'      => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
             'difficulty_level' => ['nullable', Rule::in(['easy', 'medium', 'hard'])],
             'status'           => ['sometimes', 'required', Rule::in(['draft', 'published', 'active', 'inactive', 'suspended'])],
@@ -34,7 +34,8 @@ class UpdateExamRequest extends FormRequest
 
             // ── Section 2: Timer & Duration ───────────────────────────────
             'enable_exam_timer'        => ['sometimes', 'boolean'],
-            'exam_duration_minutes'    => ['sometimes', 'required', 'integer', 'min:1', 'max:999'],
+            'duration'                 => ['sometimes', 'required', 'integer', 'min:1', 'max:999'],
+            'exam_duration_minutes'    => ['sometimes', 'integer', 'min:1', 'max:999'],
             'auto_submit_on_timer_end' => ['sometimes', 'boolean'],
 
             // ── Section 3: Exam Format ────────────────────────────────────
@@ -43,10 +44,14 @@ class UpdateExamRequest extends FormRequest
 
             // ── Section 4: Schedule & Attempts ───────────────────────────
             'schedule_type'       => ['sometimes', 'required', Rule::in(['any_time', 'fixed_window'])],
-            'schedule_start_at'   => ['required_if:schedule_type,fixed_window', 'nullable', 'date'],
-            'schedule_end_at'     => ['required_if:schedule_type,fixed_window', 'nullable', 'date', 'after:schedule_start_at'],
+            'scheduled_start'     => ['nullable', 'date'],
+            'scheduled_end'       => ['nullable', 'date', 'after:scheduled_start'],
+            'schedule_start_at'   => ['nullable', 'date'],
+            'schedule_end_at'     => ['nullable', 'date', 'after:schedule_start_at'],
             'attempt_limit_type'  => ['sometimes', 'required', Rule::in(['once', 'fixed', 'unlimited'])],
-            'attempt_limit_count' => ['required_if:attempt_limit_type,fixed', 'nullable', 'integer', 'min:2'],
+            'max_attempts'        => ['nullable', 'integer', 'min:0'],
+            'attempt_limit_count' => ['nullable', 'integer', 'min:2'],
+            'pass_percentage'     => ['nullable', 'numeric', 'min:0', 'max:100'],
 
             // ── Section 5: Candidate Access ───────────────────────────────
             'imported_candidates'          => ['nullable'],
@@ -55,11 +60,11 @@ class UpdateExamRequest extends FormRequest
             'free_manual_candidate_emails' => ['nullable'],
 
             // ── Section 6: Exam Configuration ─────────────────────────────
-            'total_questions'              => ['sometimes', 'required', 'integer', 'min:1'],
-            'total_categories'             => ['sometimes', 'required', 'integer', 'min:1'],
-            'total_marks'                  => ['sometimes', 'required', 'integer', 'min:1'],
-            'passing_marks'                => ['sometimes', 'required', 'integer', 'min:0'],
-            'paper_sets'                   => ['sometimes', 'required', 'integer', 'min:1'],
+            'total_questions'              => ['sometimes', 'integer', 'min:1'],
+            'total_categories'             => ['sometimes', 'integer', 'min:1'],
+            'total_marks'                  => ['sometimes', 'integer', 'min:1'],
+            'passing_marks'                => ['sometimes', 'integer', 'min:0'],
+            'paper_sets'                   => ['sometimes', 'integer', 'min:1'],
             'fix_category_questions'       => ['sometimes', 'boolean'],
             'distribution_type'            => ['nullable', Rule::in(['mixed', 'category_wise', 'equal', 'weighted', 'manual'])],
             'selected_categories'          => ['nullable'],
@@ -115,22 +120,16 @@ class UpdateExamRequest extends FormRequest
             'visibility.required'           => 'Please select a visibility option.',
             'exam_format.required'          => 'Please select at least one exam format.',
             'schedule_type.required'        => 'Please select a schedule type.',
-            'schedule_start_at.required_if' => 'Please set a start date for the fixed window.',
-            'schedule_end_at.required_if'   => 'Please set an end date for the fixed window.',
+            'scheduled_end.after'           => 'End date must be after the start date.',
             'schedule_end_at.after'         => 'End date must be after the start date.',
             'attempt_limit_type.required'   => 'Please select an attempt limit type.',
-            'attempt_limit_count.required_if' => 'Please enter the maximum number of attempts.',
-            'total_questions.required'      => 'Total questions is required.',
-            'total_categories.required'     => 'Total categories is required.',
-            'total_marks.required'          => 'Total marks is required.',
-            'passing_marks.required'        => 'Passing marks is required.',
-            'paper_sets.required'           => 'Number of paper sets is required.',
+            'duration.required'             => 'Please enter the exam duration.',
             'exam_duration_minutes.required'=> 'Please enter the exam duration.',
         ];
     }
 
     /**
-     * Prepare the data before validation — normalise checkboxes, map field names.
+     * Normalise checkboxes and map wizard aliases → DB column names.
      */
     protected function prepareForValidation(): void
     {
@@ -150,16 +149,17 @@ class UpdateExamRequest extends FormRequest
             'category_id'              => $this->input('exam_category_id') ?: $this->input('category_id'),
         ];
 
-        if ($this->exists('exam_duration_minutes')) {
+        // Wizard aliases → DB columns (edit form already posts DB names).
+        if (! $this->filled('duration') && $this->exists('exam_duration_minutes')) {
             $payload['duration'] = $this->input('exam_duration_minutes');
         }
-        if ($this->exists('schedule_start_at')) {
+        if (! $this->exists('scheduled_start') && $this->exists('schedule_start_at')) {
             $payload['scheduled_start'] = $this->input('schedule_start_at') ?: null;
         }
-        if ($this->exists('schedule_end_at')) {
+        if (! $this->exists('scheduled_end') && $this->exists('schedule_end_at')) {
             $payload['scheduled_end'] = $this->input('schedule_end_at') ?: null;
         }
-        if ($this->exists('attempt_limit_count')) {
+        if (! $this->exists('max_attempts') && $this->exists('attempt_limit_count')) {
             $payload['max_attempts'] = $this->input('attempt_limit_count', 1);
         }
 

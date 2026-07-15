@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\BelongsToOrganization;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class BlogTag extends Model
 {
-    use HasFactory;
+    use BelongsToOrganization, HasFactory;
 
     protected $table = 'blog_tags';
 
@@ -19,11 +20,6 @@ class BlogTag extends Model
         'name',
         'slug',
     ];
-
-    public function scopeForOrg(Builder $query, int $orgId): Builder
-    {
-        return $query->where('organization_id', $orgId);
-    }
 
     public function organization(): BelongsTo
     {

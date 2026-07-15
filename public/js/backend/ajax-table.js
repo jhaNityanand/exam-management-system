@@ -192,6 +192,9 @@ class AjaxTable {
             this.elements.drawer.classList.add('is-open');
             this.elements.drawer.setAttribute('aria-hidden', 'false');
         }
+        if (this.elements.toggle) {
+            this.elements.toggle.setAttribute('aria-expanded', 'true');
+        }
         const backdrop = document.querySelector('#offcanvas-backdrop');
         if (backdrop) {
             backdrop.classList.add('is-visible');
@@ -203,6 +206,9 @@ class AjaxTable {
         if (this.elements.drawer) {
             this.elements.drawer.classList.remove('is-open');
             this.elements.drawer.setAttribute('aria-hidden', 'true');
+        }
+        if (this.elements.toggle) {
+            this.elements.toggle.setAttribute('aria-expanded', 'false');
         }
         const backdrop = document.querySelector('#offcanvas-backdrop');
         if (backdrop) {
@@ -271,10 +277,17 @@ class AjaxTable {
             }
         } else {
             delete this.filters[key];
-            const field = this.elements.drawerForm?.querySelector(`[name="filters[${key}]"]`);
+            const field = this.elements.drawerForm?.querySelector(
+                `[name="filters[${key}]"], [name="filters[${key}][]"]`
+            );
             if (field) {
                 if (field.tomselect) {
-                    field.tomselect.setValue('', true);
+                    field.tomselect.clear(true);
+                } else if (field.multiple) {
+                    Array.from(field.options).forEach((opt) => {
+                        opt.selected = false;
+                    });
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
                 } else {
                     field.value = '';
                 }

@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\QuestionCategory\StoreQuestionCategoryRequest;
 use App\Http\Requests\Backend\QuestionCategory\UpdateQuestionCategoryRequest;
 use App\Models\QuestionCategory;
-use App\Models\UserOrganization;
 use App\Services\QuestionCategoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 /**
@@ -24,40 +23,11 @@ use Illuminate\View\View;
  */
 class QuestionCategoryController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __construct(
         protected QuestionCategoryService $service
     ) {}
-
-    // ── Organization helper ───────────────────────────────────────────────────
-
-    /**
-     * Resolve the authenticated user's active organization ID.
-     *
-     * Priority:
-     *   1. First active user_organizations record for the current user.
-     *   2. Fallback to global helper (first org — for CLI / seeders).
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException  503 when no org found.
-     */
-    protected function currentOrgId(): int
-    {
-        // Look up via user_organizations first
-        if (Auth::check()) {
-            $orgId = UserOrganization::where('user_id', Auth::id())
-                ->where('status', 'active')
-                ->value('organization_id');
-
-            if ($orgId) {
-                return (int) $orgId;
-            }
-        }
-
-        // Global fallback (single-org mode / CLI)
-        $id = current_organization_id();
-        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
-
-        return $id;
-    }
 
     // ── CRUD actions ──────────────────────────────────────────────────────────
 

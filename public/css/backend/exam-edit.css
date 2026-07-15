@@ -1,0 +1,64 @@
+/**
+ * Shared exam edit form chrome (labels + Tom Select category field).
+ * Depends on question-category-form.css for SEO accordion styles.
+ */
+
+.exam-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    margin-bottom: 0.38rem;
+    color: #0f172a;
+    font-size: 0.84rem;
+    font-weight: 650;
+}
+
+.dark .exam-label {
+    color: #e2e8f0;
+}
+
+.exam-help {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+.dark .exam-help {
+    color: #94a3b8;
+}
+
+.ts-wrapper.panel-input {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+#edit_category_id + .ts-wrapper .ts-control {
+    border-radius: var(--field-radius, 0.82rem) !important;
+    min-height: var(--field-height, 2.75rem) !important;
+    display: flex;
+    align-items: center;
+}
+
+.dark #edit_category_id + .ts-wrapper .ts-control .item,
+.dark #edit_category_id + .ts-wrapper .ts-control input {
+    color: #f8fafc !important;
+}
+
+.exam-edit-questions-hint {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.dark .exam-edit-questions-hint {
+    color: #94a3b8;
+}
+
+@media (max-width: 640px) {
+    select[name="question_ids[]"] {
+        min-height: 12rem;
+        font-size: 0.72rem;
+    }
+}

@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Gallery\StoreEditorGalleryRequest;
 use App\Http\Requests\Backend\Gallery\StoreGalleryRequest;
 use App\Http\Requests\Backend\Gallery\UpdateGalleryRequest;
 use App\Models\Gallery;
-use App\Models\UserOrganization;
 use App\Services\GalleryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class GalleryController extends Controller
 {
+    use ResolvesCurrentOrganization;
+
     public function __construct(protected GalleryService $galleryService) {}
 
     public function index(): View
@@ -30,10 +31,12 @@ class GalleryController extends Controller
             'endpoints' => [
                 'list' => route('admin.gallery.data'),
                 'store' => route('admin.gallery.store'),
+                'commit' => route('admin.gallery.commit'),
                 'bulkDelete' => route('admin.gallery.bulk-delete'),
                 'bulkRestore' => route('admin.gallery.bulk-restore'),
                 'bulkForceDelete' => route('admin.gallery.bulk-force-delete'),
                 'stats' => route('admin.gallery.stats'),
+                'editBase' => url('/admin/gallery'),
             ],
         ]);
     }
@@ -92,6 +95,37 @@ class GalleryController extends Controller
     }
 
     /**
+     * Permanently save one staged file from the gallery pending queue.
+     * When "original" is provided, stores both paths on a single row.
+     */
+    public function commit(\App\Http\Requests\Backend\Gallery\CommitGalleryRequest $request): JsonResponse
+    {
+        $orgId = $this->currentOrgId();
+        $file = $request->file('file');
+        $original = $request->file('original');
+        $meta = [
+            'source' => $request->input('source', 'gallery'),
+            'alt_text' => $request->input('alt_text'),
+        ];
+
+        if ($original instanceof \Illuminate\Http\UploadedFile && $original->isValid()) {
+            $gallery = $this->galleryService->upload($original, $orgId, array_merge($meta, [
+                'kind' => 'image',
+                'original_name' => $original->getClientOriginalName() ?: $file->getClientOriginalName(),
+            ]));
+            $gallery = $this->galleryService->saveModifiedFile($gallery, $file);
+        } else {
+            $gallery = $this->galleryService->upload($file, $orgId, $meta);
+        }
+
+        return response()->json([
+            'message' => 'File saved successfully.',
+            'data' => $this->galleryService->toArray($gallery),
+            'stats' => $this->galleryService->stats($orgId),
+        ], 201);
+    }
+
+    /**
      * Rich-text editor upload — stores gallery record(s) and returns TinyMCE location.
      * For images with an original file, creates original + adjusted rows.
      */
@@ -134,6 +168,46 @@ class GalleryController extends Controller
         return response()->json([
             'message' => 'File updated successfully.',
             'data' => $this->galleryService->toArray($gallery),
+        ]);
+    }
+
+    /**
+     * Save a client-side edited image as modified_file_path (keeps original intact).
+     */
+    public function saveEdit(\App\Http\Requests\Backend\Gallery\SaveGalleryEditRequest $request, int $id): JsonResponse
+    {
+        $gallery = $this->findOrFailScoped($id);
+        abort_unless($gallery->isImage(), 422, 'Only images can be edited.');
+
+        $gallery = $this->galleryService->saveModifiedFile($gallery, $request->file('file'));
+
+        if ($request->filled('alt_text')) {
+            $gallery = $this->galleryService->updateMeta($gallery, [
+                'alt_text' => $request->input('alt_text'),
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Edited image saved.',
+            'data' => $this->galleryService->toArray($gallery),
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
+        ]);
+    }
+
+    /**
+     * Discard modified version and display the original again.
+     */
+    public function revert(int $id): JsonResponse
+    {
+        $gallery = $this->findOrFailScoped($id);
+        abort_unless($gallery->hasModification(), 422, 'This file has no edited version.');
+
+        $gallery = $this->galleryService->revertToOriginal($gallery);
+
+        return response()->json([
+            'message' => 'Reverted to original image.',
+            'data' => $this->galleryService->toArray($gallery),
+            'stats' => $this->galleryService->stats($this->currentOrgId()),
         ]);
     }
 
@@ -206,21 +280,30 @@ class GalleryController extends Controller
         ]);
     }
 
-    public function download(int $id): StreamedResponse
+    public function download(Request $request, int $id): StreamedResponse
     {
         $gallery = $this->findOrFailScoped($id, true);
         $disk = $gallery->disk ?: 'public';
+        $variant = $request->string('variant')->toString() ?: 'display';
+
+        $path = match ($variant) {
+            'original' => $gallery->original_file_path ?: $gallery->file_path,
+            'modified' => $gallery->modified_file_path ?: $gallery->file_path,
+            default => $gallery->displayPath(),
+        };
 
         abort_unless(
-            \Illuminate\Support\Facades\Storage::disk($disk)->exists($gallery->file_path),
+            $path && \Illuminate\Support\Facades\Storage::disk($disk)->exists($path),
             404,
             'File not found on disk.'
         );
 
-        return \Illuminate\Support\Facades\Storage::disk($disk)->download(
-            $gallery->file_path,
-            $gallery->original_name
-        );
+        $downloadName = $gallery->original_name;
+        if ($variant === 'original' && $gallery->hasModification()) {
+            $downloadName = 'original_'.$gallery->original_name;
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk($disk)->download($path, $downloadName);
     }
 
     protected function findOrFailScoped(int $id, bool $withTrashed = false): Gallery
@@ -247,23 +330,5 @@ class GalleryController extends Controller
         ]);
 
         return array_values(array_unique(array_map('intval', $validated['ids'])));
-    }
-
-    protected function currentOrgId(): int
-    {
-        if (Auth::check()) {
-            $orgId = UserOrganization::where('user_id', Auth::id())
-                ->where('status', 'active')
-                ->value('organization_id');
-
-            if ($orgId) {
-                return (int) $orgId;
-            }
-        }
-
-        $id = current_organization_id();
-        abort_if($id === null, 503, 'No organization found. Please run the database seeder.');
-
-        return $id;
     }
 }

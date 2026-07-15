@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration 
+return new class extends Migration
 {
     public function up(): void
     {
@@ -12,14 +12,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->string('role')->default('member'); // member, editor, admin (org-level role label)
+            $table->string('role')->default('member'); // member | editor | admin
             $table->string('status')->default('active');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->json('updated_by_history')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['user_id', 'organization_id']); // one record per user per org
+            $table->unique(['user_id', 'organization_id']);
+            $table->index(['organization_id', 'status']);
         });
     }
 

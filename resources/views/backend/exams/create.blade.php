@@ -22,7 +22,7 @@
     </div>
 
     <x-page-card class="exam-shell-card overflow-hidden">
-        <form action="{{ route('admin.exams.store') }}" method="POST" id="exam-create-form" class="exam-create-form" novalidate>
+        <form action="{{ route('admin.exams.store') }}" method="POST" id="exam-create-form" class="exam-create-form exam-form" novalidate>
             @csrf
 
             <header class="exam-page-header">
@@ -109,7 +109,7 @@
                         </div>
                         <div class="exam-section__body space-y-4">
                             <div class="config-preview-card">
-                                <label class="switch-control" style="cursor: pointer;">
+                                <label class="switch-control">
                                     <input
                                         id="enable_exam_timer"
                                         name="enable_exam_timer"
@@ -140,7 +140,7 @@
                                 </div>
                                 <div id="timer-autosubmit-wrap">
                                     <label class="exam-label">Timer End Behavior</label>
-                                    <label class="switch-control" style="cursor: pointer;">
+                                    <label class="switch-control">
                                         <input
                                             id="auto_submit_on_timer_end"
                                             name="auto_submit_on_timer_end"
@@ -222,7 +222,7 @@
 
                             <div id="fixed-attempt-limit-wrap" hidden>
                                 <label for="attempt_limit_count" class="exam-label">Maximum Attempts <span class="form-required">*</span></label>
-                                <div style="max-width: 33.333%;">
+                                <div class="attempt-limit-field">
                                     <input
                                         id="attempt_limit_count"
                                         name="attempt_limit_count"
@@ -395,7 +395,7 @@
                         <div class="exam-section__body space-y-4">
                             <div>
                                 <label class="exam-label">Question Marks Type</label>
-                                <label class="switch-control" style="cursor: pointer;">
+                                <label class="switch-control">
                                     <input id="fix_marks_each_question" name="fix_marks_each_question" type="checkbox" value="1">
                                     <span class="switch-control__track"></span>
                                     <span class="switch-control__label">Fix Marks Each Question (All questions will have the same marks)</span>
@@ -404,7 +404,7 @@
 
                             <div>
                                 <label class="exam-label">Negative Marking</label>
-                                <label class="switch-control" style="cursor: pointer;">
+                                <label class="switch-control">
                                     <input id="enable_negative_marking" name="enable_negative_marking" type="checkbox" value="1">
                                     <span class="switch-control__track"></span>
                                     <span class="switch-control__label">Enable Negative Marking</span>
@@ -420,7 +420,7 @@
                                     <p class="exam-help"><strong id="selected-marks-count">0</strong> marks filters selected.</p>
                                 </div>
 
-                                <div class="md:col-span-3" id="negative-marking-config" hidden style="margin-top: 0;">
+                                <div class="md:col-span-3" id="negative-marking-config" hidden>
                                     <label for="negative_marking_type" class="exam-label">Penalty per wrong answer</label>
                                     <select id="negative_marking_type" name="negative_marking_type" class="panel-input">
                                         <option value="25">25% (1/4th of question marks)</option>
@@ -473,12 +473,12 @@
                                     <select id="exam_currency" name="exam_currency" class="panel-input pricing-amount-group__currency"></select>
                                     <input type="number" id="exam_amount" name="exam_amount" class="pricing-amount-group__input" min="0" step="0.01" placeholder="Enter amount">
                                 </div>
-                                <p class="exam-help mt-1" style="color: #d97706;"><strong>&#9888;</strong> A 5% platform charge applies to all paid exams.</p>
+                                <p class="exam-help exam-help-warning mt-1"><strong>&#9888;</strong> A 5% platform charge applies to all paid exams.</p>
                             </div>
 
                             <div id="free-candidates-wrap" class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700" hidden>
                                 <div class="mb-3">
-                                    <h4 class="exam-label" style="margin-bottom: 0.35rem; font-size: 0.9rem;">
+                                    <h4 class="exam-label exam-subsection-title">
                                         <span>Free Candidate List</span>
                                         <span class="info-tip" tabindex="0" role="button" aria-label="Free Candidate List info" data-tooltip="Candidates added to this list will not be charged any fee to attempt the exam, while other candidates pay the default fee.">i</span>
                                     </h4>
@@ -493,7 +493,7 @@
                                 <div class="candidate-panel is-active" data-free-candidate-panel="import">
                                     <div class="candidate-panel__row mb-2">
                                         <p class="exam-help">Use a spreadsheet with <strong>Name</strong> and <strong>Email</strong> columns.</p>
-                                        <a class="panel-button-secondary" href="{{ asset('data/exam-create/sample-candidates.csv') }}" download style="padding: 0.5rem 0.75rem; font-size: 0.75rem; height: auto;">Download Sample Excel Format</a>
+                                        <a class="panel-button-secondary exam-sample-download" href="{{ asset('data/exam-create/sample-candidates.csv') }}" download>Download Sample Excel Format</a>
                                     </div>
 
                                     <label class="drop-zone" id="free-candidate-drop-zone">
@@ -525,10 +525,10 @@
                                 <div class="custom-discounts-section mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                                     <div class="flex justify-between items-center mb-3 gap-3 flex-wrap">
                                         <div>
-                                            <h4 class="exam-label" style="margin-bottom: 0.25rem; font-size: 0.9rem;">Custom Discount Offers</h4>
+                                            <h4 class="exam-label exam-subsection-title">Custom Discount Offers</h4>
                                             <p class="exam-help">Create custom discount incentives for specific events or campaigns.</p>
                                         </div>
-                                        <button type="button" id="add-custom-discount-btn" class="panel-button-secondary py-1.5 px-3 text-xs flex items-center gap-1.5" style="border-radius: var(--field-radius); padding: 0.5rem 0.75rem; height: auto;">
+                                        <button type="button" id="add-custom-discount-btn" class="panel-button-secondary exam-sample-download flex items-center gap-1.5">
                                             <span>+ Add Custom Offer</span>
                                         </button>
                                     </div>
@@ -579,18 +579,18 @@
                             </button>
                         </div>
                         <div class="exam-section__body space-y-4" id="question-bank-container" data-question-bank>
-                            <div class="question-bank-toolbar" style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem;">
-                                <label class="question-search" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; min-width: 0;">
-                                    <span style="font-size: 0.875rem; font-weight: 500; color: #374151;">Search Questions</span>
-                                    <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword" data-question-search-input style="width: 100%;">
+                            <div class="question-bank-toolbar">
+                                <label class="question-search">
+                                    <span>Search Questions</span>
+                                    <input id="question-search" type="search" class="panel-input" placeholder="Search by keyword" data-question-search-input>
                                 </label>
-                                <div class="question-bank-global-actions" style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; width: 280px; flex-shrink: 0;">
-                                    <div class="global-selection-stats" style="font-size: 0.875rem; font-weight: 600; color: var(--exam-primary); padding-bottom: 0.15rem; text-align: right; width: 100%;">
+                                <div class="question-bank-global-actions">
+                                    <div class="global-selection-stats">
                                         Total Selected: <span id="global-selected-count">0</span> / <span id="global-allowed-count">0</span>
                                     </div>
-                                    <div class="global-action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
-                                        <button type="button" id="global-random-select" class="panel-button-secondary" style="flex: 1; white-space: nowrap; font-size: 0.875rem; padding: 0.5rem 0.75rem; height: 2.5rem; display: inline-flex; align-items: center; justify-content: center;">Random Select</button>
-                                        <button type="button" id="open-add-question-modal" class="panel-button-secondary" style="flex: 1; white-space: nowrap; font-size: 0.875rem; padding: 0.5rem 0.75rem; height: 2.5rem; display: inline-flex; align-items: center; justify-content: center;">Add Question</button>
+                                    <div class="global-action-buttons">
+                                        <button type="button" id="global-random-select" class="panel-button-secondary">Random Select</button>
+                                        <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
                                         <input type="hidden" name="question_ids" id="question_ids" value="[]">
                                     </div>
                                 </div>
@@ -685,7 +685,7 @@
             @php
                 $seoItem = $exam ?? null;
             @endphp
-            <div id="metadata-section" class="category-builder__metadata" style="margin-top: 2rem;">
+            <div id="metadata-section" class="category-builder__metadata mt-8">
                 <div class="qcat-meta-header" id="meta-accordion-toggle" role="button" aria-expanded="false" tabindex="0">
                     <div class="qcat-meta-header-left">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="qcat-meta-icon">
@@ -818,75 +818,25 @@
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('css/question-bank-accordion.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}?v={{ time() }}">
-    <style>
-        #exam_category_id + .ts-wrapper .ts-control {
-            border-radius: var(--field-radius, 0.82rem) !important;
-            min-height: var(--field-height, 2.75rem) !important;
-            display: flex;
-            align-items: center;
-        }
-
-        .dark #exam_category_id + .ts-wrapper .ts-control .item,
-        .dark #exam_category_id + .ts-wrapper .ts-control input {
-            color: #f8fafc !important;
-        }
-
-        .exam-grid-span-3 {
-            grid-column: span 3;
-        }
-        @media (max-width: 900px) {
-            .exam-grid-span-3 {
-                grid-column: span 2;
-            }
-        }
-        @media (max-width: 600px) {
-            .exam-grid-span-3 {
-                grid-column: span 1;
-            }
-        }
-
-        .info-tip {
-            position: relative;
-        }
-        .info-tip:hover {
-            z-index: 99999 !important;
-        }
-        .info-tip::before {
-            left: 0.5rem !important;
-            transform: translateY(2px) !important;
-        }
-        .info-tip::after {
-            left: 0 !important;
-            transform: translateY(2px) !important;
-        }
-        .info-tip:hover::before,
-        .info-tip:focus-visible::before {
-            transform: translateY(0) !important;
-        }
-        .info-tip:hover::after,
-        .info-tip:focus-visible::after {
-            transform: translateY(0) !important;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}?v={{ filemtime(public_path('css/backend/tom-select-theme.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/modules/form-utils.css') }}?v={{ filemtime(public_path('css/modules/form-utils.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/exam-create.css') }}?v={{ filemtime(public_path('css/backend/exam-create.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/question-bank-accordion.css') }}?v={{ filemtime(public_path('css/question-bank-accordion.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}?v={{ filemtime(public_path('css/backend/question-category-form.css')) }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="{{ asset('js/components/editor.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/components/select.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
-    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/core/form-utils.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/components/editor.js') }}?v={{ filemtime(public_path('js/components/editor.js')) }}"></script>
+    <script src="{{ asset('js/components/select.js') }}?v={{ filemtime(public_path('js/components/select.js')) }}"></script>
+    <script src="{{ asset('js/components/tom-select-blur.js') }}?v={{ filemtime(public_path('js/components/tom-select-blur.js')) }}"></script>
+    <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ filemtime(public_path('js/components/tom-select-hierarchy.js')) }}"></script>
+    <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ filemtime(public_path('js/components/question-bank-accordion.js')) }}"></script>
+    <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ filemtime(public_path('js/backend/question-bank-init.js')) }}"></script>
+    <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ filemtime(public_path('js/backend/seo-manager.js')) }}"></script>
+    <script src="{{ asset('js/core/form-utils.js') }}?v={{ filemtime(public_path('js/core/form-utils.js')) }}"></script>
     <script>
         window.examCreateConfig = {
             options: @json($formOptions),
@@ -913,5 +863,5 @@
             window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
         });
     </script>
-    <script src="{{ asset('js/backend/exam-create.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/backend/exam-create.js') }}?v={{ filemtime(public_path('js/backend/exam-create.js')) }}"></script>
 @endpush

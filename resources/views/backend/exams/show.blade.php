@@ -48,7 +48,7 @@
                 <form action="{{ route('admin.exams.publish', $exam) }}" method="POST" class="inline">
                     @csrf
                     @method('PATCH')
-                    <button type="submit" class="panel-button-primary bg-emerald-600 hover:bg-emerald-750 text-white border-none">
+                    <button type="submit" class="panel-button-primary bg-emerald-600 hover:bg-emerald-700 text-white border-none">
                         Publish Exam
                     </button>
                 </form>
@@ -160,7 +160,7 @@
                             </div>
                         </div>
                     @empty
-                        <div class="px-6 py-8 text-center text-slate-450 dark:text-slate-500 italic text-sm">
+                        <div class="px-6 py-8 text-center text-slate-500 dark:text-slate-500 italic text-sm">
                             No questions linked to this exam workspace.
                         </div>
                     @endforelse
@@ -179,42 +179,42 @@
 
                 <div class="space-y-3">
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Category</span>
+                        <span class="text-slate-500 dark:text-slate-400">Category</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200">
                             {{ $exam->category ? $exam->category->name : 'Uncategorized' }}
                         </span>
                     </div>
 
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Duration</span>
+                        <span class="text-slate-500 dark:text-slate-400">Duration</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200">
                             {{ $exam->duration }} minutes
                         </span>
                     </div>
 
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Pass Criteria</span>
+                        <span class="text-slate-500 dark:text-slate-400">Pass Criteria</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200">
                             {{ $exam->pass_percentage }}% Score
                         </span>
                     </div>
 
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Max Attempts</span>
+                        <span class="text-slate-500 dark:text-slate-400">Max Attempts</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200">
                             {{ $exam->max_attempts == 0 ? 'Unlimited' : $exam->max_attempts }}
                         </span>
                     </div>
 
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Exam Mode</span>
+                        <span class="text-slate-500 dark:text-slate-400">Exam Mode</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wide text-xs">
                             {{ $exam->exam_mode }}
                         </span>
                     </div>
 
                     <div class="flex items-start justify-between text-sm gap-3">
-                        <span class="text-slate-450 dark:text-slate-400 shrink-0">Format</span>
+                        <span class="text-slate-500 dark:text-slate-400 shrink-0">Format</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200 text-right">
                             @if (count($formats))
                                 <span class="inline-flex flex-wrap justify-end gap-1">
@@ -231,7 +231,7 @@
                     </div>
 
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Visibility</span>
+                        <span class="text-slate-500 dark:text-slate-400">Visibility</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wide text-xs">
                             {{ $exam->visibility }}
                         </span>
@@ -239,7 +239,7 @@
 
                     @if($exam->enable_negative_marking)
                         <div class="flex items-center justify-between text-sm">
-                            <span class="text-slate-450 dark:text-slate-400">Negative Penalty</span>
+                            <span class="text-slate-500 dark:text-slate-400">Negative Penalty</span>
                             <span class="font-semibold text-rose-650 dark:text-rose-400">
                                 -{{ $exam->negative_mark_per_question }} pts
                             </span>
@@ -256,14 +256,14 @@
 
                 <div class="space-y-3">
                     <div class="text-sm">
-                        <span class="block text-slate-450 dark:text-slate-400 mb-1">Start Access Window</span>
+                        <span class="block text-slate-500 dark:text-slate-400 mb-1">Start Access Window</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200">
                             {{ $exam->scheduled_start ? $exam->scheduled_start->format('M d, Y h:i A') : 'Any Time (Flexible)' }}
                         </span>
                     </div>
 
                     <div class="text-sm">
-                        <span class="block text-slate-450 dark:text-slate-400 mb-1">End Access Window</span>
+                        <span class="block text-slate-500 dark:text-slate-400 mb-1">End Access Window</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200">
                             {{ $exam->scheduled_end ? $exam->scheduled_end->format('M d, Y h:i A') : 'No Expiry (Flexible)' }}
                         </span>
@@ -279,19 +279,19 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-slate-50 dark:bg-slate-950/20 p-3 rounded-xl border border-slate-100 dark:border-slate-850">
-                        <span class="block text-xs text-slate-450 dark:text-slate-400 font-semibold mb-1">Total Attempts</span>
+                        <span class="block text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Total Attempts</span>
                         <span class="text-lg font-bold text-slate-800 dark:text-slate-250">{{ $stats['total'] }}</span>
                     </div>
 
                     <div class="bg-slate-50 dark:bg-slate-950/20 p-3 rounded-xl border border-slate-100 dark:border-slate-850">
-                        <span class="block text-xs text-slate-450 dark:text-slate-400 font-semibold mb-1">Passed Rate</span>
+                        <span class="block text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Passed Rate</span>
                         <span class="text-lg font-bold text-slate-800 dark:text-slate-250">
                             {{ $stats['total'] > 0 ? round(($stats['passed'] / $stats['total']) * 100) : 0 }}%
                         </span>
                     </div>
 
                     <div class="col-span-2 bg-slate-50 dark:bg-slate-950/20 p-3 rounded-xl border border-slate-100 dark:border-slate-850">
-                        <span class="block text-xs text-slate-450 dark:text-slate-400 font-semibold mb-1">Average score</span>
+                        <span class="block text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Average score</span>
                         <span class="text-lg font-bold text-slate-800 dark:text-slate-250">
                             {{ number_format($stats['avg_score'], 1) }} pts
                         </span>
@@ -305,20 +305,20 @@
                     Metadata
                 </h2>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-slate-450 dark:text-slate-400">Created by</span>
+                    <span class="text-slate-500 dark:text-slate-400">Created by</span>
                     <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $exam->createdBy?->name ?? '—' }}</span>
                 </div>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-slate-450 dark:text-slate-400">Created</span>
+                    <span class="text-slate-500 dark:text-slate-400">Created</span>
                     <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $exam->created_at?->format('M d, Y h:i A') ?? '—' }}</span>
                 </div>
                 <div class="flex items-center justify-between text-sm">
-                    <span class="text-slate-450 dark:text-slate-400">Updated</span>
+                    <span class="text-slate-500 dark:text-slate-400">Updated</span>
                     <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $exam->updated_at?->format('M d, Y h:i A') ?? '—' }}</span>
                 </div>
                 @if ($exam->difficulty_level)
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-450 dark:text-slate-400">Difficulty</span>
+                        <span class="text-slate-500 dark:text-slate-400">Difficulty</span>
                         <span class="font-semibold text-slate-800 dark:text-slate-200">{{ ucfirst($exam->difficulty_level) }}</span>
                     </div>
                 @endif

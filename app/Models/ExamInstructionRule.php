@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOrganization;
+
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ExamInstructionRule extends Model
 {
-    use HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $table = 'exam_instruction_rules';
 
@@ -48,11 +50,6 @@ class ExamInstructionRule extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function scopeForOrg(Builder $query, int $orgId): Builder
-    {
-        return $query->where('organization_id', $orgId);
     }
 
     public function scopeActive(Builder $query): Builder
