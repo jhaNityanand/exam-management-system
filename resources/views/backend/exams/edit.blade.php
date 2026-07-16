@@ -83,6 +83,7 @@
                             placeholder="Summarize scope, audience, and expected outcomes."
                             :height="240"
                             preset="full"
+                                    module="exam"
                         />
                     </div>
                     <div class="space-y-3">
@@ -123,6 +124,7 @@
                             placeholder="Provide instructions to candidates before they start."
                             :height="320"
                             preset="full"
+                            module="exam"
                             help="Select a template to load structured candidate instructions into the editor."
                         />
                     </div>

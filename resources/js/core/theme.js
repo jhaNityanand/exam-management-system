@@ -36,6 +36,7 @@ export function resolveActualTheme(theme) {
 export function applyTheme(theme = readThemePreference()) {
     const root = document.documentElement;
     const actualTheme = resolveActualTheme(theme);
+    const previous = root.classList.contains('dark') ? 'dark' : 'light';
 
     root.classList.toggle('dark', actualTheme === 'dark');
     root.dataset.theme = theme;
@@ -56,6 +57,12 @@ export function applyTheme(theme = readThemePreference()) {
         option.classList.toggle('dark:bg-slate-700', isActive);
         option.classList.toggle('dark:text-white', isActive);
     });
+
+    if (previous !== actualTheme) {
+        window.dispatchEvent(new CustomEvent('ems:themechange', {
+            detail: { theme, actualTheme, previous },
+        }));
+    }
 }
 
 export function initThemeControls() {

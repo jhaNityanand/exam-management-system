@@ -32,6 +32,7 @@
         ];
     }
     $publishedAtValue = old('published_at', $news?->published_at);
+    $publishedAtInitial = $news?->published_at?->format('Y-m-d H:i');
     $expiresAtValue = old('expires_at', $news?->expires_at);
     $breakingUntilValue = old('breaking_until', $news?->breaking_until);
 @endphp
@@ -71,7 +72,7 @@
         </div>
         <div>
             <label for="status" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
-            <select id="status" name="status" class="panel-input mt-1 block w-full">
+            <select id="status" name="status" class="mt-1 block w-full">
                 @foreach ($statuses as $key => $label)
                     <option value="{{ $key }}" {{ old('status', $news?->status ?? 'published') == $key ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
@@ -80,7 +81,7 @@
         </div>
         <div>
             <label for="visibility" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Visibility</label>
-            <select id="visibility" name="visibility" class="panel-input mt-1 block w-full">
+            <select id="visibility" name="visibility" class="mt-1 block w-full">
                 @foreach ($visibilities as $key => $label)
                     <option value="{{ $key }}" {{ old('visibility', $news?->visibility ?? 'public') == $key ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
@@ -98,7 +99,9 @@
                 mode="datetime"
                 label="Publish Date"
                 :value="$publishedAtValue"
-                help="Leave empty to publish immediately when status is Published."
+                help="Optional. Schedule for a future date and time, or leave empty to publish immediately."
+                data-initial-value="{{ $publishedAtInitial }}"
+                data-min-date="future"
             />
             @error('published_at')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
         </div>
@@ -171,7 +174,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
             <label for="author_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Author</label>
-            <select id="author_id" name="author_id" class="panel-input mt-1 block w-full">
+            <select id="author_id" name="author_id" class="mt-1 block w-full">
                 <option value="">Select author…</option>
                 @foreach ($authors as $author)
                     <option value="{{ $author->id }}"
@@ -196,12 +199,6 @@
         <textarea id="short_description" name="short_description" rows="2" class="panel-input mt-1 block w-full" placeholder="One or two lines for cards and headlines…">{{ old('short_description', $news?->short_description ?? '') }}</textarea>
         @error('short_description')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
-    <div>
-        <label for="excerpt" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Excerpt</label>
-        <textarea id="excerpt" name="excerpt" rows="3" class="panel-input mt-1 block w-full" placeholder="Longer summary for listings and SEO…">{{ old('excerpt', $news?->excerpt ?? '') }}</textarea>
-        @error('excerpt')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
-    </div>
-
     {{-- Featured image --}}
     <div>
         @include('backend.partials.gallery-picker', [
@@ -236,6 +233,7 @@
             placeholder="Write the full news story…"
             :height="360"
             preset="full"
+            module="news"
         />
         @error('content')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
@@ -362,7 +360,7 @@
             <div class="qcat-seo-row qcat-seo-row--two-cols">
                 <div class="qcat-meta-field col-lg-6">
                     <label class="qcat-meta-label" for="meta-robots">Robots</label>
-                    <select id="meta-robots" name="robots" class="panel-input qcat-meta-input">
+                    <select id="meta-robots" name="robots" class="qcat-meta-input mt-1 block w-full">
                         @foreach (['index,follow', 'noindex,follow', 'index,nofollow', 'noindex,nofollow'] as $robots)
                             <option value="{{ $robots }}" {{ old('robots', $seoItem?->robots ?? 'index,follow') === $robots ? 'selected' : '' }}>{{ $robots }}</option>
                         @endforeach

@@ -81,6 +81,7 @@ class GalleryController extends Controller
         $orgId = $this->currentOrgId();
         $created = $this->galleryService->uploadMany($request->uploadedFiles(), $orgId, [
             'source' => $request->input('source', 'gallery'),
+            'module' => $request->input('module', 'gallery'),
             'alt_text' => $request->input('alt_text'),
             'description' => $request->input('description'),
         ]);
@@ -105,6 +106,7 @@ class GalleryController extends Controller
         $original = $request->file('original');
         $meta = [
             'source' => $request->input('source', 'gallery'),
+            'module' => $request->input('module', 'gallery'),
             'alt_text' => $request->input('alt_text'),
         ];
 
@@ -139,6 +141,8 @@ class GalleryController extends Controller
         $pair = $this->galleryService->uploadForEditor($file, $orgId, $original, [
             'kind' => $kind === 'file' ? null : $kind,
             'display_name' => $request->input('display_name'),
+            'module' => $request->input('module', 'editor'),
+            'source' => 'editor',
         ]);
 
         return response()->json($this->galleryService->editorUploadResponse($pair));

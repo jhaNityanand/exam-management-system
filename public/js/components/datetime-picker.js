@@ -59,6 +59,18 @@
             clickOpens: true,
             disableMobile: false,
             animate: true,
+            minDate: (() => {
+                if (input.dataset.minDate !== 'future' && input.dataset.minDate !== 'now') {
+                    return undefined;
+                }
+                const initial = input.dataset.initialValue || input.value || '';
+                const initialDate = initial ? new Date(String(initial).replace(' ', 'T')) : null;
+                const now = new Date();
+                if (initialDate && !Number.isNaN(initialDate.getTime()) && initialDate < now) {
+                    return initialDate;
+                }
+                return now;
+            })(),
             onReady(_, __, instance) {
                 instance.calendarContainer?.classList.toggle('ems-dtp-calendar--dark', isDark());
             },

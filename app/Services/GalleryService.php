@@ -112,10 +112,45 @@ class GalleryService
             'description' => $meta['description'] ?? null,
             'status' => 'active',
             'source' => $meta['source'] ?? 'gallery',
+            'module' => $meta['module'] ?? null,
+            'thumbnail_path' => $kind === 'image'
+                ? $this->createThumbnail($disk, $stored['path'], $organizationId)
+                : null,
             'uploaded_by' => Auth::id(),
             'created_by' => Auth::id(),
             'updated_by' => Auth::id(),
         ]);
+    }
+
+    /**
+     * Upload raw binary contents (e.g. profile avatar base64) into the gallery.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function uploadFromContents(string $contents, string $filename, int $organizationId, array $meta = []): Gallery
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION) ?: 'bin');
+        $mime = $meta['mime_type'] ?? match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            default => 'application/octet-stream',
+        };
+
+        $tmp = tempnam(sys_get_temp_dir(), 'gal_');
+        if ($tmp === false) {
+            throw new \RuntimeException('Unable to create a temporary file for gallery upload.');
+        }
+
+        file_put_contents($tmp, $contents);
+        $file = new UploadedFile($tmp, $filename, $mime, null, true);
+
+        try {
+            return $this->upload($file, $organizationId, $meta);
+        } finally {
+            @unlink($tmp);
+        }
     }
 
     /**
@@ -487,6 +522,11 @@ class GalleryService
             'description' => $gallery->description,
             'status' => $gallery->status,
             'source' => $gallery->source,
+            'module' => $gallery->module,
+            'thumbnail_path' => $gallery->thumbnail_path,
+            'thumbnail_url' => $gallery->thumbnail_path
+                ? $this->publicUrl($disk, $gallery->thumbnail_path)
+                : null,
             'uploaded_by' => $gallery->uploaded_by,
             'uploader_name' => $gallery->uploader?->name,
             'created_at' => optional($gallery->created_at)?->toIso8601String(),
@@ -948,6 +988,66 @@ class GalleryService
         }
 
         return $to;
+    }
+
+    protected function createThumbnail(string $disk, string $sourcePath, int $organizationId): ?string
+    {
+        if (! function_exists('imagecreatetruecolor')) {
+            return null;
+        }
+
+        try {
+            $absolute = Storage::disk($disk)->path($sourcePath);
+            if (! is_file($absolute)) {
+                return null;
+            }
+
+            $info = @getimagesize($absolute);
+            if (! $info || empty($info[0]) || empty($info[1])) {
+                return null;
+            }
+
+            [$width, $height] = [$info[0], $info[1]];
+            $mime = $info['mime'] ?? '';
+            $src = match ($mime) {
+                'image/jpeg', 'image/jpg' => @imagecreatefromjpeg($absolute),
+                'image/png' => @imagecreatefrompng($absolute),
+                'image/gif' => @imagecreatefromgif($absolute),
+                'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($absolute) : false,
+                default => false,
+            };
+
+            if (! $src) {
+                return null;
+            }
+
+            $maxEdge = 320;
+            $scale = min(1, $maxEdge / max($width, $height));
+            $tw = max(1, (int) round($width * $scale));
+            $th = max(1, (int) round($height * $scale));
+            $thumb = imagecreatetruecolor($tw, $th);
+
+            if ($mime === 'image/png' || $mime === 'image/webp') {
+                imagealphablending($thumb, false);
+                imagesavealpha($thumb, true);
+            }
+
+            imagecopyresampled($thumb, $src, 0, 0, 0, 0, $tw, $th, $width, $height);
+
+            $directory = trim((string) config('gallery.directory', 'gallery'), '/');
+            $relativeDir = sprintf('%s/%d/%s/thumbs', $directory, $organizationId, now()->format('Y/m'));
+            $fileName = pathinfo($sourcePath, PATHINFO_FILENAME).'_thumb.jpg';
+            $relativePath = "{$relativeDir}/{$fileName}";
+            Storage::disk($disk)->makeDirectory($relativeDir);
+            $dest = Storage::disk($disk)->path($relativePath);
+            imagejpeg($thumb, $dest, 82);
+            imagedestroy($src);
+            imagedestroy($thumb);
+
+            return Storage::disk($disk)->exists($relativePath) ? $relativePath : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     protected function detectKind(UploadedFile $file, mixed $preferred = null): string

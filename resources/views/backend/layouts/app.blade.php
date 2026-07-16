@@ -145,4 +145,16 @@
         </main>
     </div>
 </div>
+
+@include('backend.partials.image-editor-modal')
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/gallery-editor.css') }}">
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js" defer></script>
+    <script src="{{ versioned_asset('js/backend/gallery-editor.js') }}" defer></script>
+@endpush

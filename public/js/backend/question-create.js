@@ -239,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.setAttribute('data-editor-input', textarea.id);
                 wrapper.setAttribute('data-editor-height', '140');
                 wrapper.setAttribute('data-editor-preset', 'compact');
+                wrapper.setAttribute('data-editor-mode', 'compact');
                 wrapper.setAttribute(
                     'data-editor-upload-url',
                     document.querySelector('[data-editor-upload-url]')?.getAttribute('data-editor-upload-url') || '/admin/editor/media'
@@ -253,9 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const adapter = await window.EmsRichTextEditor.mount(textarea, {
                     wrapper,
                     height: 140,
+                    mode: 'compact',
                     preset: 'compact',
                     menubar: false,
-                    toolbar: window.EmsRichTextEditor.presets?.compact,
                     placeholder: 'Enter option text…',
                 });
                 optionEditors[idx] = adapter;

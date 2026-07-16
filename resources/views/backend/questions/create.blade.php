@@ -136,6 +136,7 @@
                         placeholder="Type your question content here…"
                         :height="260"
                         preset="full"
+                                    module="question"
                         :required="true"
                         wrapper-class="ems-rich-editor--question"
                     />
@@ -201,6 +202,7 @@
                                 placeholder="Provide a reference answer for graders…"
                                 :height="200"
                                 preset="standard"
+                                module="question"
                                 help="Text answer grading is typically manual, but you can provide a reference answer here for graders."
                             />
                             <p class="qcat-field-error" id="err-sa"></p>
@@ -218,6 +220,7 @@
                         placeholder="Optional explanation shown after grading…"
                         :height="220"
                         preset="full"
+                                module="question"
                     />
                 </div>
 

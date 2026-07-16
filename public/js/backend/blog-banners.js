@@ -157,7 +157,7 @@
                                 root: document,
                                 originalFile: file,
                             });
-                            if (edited) {
+                            if (edited && !edited.__keepOriginal) {
                                 display = edited;
                                 original = file;
                             }
@@ -211,8 +211,12 @@
                     </div>
                 `;
                 document.body.appendChild(overlay);
+                document.body.classList.add('ems-modal-open');
 
-                const close = () => overlay.remove();
+                const close = () => {
+                    overlay.remove();
+                    document.body.classList.remove('ems-modal-open');
+                };
                 overlay.addEventListener('click', (event) => {
                     if (event.target.closest('[data-close]')) {
                         close();

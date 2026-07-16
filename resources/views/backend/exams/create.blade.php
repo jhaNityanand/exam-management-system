@@ -55,6 +55,7 @@
                                     placeholder="Summarize scope, audience, and expected outcomes."
                                     :height="240"
                                     preset="full"
+                                            module="exam"
                                 />
                             </div>
 
@@ -644,6 +645,7 @@
                                     placeholder="Add clear instructions for candidates before they start the exam."
                                     :height="320"
                                     preset="full"
+                                    module="exam"
                                     help="Supports rich formatting, media, tables, attachments, and HTML source view."
                                 />
                             </div>

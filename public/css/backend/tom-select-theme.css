@@ -38,6 +38,11 @@
     color: #0f172a !important;
 }
 
+.ts-control.is-invalid {
+    border-color: #f87171 !important;
+    box-shadow: 0 0 0 3px rgb(248 113 113 / 0.2) !important;
+}
+
 /* After selection we blur — keep idle look (no persistent focus ring) */
 .ts-wrapper.single:not(.focus):not(.input-active) .ts-control {
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);

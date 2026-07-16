@@ -17,6 +17,7 @@
     $bannerCollection = $blog->banners->isNotEmpty()
         ? $blog->banners
         : collect($blog->bannerImage ? [$blog->bannerImage] : []);
+    $summary = $blog->seo_description ?: $blog->excerpt;
 @endphp
 
 <div class="blog-show space-y-6">
@@ -42,7 +43,7 @@
             </div>
         @endif
 
-        <div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div class="p-5 sm:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">#{{ $blog->id }}</span>
@@ -55,16 +56,18 @@
                         </span>
                     @endif
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mt-2">{{ $blog->title }}</h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                    {{ $blog->author_name ?: $blog->author?->name ?: 'Unknown author' }}
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mt-2.5">{{ $blog->title }}</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span>{{ $blog->author_name ?: $blog->author?->name ?: 'Unknown author' }}</span>
                     @if ($blog->published_at)
-                        · {{ $blog->published_at->format('M j, Y g:i A') }}
+                        <span class="text-slate-300 dark:text-slate-600" aria-hidden="true">·</span>
+                        <span>{{ $blog->published_at->format('M j, Y g:i A') }}</span>
                     @endif
-                    · {{ number_format($blog->view_count) }} views
+                    <span class="text-slate-300 dark:text-slate-600" aria-hidden="true">·</span>
+                    <span>{{ number_format($blog->view_count) }} views</span>
                 </p>
                 @if ($blog->tags->isNotEmpty())
-                    <div class="flex flex-wrap gap-1.5 mt-3">
+                    <div class="flex flex-wrap gap-1.5 mt-3.5">
                         @foreach ($blog->tags as $tag)
                             <span class="blog-tag-chip">{{ $tag->name }}</span>
                         @endforeach
@@ -79,22 +82,29 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div class="lg:col-span-8 space-y-6">
-            @if ($blog->excerpt)
-                <div class="blog-show__excerpt bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/10 dark:to-slate-900 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-6 shadow-sm">
-                    <h2 class="text-sm font-semibold text-indigo-500 uppercase tracking-wider mb-2">Excerpt</h2>
-                    <p class="text-slate-700 dark:text-slate-200 text-base leading-relaxed">{{ $blog->excerpt }}</p>
-                </div>
+        <div class="lg:col-span-8 space-y-6 min-w-0">
+            @if ($summary)
+                <section class="blog-show__panel blog-show__panel--summary">
+                    <header class="blog-show__panel-header">
+                        <span class="blog-show__panel-label">Summary</span>
+                    </header>
+                    <p class="blog-show__summary-text">{{ $summary }}</p>
+                </section>
             @endif
 
-            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-8 shadow-sm">
-                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Content</h2>
-                <x-rich-text-content :content="$blog->content" class="blog-show__prose prose prose-slate dark:prose-invert max-w-none" />
-            </div>
+            <section class="blog-show__panel blog-show__panel--content">
+                <header class="blog-show__panel-header">
+                    <span class="blog-show__panel-label">Content</span>
+                </header>
+                <x-rich-text-content :content="$blog->content" class="blog-show__prose" />
+            </section>
 
             @if ($blog->galleryAttachments->isNotEmpty())
-                <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-                    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Attachments</h2>
+                <section class="blog-show__panel">
+                    <header class="blog-show__panel-header">
+                        <span class="blog-show__panel-label">Attachments</span>
+                        <span class="blog-show__panel-meta">{{ $blog->galleryAttachments->count() }}</span>
+                    </header>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         @foreach ($blog->galleryAttachments as $attachment)
                             <a href="{{ $attachment->file_url }}" target="_blank" rel="noopener" class="group block rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-indigo-500/40 transition">
@@ -106,44 +116,95 @@
                             </a>
                         @endforeach
                     </div>
-                </div>
+                </section>
             @endif
         </div>
 
-        <div class="lg:col-span-4 space-y-6">
-            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Details</h2>
-                <dl class="space-y-3 text-sm">
-                    <div><dt class="text-slate-500">Slug</dt><dd class="font-medium text-slate-900 dark:text-white break-all">{{ $blog->slug }}</dd></div>
-                    <div><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900 dark:text-white">{{ $blog->statusLabel() }}</dd></div>
-                    <div><dt class="text-slate-500">Banners</dt><dd class="font-medium text-slate-900 dark:text-white">{{ $bannerCollection->count() }}</dd></div>
-                    <div><dt class="text-slate-500">Views</dt><dd class="font-medium text-slate-900 dark:text-white">{{ number_format($blog->view_count) }}</dd></div>
-                    <div><dt class="text-slate-500">Robots</dt><dd class="font-medium text-slate-900 dark:text-white">{{ $blog->robots ?: 'index,follow' }}</dd></div>
+        <aside class="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+            <section class="blog-show__panel">
+                <header class="blog-show__panel-header">
+                    <span class="blog-show__panel-label">Details</span>
+                </header>
+                <dl class="blog-show__meta-list">
+                    <div class="blog-show__meta-row">
+                        <dt>Slug</dt>
+                        <dd class="break-all font-mono text-xs sm:text-sm">{{ $blog->slug }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row">
+                        <dt>Status</dt>
+                        <dd>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold blog-status-badge blog-status-badge--{{ $blog->status }}">
+                                {{ $blog->statusLabel() }}
+                            </span>
+                        </dd>
+                    </div>
+                    <div class="blog-show__meta-row">
+                        <dt>Category</dt>
+                        <dd>{{ $blog->category?->name ?: '—' }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row">
+                        <dt>Author</dt>
+                        <dd>{{ $blog->author_name ?: $blog->author?->name ?: '—' }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row">
+                        <dt>Published</dt>
+                        <dd>{{ $blog->published_at?->format('M j, Y g:i A') ?: '—' }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row">
+                        <dt>Banners</dt>
+                        <dd>{{ $bannerCollection->count() }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row">
+                        <dt>Views</dt>
+                        <dd>{{ number_format($blog->view_count) }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row">
+                        <dt>Robots</dt>
+                        <dd>{{ $blog->robots ?: 'index,follow' }}</dd>
+                    </div>
                 </dl>
-            </div>
+            </section>
 
-            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-3">
-                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">SEO Summary</h2>
-                <dl class="space-y-3 text-sm">
-                    <div><dt class="text-slate-500">Meta Title</dt><dd class="text-slate-900 dark:text-white">{{ $blog->seo_title ?: '—' }}</dd></div>
-                    <div><dt class="text-slate-500">Meta Description</dt><dd class="text-slate-700 dark:text-slate-300">{{ $blog->seo_description ?: '—' }}</dd></div>
-                    <div><dt class="text-slate-500">Keywords</dt><dd class="text-slate-700 dark:text-slate-300">{{ $blog->seo_keywords ?: '—' }}</dd></div>
-                    <div><dt class="text-slate-500">Canonical</dt><dd class="text-slate-700 dark:text-slate-300 break-all">{{ $blog->canonical_url ?: '—' }}</dd></div>
+            <section class="blog-show__panel">
+                <header class="blog-show__panel-header">
+                    <span class="blog-show__panel-label">SEO Summary</span>
+                </header>
+                <dl class="blog-show__meta-list">
+                    <div class="blog-show__meta-row blog-show__meta-row--stack">
+                        <dt>Meta Title</dt>
+                        <dd>{{ $blog->seo_title ?: '—' }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row blog-show__meta-row--stack">
+                        <dt>Meta Description</dt>
+                        <dd class="blog-show__meta-desc">{{ $blog->seo_description ?: '—' }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row blog-show__meta-row--stack">
+                        <dt>Keywords</dt>
+                        <dd>{{ $blog->seo_keywords ?: '—' }}</dd>
+                    </div>
+                    <div class="blog-show__meta-row blog-show__meta-row--stack">
+                        <dt>Canonical</dt>
+                        <dd class="break-all">{{ $blog->canonical_url ?: '—' }}</dd>
+                    </div>
                     @if ($blog->ogImage)
-                        <div>
-                            <dt class="text-slate-500 mb-1">OG Image</dt>
-                            <img src="{{ $blog->ogImage->file_url }}" alt="" class="w-full rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div class="blog-show__meta-row blog-show__meta-row--stack">
+                            <dt>OG Image</dt>
+                            <dd>
+                                <img src="{{ $blog->ogImage->file_url }}" alt="" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 mt-1">
+                            </dd>
                         </div>
                     @endif
                 </dl>
-            </div>
-        </div>
+            </section>
+        </aside>
     </div>
 </div>
 @endsection
 
 @push('styles')
+    <link rel="stylesheet" href="{{ asset('css/backend/blog-list.css') }}?v={{ filemtime(public_path('css/backend/blog-list.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/blog-create.css') }}?v={{ filemtime(public_path('css/backend/blog-create.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
 @endpush
 
 @push('scripts')

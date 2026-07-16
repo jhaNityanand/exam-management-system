@@ -297,13 +297,32 @@
             if (window.TomSelect) {
                 new TomSelect('#drawer-author-filter', {
                     allowEmptyOption: true,
-                    placeholder: 'All authors',
+                    placeholder: 'Search authors…',
                     maxOptions: 200,
+                    create: false,
+                    closeAfterSelect: true,
                 });
                 new TomSelect('#drawer-tag-filter', {
                     allowEmptyOption: true,
-                    placeholder: 'All tags',
+                    placeholder: 'Search tags…',
                     maxOptions: 300,
+                    create: false,
+                    closeAfterSelect: true,
+                });
+                new TomSelect('#drawer-status-filter', {
+                    allowEmptyOption: true,
+                    placeholder: 'All statuses',
+                    create: false,
+                    closeAfterSelect: true,
+                });
+                ['#drawer-featured-filter', '#drawer-breaking-filter', '#drawer-trending-filter'].forEach((selector) => {
+                    const el = document.querySelector(selector);
+                    if (!el) return;
+                    new TomSelect(el, {
+                        allowEmptyOption: true,
+                        create: false,
+                        closeAfterSelect: true,
+                    });
                 });
             }
 

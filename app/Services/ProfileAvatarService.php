@@ -2,13 +2,19 @@
 
 namespace App\Services;
 
+use App\Models\Gallery;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
+/**
+ * Profile avatars are stored through GalleryService so they appear in the Gallery module.
+ * Profile.avatar continues to store the gallery file_path for backward compatibility.
+ */
 class ProfileAvatarService
 {
-    public function storeFromBase64(string $dataUrl, int $userId): string
+    public function __construct(private GalleryService $galleryService) {}
+
+    public function storeFromBase64(string $dataUrl, int $userId, ?int $organizationId = null): string
     {
         if (! preg_match('/^data:image\/(\w+);base64,/', $dataUrl, $matches)) {
             throw new InvalidArgumentException('Invalid avatar image data.');
@@ -32,15 +38,55 @@ class ProfileAvatarService
             throw new InvalidArgumentException('Avatar image must be smaller than 2MB.');
         }
 
-        $path = "avatars/{$userId}/".Str::uuid().".{$extension}";
-        Storage::disk('public')->put($path, $contents);
+        $orgId = $organizationId ?? current_organization_id();
+        if ($orgId === null) {
+            throw new InvalidArgumentException('No organization found for avatar upload.');
+        }
 
-        return $path;
+        $mime = match ($extension) {
+            'jpg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            default => 'image/jpeg',
+        };
+
+        $gallery = $this->galleryService->uploadFromContents(
+            $contents,
+            "avatar-{$userId}.{$extension}",
+            (int) $orgId,
+            [
+                'source' => 'profile',
+                'module' => 'profile',
+                'kind' => 'image',
+                'original_name' => "avatar.{$extension}",
+                'mime_type' => $mime,
+                'alt_text' => 'Profile avatar',
+            ]
+        );
+
+        return $gallery->file_path;
     }
 
     public function delete(?string $path): void
     {
-        if ($path && Storage::disk('public')->exists($path)) {
+        if (! $path) {
+            return;
+        }
+
+        $gallery = Gallery::query()
+            ->where('file_path', $path)
+            ->orWhere('original_file_path', $path)
+            ->orWhere('modified_file_path', $path)
+            ->first();
+
+        if ($gallery) {
+            $this->galleryService->softDelete($gallery);
+
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
     }

@@ -30,6 +30,7 @@
         ];
     }
     $publishedAtValue = old('published_at', $blog?->published_at);
+    $publishedAtInitial = $blog?->published_at?->format('Y-m-d H:i');
 @endphp
 
 <div class="px-4 py-5 sm:p-6 space-y-8">
@@ -67,7 +68,7 @@
         </div>
         <div>
             <label for="status" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
-            <select id="status" name="status" class="panel-input mt-1 block w-full">
+            <select id="status" name="status" class="mt-1 block w-full">
                 @foreach ($statuses as $key => $label)
                     <option value="{{ $key }}" {{ old('status', $blog?->status ?? 'published') == $key ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
@@ -81,7 +82,9 @@
                 mode="datetime"
                 label="Published At"
                 :value="$publishedAtValue"
-                help="Leave empty to publish immediately when status is Published."
+                help="Optional. Schedule for a future date and time, or leave empty to publish immediately."
+                data-initial-value="{{ $publishedAtInitial }}"
+                data-min-date="future"
             />
             @error('published_at')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
         </div>
@@ -91,7 +94,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
             <label for="author_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Author</label>
-            <select id="author_id" name="author_id" class="panel-input mt-1 block w-full">
+            <select id="author_id" name="author_id" class="mt-1 block w-full">
                 <option value="">Select author…</option>
                 @foreach ($authors as $author)
                     <option value="{{ $author->id }}"
@@ -108,13 +111,6 @@
             <input type="text" id="author_name" name="author_name" value="{{ old('author_name', $blog?->author_name ?? auth()->user()?->name) }}" class="panel-input mt-1 block w-full">
             @error('author_name')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
         </div>
-    </div>
-
-    {{-- Excerpt --}}
-    <div>
-        <label for="excerpt" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Excerpt</label>
-        <textarea id="excerpt" name="excerpt" rows="3" class="panel-input mt-1 block w-full" placeholder="Short summary for listings and SEO…">{{ old('excerpt', $blog?->excerpt ?? '') }}</textarea>
-        @error('excerpt')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
 
     {{-- Banners (multi) --}}
@@ -139,6 +135,7 @@
             placeholder="Write your blog post…"
             :height="360"
             preset="full"
+            module="blog"
         />
         @error('content')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
@@ -265,7 +262,7 @@
             <div class="qcat-seo-row qcat-seo-row--two-cols">
                 <div class="qcat-meta-field col-lg-6">
                     <label class="qcat-meta-label" for="meta-robots">Robots</label>
-                    <select id="meta-robots" name="robots" class="panel-input qcat-meta-input">
+                    <select id="meta-robots" name="robots" class="qcat-meta-input mt-1 block w-full">
                         @foreach (['index,follow', 'noindex,follow', 'index,nofollow', 'noindex,nofollow'] as $robots)
                             <option value="{{ $robots }}" {{ old('robots', $seoItem?->robots ?? 'index,follow') === $robots ? 'selected' : '' }}>{{ $robots }}</option>
                         @endforeach

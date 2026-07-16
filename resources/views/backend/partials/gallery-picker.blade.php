@@ -56,6 +56,11 @@
             <input type="file" class="sr-only gallery-picker-upload-input" accept="{{ $kind === 'image' ? 'image/*' : 'image/*,video/*,.pdf' }}">
         </label>
     </div>
+
+    <div class="gallery-picker-upload-progress" data-gallery-upload-progress hidden>
+        <div class="gallery-picker-upload-progress__bar" data-gallery-upload-progress-bar></div>
+        <span>Uploading…</span>
+    </div>
 </div>
 
 <div id="{{ $modalId }}" class="gallery-picker-modal hidden" role="dialog" aria-modal="true" aria-labelledby="{{ $modalId }}-title">

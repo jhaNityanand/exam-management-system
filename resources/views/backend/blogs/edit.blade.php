@@ -73,15 +73,18 @@
         window.galleryStoreUrl = @json(route('admin.gallery.store'));
         window.galleryCommitUrl = @json(route('admin.gallery.commit'));
         window.galleryCsrf = @json(csrf_token());
-        window.blogBaseUrl = @json(url('/blog'));
-        window.blogExistingMedia = @json($blogExistingMedia);
-        document.addEventListener('DOMContentLoaded', () => {
-            const catSelect = window.EmsTomSelectHierarchy?.create('#blog_category_id', { placeholder: 'Select category…' });
-            window.EmsTomSelectBlur?.attach(catSelect);
-            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('blog-form') || document);
-            window.EmsDateTimePicker?.initAll?.(document);
-        });
+        window.contentFormConfig = {
+            formId: 'blog-form',
+            categorySelector: '#blog_category_id',
+            seoSlugId: 'blog-seo-slug',
+            baseUrl: @json(url('/blogs')),
+            tagItemClass: 'blog-tag-item',
+            module: 'blog',
+            isCreate: false,
+            existingMedia: @json($blogExistingMedia),
+        };
     </script>
+    <script src="{{ asset('js/backend/content-form-shared.js') }}?v={{ filemtime(public_path('js/backend/content-form-shared.js')) }}"></script>
     <script src="{{ asset('js/backend/blog-banners.js') }}?v={{ filemtime(public_path('js/backend/blog-banners.js')) }}"></script>
     <script src="{{ asset('js/backend/blog-create.js') }}?v={{ filemtime(public_path('js/backend/blog-create.js')) }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>

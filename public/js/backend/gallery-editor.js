@@ -1,6 +1,6 @@
 /**
- * Gallery image editor — crop, brightness, resize, rotate, flip, shapes, compress.
- * Depends on Cropper.js (loaded on the gallery page).
+ * Gallery image editor — crop, brightness, contrast, resize, rotate, flip, shapes, compress.
+ * Lazy-loads Cropper.js when needed. Modal markup: #gallery-image-editor (shared partial).
  */
 (function (global) {
     'use strict';
@@ -8,8 +8,43 @@
     const DEFAULTS = {
         quality: 0.85,
         brightness: 0,
+        contrast: 0,
         maxEdge: 2400,
     };
+
+    let cropperLoading = null;
+
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${src}"]`);
+            if (existing) {
+                if (global.Cropper) {
+                    resolve();
+                    return;
+                }
+                existing.addEventListener('load', () => resolve(), { once: true });
+                existing.addEventListener('error', reject, { once: true });
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.addEventListener('load', () => resolve(), { once: true });
+            script.addEventListener('error', reject, { once: true });
+            document.head.appendChild(script);
+        });
+    }
+
+    async function ensureCropper() {
+        if (typeof global.Cropper === 'function') {
+            return global.Cropper;
+        }
+        if (!cropperLoading) {
+            cropperLoading = loadScript('https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js')
+                .then(() => global.Cropper);
+        }
+        return cropperLoading;
+    }
 
     function loadImage(src) {
         return new Promise((resolve, reject) => {
@@ -27,20 +62,22 @@
         });
     }
 
+    function filterCss(brightness, contrast) {
+        return `brightness(${1 + brightness / 100}) contrast(${1 + contrast / 100})`;
+    }
+
     /**
      * Open the gallery image editor modal.
-     * @param {object} options
-     * @param {string} options.src - image URL
-     * @param {string} [options.name] - file name
-     * @param {HTMLElement} options.root - gallery-app root (contains modal markup)
      * @returns {Promise<File|null>} edited file, or null if skipped/cancelled
      */
     async function openGalleryImageEditor(options) {
-        const root = options.root;
-        const modal = root.querySelector('#gallery-image-editor');
+        const root = options.root || document;
+        const modal = (root.querySelector ? root : document).querySelector('#gallery-image-editor');
         if (!modal) {
             throw new Error('Image editor markup is missing.');
         }
+
+        await ensureCropper();
         if (typeof global.Cropper !== 'function') {
             throw new Error('Cropper.js is required for the image editor.');
         }
@@ -52,6 +89,8 @@
             meta: modal.querySelector('[data-gie-meta]'),
             brightness: modal.querySelector('[data-gie-brightness]'),
             brightnessVal: modal.querySelector('[data-gie-brightness-val]'),
+            contrast: modal.querySelector('[data-gie-contrast]'),
+            contrastVal: modal.querySelector('[data-gie-contrast-val]'),
             quality: modal.querySelector('[data-gie-quality]'),
             qualityVal: modal.querySelector('[data-gie-quality-val]'),
             width: modal.querySelector('[data-gie-width]'),
@@ -68,12 +107,11 @@
             naturalHeight: 0,
             aspect: NaN,
             shape: 'rectangle',
-            rotate: 0,
             flipX: 1,
             flipY: 1,
             brightness: DEFAULTS.brightness,
+            contrast: DEFAULTS.contrast,
             quality: DEFAULTS.quality,
-            skip: false,
         };
 
         els.title.textContent = options.name || 'Edit image';
@@ -97,6 +135,10 @@
         els.quality.value = String(Math.round(DEFAULTS.quality * 100));
         els.brightnessVal.textContent = '0';
         els.qualityVal.textContent = `${Math.round(DEFAULTS.quality * 100)}%`;
+        if (els.contrast) {
+            els.contrast.value = String(DEFAULTS.contrast);
+            els.contrastVal.textContent = '0';
+        }
         els.meta.textContent = `${state.naturalWidth} × ${state.naturalHeight}`;
         els.lockRatio.checked = true;
 
@@ -121,8 +163,9 @@
             const cropImg = els.stage.querySelector('.cropper-view-box img, .cropper-canvas img');
             const targets = [els.img];
             if (cropImg) targets.push(cropImg);
+            const css = filterCss(state.brightness, state.contrast);
             targets.forEach((node) => {
-                node.style.filter = `brightness(${1 + state.brightness / 100})`;
+                node.style.filter = css;
             });
         }
 
@@ -181,7 +224,7 @@
             canvas.height = targetH;
             const ctx = canvas.getContext('2d');
 
-            ctx.filter = `brightness(${1 + state.brightness / 100})`;
+            ctx.filter = filterCss(state.brightness, state.contrast);
 
             if (state.shape === 'circle') {
                 ctx.beginPath();
@@ -215,6 +258,7 @@
                 modal.removeEventListener('click', onClick);
                 els.brightness.removeEventListener('input', onBrightness);
                 els.quality.removeEventListener('input', onQuality);
+                if (els.contrast) els.contrast.removeEventListener('input', onContrast);
                 els.width.removeEventListener('input', onWidthInput);
                 els.height.removeEventListener('input', onHeightInput);
                 if (state.cropper) {
@@ -233,6 +277,13 @@
             const onBrightness = () => {
                 state.brightness = parseInt(els.brightness.value, 10) || 0;
                 els.brightnessVal.textContent = String(state.brightness);
+                applyFilters();
+            };
+
+            const onContrast = () => {
+                if (!els.contrast) return;
+                state.contrast = parseInt(els.contrast.value, 10) || 0;
+                els.contrastVal.textContent = String(state.contrast);
                 applyFilters();
             };
 
@@ -279,8 +330,13 @@
                         state.flipX = 1;
                         state.flipY = 1;
                         state.brightness = 0;
+                        state.contrast = 0;
                         els.brightness.value = '0';
                         els.brightnessVal.textContent = '0';
+                        if (els.contrast) {
+                            els.contrast.value = '0';
+                            els.contrastVal.textContent = '0';
+                        }
                         els.width.value = String(state.naturalWidth);
                         els.height.value = String(state.naturalHeight);
                         setShape('rectangle');
@@ -294,7 +350,9 @@
                         return;
                     }
                     if (action === 'skip') {
-                        cleanup(null);
+                        const keep = options.originalFile || null;
+                        if (keep) keep.__keepOriginal = true;
+                        cleanup(keep);
                         return;
                     }
                     if (action === 'save') {
@@ -321,15 +379,14 @@
 
             modal.addEventListener('click', onClick);
             els.brightness.addEventListener('input', onBrightness);
+            if (els.contrast) els.contrast.addEventListener('input', onContrast);
             els.quality.addEventListener('input', onQuality);
             els.width.addEventListener('input', onWidthInput);
             els.height.addEventListener('input', onHeightInput);
             setShape('rectangle');
-
-            // Keep size fields roughly aligned with crop box.
             els.img.addEventListener('crop', syncSizeFromCrop);
         });
     }
 
     global.GalleryImageEditor = { open: openGalleryImageEditor };
-})(window);
+})(typeof window !== 'undefined' ? window : globalThis);

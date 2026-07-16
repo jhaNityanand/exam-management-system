@@ -31,6 +31,8 @@ class StoreEditorGalleryRequest extends FormRequest
         return [
             'kind' => ['nullable', 'in:image,video,file'],
             'display_name' => ['nullable', 'string', 'max:255'],
+            'module' => ['nullable', 'string', 'max:50'],
+            'source' => ['nullable', 'string', 'max:50'],
             'file' => [
                 'required',
                 File::types($mimes)->max($maxKb),

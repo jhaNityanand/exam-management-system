@@ -62,14 +62,18 @@
         window.galleryStoreUrl = @json(route('admin.gallery.store'));
         window.galleryCommitUrl = @json(route('admin.gallery.commit'));
         window.galleryCsrf = @json(csrf_token());
-        window.newsBaseUrl = @json(url('/news'));
-        document.addEventListener('DOMContentLoaded', () => {
-            const catSelect = window.EmsTomSelectHierarchy?.create('#news_category_id', { placeholder: 'Select category…' });
-            window.EmsTomSelectBlur?.attach(catSelect);
-            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('news-form') || document);
-            window.EmsDateTimePicker?.initAll?.(document);
-        });
+        window.contentFormConfig = {
+            formId: 'news-form',
+            categorySelector: '#news_category_id',
+            seoSlugId: 'news-seo-slug',
+            baseUrl: @json(url('/news')),
+            tagItemClass: 'news-tag-item',
+            module: 'news',
+            isCreate: true,
+            existingMedia: {},
+        };
     </script>
+    <script src="{{ asset('js/backend/content-form-shared.js') }}?v={{ filemtime(public_path('js/backend/content-form-shared.js')) }}"></script>
     <script src="{{ asset('js/backend/blog-banners.js') }}?v={{ filemtime(public_path('js/backend/blog-banners.js')) }}"></script>
     <script src="{{ asset('js/backend/news-create.js') }}?v={{ filemtime(public_path('js/backend/news-create.js')) }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>

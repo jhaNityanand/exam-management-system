@@ -3,9 +3,18 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Rich Text Editor (TinyMCE)
+    | Rich Text Editor — simple header toolbar (Linear/Jira look & feel)
     |--------------------------------------------------------------------------
+    |
+    | Shared Blade contract: <x-rich-text-editor>. Default UI is "header":
+    | one clean, always-visible action row on top, writing area below,
+    | plus "/" slash commands and "@" mentions for power users. Use
+    | mode="compact" for small inline editors (e.g. question options).
+    | Uploads go through GalleryService via POST admin/editor/media.
+    |
     */
+    'ui_mode' => env('EDITOR_UI_MODE', 'header'),
+
     'cdn' => [
         'version' => env('TINYMCE_VERSION', '7.6.1'),
         'base_url' => env('TINYMCE_BASE_URL', 'https://cdn.jsdelivr.net/npm/tinymce@7.6.1'),
@@ -36,16 +45,20 @@ return [
     */
     'orphan_ttl_hours' => (int) env('EDITOR_ORPHAN_TTL_HOURS', 24),
 
+    // Toolbar presets. "header" is a single-row toolbar; TinyMCE collapses
+    // overflow items behind a "…" button (toolbar_mode: floating), so every
+    // action stays available without wrapping into extra rows.
     'toolbar_presets' => [
-        'full' => 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample hr | link image media attachment table | emoticons charmap removeformat | searchreplace code preview fullscreen',
-        'standard' => 'undo redo | blocks fontsize | bold italic underline forecolor backcolor | alignleft aligncenter alignright | bullist numlist outdent indent | link image table | searchreplace code preview fullscreen',
-        'compact' => 'undo redo | bold italic underline | bullist numlist | link image | removeformat',
+        'header' => 'fullscreen | fontfamily fontsize | blocks | bold italic underline strikethrough superscript subscript | forecolor backcolor | align | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat',
+        'full' => 'fullscreen | fontfamily fontsize | blocks | bold italic underline strikethrough superscript subscript | forecolor backcolor | align | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat',
+        'standard' => 'fullscreen | blocks | bold italic underline | bullist numlist | link emsimage table | removeformat',
+        'compact' => 'fullscreen | bold italic underline strikethrough | forecolor | bullist numlist | link emsimage | removeformat',
     ],
 
     'plugins' => [
-        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
         'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
-        'emoticons', 'codesample', 'pagebreak', 'nonbreaking', 'directionality',
+        'insertdatetime', 'media', 'table', 'help', 'wordcount',
+        'codesample', 'nonbreaking', 'directionality',
     ],
 ];
