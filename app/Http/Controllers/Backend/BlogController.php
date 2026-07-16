@@ -14,6 +14,7 @@ use App\Services\BlogCategoryService;
 use App\Services\BlogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class BlogController extends Controller
@@ -149,6 +150,21 @@ class BlogController extends Controller
         return redirect()
             ->route('admin.blogs.index', ['tab' => 'bin'])
             ->with('success', "{$count} blog post(s) restored.");
+    }
+
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'status' => ['required', Rule::in(array_keys(Blog::statuses()))],
+        ]);
+        $count = Blog::forOrg($this->currentOrgId())
+            ->whereIn('id', array_unique($validated['ids']))
+            ->update(['status' => $validated['status']]);
+
+        return redirect()->route('admin.blogs.index')
+            ->with('success', "Status updated for {$count} blog post(s).");
     }
 
     protected function authorizeBlog(Blog $blog): void

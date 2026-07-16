@@ -10,6 +10,8 @@ use App\Models\Question;
 use App\Services\QuestionCategoryService;
 use App\Services\QuestionService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class QuestionController extends Controller
@@ -97,5 +99,60 @@ class QuestionController extends Controller
         return redirect()
             ->route('admin.questions.index')
             ->with('success', 'Question deleted successfully.');
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $question = Question::withTrashed()->forOrg($this->currentOrgId())->findOrFail($id);
+        abort_unless($question->trashed(), 404);
+        $question->restore();
+
+        return redirect()->route('admin.questions.index', ['tab' => 'bin'])
+            ->with('success', 'Question restored successfully.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $ids = $this->validatedIds($request);
+        $count = Question::forOrg($this->currentOrgId())->whereIn('id', $ids)->get()
+            ->each->delete()->count();
+
+        return redirect()->route('admin.questions.index')
+            ->with('success', "{$count} question(s) moved to bin.");
+    }
+
+    public function bulkRestore(Request $request): RedirectResponse
+    {
+        $ids = $this->validatedIds($request);
+        $count = Question::onlyTrashed()->forOrg($this->currentOrgId())->whereIn('id', $ids)->restore();
+
+        return redirect()->route('admin.questions.index', ['tab' => 'bin'])
+            ->with('success', "{$count} question(s) restored.");
+    }
+
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
+        ]);
+        $count = Question::forOrg($this->currentOrgId())
+            ->whereIn('id', array_unique($validated['ids']))
+            ->update(['status' => $validated['status']]);
+
+        return redirect()->route('admin.questions.index')
+            ->with('success', "Status updated for {$count} question(s).");
+    }
+
+    /** @return list<int> */
+    private function validatedIds(Request $request): array
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        return array_values(array_unique(array_map('intval', $validated['ids'])));
     }
 }

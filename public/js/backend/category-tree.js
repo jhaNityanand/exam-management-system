@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const indexUrl = config.indexUrl || window.location.pathname;
     const detailsBaseUrl = (config.detailsBaseUrl || indexUrl).replace(/\/$/, '');
     const linkedResourceLabel = config.linkedResourceLabel || 'items';
+    const restoreBaseUrl = (config.restoreBaseUrl || detailsBaseUrl).replace(/\/$/, '');
+    let currentTrash = new URLSearchParams(window.location.search).get('tab') === 'bin' ? 'bin' : 'active';
 
     const persistentContainer = document.getElementById('category-tree-container');
     const searchInput = document.getElementById('category-search');
@@ -21,6 +23,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsModalEl = document.getElementById('categoryDetailsModal');
 
     if (!persistentContainer) return;
+
+    const selection = window.EmsListUi ? new window.EmsListUi.ListSelection({
+        bodySelector: '#category-tree-container',
+        selectAllSelector: '#category-select-all',
+        bulkBarSelector: '#category-bulk-bar',
+        countSelector: '#category-selected-count',
+        checkboxSelector: '.category-row-check',
+        rowSelector: '.category-tree-node',
+        activeActionsSelector: '#category-bulk-actions-active',
+        binActionsSelector: '#category-bulk-actions-bin',
+    }) : null;
+
+    const syncTabs = () => {
+        document.querySelectorAll('.list-view-tabs [data-trash]').forEach((button) => {
+            const active = button.dataset.trash === currentTrash;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        selection?.setMode(currentTrash);
+    };
+
+    const decorateNodes = () => {
+        persistentContainer.querySelectorAll('.category-tree-node').forEach((node) => {
+            const id = node.querySelector('[data-category-id]')?.dataset.categoryId;
+            if (!id) return;
+            const item = node.querySelector(':scope > .hierarchy-row .category-tree-item');
+            item?.classList.add('list-row');
+            const leading = item?.querySelector('.flex.items-center.gap-2\\.5');
+            if (leading && !leading.querySelector('.category-row-check')) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'category-row-check list-row-check shrink-0';
+                checkbox.dataset.id = id;
+                checkbox.value = id;
+                checkbox.setAttribute('aria-label', 'Select category');
+                leading.prepend(checkbox);
+            }
+
+            if (currentTrash === 'bin') {
+                item?.querySelectorAll('.view-node-btn, .delete-node-btn, a[title="Edit category"]').forEach((el) => el.remove());
+                const actions = item?.querySelector('.flex.shrink-0.items-center');
+                if (actions && !actions.querySelector('.restore-node-btn')) {
+                    actions.insertAdjacentHTML('beforeend', `
+                        <button type="button" class="restore-node-btn list-action-btn list-action-btn--restore"
+                            data-category-id="${id}" title="Restore category" aria-label="Restore category">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </button>
+                    `);
+                }
+            }
+        });
+        selection?.clear();
+    };
 
     const skeletonHTML = `
         <div class="animate-pulse space-y-4" aria-hidden="true">
@@ -130,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             url.searchParams.delete('status');
         }
+        url.searchParams.set('trash', currentTrash);
+        url.searchParams.set('tab', currentTrash);
 
         window.history.replaceState(null, '', url.toString());
 
@@ -145,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then((html) => {
                 persistentContainer.innerHTML = html;
+                decorateNodes();
 
                 const rootEl = document.getElementById('category-tree-root');
                 if (rootEl) {
@@ -386,6 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggle = event.target.closest('.toggle-node-btn');
         const viewButton = event.target.closest('.view-node-btn');
         const deleteButton = event.target.closest('.delete-node-btn');
+        const restoreButton = event.target.closest('.restore-node-btn');
 
         if (toggle) {
             const node = toggle.closest('.category-tree-node');
@@ -406,6 +465,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteButton.dataset.categoryId,
                 deleteButton.dataset.categoryName || 'this category'
             );
+        }
+
+        if (restoreButton) {
+            const form = document.getElementById('category-restore-form');
+            if (form) {
+                form.action = `${restoreBaseUrl}/${restoreButton.dataset.categoryId}/restore`;
+                form.submit();
+            }
         }
     });
 
@@ -430,6 +497,39 @@ document.addEventListener('DOMContentLoaded', () => {
             setBranchState(node, shouldExpand);
         });
         updateExpandAllLabel();
+    });
+
+    document.querySelector('.list-view-tabs')?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-trash]');
+        if (!button) return;
+        currentTrash = button.dataset.trash === 'bin' ? 'bin' : 'active';
+        syncTabs();
+        loadCategories();
+    });
+
+    document.getElementById('category-bulk-delete')?.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Move selected categories to bin?',
+            text: `Linked ${linkedResourceLabel} may also be moved to the bin.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Move to Bin',
+            confirmButtonColor: '#dc2626',
+        }).then((result) => {
+            if (result.isConfirmed) selection?.submit('#category-bulk-delete-form');
+        });
+    });
+
+    document.getElementById('category-bulk-restore')?.addEventListener('click', () => {
+        selection?.submit('#category-bulk-restore-form');
+    });
+
+    document.getElementById('category-bulk-status')?.addEventListener('change', (event) => {
+        if (!event.target.value) return;
+        const form = document.getElementById('category-bulk-status-form');
+        if (!form) return;
+        form.querySelector('[name="status"]').value = event.target.value;
+        selection?.submit(form);
     });
 
     if (detailsModalEl) {
@@ -464,5 +564,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    syncTabs();
     loadCategories();
 });

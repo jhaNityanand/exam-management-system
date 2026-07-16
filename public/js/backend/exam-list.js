@@ -2,6 +2,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('exams-table-body');
     const statGridEl = document.getElementById('exam-stat-grid');
     const activeChipsEl = document.getElementById('active-filter-chips');
+    let currentTrash = 'active';
+    const selection = new window.EmsListUi.ListSelection({
+        bodySelector: '#exams-table-body',
+        selectAllSelector: '#exams-select-all',
+        bulkBarSelector: '#exams-bulk-bar',
+        countSelector: '#exams-selected-count',
+        checkboxSelector: '.list-row-check',
+        activeActionsSelector: '#exams-bulk-actions-active',
+        binActionsSelector: '#exams-bulk-actions-bin',
+    });
 
     const statusClassMap = {
         published: 'exam-status-published',
@@ -168,8 +178,12 @@ document.addEventListener('DOMContentLoaded', () => {
         emptySelector: '#exams-empty',
         defaultSort: 'updated_at',
         defaultDirection: 'desc',
-        skeletonColumns: 4,
-        onFetchSuccess: (response) => renderStats(response.stats || {}),
+        skeletonColumns: 5,
+        onFetchSuccess: (response) => {
+            renderStats(response.stats || {});
+            selection.clear();
+            window.EmsListUi.syncSortButtons(examsTable);
+        },
         onFiltersChange: (state) => updateChips(state),
         rowTemplate: (row) => {
             const showUrl = `${window.examsIndexUrl}/${row.id}`;
@@ -182,8 +196,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? row.tags.map((t) => `<span class="exam-meta-chip">${escapeHtml(t)}</span>`).join('')
                 : '';
 
+            const isBin = currentTrash === 'bin';
             return `
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                <tr class="exam-list-row list-row">
+                    <td class="px-3 py-4 align-top">
+                        <input type="checkbox" class="list-row-check" data-id="${escapeHtml(row.id)}" value="${escapeHtml(row.id)}" aria-label="Select exam ${escapeHtml(row.title)}">
+                    </td>
                     <td class="px-6 py-4 align-top">
                         <div class="space-y-2">
                             <div class="flex items-center gap-2 flex-wrap">
@@ -221,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td class="px-6 py-4 align-top whitespace-nowrap text-right text-sm">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="${showUrl}"
+                            ${isBin ? '' : `<a href="${showUrl}"
                                class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-200"
                                title="View Details"
                                aria-label="View exam details">
@@ -246,12 +264,36 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
-                            </button>
+                            </button>`}
+                            ${isBin ? `<button type="button" class="js-restore-exam list-action-btn list-action-btn--restore" data-id="${escapeHtml(row.id)}" title="Restore" aria-label="Restore exam">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            </button>` : ''}
                         </div>
                     </td>
                 </tr>
             `;
         },
+    });
+
+    window.EmsListUi.bindSortButtons(examsTable);
+    const originalFetch = examsTable.fetch.bind(examsTable);
+    examsTable.fetch = function patchedFetch() {
+        this.filters = { ...this.filters, trash: currentTrash };
+        return originalFetch();
+    };
+
+    document.querySelector('.list-view-tabs')?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-trash]');
+        if (!button) return;
+        currentTrash = button.dataset.trash === 'bin' ? 'bin' : 'active';
+        document.querySelectorAll('.list-view-tabs [data-trash]').forEach((tab) => {
+            const active = tab === button;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        selection.setMode(currentTrash);
+        examsTable.page = 1;
+        examsTable.fetch();
     });
 
     activeChipsEl?.addEventListener('click', (e) => {
@@ -262,6 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (tableBody) {
         tableBody.addEventListener('click', (e) => {
+            const restoreBtn = e.target.closest('.js-restore-exam');
+            if (restoreBtn) {
+                const form = document.getElementById('restore-exam-form');
+                form.action = `${window.examsRestoreUrl}/${restoreBtn.dataset.id}/restore`;
+                form.submit();
+                return;
+            }
             const btn = e.target.closest('.js-delete-exam');
             if (!btn) return;
             const id = btn.dataset.id;
@@ -281,5 +330,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+    }
+
+    document.getElementById('btn-bulk-delete')?.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Move selected exams to bin?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Move to Bin',
+            confirmButtonColor: '#dc2626',
+        }).then((result) => {
+            if (result.isConfirmed) selection.submit('#bulk-delete-exam-form');
+        });
+    });
+
+    document.getElementById('btn-bulk-restore')?.addEventListener('click', () => {
+        selection.submit('#bulk-restore-exam-form');
+    });
+
+    document.getElementById('exams-bulk-status')?.addEventListener('change', (event) => {
+        if (!event.target.value) return;
+        const form = document.getElementById('bulk-status-exam-form');
+        form.querySelector('[name="status"]').value = event.target.value;
+        selection.submit(form);
+    });
+
+    if (new URLSearchParams(window.location.search).get('tab') === 'bin') {
+        document.querySelector('.list-view-tabs [data-trash="bin"]')?.click();
+    } else {
+        selection.setMode('active');
     }
 });

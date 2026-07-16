@@ -47,13 +47,12 @@
                 </div>
 
                 {{-- Filter / Search Row --}}
-                <form id="filter-form" onsubmit="event.preventDefault();"
-                      class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <form id="filter-form" onsubmit="event.preventDefault();" class="list-toolbar !mt-0">
 
-                    <div class="flex flex-col sm:flex-row gap-2 flex-1">
+                    <div class="list-toolbar__search">
 
                         {{-- Search --}}
-                        <div class="relative w-full md:w-96">
+                        <div class="relative w-full">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -67,17 +66,19 @@
                                    style="padding-left:2.5rem">
                         </div>
 
-                        {{-- Status filter --}}
-                        <select name="status" id="status-filter" class="panel-input w-full sm:w-40">
+                    </div>
+
+                    <div class="list-toolbar__controls">
+                        <select name="status" id="status-filter" class="panel-input w-40">
                             <option value="">All Statuses</option>
                             @foreach (['active', 'inactive', 'suspended'] as $s)
                                 <option value="{{ $s }}" @selected($status === $s)>{{ ucfirst($s) }}</option>
                             @endforeach
                         </select>
-                    </div>
-
-                    {{-- Actions --}}
-                    <div class="flex items-center gap-2 shrink-0 sm:justify-end">
+                        <div class="list-view-tabs" role="tablist" aria-label="Category visibility">
+                            <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
+                            <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
+                        </div>
                         {{-- Expand All --}}
                         <button id="expand-all-btn" type="button"
                             class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
@@ -90,6 +91,27 @@
                     </div>
                 </form>
 
+            </div>
+        </div>
+
+        <div id="category-bulk-bar" class="list-bulk-bar" hidden>
+            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+                <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <input type="checkbox" id="category-select-all" class="list-select-all">
+                    <span><span id="category-selected-count">0</span> selected</span>
+                </label>
+                <div id="category-bulk-actions-active" class="flex flex-wrap items-center gap-2">
+                    <button type="button" id="category-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                    <select id="category-bulk-status" class="panel-input w-40 text-sm">
+                        <option value="">Update Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+                <div id="category-bulk-actions-bin" hidden>
+                    <button type="button" id="category-bulk-restore" class="list-bulk-btn">Restore</button>
+                </div>
             </div>
         </div>
 
@@ -285,12 +307,17 @@
         <span id="category-toast-text">Done.</span>
     </div>
 </div>
+<form id="category-bulk-delete-form" action="{{ route('admin.questions.categories.bulk-destroy') }}" method="POST" class="hidden">@csrf</form>
+<form id="category-bulk-restore-form" action="{{ route('admin.questions.categories.bulk-restore') }}" method="POST" class="hidden">@csrf</form>
+<form id="category-bulk-status-form" action="{{ route('admin.questions.categories.bulk-status') }}" method="POST" class="hidden">@csrf @method('PATCH')<input type="hidden" name="status"></form>
+<form id="category-restore-form" action="" method="POST" class="hidden">@csrf @method('PATCH')</form>
 
 @endsection
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/backend/category-hierarchy.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/category-list.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
 @endpush
 
 @push('scripts')
@@ -300,7 +327,9 @@
             indexUrl: @json(route('admin.questions.categories.index')),
             detailsBaseUrl: @json(url('/admin/questions/categories')),
             linkedResourceLabel: 'questions',
+            restoreBaseUrl: @json(url('/admin/questions/categories')),
         };
     </script>
+    <script src="{{ versioned_asset('js/backend/list-ui.js') }}"></script>
     <script src="{{ asset('js/backend/category-tree.js') }}"></script>
 @endpush

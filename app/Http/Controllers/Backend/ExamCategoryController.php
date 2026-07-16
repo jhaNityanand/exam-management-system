@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
+use App\Http\Controllers\Concerns\HandlesCategoryListActions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\ExamCategory\StoreExamCategoryRequest;
 use App\Http\Requests\Backend\ExamCategory\UpdateExamCategoryRequest;
@@ -23,7 +24,10 @@ use Illuminate\View\View;
  */
 class ExamCategoryController extends Controller
 {
-    use ResolvesCurrentOrganization;
+    use HandlesCategoryListActions, ResolvesCurrentOrganization;
+
+    protected function categoryModelClass(): string { return ExamCategory::class; }
+    protected function categoryIndexRoute(): string { return 'admin.exams.categories.index'; }
 
     public function __construct(
         protected ExamCategoryService $service
@@ -40,9 +44,13 @@ class ExamCategoryController extends Controller
         $search = trim($request->query('search', ''));
         $status = $request->query('status', '');
         $sort   = $request->query('sort', 'name_asc');
+        $trash  = $request->query('trash', 'active');
 
         if ($request->ajax()) {
             $query = ExamCategory::forOrg($orgId);
+            if ($trash === 'bin') {
+                $query->onlyTrashed();
+            }
 
             [$col, $dir] = match ($sort) {
                 'name_desc' => ['name', 'desc'],

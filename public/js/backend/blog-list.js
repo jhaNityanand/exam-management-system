@@ -62,7 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTrash = trash;
         if (drawerTrashInput) drawerTrashInput.value = trash;
         trashToggle?.querySelectorAll('button').forEach((btn) => {
-            btn.classList.toggle('is-active', btn.dataset.trash === trash);
+            const active = btn.dataset.trash === trash;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
         if (bulkActionsActive) bulkActionsActive.hidden = trash === 'bin';
         if (bulkActionsBin) bulkActionsBin.hidden = trash !== 'bin';
@@ -90,7 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
             updateBulkBar();
             updateFilterBadge();
             document.querySelectorAll('.blog-sort-btn').forEach((btn) => {
-                btn.classList.toggle('is-active', btn.dataset.sortKey === blogsTable.sort);
+                const active = btn.dataset.sortKey === blogsTable.sort;
+                btn.classList.toggle('is-active', active);
+                btn.classList.toggle('is-asc', active && blogsTable.direction === 'asc');
+                btn.classList.toggle('is-desc', active && blogsTable.direction === 'desc');
+                btn.setAttribute('aria-sort', active ? (blogsTable.direction === 'asc' ? 'ascending' : 'descending') : 'none');
             });
         },
         rowTemplate: (item, index, meta) => {
@@ -117,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isBin = currentTrash === 'bin';
 
             return `
-                <tr class="blog-list-row group transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/80">
+                <tr class="blog-list-row list-row group">
                     <td class="px-3 py-2.5 align-middle">
                         <input type="checkbox" class="blog-row-check rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" data-id="${item.id}" value="${item.id}">
                     </td>
@@ -272,6 +278,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-bulk-restore')?.addEventListener('click', () => {
         submitBulk('bulk-restore-form');
+    });
+
+    document.getElementById('blogs-bulk-status')?.addEventListener('change', (event) => {
+        if (!event.target.value) return;
+        const form = document.getElementById('bulk-status-form');
+        form.querySelector('[name="status"]').value = event.target.value;
+        submitBulk('bulk-status-form');
     });
 
     tableBody?.addEventListener('click', (e) => {

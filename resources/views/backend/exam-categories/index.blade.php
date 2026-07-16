@@ -47,13 +47,12 @@
                 </div>
 
                 {{-- Filter / Search Row --}}
-                <form id="filter-form" onsubmit="event.preventDefault();"
-                      class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <form id="filter-form" onsubmit="event.preventDefault();" class="list-toolbar !mt-0">
 
-                    <div class="flex flex-col sm:flex-row gap-2 flex-1">
+                    <div class="list-toolbar__search">
 
                         {{-- Search --}}
-                        <div class="relative w-full md:w-96">
+                        <div class="relative w-full">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -67,17 +66,18 @@
                                    style="padding-left:2.5rem">
                         </div>
 
-                        {{-- Status filter --}}
-                        <select name="status" id="status-filter" class="panel-input w-full sm:w-40">
+                    </div>
+                    <div class="list-toolbar__controls">
+                        <select name="status" id="status-filter" class="panel-input w-40">
                             <option value="">All Statuses</option>
                             @foreach (['active', 'inactive', 'suspended'] as $s)
                                 <option value="{{ $s }}" @selected($status === $s)>{{ ucfirst($s) }}</option>
                             @endforeach
                         </select>
-                    </div>
-
-                    {{-- Actions --}}
-                    <div class="flex items-center gap-2 shrink-0 sm:justify-end">
+                        <div class="list-view-tabs" role="tablist" aria-label="Category visibility">
+                            <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
+                            <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
+                        </div>
                         {{-- Expand All --}}
                         <button id="expand-all-btn" type="button"
                             class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
@@ -92,6 +92,12 @@
 
             </div>
         </div>
+
+        @include('backend.partials.category-bulk-bar', [
+            'bulkDeleteRoute' => route('admin.exams.categories.bulk-destroy'),
+            'bulkRestoreRoute' => route('admin.exams.categories.bulk-restore'),
+            'bulkStatusRoute' => route('admin.exams.categories.bulk-status'),
+        ])
 
         {{-- ── Tree Body ────────────────────────────────────────────────────── --}}
         <div class="px-4 py-4 sm:px-6 sm:py-6">
@@ -290,6 +296,7 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/backend/category-hierarchy.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/category-list.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
 @endpush
 
 @push('scripts')
@@ -299,7 +306,9 @@
             indexUrl: @json(route('admin.exams.categories.index')),
             detailsBaseUrl: @json(url('/admin/exams/categories')),
             linkedResourceLabel: 'exams',
+            restoreBaseUrl: @json(url('/admin/exams/categories')),
         };
     </script>
+    <script src="{{ versioned_asset('js/backend/list-ui.js') }}"></script>
     <script src="{{ asset('js/backend/category-tree.js') }}"></script>
 @endpush

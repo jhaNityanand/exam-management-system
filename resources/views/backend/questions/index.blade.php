@@ -44,10 +44,9 @@
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex-1 w-full sm:w-auto">
-                    {{-- Search Input --}}
-                    <div class="relative w-full md:w-96">
+            <div class="list-toolbar">
+                <div class="list-toolbar__search">
+                    <div class="relative w-full">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -57,7 +56,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                <div class="list-toolbar__controls">
                     {{-- Per Page Dropdown --}}
                     <div class="relative w-28 sm:w-32">
                         <select id="questions-per-page" class="panel-input per-page-select w-full text-sm">
@@ -66,6 +65,11 @@
                             <option value="50">50 / Page</option>
                             <option value="100">100 / Page</option>
                         </select>
+                    </div>
+
+                    <div class="list-view-tabs" role="tablist" aria-label="Question visibility">
+                        <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
+                        <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
                     </div>
 
                     {{-- Filter Button --}}
@@ -79,52 +83,35 @@
             </div>
         </div>
 
-        <div class="relative overflow-x-auto min-h-[300px]" id="ajax-table-container">
-            <table class="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+        <div id="questions-bulk-bar" class="list-bulk-bar" hidden>
+            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="questions-selected-count">0</span> selected</span>
+                <div id="questions-bulk-actions-active" class="flex flex-wrap items-center gap-2">
+                    <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                    <select id="questions-bulk-status" class="panel-input text-sm w-36" aria-label="New status">
+                        <option value="">Update Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+                <div id="questions-bulk-actions-bin" hidden>
+                    <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="list-table-wrap" id="ajax-table-container">
+            <table class="list-table text-left">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900/60 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                        <th scope="col" class="px-3 py-2.5 font-semibold w-14 whitespace-nowrap">
-                            <button type="button" class="q-sort-btn" data-sort-key="id" title="Sort by serial number">
-                                <span>S.No</span>
-                                <span class="q-sort-icon" aria-hidden="true">
-                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
-                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
-                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
-                                </span>
-                            </button>
-                        </th>
-                        <th scope="col" class="px-4 py-2.5 font-semibold">Question Details</th>
-                        <th scope="col" class="px-4 py-2.5 font-semibold">
-                            <button type="button" class="q-sort-btn" data-sort-key="type" title="Sort by type">
-                                <span>Type</span>
-                                <span class="q-sort-icon" aria-hidden="true">
-                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
-                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
-                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
-                                </span>
-                            </button>
-                        </th>
+                        <th scope="col" class="list-table__heading w-10"><input type="checkbox" id="questions-select-all" class="list-select-all" aria-label="Select all questions"></th>
+                        <x-list-sort-header key="id" label="S.No" class="w-14" />
+                        <x-list-sort-header key="body" label="Question Details" />
+                        <x-list-sort-header key="type" label="Type" />
                         <th scope="col" class="px-4 py-2.5 font-semibold">Category</th>
-                        <th scope="col" class="px-4 py-2.5 font-semibold">
-                            <button type="button" class="q-sort-btn" data-sort-key="difficulty" title="Sort by difficulty">
-                                <span>Difficulty</span>
-                                <span class="q-sort-icon" aria-hidden="true">
-                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
-                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
-                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
-                                </span>
-                            </button>
-                        </th>
-                        <th scope="col" class="px-4 py-2.5 font-semibold">
-                            <button type="button" class="q-sort-btn" data-sort-key="marks" title="Sort by marks">
-                                <span>Marks</span>
-                                <span class="q-sort-icon" aria-hidden="true">
-                                    <svg class="q-sort-icon__idle" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3zm0 10l-3.5-4h7L8 13z"/></svg>
-                                    <svg class="q-sort-icon__asc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3l3.5 4h-7L8 3z"/></svg>
-                                    <svg class="q-sort-icon__desc" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l-3.5-4h7L8 13z"/></svg>
-                                </span>
-                            </button>
-                        </th>
+                        <x-list-sort-header key="difficulty" label="Difficulty" />
+                        <x-list-sort-header key="marks" label="Marks" />
                         <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
@@ -294,6 +281,10 @@
     @csrf
     @method('DELETE')
 </form>
+<form id="restore-question-form" action="" method="POST" class="hidden">@csrf @method('PATCH')</form>
+<form id="bulk-delete-question-form" action="{{ route('admin.questions.bulk-destroy') }}" method="POST" class="hidden">@csrf</form>
+<form id="bulk-restore-question-form" action="{{ route('admin.questions.bulk-restore') }}" method="POST" class="hidden">@csrf</form>
+<form id="bulk-status-question-form" action="{{ route('admin.questions.bulk-status') }}" method="POST" class="hidden">@csrf @method('PATCH')<input type="hidden" name="status"></form>
 
 @endsection
 
@@ -301,6 +292,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
 @endpush
 
 @push('scripts')
@@ -311,6 +303,7 @@
     <script>
         window.questionsApiUrl = @json(route('admin.internal-api.questions-table'));
         window.questionsIndexUrl = @json(route('admin.questions.index'));
+        window.questionsRestoreUrl = @json(url('/admin/questions'));
         window.questionTypeMeta = @json(
             collect(\App\Support\ExamFormats::questionTypes())->mapWithKeys(
                 fn ($type) => [$type['id'] => ['label' => $type['label'], 'class' => $type['badge_class']]]
@@ -337,5 +330,6 @@
     </script>
     <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/list-ui.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/question-list.js') }}"></script>
 @endpush

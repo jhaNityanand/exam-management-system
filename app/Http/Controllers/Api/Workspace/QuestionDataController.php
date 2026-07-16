@@ -37,6 +37,7 @@ class QuestionDataController extends Controller
 
         abort_if($orgId === null, 503, 'No organization found. Please run the database seeder.');
 
+        $trash = (string) data_get($request->query('filters', []), 'trash', 'active');
         $sort = (string) $request->query('sort', 'id');
         if (! in_array($sort, self::ALLOWED_SORTS, true)) {
             $request->query->set('sort', 'id');
@@ -89,8 +90,11 @@ class QuestionDataController extends Controller
             $request->query->set('filters', $filters);
         }
 
-        $query = Question::query()
-            ->forOrg($orgId)
+        $query = Question::query();
+        if ($trash === 'bin') {
+            $query->onlyTrashed();
+        }
+        $query->forOrg($orgId)
             ->with(['category', 'createdBy']);
 
         DatatableQuery::apply(

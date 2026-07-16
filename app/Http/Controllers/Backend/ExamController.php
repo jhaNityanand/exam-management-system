@@ -12,6 +12,7 @@ use App\Services\ExamService;
 use App\Support\ExamFormOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ExamController extends Controller
@@ -140,6 +141,61 @@ class ExamController extends Controller
         return redirect()
             ->route('admin.exams.index')
             ->with('success', 'Exam deleted successfully.');
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $exam = Exam::withTrashed()->forOrg($this->currentOrgId())->findOrFail($id);
+        abort_unless($exam->trashed(), 404);
+        $exam->restore();
+
+        return redirect()->route('admin.exams.index', ['tab' => 'bin'])
+            ->with('success', 'Exam restored successfully.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $ids = $this->validatedIds($request);
+        $count = Exam::forOrg($this->currentOrgId())->whereIn('id', $ids)->get()
+            ->each->delete()->count();
+
+        return redirect()->route('admin.exams.index')
+            ->with('success', "{$count} exam(s) moved to bin.");
+    }
+
+    public function bulkRestore(Request $request): RedirectResponse
+    {
+        $ids = $this->validatedIds($request);
+        $count = Exam::onlyTrashed()->forOrg($this->currentOrgId())->whereIn('id', $ids)->restore();
+
+        return redirect()->route('admin.exams.index', ['tab' => 'bin'])
+            ->with('success', "{$count} exam(s) restored.");
+    }
+
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'status' => ['required', Rule::in(['draft', 'published', 'active', 'inactive', 'suspended'])],
+        ]);
+        $count = Exam::forOrg($this->currentOrgId())
+            ->whereIn('id', array_unique($validated['ids']))
+            ->update(['status' => $validated['status']]);
+
+        return redirect()->route('admin.exams.index')
+            ->with('success', "Status updated for {$count} exam(s).");
+    }
+
+    /** @return list<int> */
+    private function validatedIds(Request $request): array
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        return array_values(array_unique(array_map('intval', $validated['ids'])));
     }
 
     // ── Publish ───────────────────────────────────────────────────────────────

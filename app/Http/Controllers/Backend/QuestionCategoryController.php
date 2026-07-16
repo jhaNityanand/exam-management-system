@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
+use App\Http\Controllers\Concerns\HandlesCategoryListActions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\QuestionCategory\StoreQuestionCategoryRequest;
 use App\Http\Requests\Backend\QuestionCategory\UpdateQuestionCategoryRequest;
@@ -23,7 +24,10 @@ use Illuminate\View\View;
  */
 class QuestionCategoryController extends Controller
 {
-    use ResolvesCurrentOrganization;
+    use HandlesCategoryListActions, ResolvesCurrentOrganization;
+
+    protected function categoryModelClass(): string { return QuestionCategory::class; }
+    protected function categoryIndexRoute(): string { return 'admin.questions.categories.index'; }
 
     public function __construct(
         protected QuestionCategoryService $service
@@ -40,10 +44,14 @@ class QuestionCategoryController extends Controller
         $search = trim($request->query('search', ''));
         $status = $request->query('status', '');
         $sort   = $request->query('sort', 'name_asc');
+        $trash  = $request->query('trash', 'active');
 
         if ($request->ajax()) {
             // Retrieve all categories for organization with DB ordering
             $query = QuestionCategory::forOrg($orgId);
+            if ($trash === 'bin') {
+                $query->onlyTrashed();
+            }
 
             [$col, $dir] = match ($sort) {
                 'name_desc' => ['name', 'desc'],

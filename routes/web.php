@@ -118,36 +118,62 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::prefix('questions')->name('questions.')->group(function () {
 
         // Question Categories sub-module
+        Route::post('categories/bulk-destroy', [QuestionCategoryController::class, 'bulkDestroyCategories'])->name('categories.bulk-destroy');
+        Route::post('categories/bulk-restore', [QuestionCategoryController::class, 'bulkRestoreCategories'])->name('categories.bulk-restore');
+        Route::patch('categories/bulk-status', [QuestionCategoryController::class, 'bulkUpdateCategoryStatus'])->name('categories.bulk-status');
+        Route::patch('categories/{id}/restore', [QuestionCategoryController::class, 'restoreCategory'])->name('categories.restore')->whereNumber('id');
         Route::resource('categories', QuestionCategoryController::class)
             ->names('categories');
     });
 
     // Questions resource (standalone)
+    Route::post('questions/bulk-destroy', [QuestionController::class, 'bulkDestroy'])->name('questions.bulk-destroy');
+    Route::post('questions/bulk-restore', [QuestionController::class, 'bulkRestore'])->name('questions.bulk-restore');
+    Route::patch('questions/bulk-status', [QuestionController::class, 'bulkUpdateStatus'])->name('questions.bulk-status');
+    Route::patch('questions/{id}/restore', [QuestionController::class, 'restore'])->name('questions.restore')->whereNumber('id');
     Route::resource('questions', QuestionController::class);
 
     // ── Exams ─────────────────────────────────────────────────────────────────
     Route::prefix('exams')->name('exams.')->group(function () {
+        Route::post('categories/bulk-destroy', [ExamCategoryController::class, 'bulkDestroyCategories'])->name('categories.bulk-destroy');
+        Route::post('categories/bulk-restore', [ExamCategoryController::class, 'bulkRestoreCategories'])->name('categories.bulk-restore');
+        Route::patch('categories/bulk-status', [ExamCategoryController::class, 'bulkUpdateCategoryStatus'])->name('categories.bulk-status');
+        Route::patch('categories/{id}/restore', [ExamCategoryController::class, 'restoreCategory'])->name('categories.restore')->whereNumber('id');
         Route::resource('categories', ExamCategoryController::class)->names('categories');
     });
     Route::get('api/question-bank/categories', [ExamController::class, 'apiCategories'])->name('api.question-bank.categories');
     Route::get('api/question-bank/questions', [ExamController::class, 'apiQuestions'])->name('api.question-bank.questions');
+    Route::post('exams/bulk-destroy', [ExamController::class, 'bulkDestroy'])->name('exams.bulk-destroy');
+    Route::post('exams/bulk-restore', [ExamController::class, 'bulkRestore'])->name('exams.bulk-restore');
+    Route::patch('exams/bulk-status', [ExamController::class, 'bulkUpdateStatus'])->name('exams.bulk-status');
+    Route::patch('exams/{id}/restore', [ExamController::class, 'restore'])->name('exams.restore')->whereNumber('id');
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
 
     // ── Blogs ─────────────────────────────────────────────────────────────────
     Route::prefix('blogs')->name('blogs.')->group(function () {
+        Route::post('categories/bulk-destroy', [BlogCategoryController::class, 'bulkDestroyCategories'])->name('categories.bulk-destroy');
+        Route::post('categories/bulk-restore', [BlogCategoryController::class, 'bulkRestoreCategories'])->name('categories.bulk-restore');
+        Route::patch('categories/bulk-status', [BlogCategoryController::class, 'bulkUpdateCategoryStatus'])->name('categories.bulk-status');
+        Route::patch('categories/{id}/restore', [BlogCategoryController::class, 'restoreCategory'])->name('categories.restore')->whereNumber('id');
         Route::resource('categories', BlogCategoryController::class)->names('categories');
         Route::post('bulk-destroy', [BlogController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::post('bulk-restore', [BlogController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::patch('bulk-status', [BlogController::class, 'bulkUpdateStatus'])->name('bulk-status');
         Route::patch('{blog}/restore', [BlogController::class, 'restore'])->name('restore')->withTrashed();
     });
     Route::resource('blogs', BlogController::class);
 
     // ── News ──────────────────────────────────────────────────────────────────
     Route::prefix('news')->name('news.')->group(function () {
+        Route::post('categories/bulk-destroy', [NewsCategoryController::class, 'bulkDestroyCategories'])->name('categories.bulk-destroy');
+        Route::post('categories/bulk-restore', [NewsCategoryController::class, 'bulkRestoreCategories'])->name('categories.bulk-restore');
+        Route::patch('categories/bulk-status', [NewsCategoryController::class, 'bulkUpdateCategoryStatus'])->name('categories.bulk-status');
+        Route::patch('categories/{id}/restore', [NewsCategoryController::class, 'restoreCategory'])->name('categories.restore')->whereNumber('id');
         Route::resource('categories', NewsCategoryController::class)->names('categories');
         Route::post('bulk-destroy', [NewsController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::post('bulk-restore', [NewsController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::patch('bulk-status', [NewsController::class, 'bulkUpdateStatus'])->name('bulk-status');
         Route::patch('{news}/restore', [NewsController::class, 'restore'])->name('restore')->withTrashed();
     });
     Route::resource('news', NewsController::class);

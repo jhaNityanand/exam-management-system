@@ -1,6 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('questions-table-body');
     const questionTypeMeta = window.questionTypeMeta || {};
+    let currentTrash = 'active';
+    const selection = new window.EmsListUi.ListSelection({
+        bodySelector: '#questions-table-body',
+        selectAllSelector: '#questions-select-all',
+        bulkBarSelector: '#questions-bulk-bar',
+        countSelector: '#questions-selected-count',
+        checkboxSelector: '.list-row-check',
+        activeActionsSelector: '#questions-bulk-actions-active',
+        binActionsSelector: '#questions-bulk-actions-bin',
+    });
 
     const getTypeBadge = (type) => {
         const activeType = questionTypeMeta[type] || { label: type, class: '' };
@@ -24,16 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return tmp.textContent || tmp.innerText || '';
     };
 
-    const updateSortIndicators = (table) => {
-        document.querySelectorAll('.q-sort-btn').forEach((btn) => {
-            const key = btn.dataset.sortKey;
-            btn.classList.remove('is-active', 'is-asc', 'is-desc');
-            if (key === table.sort) {
-                btn.classList.add('is-active', table.direction === 'asc' ? 'is-asc' : 'is-desc');
-            }
-        });
-    };
-
     const questionsTable = new AjaxTable({
         containerSelector: '#ajax-table-container',
         apiUrl: window.questionsApiUrl,
@@ -47,10 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingSelector: '#questions-loading',
         emptySelector: '#questions-empty',
         totalCountSelector: '#questions-total-count',
-        skeletonColumns: 7,
+        skeletonColumns: 8,
         defaultSort: 'id',
         defaultDirection: 'desc',
-        onFetchSuccess: () => updateSortIndicators(questionsTable),
+        onFetchSuccess: () => {
+            selection.clear();
+            window.EmsListUi.syncSortButtons(questionsTable);
+        },
         rowTemplate: (q, index, meta) => {
             const plain = stripHtml(q.body).trim();
             const bodyPreview = plain.length > 110 ? `${plain.substring(0, 110)}…` : plain;
@@ -73,8 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 marksDisplay = `${q.marks_list.join(', ')} pts`;
             }
 
+            const isBin = currentTrash === 'bin';
             return `
-                <tr class="question-list-row group transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/80">
+                <tr class="question-list-row list-row">
+                    <td class="px-3 py-2.5 align-middle">
+                        <input type="checkbox" class="list-row-check" data-id="${q.id}" value="${q.id}" aria-label="Select question ${q.id}">
+                    </td>
                     <td class="px-3 py-2.5 align-middle whitespace-nowrap text-sm font-medium text-slate-500 dark:text-slate-400">
                         ${serial}
                     </td>
@@ -95,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td class="px-4 py-2.5 align-middle whitespace-nowrap text-right text-sm">
                         <div class="flex items-center justify-end gap-1.5">
-                            <a href="${showUrl}"
+                            ${isBin ? '' : `<a href="${showUrl}"
                                class="q-action-btn q-action-btn--view"
                                title="View Details"
                                aria-label="View Details">
@@ -120,7 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
-                            </button>
+                            </button>`}
+                            ${isBin ? `<button type="button" class="js-restore-question list-action-btn list-action-btn--restore" data-id="${q.id}" title="Restore" aria-label="Restore question">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            </button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -128,25 +138,27 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     });
 
-    document.querySelectorAll('.q-sort-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const key = btn.dataset.sortKey;
-            if (!key) return;
+    window.EmsListUi.bindSortButtons(questionsTable);
 
-            if (questionsTable.sort === key) {
-                questionsTable.direction = questionsTable.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                questionsTable.sort = key;
-                questionsTable.direction = 'asc';
-            }
+    const originalFetch = questionsTable.fetch.bind(questionsTable);
+    questionsTable.fetch = function patchedFetch() {
+        this.filters = { ...this.filters, trash: currentTrash };
+        return originalFetch();
+    };
 
-            questionsTable.page = 1;
-            updateSortIndicators(questionsTable);
-            questionsTable.fetch();
+    document.querySelector('.list-view-tabs')?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-trash]');
+        if (!button) return;
+        currentTrash = button.dataset.trash === 'bin' ? 'bin' : 'active';
+        document.querySelectorAll('.list-view-tabs [data-trash]').forEach((tab) => {
+            const active = tab === button;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
         });
+        selection.setMode(currentTrash);
+        questionsTable.page = 1;
+        questionsTable.fetch();
     });
-
-    updateSortIndicators(questionsTable);
 
     // ── Marks filter: clickable buttons (single vs multiple) ───────────────
     const marksTypeSelect = document.getElementById('drawer-marks-type-filter');
@@ -281,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         questionsTable.page = 1;
         questionsTable.sort = questionsTable.defaultSort;
         questionsTable.direction = questionsTable.defaultDirection;
-        updateSortIndicators(questionsTable);
+        window.EmsListUi.syncSortButtons(questionsTable);
         questionsTable.fetch();
 
         const watch = setInterval(() => {
@@ -295,6 +307,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (tableBody) {
         tableBody.addEventListener('click', (e) => {
+            const restoreBtn = e.target.closest('.js-restore-question');
+            if (restoreBtn) {
+                const form = document.getElementById('restore-question-form');
+                form.action = `${window.questionsRestoreUrl}/${restoreBtn.dataset.id}/restore`;
+                form.submit();
+                return;
+            }
             const btn = e.target.closest('.js-delete-question');
             if (!btn) return;
 
@@ -315,5 +334,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+    }
+
+    document.getElementById('btn-bulk-delete')?.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Move selected questions to bin?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Move to Bin',
+            confirmButtonColor: '#dc2626',
+        }).then((result) => {
+            if (result.isConfirmed) selection.submit('#bulk-delete-question-form');
+        });
+    });
+
+    document.getElementById('btn-bulk-restore')?.addEventListener('click', () => {
+        selection.submit('#bulk-restore-question-form');
+    });
+
+    document.getElementById('questions-bulk-status')?.addEventListener('change', (event) => {
+        if (!event.target.value) return;
+        const form = document.getElementById('bulk-status-question-form');
+        form.querySelector('[name="status"]').value = event.target.value;
+        selection.submit(form);
+    });
+
+    if (new URLSearchParams(window.location.search).get('tab') === 'bin') {
+        document.querySelector('.list-view-tabs [data-trash="bin"]')?.click();
+    } else {
+        selection.setMode('active');
     }
 });

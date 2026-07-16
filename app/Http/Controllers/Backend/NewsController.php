@@ -14,6 +14,7 @@ use App\Services\NewsCategoryService;
 use App\Services\NewsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class NewsController extends Controller
@@ -153,6 +154,21 @@ class NewsController extends Controller
         return redirect()
             ->route('admin.news.index', ['tab' => 'bin'])
             ->with('success', "{$count} news item(s) restored.");
+    }
+
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'status' => ['required', Rule::in(array_keys(News::statuses()))],
+        ]);
+        $count = News::forOrg($this->currentOrgId())
+            ->whereIn('id', array_unique($validated['ids']))
+            ->update(['status' => $validated['status']]);
+
+        return redirect()->route('admin.news.index')
+            ->with('success', "Status updated for {$count} news item(s).");
     }
 
     protected function authorizeNews(News $news): void

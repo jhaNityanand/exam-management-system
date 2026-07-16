@@ -34,9 +34,9 @@
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex-1 w-full sm:w-auto">
-                    <div class="relative w-full md:w-96">
+            <div class="list-toolbar">
+                <div class="list-toolbar__search">
+                    <div class="relative w-full">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -46,7 +46,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                <div class="list-toolbar__controls">
                     <div class="relative w-28 sm:w-32">
                         <select id="exams-per-page" class="panel-input per-page-select w-full text-sm">
                             <option value="10" selected>10 / Page</option>
@@ -54,6 +54,11 @@
                             <option value="50">50 / Page</option>
                             <option value="100">100 / Page</option>
                         </select>
+                    </div>
+
+                    <div class="list-view-tabs" role="tablist" aria-label="Exam visibility">
+                        <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
+                        <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
                     </div>
 
                     <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
@@ -72,13 +77,34 @@
         {{-- Stat grid (filled via AJAX) --}}
         <div id="exam-stat-grid" class="grid gap-3 border-b border-slate-200/80 px-4 py-3 sm:grid-cols-2 sm:px-6 xl:grid-cols-4 dark:border-slate-800"></div>
 
-        <div class="relative overflow-x-auto min-h-[300px]" id="ajax-table-container">
-            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+        <div id="exams-bulk-bar" class="list-bulk-bar" hidden>
+            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="exams-selected-count">0</span> selected</span>
+                <div id="exams-bulk-actions-active" class="flex flex-wrap items-center gap-2">
+                    <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                    <select id="exams-bulk-status" class="panel-input text-sm w-40" aria-label="New status">
+                        <option value="">Update Status</option>
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+                <div id="exams-bulk-actions-bin" hidden>
+                    <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="list-table-wrap" id="ajax-table-container">
+            <table class="list-table text-left">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900/40 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                        <th scope="col" class="px-6 py-4 font-semibold">Exam</th>
-                        <th scope="col" class="px-6 py-4 font-semibold">Schedule</th>
-                        <th scope="col" class="px-6 py-4 font-semibold">Question Setup</th>
+                        <th scope="col" class="list-table__heading w-10"><input type="checkbox" id="exams-select-all" class="list-select-all" aria-label="Select all exams"></th>
+                        <x-list-sort-header key="title" label="Exam" />
+                        <x-list-sort-header key="created_at" label="Schedule" />
+                        <x-list-sort-header key="questions_count" label="Question Setup" />
                         <th scope="col" class="px-6 py-4 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
@@ -261,6 +287,10 @@
     @csrf
     @method('DELETE')
 </form>
+<form id="restore-exam-form" action="" method="POST" class="hidden">@csrf @method('PATCH')</form>
+<form id="bulk-delete-exam-form" action="{{ route('admin.exams.bulk-destroy') }}" method="POST" class="hidden">@csrf</form>
+<form id="bulk-restore-exam-form" action="{{ route('admin.exams.bulk-restore') }}" method="POST" class="hidden">@csrf</form>
+<form id="bulk-status-exam-form" action="{{ route('admin.exams.bulk-status') }}" method="POST" class="hidden">@csrf @method('PATCH')<input type="hidden" name="status"></form>
 @endsection
 
 @push('styles')
@@ -268,6 +298,7 @@
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}?v={{ filemtime(public_path('css/backend/tom-select-theme.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}?v={{ filemtime(public_path('css/backend/question-list.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-list.css') }}?v={{ filemtime(public_path('css/backend/exam-list.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
 @endpush
 
@@ -280,6 +311,7 @@
     <script>
         window.examsApiUrl = @json(route('admin.internal-api.exams-table'));
         window.examsIndexUrl = @json(route('admin.exams.index'));
+        window.examsRestoreUrl = @json(url('/admin/exams'));
 
         document.addEventListener('DOMContentLoaded', function() {
             window.EmsTomSelectHierarchy?.create('#drawer-category-filter', {
@@ -301,5 +333,6 @@
     </script>
     <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/list-ui.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/exam-list.js') }}"></script>
 @endpush

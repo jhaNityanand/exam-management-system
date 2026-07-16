@@ -69,14 +69,14 @@
             </div>
 
             {{-- Toolbar --}}
-            <div class="gallery-toolbar">
-                <div class="gallery-toolbar__search">
+            <div class="gallery-toolbar list-toolbar">
+                <div class="gallery-toolbar__search list-toolbar__search">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
                     <input type="search" id="gallery-search" class="panel-input w-full pl-9 text-sm" placeholder="Search by name, alt text…">
                 </div>
-                <div class="gallery-toolbar__filters">
+                <div class="gallery-toolbar__filters list-toolbar__controls">
                     <select id="gallery-kind" class="panel-input text-sm w-auto min-w-[8rem]">
                         <option value="all">All types</option>
                         <option value="image">Images</option>
@@ -117,7 +117,6 @@
                 </div>
                 <div class="flex flex-wrap gap-2" id="gallery-bulk-actions-bin" hidden>
                     <button type="button" data-bulk="restore" class="gallery-bulk-btn">Restore</button>
-                    <button type="button" data-bulk="force" class="gallery-bulk-btn gallery-bulk-btn--danger">Delete forever</button>
                 </div>
                 <button type="button" id="gallery-clear-selection" class="gallery-bulk-btn gallery-bulk-btn--ghost">Clear</button>
             </div>
@@ -241,6 +240,7 @@
 @push('styles')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
     <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
 @endpush
 
 @push('scripts')

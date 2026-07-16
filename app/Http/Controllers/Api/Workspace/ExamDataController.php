@@ -45,11 +45,15 @@ class ExamDataController extends Controller
 
         abort_if($orgId === null, 503, 'No organization found. Please run the database seeder.');
 
+        $trash = (string) data_get($request->query('filters', []), 'trash', 'active');
         $this->normalizeSort($request);
         $specialFilters = $this->normalizeFilters($request);
 
-        $query = Exam::query()
-            ->forOrg($orgId)
+        $query = Exam::query();
+        if ($trash === 'bin') {
+            $query->onlyTrashed();
+        }
+        $query->forOrg($orgId)
             ->with(['category', 'createdBy'])
             ->withCount('questions');
 
@@ -63,7 +67,11 @@ class ExamDataController extends Controller
             $request->query->set('search', $search);
         }
 
-        $baseStatsQuery = Exam::query()->forOrg($orgId);
+        $baseStatsQuery = Exam::query();
+        if ($trash === 'bin') {
+            $baseStatsQuery->onlyTrashed();
+        }
+        $baseStatsQuery->forOrg($orgId);
         $this->applySearch($baseStatsQuery, $request);
         $this->applySpecialFilters($baseStatsQuery, $specialFilters);
         $request->query->set('search', '');

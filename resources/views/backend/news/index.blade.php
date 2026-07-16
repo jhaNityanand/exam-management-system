@@ -33,25 +33,26 @@
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div class="blog-trash-toggle" role="group" aria-label="Active or bin">
-                    <button type="button" data-trash="active" class="is-active">Active</button>
-                    <button type="button" data-trash="bin">Bin</button>
-                </div>
-
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 lg:justify-end">
-                    <div class="relative w-full sm:w-80">
+            <div class="list-toolbar">
+                <div class="list-toolbar__search">
+                    <div class="relative w-full">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         </div>
                         <input type="search" id="news-search" class="panel-input w-full pl-9 text-sm" placeholder="Search news…">
                     </div>
-                    <select id="news-per-page" class="panel-input per-page-select w-full sm:w-32 text-sm">
+                </div>
+                <div class="list-toolbar__controls">
+                    <select id="news-per-page" class="panel-input per-page-select w-32 text-sm">
                         <option value="10" selected>10 / Page</option>
                         <option value="20">20 / Page</option>
                         <option value="50">50 / Page</option>
                         <option value="100">100 / Page</option>
                     </select>
+                    <div class="blog-trash-toggle list-view-tabs" role="tablist" aria-label="News visibility">
+                        <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
+                        <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
+                    </div>
                     <button id="btn-toggle-filters" type="button" class="btn-filters inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/></svg>
                         <span>Filters</span>
@@ -68,10 +69,16 @@
                     <span><span id="news-selected-count">0</span> selected</span>
                 </label>
                 <div id="news-bulk-actions-active" class="flex flex-wrap gap-2">
-                    <button type="button" id="btn-bulk-delete" class="blog-bulk-btn blog-bulk-btn--danger">Delete selected</button>
+                    <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                    <select id="news-bulk-status" class="panel-input text-sm w-40" aria-label="New status">
+                        <option value="">Update Status</option>
+                        @foreach ($statuses as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div id="news-bulk-actions-bin" class="flex flex-wrap gap-2" hidden>
-                    <button type="button" id="btn-bulk-restore" class="blog-bulk-btn">Restore selected</button>
+                    <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
                 </div>
             </div>
         </div>
@@ -81,22 +88,14 @@
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900/60 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
                         <th class="px-3 py-2.5 w-10"><span class="sr-only">Select</span></th>
-                        <th class="px-3 py-2.5 font-semibold w-14 whitespace-nowrap">
-                            <button type="button" class="blog-sort-btn" data-sort-key="id"><span>S.No</span></button>
-                        </th>
+                        <x-list-sort-header key="id" label="S.No" class="w-14" button-class="blog-sort-btn list-sort-btn" />
                         <th class="px-4 py-2.5 font-semibold w-16">Banner</th>
-                        <th class="px-4 py-2.5 font-semibold">
-                            <button type="button" class="blog-sort-btn" data-sort-key="title"><span>Title</span></button>
-                        </th>
+                        <x-list-sort-header key="title" label="Title" button-class="blog-sort-btn list-sort-btn" />
                         <th class="px-4 py-2.5 font-semibold">Category</th>
                         <th class="px-4 py-2.5 font-semibold">Author</th>
                         <th class="px-4 py-2.5 font-semibold">Tags</th>
-                        <th class="px-4 py-2.5 font-semibold">
-                            <button type="button" class="blog-sort-btn" data-sort-key="status"><span>Status</span></button>
-                        </th>
-                        <th class="px-4 py-2.5 font-semibold">
-                            <button type="button" class="blog-sort-btn" data-sort-key="published_at"><span>Published</span></button>
-                        </th>
+                        <x-list-sort-header key="status" label="Status" button-class="blog-sort-btn list-sort-btn" />
+                        <x-list-sort-header key="published_at" label="Published" button-class="blog-sort-btn list-sort-btn" />
                         <th class="px-4 py-2.5 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
@@ -266,12 +265,14 @@
 <form id="restore-news-form" action="" method="POST" class="hidden">@csrf @method('PATCH')</form>
 <form id="bulk-delete-news-form" action="{{ route('admin.news.bulk-destroy') }}" method="POST" class="hidden">@csrf</form>
 <form id="bulk-restore-news-form" action="{{ route('admin.news.bulk-restore') }}" method="POST" class="hidden">@csrf</form>
+<form id="bulk-status-news-form" action="{{ route('admin.news.bulk-status') }}" method="POST" class="hidden">@csrf @method('PATCH')<input type="hidden" name="status"></form>
 @endsection
 
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/news-list.css') }}?v={{ filemtime(public_path('css/backend/news-list.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
 @endpush
 
@@ -331,5 +332,6 @@
     </script>
     <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
+    <script src="{{ versioned_asset('js/backend/list-ui.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/news-list.js') }}"></script>
 @endpush
