@@ -1,6 +1,6 @@
-<section>
+<section class="profile-password-section">
     <header>
-        <h2 class="text-lg font-medium text-slate-900 dark:text-slate-100">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">
             {{ __('Update Password') }}
         </h2>
 
@@ -9,30 +9,31 @@
         </p>
     </header>
 
-    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-5" data-password-form novalidate>
         @csrf
         @method('put')
 
-        <div>
+        <div class="profile-field" data-password-host>
             <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" placeholder="Enter your current password" data-password-field="current" />
+            <p class="profile-field-error" data-password-error="current">@foreach ($errors->updatePassword->get('current_password') as $message){{ $message }}@endforeach</p>
         </div>
 
-        <div>
+        <div class="profile-field" data-password-host>
             <x-input-label for="update_password_password" :value="__('New Password')" />
-            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
+            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" placeholder="At least 8 characters" data-password-field="new" />
+            <p class="profile-field-hint">Use 8+ characters with uppercase, lowercase, and a number.</p>
+            <p class="profile-field-error" data-password-error="new">@foreach ($errors->updatePassword->get('password') as $message){{ $message }}@endforeach</p>
         </div>
 
-        <div>
+        <div class="profile-field" data-password-host>
             <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
+            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" placeholder="Repeat your new password" data-password-field="confirmation" />
+            <p class="profile-field-error" data-password-error="confirmation">@foreach ($errors->updatePassword->get('password_confirmation') as $message){{ $message }}@endforeach</p>
         </div>
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+            <button type="submit" class="profile-btn profile-btn--primary">{{ __('Update password') }}</button>
 
             @if (session('status') === 'password-updated')
                 <p

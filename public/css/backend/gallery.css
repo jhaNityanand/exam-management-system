@@ -999,35 +999,94 @@
 .gallery-pagination__pages {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .gallery-pagination__pages button {
-    min-width: 2.25rem;
+    display: inline-flex;
+    width: 2.25rem;
     height: 2.25rem;
-    border-radius: 0.65rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 0.75rem;
     border: 1px solid rgb(226 232 240);
     background: #fff;
     font-size: 0.8rem;
     font-weight: 600;
     color: rgb(71 85 105);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gallery-pagination__pages button:hover:not(:disabled):not(.is-active) {
+    border-color: rgb(203 213 225);
+    background: rgb(248 250 252);
+    color: rgb(15 23 42);
+}
+
+.gallery-pagination__pages button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(99 102 241 / 0.2);
+}
+
+.gallery-pagination__pages button svg {
+    width: 1rem;
+    height: 1rem;
 }
 
 .gallery-pagination__pages button:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
+    pointer-events: none;
 }
 
 .gallery-pagination__pages button.is-active {
     background: rgb(79 70 229);
     border-color: rgb(79 70 229);
     color: #fff;
+    box-shadow: 0 3px 10px rgb(79 70 229 / 0.25);
+}
+
+.gallery-pagination__ellipsis {
+    display: inline-flex;
+    width: 2.25rem;
+    height: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    color: rgb(148 163 184);
+    font-size: 0.8rem;
+    font-weight: 700;
 }
 
 .dark .gallery-pagination__pages button {
     border-color: rgb(51 65 85);
     background: rgb(15 23 42);
     color: rgb(203 213 225);
+}
+
+.dark .gallery-pagination__pages button:hover:not(:disabled):not(.is-active) {
+    border-color: rgb(71 85 105);
+    background: rgb(30 41 59);
+    color: #fff;
+}
+
+.dark .gallery-pagination__pages button.is-active {
+    border-color: rgb(79 70 229);
+    background: rgb(79 70 229);
+    color: #fff;
+}
+
+@media (max-width: 639px) {
+    .gallery-pagination {
+        justify-content: center;
+    }
+
+    .gallery-pagination > p {
+        width: 100%;
+        text-align: center;
+    }
 }
 
 /* Drag overlay */

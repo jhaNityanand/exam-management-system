@@ -86,8 +86,35 @@ class ProfileAvatarService
             return;
         }
 
-        if (Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        foreach (array_unique([(string) config('gallery.disk', 'media'), 'media', 'public']) as $disk) {
+            if (config("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+
+                return;
+            }
         }
+    }
+
+    public function url(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        $gallery = Gallery::query()
+            ->withTrashed()
+            ->where('file_path', $path)
+            ->orWhere('original_file_path', $path)
+            ->orWhere('modified_file_path', $path)
+            ->first();
+
+        if ($gallery) {
+            return $gallery->file_url;
+        }
+
+        return $this->galleryService->publicUrl(
+            (string) config('gallery.disk', 'media'),
+            $path
+        );
     }
 }

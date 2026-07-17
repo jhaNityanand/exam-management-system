@@ -1,244 +1,361 @@
 @extends('backend.layouts.app')
 
+@section('title', 'My Profile')
 @section('page-title', 'My Profile')
+@section('content-container-class', 'max-w-none')
+
+@php
+    $profile = $user->profile;
+    $socialLinks = $profile?->social_links ?? [];
+    $nameParts = explode(' ', trim($user->name ?? 'User'));
+    $initials = count($nameParts) >= 2
+        ? strtoupper(substr($nameParts[0], 0, 1).substr($nameParts[1], 0, 1))
+        : strtoupper(substr($user->name ?? 'User', 0, 2));
+    $activeTab = session('status') === 'password-updated'
+        ? 'security'
+        : ($errors->hasAny(['address_line1', 'address_line2', 'city', 'state_region', 'postal_code', 'country'])
+            ? 'address'
+            : ($errors->hasAny(['social_links.*']) ? 'social' : 'general'));
+@endphp
 
 @section('content')
-<div class="max-w-6xl mx-auto pb-8" x-data="{ activeTab: '{{ session('status') === 'password-updated' ? 'security' : 'general' }}' }">
-    
-    {{-- Tabs Navigation --}}
-    <div class="border-b border-slate-200 dark:border-slate-700 mb-6 font-medium text-sm text-slate-500 dark:text-slate-400">
-        <ul class="flex overflow-x-auto gap-6 sm:gap-8 hide-scrollbar pb-1">
-            <li>
-                <button type="button" @click="activeTab = 'general'" 
-                        class="pb-3 border-b-2 transition-colors whitespace-nowrap focus:outline-none"
-                        :class="activeTab === 'general' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'">
-                    General Information
-                </button>
-            </li>
-            <li>
-                <button type="button" @click="activeTab = 'address'" 
-                        class="pb-3 border-b-2 transition-colors whitespace-nowrap focus:outline-none"
-                        :class="activeTab === 'address' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'">
-                    Address Details
-                </button>
-            </li>
-            <li>
-                <button type="button" @click="activeTab = 'social'" 
-                        class="pb-3 border-b-2 transition-colors whitespace-nowrap focus:outline-none"
-                        :class="activeTab === 'social' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'">
-                    Social Links
-                </button>
-            </li>
-            <li>
-                <button type="button" @click="activeTab = 'security'" 
-                        class="pb-3 border-b-2 transition-colors whitespace-nowrap focus:outline-none"
-                        :class="activeTab === 'security' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'">
-                    Security
-                </button>
-            </li>
-        </ul>
+<div
+    id="profile-workspace"
+    class="profile-page"
+    x-data="{ activeTab: @js($activeTab) }"
+    @profile-tab.window="activeTab = $event.detail"
+>
+    <section class="profile-hero">
+        <div class="profile-hero__glow profile-hero__glow--one"></div>
+        <div class="profile-hero__glow profile-hero__glow--two"></div>
+        <div class="profile-hero__content">
+            <div>
+                <span class="profile-eyebrow">Account workspace</span>
+                <h1>Make your profile feel like you.</h1>
+                <p>Keep your identity, contact details, public links, and account security up to date.</p>
+            </div>
+            <div class="profile-hero__meta">
+                <span class="profile-status-dot"></span>
+                Active account
+            </div>
+        </div>
+    </section>
+
+    <div class="profile-layout">
+        <aside class="profile-summary-card">
+            <div class="profile-summary-card__cover"></div>
+            <div class="profile-summary-card__body">
+                <div class="profile-summary-avatar">
+                    @if ($avatarUrl)
+                        <img src="{{ $avatarUrl }}" alt="{{ $user->name }} profile photo">
+                    @else
+                        <span>{{ $initials }}</span>
+                    @endif
+                </div>
+                <h2>{{ $user->name }}</h2>
+                <p>{{ $user->email }}</p>
+
+                <div class="profile-summary-card__facts">
+                    <div>
+                        <span>Account</span>
+                        <strong>{{ ucfirst($profile?->status ?? 'active') }}</strong>
+                    </div>
+                    <div>
+                        <span>Member since</span>
+                        <strong>{{ $user->created_at?->format('M Y') ?? '—' }}</strong>
+                    </div>
+                    <div>
+                        <span>Profile</span>
+                        <strong>{{ $profile?->bio ? 'Personalized' : 'Getting started' }}</strong>
+                    </div>
+                </div>
+
+                <p class="profile-summary-card__hint">
+                    A complete profile helps administrators and teammates identify you quickly.
+                </p>
+            </div>
+        </aside>
+
+        <section class="profile-main-card">
+            <nav class="profile-tabs" aria-label="Profile sections">
+                @foreach ([
+                    'general' => ['General', 'Personal details'],
+                    'address' => ['Address', 'Location details'],
+                    'social' => ['Social', 'Public profiles'],
+                    'security' => ['Security', 'Password & account'],
+                ] as $tab => [$label, $description])
+                    <button
+                        type="button"
+                        class="profile-tab"
+                        :class="{ 'is-active': activeTab === '{{ $tab }}' }"
+                        @click="activeTab = '{{ $tab }}'"
+                        :aria-selected="activeTab === '{{ $tab }}'"
+                        role="tab"
+                    >
+                        <span>{{ $label }}</span>
+                        <small>{{ $description }}</small>
+                    </button>
+                @endforeach
+            </nav>
+
+            <form
+                id="profile-form"
+                method="post"
+                action="{{ route('admin.profile.update') }}"
+                class="profile-form"
+                data-profile-form
+                novalidate
+            >
+                @csrf
+                @method('patch')
+                <input type="hidden" name="cropped_avatar" id="cropped_avatar">
+                <input type="hidden" name="remove_avatar" id="remove_avatar" value="0">
+
+                <div x-show="activeTab === 'general'" x-cloak role="tabpanel" class="profile-panel">
+                    <header class="profile-panel__header">
+                        <div>
+                            <span class="profile-panel__kicker">Personal details</span>
+                            <h2>General information</h2>
+                            <p>Update the details used throughout your workspace.</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-avatar-editor">
+                        <div class="profile-avatar-preview" data-avatar-preview>
+                            @if ($avatarUrl)
+                                <img src="{{ $avatarUrl }}" alt="Current profile avatar" data-avatar-image>
+                            @else
+                                <img src="" alt="Profile avatar preview" data-avatar-image hidden>
+                            @endif
+                            <span data-avatar-initials @if ($avatarUrl) hidden @endif>{{ $initials }}</span>
+                        </div>
+                        <div class="profile-avatar-editor__content">
+                            <h3>Profile photo</h3>
+                            <p>Choose a JPG, PNG, or WebP image. Crop it before saving for the best result.</p>
+                            <div class="profile-avatar-actions">
+                                <label for="avatar_input" class="profile-btn profile-btn--secondary">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14"/>
+                                    </svg>
+                                    {{ $avatarUrl ? 'Change photo' : 'Upload photo' }}
+                                </label>
+                                <input id="avatar_input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                                <button type="button" class="profile-btn profile-btn--ghost" data-avatar-remove @if (! $avatarUrl) hidden @endif>
+                                    Remove
+                                </button>
+                            </div>
+                            <p class="profile-field-error" data-error-for="avatar_input">@error('cropped_avatar'){{ $message }}@enderror</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-field-grid">
+                        <div class="profile-field" data-field-host>
+                            <label for="name">Full name <span aria-hidden="true">*</span></label>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                value="{{ old('name', $user->name) }}"
+                                placeholder="e.g. Ananya Sharma"
+                                autocomplete="name"
+                                data-validate="name"
+                                data-section="general"
+                            >
+                            <p class="profile-field-hint">Use the name your team will recognize.</p>
+                            <p class="profile-field-error" data-error-for="name">@error('name'){{ $message }}@enderror</p>
+                        </div>
+
+                        <div class="profile-field" data-field-host>
+                            <label for="email">Email address <span aria-hidden="true">*</span></label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value="{{ old('email', $user->email) }}"
+                                placeholder="name@example.com"
+                                autocomplete="email"
+                                inputmode="email"
+                                data-validate="email"
+                                data-section="general"
+                            >
+                            <p class="profile-field-hint">Used for sign-in and account notifications.</p>
+                            <p class="profile-field-error" data-error-for="email">@error('email'){{ $message }}@enderror</p>
+                        </div>
+
+                        <div class="profile-field" data-field-host>
+                            <label for="phone">Phone number</label>
+                            <input
+                                type="tel"
+                                id="phone"
+                                name="phone"
+                                value="{{ old('phone', $profile?->phone) }}"
+                                placeholder="+91 98765 43210"
+                                autocomplete="tel"
+                                inputmode="tel"
+                                data-validate="phone"
+                                data-section="general"
+                            >
+                            <p class="profile-field-error" data-error-for="phone">@error('phone'){{ $message }}@enderror</p>
+                        </div>
+
+                        <div class="profile-field profile-field--wide" data-field-host>
+                            <div class="profile-label-row">
+                                <label for="bio">Bio / About me</label>
+                                <span data-bio-count>0 / 2000</span>
+                            </div>
+                            <textarea
+                                id="bio"
+                                name="bio"
+                                rows="5"
+                                maxlength="2000"
+                                placeholder="Share your role, interests, or what you are currently learning…"
+                                data-section="general"
+                            >{{ old('bio', $profile?->bio) }}</textarea>
+                            <p class="profile-field-error" data-error-for="bio">@error('bio'){{ $message }}@enderror</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'address'" x-cloak role="tabpanel" class="profile-panel">
+                    <header class="profile-panel__header">
+                        <div>
+                            <span class="profile-panel__kicker">Location</span>
+                            <h2>Address details</h2>
+                            <p>Add an optional contact address for administrative use.</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-field-grid">
+                        <div class="profile-field profile-field--wide" data-field-host>
+                            <label for="address_line1">Address line 1</label>
+                            <input type="text" id="address_line1" name="address_line1" value="{{ old('address_line1', $profile?->address_line1) }}" placeholder="House number and street name" autocomplete="address-line1" data-section="address">
+                            <p class="profile-field-error" data-error-for="address_line1">@error('address_line1'){{ $message }}@enderror</p>
+                        </div>
+                        <div class="profile-field profile-field--wide" data-field-host>
+                            <label for="address_line2">Address line 2</label>
+                            <input type="text" id="address_line2" name="address_line2" value="{{ old('address_line2', $profile?->address_line2) }}" placeholder="Apartment, landmark, or area (optional)" autocomplete="address-line2" data-section="address">
+                            <p class="profile-field-error" data-error-for="address_line2">@error('address_line2'){{ $message }}@enderror</p>
+                        </div>
+                        <div class="profile-field" data-field-host>
+                            <label for="city">City</label>
+                            <input type="text" id="city" name="city" value="{{ old('city', $profile?->city) }}" placeholder="e.g. Bengaluru" autocomplete="address-level2" data-section="address">
+                            <p class="profile-field-error" data-error-for="city">@error('city'){{ $message }}@enderror</p>
+                        </div>
+                        <div class="profile-field" data-field-host>
+                            <label for="state_region">State / Region</label>
+                            <input type="text" id="state_region" name="state_region" value="{{ old('state_region', $profile?->state_region) }}" placeholder="e.g. Karnataka" autocomplete="address-level1" data-section="address">
+                            <p class="profile-field-error" data-error-for="state_region">@error('state_region'){{ $message }}@enderror</p>
+                        </div>
+                        <div class="profile-field" data-field-host>
+                            <label for="postal_code">Postal / ZIP code</label>
+                            <input type="text" id="postal_code" name="postal_code" value="{{ old('postal_code', $profile?->postal_code) }}" placeholder="e.g. 560001" autocomplete="postal-code" data-section="address">
+                            <p class="profile-field-error" data-error-for="postal_code">@error('postal_code'){{ $message }}@enderror</p>
+                        </div>
+                        <div class="profile-field" data-field-host>
+                            <label for="country">Country</label>
+                            <select id="country" name="country" autocomplete="country" data-section="address">
+                                <option value="">Choose your country</option>
+                                @foreach (['IN' => 'India', 'US' => 'United States', 'GB' => 'United Kingdom', 'CA' => 'Canada', 'AU' => 'Australia', 'AE' => 'United Arab Emirates', 'SG' => 'Singapore'] as $code => $country)
+                                    <option value="{{ $code }}" @selected(old('country', $profile?->country) === $code)>{{ $country }}</option>
+                                @endforeach
+                            </select>
+                            <p class="profile-field-error" data-error-for="country">@error('country'){{ $message }}@enderror</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'social'" x-cloak role="tabpanel" class="profile-panel">
+                    <header class="profile-panel__header">
+                        <div>
+                            <span class="profile-panel__kicker">Online presence</span>
+                            <h2>Social links</h2>
+                            <p>Connect the professional profiles you want to share.</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-field-grid">
+                        @foreach ([
+                            'linkedin' => ['LinkedIn', 'https://linkedin.com/in/username'],
+                            'github' => ['GitHub', 'https://github.com/username'],
+                            'twitter' => ['X / Twitter', 'https://x.com/username'],
+                            'facebook' => ['Facebook', 'https://facebook.com/username'],
+                        ] as $network => [$label, $placeholder])
+                            <div class="profile-field" data-field-host>
+                                <label for="social_{{ $network }}">{{ $label }}</label>
+                                <input
+                                    type="url"
+                                    id="social_{{ $network }}"
+                                    name="social_links[{{ $network }}]"
+                                    value="{{ old("social_links.{$network}", $socialLinks[$network] ?? '') }}"
+                                    placeholder="{{ $placeholder }}"
+                                    inputmode="url"
+                                    data-validate="url"
+                                    data-section="social"
+                                >
+                                <p class="profile-field-error" data-error-for="social_{{ $network }}">@error("social_links.{$network}"){{ $message }}@enderror</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div x-show="activeTab !== 'security'" x-cloak class="profile-form__footer">
+                    <p>Your changes apply across the entire admin workspace.</p>
+                    <button type="submit" class="profile-btn profile-btn--primary" data-profile-submit>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Save profile
+                    </button>
+                </div>
+            </form>
+
+            <div x-show="activeTab === 'security'" x-cloak role="tabpanel" class="profile-panel">
+                <header class="profile-panel__header">
+                    <div>
+                        <span class="profile-panel__kicker">Account protection</span>
+                        <h2>Security settings</h2>
+                        <p>Use a strong password and review destructive account actions carefully.</p>
+                    </div>
+                </header>
+                <div class="profile-security-grid">
+                    <div class="profile-security-card">
+                        @include('profile.partials.update-password-form')
+                    </div>
+                    <div class="profile-security-card profile-security-card--danger">
+                        @include('profile.partials.delete-user-form')
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
-    {{-- Content Area --}}
-    <div class="bg-white dark:bg-slate-800 shadow rounded-xl border border-slate-100 dark:border-slate-750 overflow-hidden">
-        
-        {{-- General Tab --}}
-        <div x-show="activeTab === 'general'" x-cloak style="display: none;" class="p-6 sm:p-8">
-            <form method="post" action="{{ route('admin.profile.update') }}" enctype="multipart/form-data" class="space-y-6 max-w-2xl">
-                @csrf
-                @method('patch')
-
-                {{-- Avatar --}}
+    <div id="avatar-crop-modal" class="profile-crop-modal" hidden aria-hidden="true">
+        <div class="profile-crop-modal__backdrop" data-crop-close></div>
+        <div class="profile-crop-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
+            <header>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Profile Avatar</label>
-                    <div class="flex items-center gap-6">
-                        <div class="w-20 h-20 rounded-full border-2 border-indigo-100 dark:border-indigo-900 bg-slate-100 dark:bg-slate-700 overflow-hidden flex items-center justify-center flex-shrink-0">
-                            @if($user->profile?->avatar)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::url($user->profile->avatar) }}" alt="Avatar" class="w-full h-full object-cover">
-                            @else
-                                @php
-                                    $userName = $user->name ?? 'User';
-                                    $nameParts = explode(' ', trim($userName));
-                                    if (count($nameParts) >= 2) {
-                                        $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
-                                    } else {
-                                        $initials = strtoupper(substr($userName, 0, 2));
-                                    }
-                                @endphp
-                                <span class="text-2xl font-bold text-slate-400">{{ $initials }}</span>
-                            @endif
-                        </div>
-                        <div>
-                            <input type="file" name="avatar" id="avatar" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/30 dark:file:text-indigo-400 dark:text-slate-400">
-                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">JPG, PNG, GIF or SVG. Max size 2MB.</p>
-                        </div>
-                    </div>
-                    @error('avatar')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                    <span class="profile-panel__kicker">Photo editor</span>
+                    <h2 id="avatar-crop-title">Crop your profile photo</h2>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
-                        <input type="text" id="name" name="name" value="{{ old('name', $user->name) }}" required class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 shadow-sm" />
-                        @error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
-                        <input type="email" id="email" name="email" value="{{ old('email', $user->email) }}" required class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 shadow-sm" />
-                        @error('email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-
-                <div>
-                    <label for="phone" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
-                    <input type="text" id="phone" name="phone" value="{{ old('phone', $user->profile?->phone) }}" class="w-full sm:max-w-xs rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 shadow-sm" />
-                    @error('phone')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
-                    <label for="bio" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bio / About Me</label>
-                    <textarea id="bio" name="bio" rows="4" class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 shadow-sm">{{ old('bio', $user->profile?->bio) }}</textarea>
-                    @error('bio')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div class="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-indigo-700 transition">
-                        Save Changes
-                    </button>
-                    @if (session('status') === 'profile-updated')
-                        <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)" class="text-sm text-green-600 dark:text-green-400 font-medium">Saved successfully.</p>
-                    @endif
-                </div>
-            </form>
-        </div>
-
-        {{-- Address Tab --}}
-        <div x-show="activeTab === 'address'" x-cloak style="display: none;" class="p-6 sm:p-8">
-            <form method="post" action="{{ route('admin.profile.update') }}" class="space-y-6 max-w-2xl">
-                @csrf
-                @method('patch')
-                <input type="hidden" name="name" value="{{ $user->name }}">
-                <input type="hidden" name="email" value="{{ $user->email }}">
-
-                <div class="grid grid-cols-1 gap-6">
-                    <div>
-                        <label for="address_line1" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address Line 1</label>
-                        <input type="text" id="address_line1" name="address_line1" value="{{ old('address_line1', $user->profile?->address_line1) }}" class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white shadow-sm" />
-                    </div>
-                    <div>
-                        <label for="address_line2" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address Line 2 (Optional)</label>
-                        <input type="text" id="address_line2" name="address_line2" value="{{ old('address_line2', $user->profile?->address_line2) }}" class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white shadow-sm" />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-                    <div>
-                        <label for="city" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
-                        <input type="text" id="city" name="city" value="{{ old('city', $user->profile?->city) }}" class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white shadow-sm" />
-                    </div>
-                    <div>
-                        <label for="state_region" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State / Region</label>
-                        <input type="text" id="state_region" name="state_region" value="{{ old('state_region', $user->profile?->state_region) }}" class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white shadow-sm" />
-                    </div>
-                    <div>
-                        <label for="postal_code" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Postal / Zip Code</label>
-                        <input type="text" id="postal_code" name="postal_code" value="{{ old('postal_code', $user->profile?->postal_code) }}" class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white shadow-sm" />
-                    </div>
-                    <div>
-                        <label for="country" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Country</label>
-                        <select id="country" name="country" class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white shadow-sm">
-                            <option value="">Select a country...</option>
-                            <option value="US" @selected(old('country', $user->profile?->country) === 'US')>United States</option>
-                            <option value="GB" @selected(old('country', $user->profile?->country) === 'GB')>United Kingdom</option>
-                            <option value="IN" @selected(old('country', $user->profile?->country) === 'IN')>India</option>
-                            <!-- other options could be added dynamically -->
-                            <option value="CA" @selected(old('country', $user->profile?->country) === 'CA')>Canada</option>
-                            <option value="AU" @selected(old('country', $user->profile?->country) === 'AU')>Australia</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-medium text-white shadow-sm hover:bg-indigo-700 transition">
-                        Update Address
-                    </button>
-                    @if (session('status') === 'profile-updated')
-                        <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)" class="text-sm text-green-600 dark:text-green-400 font-medium">Saved successfully.</p>
-                    @endif
-                </div>
-            </form>
-        </div>
-
-        {{-- Social Links Tab --}}
-        <div x-show="activeTab === 'social'" x-cloak style="display: none;" class="p-6 sm:p-8">
-            <form method="post" action="{{ route('admin.profile.update') }}" class="space-y-6 max-w-2xl">
-                @csrf
-                @method('patch')
-                <input type="hidden" name="name" value="{{ $user->name }}">
-                <input type="hidden" name="email" value="{{ $user->email }}">
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">LinkedIn Profile</label>
-                        <div class="relative rounded-lg shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-                            </div>
-                            <input type="url" name="social_links[linkedin]" value="{{ old('social_links.linkedin', $user->profile?->social_links['linkedin'] ?? '') }}" class="pl-10 block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://linkedin.com/in/username">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Twitter Target</label>
-                        <div class="relative rounded-lg shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
-                            </div>
-                            <input type="url" name="social_links[twitter]" value="{{ old('social_links.twitter', $user->profile?->social_links['twitter'] ?? '') }}" class="pl-10 block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://twitter.com/username">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Facebook Profile</label>
-                        <div class="relative rounded-lg shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                            </div>
-                            <input type="url" name="social_links[facebook]" value="{{ old('social_links.facebook', $user->profile?->social_links['facebook'] ?? '') }}" class="pl-10 block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://facebook.com/username">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-medium text-white shadow-sm hover:bg-indigo-700 transition">
-                        Update Socials
-                    </button>
-                    @if (session('status') === 'profile-updated')
-                        <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)" class="text-sm text-green-600 dark:text-green-400 font-medium">Saved successfully.</p>
-                    @endif
-                </div>
-            </form>
-        </div>
-
-        {{-- Security / Password Tab --}}
-        <div x-show="activeTab === 'security'" x-cloak style="display: none;" class="p-6 sm:p-8">
-            <div class="max-w-2xl">
-                @include('profile.partials.update-password-form')
-                
-                <hr class="my-8 border-slate-200 dark:border-slate-700">
-                
-                @include('profile.partials.delete-user-form')
+                <button type="button" class="profile-icon-btn" data-crop-close aria-label="Close photo editor">×</button>
+            </header>
+            <div class="profile-crop-stage">
+                <img id="avatar-crop-image" src="" alt="Selected photo to crop">
             </div>
+            <p class="profile-crop-help">Drag to reposition and use the mouse wheel or touch gesture to zoom.</p>
+            <footer>
+                <button type="button" class="profile-btn profile-btn--ghost" data-crop-close>Cancel</button>
+                <button type="button" class="profile-btn profile-btn--primary" data-crop-apply>Use this photo</button>
+            </footer>
         </div>
     </div>
 </div>
-
-<style>
-/* Utility class to hide scrollbar but allow sliding */
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/profile.css') }}">
+@endpush
+
+@push('scripts')
+    <script src="{{ versioned_asset('js/backend/profile.js') }}" defer></script>
+@endpush

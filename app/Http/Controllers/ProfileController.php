@@ -24,6 +24,7 @@ class ProfileController extends Controller
 
         return view('profile.edit', [
             'user' => $user,
+            'avatarUrl' => $this->avatarService->url($user->profile?->avatar),
         ]);
     }
 

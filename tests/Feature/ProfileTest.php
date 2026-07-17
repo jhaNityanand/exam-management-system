@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Organization;
 use App\Models\User;
+use App\Models\UserOrganization;
 use Illuminate\Support\Facades\Storage;
 
 test('profile page is displayed', function () {
@@ -53,9 +55,22 @@ test('email verification status is unchanged when the email address is unchanged
 });
 
 test('profile avatar can be uploaded from cropped image data', function () {
-    Storage::fake('public');
+    Storage::fake('media');
+    config()->set('gallery.disk', 'media');
 
     $user = User::factory()->create();
+    $organization = Organization::create([
+        'name' => 'Profile Test Organization',
+        'slug' => 'profile-test-org-'.$user->id,
+        'status' => 'active',
+        'user_id' => $user->id,
+    ]);
+    UserOrganization::create([
+        'user_id' => $user->id,
+        'organization_id' => $organization->id,
+        'role' => 'admin',
+        'status' => 'active',
+    ]);
     $jpeg = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAA//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAT8hf//aAAwDAQACAAMAAAAQn//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Qf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Qf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAT8Qf//Z';
 
     $response = $this
@@ -74,7 +89,7 @@ test('profile avatar can be uploaded from cropped image data', function () {
 
     expect($user->profile)->not->toBeNull();
     expect($user->profile->avatar)->not->toBeNull();
-    Storage::disk('public')->assertExists($user->profile->avatar);
+    Storage::disk('media')->assertExists($user->profile->avatar);
 });
 
 test('user can delete their account', function () {
@@ -91,7 +106,7 @@ test('user can delete their account', function () {
         ->assertRedirect('/');
 
     $this->assertGuest();
-    $this->assertNull($user->fresh());
+    $this->assertSoftDeleted($user);
 });
 
 test('correct password must be provided to delete account', function () {

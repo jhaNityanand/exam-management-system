@@ -370,13 +370,39 @@
         }
 
         els.pagination.innerHTML = `
-            <p class="text-sm text-slate-500">Showing page ${state.page} of ${state.lastPage} · ${state.total} file(s)</p>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                Page <span class="font-bold text-slate-800 dark:text-slate-200">${state.page}</span> of
+                <span class="font-bold text-slate-800 dark:text-slate-200">${state.lastPage}</span> ·
+                <span class="font-bold text-slate-800 dark:text-slate-200">${state.total}</span> files
+            </p>
             <div class="gallery-pagination__pages">
-                <button type="button" data-page="${Math.max(1, state.page - 1)}" ${state.page <= 1 ? 'disabled' : ''}>Prev</button>
+                <button type="button"
+                        class="gallery-pagination__nav"
+                        data-page="${Math.max(1, state.page - 1)}"
+                        aria-label="Previous page"
+                        title="Previous page"
+                        ${state.page <= 1 ? 'disabled' : ''}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
                 ${pages.map((p) => (p === '…'
-                    ? '<span class="px-2 text-slate-400">…</span>'
-                    : `<button type="button" data-page="${p}" class="${p === state.page ? 'is-active' : ''}">${p}</button>`)).join('')}
-                <button type="button" data-page="${Math.min(state.lastPage, state.page + 1)}" ${state.page >= state.lastPage ? 'disabled' : ''}>Next</button>
+                    ? '<span class="gallery-pagination__ellipsis" aria-hidden="true">…</span>'
+                    : `<button type="button"
+                               data-page="${p}"
+                               aria-label="Page ${p}"
+                               ${p === state.page ? 'aria-current="page"' : ''}
+                               class="${p === state.page ? 'is-active' : ''}">${p}</button>`)).join('')}
+                <button type="button"
+                        class="gallery-pagination__nav"
+                        data-page="${Math.min(state.lastPage, state.page + 1)}"
+                        aria-label="Next page"
+                        title="Next page"
+                        ${state.page >= state.lastPage ? 'disabled' : ''}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
             </div>
         `;
     }
