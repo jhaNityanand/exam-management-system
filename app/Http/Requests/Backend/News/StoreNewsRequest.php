@@ -70,8 +70,8 @@ class StoreNewsRequest extends FormRequest
             'is_breaking' => ['nullable', 'boolean'],
             'is_trending' => ['nullable', 'boolean'],
             'published_at' => ['nullable', 'date'],
-            'expires_at' => ['nullable', 'date', 'after_or_equal:published_at'],
-            'breaking_until' => ['nullable', 'date'],
+            'expires_at' => ['nullable', 'date', Rule::when($this->filled('published_at'), ['after:published_at'])],
+            'breaking_until' => ['nullable', 'date', Rule::when($this->filled('published_at'), ['after:published_at'])],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
             'seo_title' => ['nullable', 'string', 'max:255'],
             'seo_description' => ['nullable', 'string', 'max:500'],
@@ -99,7 +99,8 @@ class StoreNewsRequest extends FormRequest
             'featured_image_id.exists' => 'Select a valid featured image.',
             'og_image_id.exists' => 'Select a valid SEO / OG image.',
             'attachment_ids.*.exists' => 'One or more attachments are invalid.',
-            'expires_at.after_or_equal' => 'Expiry date must be on or after the publish date.',
+            'expires_at.after' => 'Expiry date must be greater than the publish date.',
+            'breaking_until.after' => 'Breaking News Until must be greater than the publish date.',
         ];
     }
 }

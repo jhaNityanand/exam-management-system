@@ -85,6 +85,10 @@
     background: #f8fafc;
 }
 
+.blog-bulk-bar [hidden] {
+    display: none !important;
+}
+
 .dark .blog-bulk-bar {
     border-color: #334155;
     background: rgba(15, 23, 42, 0.6);

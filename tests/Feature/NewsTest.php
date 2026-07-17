@@ -131,6 +131,24 @@ test('user can create a published news item', function () {
     $response->assertRedirect(route('admin.news.show', $news));
 });
 
+test('news create rejects expiry and breaking until before publish date', function () {
+    $this->actingAs($this->user)
+        ->from(route('admin.news.create'))
+        ->post(route('admin.news.store'), [
+            'title' => 'Invalid Schedule News',
+            'slug' => 'invalid-schedule-news',
+            'content' => '<p>Scheduled incorrectly.</p>',
+            'status' => 'published',
+            'published_at' => '2026-07-23 23:57:00',
+            'expires_at' => '2026-06-30 12:00:00',
+            'breaking_until' => '2026-07-01 09:00:00',
+        ])
+        ->assertRedirect(route('admin.news.create'))
+        ->assertSessionHasErrors(['expires_at', 'breaking_until']);
+
+    expect(News::query()->where('slug', 'invalid-schedule-news')->exists())->toBeFalse();
+});
+
 test('news table api returns paginated rows', function () {
     News::create([
         'organization_id' => $this->organization->id,

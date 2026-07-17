@@ -504,15 +504,27 @@
                 }
             }
 
-            if (config.module === 'news') {
-                const expiresInput = document.getElementById('expires_at');
-                const expiresValue = expiresInput?.value?.trim();
-                if (expiresValue && publishedValue) {
-                    const expiresDate = new Date(expiresValue.replace(' ', 'T'));
-                    const publishedDate = new Date(publishedValue.replace(' ', 'T'));
-                    if (!Number.isNaN(expiresDate.getTime()) && !Number.isNaN(publishedDate.getTime()) && expiresDate <= publishedDate) {
-                        showError(expiresInput, 'Expiry date must be after the publish date.');
-                        isValid = false;
+            if (config.module === 'news' && publishedValue) {
+                const publishedDate = new Date(publishedValue.replace(' ', 'T'));
+                if (!Number.isNaN(publishedDate.getTime())) {
+                    const expiresInput = document.getElementById('expires_at');
+                    const expiresValue = expiresInput?.value?.trim();
+                    if (expiresValue) {
+                        const expiresDate = new Date(expiresValue.replace(' ', 'T'));
+                        if (!Number.isNaN(expiresDate.getTime()) && expiresDate <= publishedDate) {
+                            showError(expiresInput.closest('.ems-dtp') || expiresInput, 'Expiry date must be greater than the publish date.');
+                            isValid = false;
+                        }
+                    }
+
+                    const breakingUntilInput = document.getElementById('breaking_until');
+                    const breakingUntilValue = breakingUntilInput?.value?.trim();
+                    if (breakingUntilValue) {
+                        const breakingUntilDate = new Date(breakingUntilValue.replace(' ', 'T'));
+                        if (!Number.isNaN(breakingUntilDate.getTime()) && breakingUntilDate <= publishedDate) {
+                            showError(breakingUntilInput.closest('.ems-dtp') || breakingUntilInput, 'Breaking News Until must be greater than the publish date.');
+                            isValid = false;
+                        }
                     }
                 }
             }
@@ -549,6 +561,37 @@
         });
     };
 
+    const parsePickerDate = (value) => {
+        if (!value?.trim()) return null;
+        const parsed = new Date(value.trim().replace(' ', 'T'));
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const syncNewsDateMins = () => {
+        const publishedInput = document.getElementById('published_at');
+        const publishedDate = parsePickerDate(publishedInput?.value);
+        ['expires_at', 'breaking_until'].forEach((id) => {
+            const input = document.getElementById(id);
+            if (!input?._flatpickr) return;
+            input._flatpickr.set('minDate', publishedDate || null);
+            const current = parsePickerDate(input.value);
+            if (publishedDate && current && current <= publishedDate) {
+                input._flatpickr.clear();
+            }
+        });
+    };
+
+    const bindNewsDateConstraints = (config) => {
+        if (config.module !== 'news') return;
+        const publishedInput = document.getElementById('published_at');
+        if (!publishedInput) return;
+
+        const onPublishedChange = () => syncNewsDateMins();
+        publishedInput.addEventListener('change', onPublishedChange);
+        publishedInput.addEventListener('input', onPublishedChange);
+        syncNewsDateMins();
+    };
+
     const initContentForm = (config) => {
         initFormSelects(document.getElementById(config.formId), {
             categorySelector: config.categorySelector,
@@ -556,6 +599,7 @@
         initTagsSelect({ tagItemClass: config.tagItemClass });
         bindSeoPreview(config);
         initGalleryPickers(config.existingMedia || {});
+        bindNewsDateConstraints(config);
         bindFormValidation(config);
 
         if (global.EmsRichTextEditor?.initAll) {

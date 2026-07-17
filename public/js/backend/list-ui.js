@@ -70,8 +70,14 @@
 
         setMode(mode) {
             this.mode = mode === 'bin' ? 'bin' : 'active';
-            if (this.activeActions) this.activeActions.hidden = this.mode === 'bin';
-            if (this.binActions) this.binActions.hidden = this.mode !== 'bin';
+            if (this.activeActions) {
+                this.activeActions.hidden = this.mode === 'bin';
+                this.activeActions.classList.toggle('hidden', this.mode === 'bin');
+            }
+            if (this.binActions) {
+                this.binActions.hidden = this.mode !== 'bin';
+                this.binActions.classList.toggle('hidden', this.mode !== 'bin');
+            }
             this.clear();
         }
 

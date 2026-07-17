@@ -282,6 +282,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return originalFetch();
     };
 
+    const refreshBtn = document.getElementById('btn-refresh-exams');
+    refreshBtn?.addEventListener('click', () => {
+        if (examsTable.loading) return;
+        refreshBtn.classList.add('is-refreshing');
+        refreshBtn.disabled = true;
+
+        examsTable.page = 1;
+        examsTable.sort = examsTable.defaultSort;
+        examsTable.direction = examsTable.defaultDirection;
+        window.EmsListUi.syncSortButtons(examsTable);
+        examsTable.fetch();
+
+        const watch = setInterval(() => {
+            if (!examsTable.loading) {
+                clearInterval(watch);
+                refreshBtn.classList.remove('is-refreshing');
+                refreshBtn.disabled = false;
+            }
+        }, 120);
+    });
+
     document.querySelector('.list-view-tabs')?.addEventListener('click', (event) => {
         const button = event.target.closest('[data-trash]');
         if (!button) return;

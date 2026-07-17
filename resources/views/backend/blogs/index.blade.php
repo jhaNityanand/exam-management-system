@@ -60,11 +60,8 @@
 
         <div id="blogs-bulk-bar" class="blog-bulk-bar" hidden>
             <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-                <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                    <input type="checkbox" id="blogs-select-all" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span><span id="blogs-selected-count">0</span> selected</span>
-                </label>
-                <div id="blogs-bulk-actions-active" class="flex flex-wrap gap-2">
+                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="blogs-selected-count">0</span> selected</span>
+                <div id="blogs-bulk-actions-active" class="flex flex-wrap items-center gap-2">
                     <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
                     <select id="blogs-bulk-status" class="panel-input text-sm w-40" aria-label="New status">
                         <option value="">Update Status</option>
@@ -73,7 +70,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div id="blogs-bulk-actions-bin" class="flex flex-wrap gap-2" hidden>
+                <div id="blogs-bulk-actions-bin" hidden>
                     <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
                 </div>
             </div>
@@ -83,7 +80,9 @@
             <table class="w-full text-left text-sm text-slate-700 dark:text-slate-300">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900/60 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                        <th class="px-3 py-2.5 w-10"><span class="sr-only">Select</span></th>
+                        <th class="px-3 py-2.5 w-10">
+                            <input type="checkbox" id="blogs-select-all" class="list-select-all rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" aria-label="Select all blog posts">
+                        </th>
                         <x-list-sort-header key="id" label="S.No" class="w-14" button-class="blog-sort-btn list-sort-btn" />
                         <th class="px-4 py-2.5 font-semibold w-16">Banner</th>
                         <x-list-sort-header key="title" label="Title" button-class="blog-sort-btn list-sort-btn" />

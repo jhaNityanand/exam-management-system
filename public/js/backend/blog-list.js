@@ -32,8 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.toggle('is-active', active);
             btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
-        if (bulkActionsActive) bulkActionsActive.hidden = trash === 'bin';
-        if (bulkActionsBin) bulkActionsBin.hidden = trash !== 'bin';
+        if (bulkActionsActive) {
+            bulkActionsActive.hidden = trash === 'bin';
+            bulkActionsActive.classList.toggle('hidden', trash === 'bin');
+        }
+        if (bulkActionsBin) {
+            bulkActionsBin.hidden = trash !== 'bin';
+            bulkActionsBin.classList.toggle('hidden', trash !== 'bin');
+        }
         selectedIds.clear();
         updateBulkBar();
     };
@@ -231,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-bulk-restore')?.addEventListener('click', () => {
+        if (currentTrash !== 'bin') return;
         submitBulk('bulk-restore-form');
     });
 
@@ -264,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const restoreBtn = e.target.closest('.js-restore-blog');
         if (restoreBtn) {
+            if (currentTrash !== 'bin') return;
             const id = restoreBtn.dataset.id;
             const form = document.getElementById('restore-blog-form');
             form.action = `${window.blogsRestoreUrl}/${id}/restore`;
