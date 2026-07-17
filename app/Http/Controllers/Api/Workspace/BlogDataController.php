@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Support\DatatableQuery;
+use App\Support\DateRangeFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -48,10 +49,18 @@ class BlogDataController extends Controller
         $trash = ($filters['trash'] ?? 'active') === 'bin';
         $dateFrom = $filters['date_from'] ?? null;
         $dateTo = $filters['date_to'] ?? null;
+        $createdFrom = $filters['created_from'] ?? null;
+        $createdTo = $filters['created_to'] ?? null;
         $tagId = $filters['tag_id'] ?? null;
 
         $datatableFilters = array_intersect_key($filters, array_flip(self::ALLOWED_FILTERS));
-        unset($datatableFilters['trash'], $datatableFilters['date_from'], $datatableFilters['date_to']);
+        unset(
+            $datatableFilters['trash'],
+            $datatableFilters['date_from'],
+            $datatableFilters['date_to'],
+            $datatableFilters['created_from'],
+            $datatableFilters['created_to']
+        );
 
         if (isset($datatableFilters['blog_category_id'])) {
             $datatableFilters['blog_category_id'] = $this->expandCategoryIds($datatableFilters['blog_category_id']);
@@ -83,12 +92,8 @@ class BlogDataController extends Controller
             }
         }
 
-        if (! empty($dateFrom)) {
-            $query->whereDate('published_at', '>=', $dateFrom);
-        }
-        if (! empty($dateTo)) {
-            $query->whereDate('published_at', '<=', $dateTo);
-        }
+        DateRangeFilter::apply($query, 'published_at', $dateFrom, $dateTo);
+        DateRangeFilter::apply($query, 'created_at', $createdFrom, $createdTo);
 
         DatatableQuery::apply(
             $query,

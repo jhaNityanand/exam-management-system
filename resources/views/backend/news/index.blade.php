@@ -49,14 +49,10 @@
                         <option value="50">50 / Page</option>
                         <option value="100">100 / Page</option>
                     </select>
-                    <div class="blog-trash-toggle list-view-tabs" role="tablist" aria-label="News visibility">
-                        <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
-                        <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
-                    </div>
-                    <button id="btn-toggle-filters" type="button" class="btn-filters inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
+                    <x-list-view-tabs class="blog-trash-toggle" aria-label="News visibility" />
+                    <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="btn-filters inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/></svg>
                         <span>Filters</span>
-                        <span id="news-filter-badge" class="filter-badge" aria-hidden="true">0</span>
                     </button>
                 </div>
             </div>
@@ -125,22 +121,13 @@
 </div>
 
 {{-- Right-side filter drawer --}}
-<div id="filter-drawer" class="offcanvas-drawer" tabindex="-1" aria-labelledby="filter-drawer-title" aria-hidden="true">
-    <div class="offcanvas-header">
-        <div>
-            <h5 class="offcanvas-title" id="filter-drawer-title">Filter News</h5>
-            <p class="offcanvas-subtitle">Narrow results by status, category, author, and date</p>
-        </div>
-        <button type="button" class="offcanvas-close" aria-label="Close filters">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-    </div>
-    <form id="filter-drawer-form" class="flex flex-col h-full min-h-0 overflow-hidden">
-        <div class="offcanvas-body">
+<x-filter-drawer
+    title="Filter News"
+    subtitle="Narrow results by status, category, author, tags, flags, and dates"
+>
             <div class="filter-group">
                 <label for="drawer-status-filter" class="filter-label">Status</label>
-                <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm">
-                    <option value="">All Statuses</option>
+                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
                     @foreach ($statuses as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
@@ -149,7 +136,7 @@
 
             <div class="filter-group">
                 <label for="drawer-category-filter" class="filter-label">Categories</label>
-                <select id="drawer-category-filter" name="filters[news_category_id][]" multiple placeholder="All categories">
+                <select id="drawer-category-filter" name="filters[news_category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}" data-level="{{ $cat->depth }}" data-category-name="{{ $cat->name }}">{{ $cat->name }}</option>
                     @endforeach
@@ -159,8 +146,7 @@
 
             <div class="filter-group">
                 <label for="drawer-author-filter" class="filter-label">Author</label>
-                <select id="drawer-author-filter" name="filters[author_id]" class="w-full text-sm" placeholder="All authors">
-                    <option value="">All Authors</option>
+                <select id="drawer-author-filter" name="filters[author_id][]" multiple data-filter-multiple data-placeholder="All authors" data-max-options="200">
                     @foreach ($authors as $author)
                         <option value="{{ $author->id }}">{{ $author->name }}</option>
                     @endforeach
@@ -169,97 +155,53 @@
 
             <div class="filter-group">
                 <label for="drawer-tag-filter" class="filter-label">Tag</label>
-                <select id="drawer-tag-filter" name="filters[tag_id]" class="w-full text-sm" placeholder="All tags">
-                    <option value="">All Tags</option>
+                <select id="drawer-tag-filter" name="filters[tag_id][]" multiple data-filter-multiple data-placeholder="All tags" data-max-options="300">
                     @foreach ($tags as $tag)
                         <option value="{{ $tag->id }}">{{ $tag->name }}</option>
                     @endforeach
                 </select>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 gap-5">
                 <div class="filter-group">
                     <label for="drawer-featured-filter" class="filter-label">Featured</label>
-                    <select id="drawer-featured-filter" name="filters[is_featured]" class="panel-input w-full text-sm">
-                        <option value="">Any</option>
+                    <select id="drawer-featured-filter" name="filters[is_featured][]" multiple data-filter-multiple data-placeholder="Any">
                         <option value="1">Featured only</option>
                         <option value="0">Not featured</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="drawer-breaking-filter" class="filter-label">Breaking</label>
-                    <select id="drawer-breaking-filter" name="filters[is_breaking]" class="panel-input w-full text-sm">
-                        <option value="">Any</option>
+                    <select id="drawer-breaking-filter" name="filters[is_breaking][]" multiple data-filter-multiple data-placeholder="Any">
                         <option value="1">Breaking only</option>
                         <option value="0">Not breaking</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="drawer-trending-filter" class="filter-label">Trending</label>
-                    <select id="drawer-trending-filter" name="filters[is_trending]" class="panel-input w-full text-sm">
-                        <option value="">Any</option>
+                    <select id="drawer-trending-filter" name="filters[is_trending][]" multiple data-filter-multiple data-placeholder="Any">
                         <option value="1">Trending only</option>
                         <option value="0">Not trending</option>
                     </select>
                 </div>
             </div>
 
-            <div class="filter-group">
-                <span class="filter-label">Published date</span>
-                <div class="filter-date-grid">
-                    <label class="filter-date-field">
-                        <span>From</span>
-                        <x-date-time-picker
-                            name="filters[date_from]"
-                            id="drawer-date-from"
-                            mode="date"
-                            input-class="panel-input text-sm"
-                        />
-                    </label>
-                    <label class="filter-date-field">
-                        <span>To</span>
-                        <x-date-time-picker
-                            name="filters[date_to]"
-                            id="drawer-date-to"
-                            mode="date"
-                            input-class="panel-input text-sm"
-                        />
-                    </label>
-                </div>
-            </div>
+            <x-filter-date-range
+                id="drawer-published"
+                label="Published date"
+                from-name="filters[date_from]"
+                to-name="filters[date_to]"
+            />
 
-            <div class="filter-group">
-                <span class="filter-label">Created date</span>
-                <div class="filter-date-grid">
-                    <label class="filter-date-field">
-                        <span>From</span>
-                        <x-date-time-picker
-                            name="filters[created_from]"
-                            id="drawer-created-from"
-                            mode="date"
-                            input-class="panel-input text-sm"
-                        />
-                    </label>
-                    <label class="filter-date-field">
-                        <span>To</span>
-                        <x-date-time-picker
-                            name="filters[created_to]"
-                            id="drawer-created-to"
-                            mode="date"
-                            input-class="panel-input text-sm"
-                        />
-                    </label>
-                </div>
-            </div>
+            <x-filter-date-range
+                id="drawer-created"
+                label="Created date"
+                from-name="filters[created_from]"
+                to-name="filters[created_to]"
+            />
 
             <input type="hidden" name="filters[trash]" id="drawer-trash-filter" value="active">
-        </div>
-        <div class="offcanvas-footer">
-            <button type="reset" class="panel-button-secondary" id="btn-reset-filters">Reset</button>
-            <button type="submit" class="panel-button-primary">Apply Filters</button>
-        </div>
-    </form>
-</div>
+</x-filter-drawer>
 
 <form id="delete-news-form" action="" method="POST" class="hidden">@csrf @method('DELETE')</form>
 <form id="restore-news-form" action="" method="POST" class="hidden">@csrf @method('PATCH')</form>
@@ -272,6 +214,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/news-list.css') }}?v={{ filemtime(public_path('css/backend/news-list.css')) }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
 @endpush
@@ -281,54 +224,13 @@
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}"></script>
     <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
+    <script src="{{ versioned_asset('js/components/filter-drawer.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.newsApiUrl = @json(route('admin.internal-api.news-table'));
         window.newsIndexUrl = @json(route('admin.news.index'));
         window.newsRestoreUrl = @json(url('admin/news'));
         window.newsStatusMeta = @json(collect($statuses)->map(fn ($label, $key) => ['label' => $label, 'key' => $key]));
-        document.addEventListener('DOMContentLoaded', () => {
-            window.EmsTomSelectHierarchy?.create('#drawer-category-filter', {
-                plugins: ['remove_button'],
-                placeholder: 'Select categories…',
-                maxItems: null,
-                closeAfterSelect: false,
-            });
-
-            if (window.TomSelect) {
-                new TomSelect('#drawer-author-filter', {
-                    allowEmptyOption: true,
-                    placeholder: 'Search authors…',
-                    maxOptions: 200,
-                    create: false,
-                    closeAfterSelect: true,
-                });
-                new TomSelect('#drawer-tag-filter', {
-                    allowEmptyOption: true,
-                    placeholder: 'Search tags…',
-                    maxOptions: 300,
-                    create: false,
-                    closeAfterSelect: true,
-                });
-                new TomSelect('#drawer-status-filter', {
-                    allowEmptyOption: true,
-                    placeholder: 'All statuses',
-                    create: false,
-                    closeAfterSelect: true,
-                });
-                ['#drawer-featured-filter', '#drawer-breaking-filter', '#drawer-trending-filter'].forEach((selector) => {
-                    const el = document.querySelector(selector);
-                    if (!el) return;
-                    new TomSelect(el, {
-                        allowEmptyOption: true,
-                        create: false,
-                        closeAfterSelect: true,
-                    });
-                });
-            }
-
-            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
-        });
     </script>
     <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>

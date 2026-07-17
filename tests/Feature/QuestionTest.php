@@ -11,7 +11,7 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     $this->organization = Organization::create([
         'name' => 'Test Org',
-        'slug' => 'test-org-' . $this->user->id,
+        'slug' => 'test-org-'.$this->user->id,
         'status' => 'active',
     ]);
 
@@ -33,7 +33,11 @@ test('authenticated user can view questions list page', function () {
         ->get(route('admin.questions.index'));
 
     $response->assertOk()
-        ->assertViewIs('backend.questions.index');
+        ->assertViewIs('backend.questions.index')
+        ->assertSee('name="filters[type][]"', false)
+        ->assertSee('name="filters[created_from]"', false)
+        ->assertSee('data-filter-multiple', false)
+        ->assertSee('data-date-preset-select', false);
 });
 
 test('user can query questions table data', function () {
@@ -112,6 +116,14 @@ test('user can search and filter questions', function () {
         ->get(route('admin.internal-api.questions-table', ['filters' => ['difficulty' => 'easy']]));
     $response->assertJsonCount(1, 'data')
         ->assertJsonFragment(['difficulty' => 'easy']);
+
+    // Filter by multiple difficulty values
+    $this->actingAs($this->user)
+        ->get(route('admin.internal-api.questions-table', [
+            'filters' => ['difficulty' => ['easy', 'medium']],
+        ]))
+        ->assertOk()
+        ->assertJsonCount(2, 'data');
 
     // Filter by marks
     $this->actingAs($this->user)
@@ -208,7 +220,7 @@ test('user can view question details', function () {
 test('user cannot access question from other organization', function () {
     $otherOrg = Organization::create([
         'name' => 'Other Org',
-        'slug' => 'other-org-' . uniqid(),
+        'slug' => 'other-org-'.uniqid(),
         'status' => 'active',
     ]);
 

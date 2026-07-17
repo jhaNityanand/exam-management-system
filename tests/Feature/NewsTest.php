@@ -1,13 +1,15 @@
 <?php
 
+use App\Models\Gallery;
 use App\Models\News;
 use App\Models\NewsCategory;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserOrganization;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create(['name' => 'News Editor']);
@@ -37,7 +39,11 @@ test('authenticated user can view news list page', function () {
     $this->actingAs($this->user)
         ->get(route('admin.news.index'))
         ->assertOk()
-        ->assertViewIs('backend.news.index');
+        ->assertViewIs('backend.news.index')
+        ->assertSee('name="filters[is_featured][]"', false)
+        ->assertSee('name="filters[created_from]"', false)
+        ->assertSee('data-date-preset-select', false)
+        ->assertSee('This Quarter', false);
 });
 
 test('authenticated user can view news categories page', function () {
@@ -50,7 +56,7 @@ test('authenticated user can view news categories page', function () {
 test('user can create news with multiple banner images', function () {
     Storage::fake('public');
 
-    $bannerOne = \App\Models\Gallery::create([
+    $bannerOne = Gallery::create([
         'organization_id' => $this->organization->id,
         'original_name' => 'banner-1.png',
         'file_name' => 'banner-1.png',
@@ -66,7 +72,7 @@ test('user can create news with multiple banner images', function () {
         'uploaded_by' => $this->user->id,
         'created_by' => $this->user->id,
     ]);
-    $bannerTwo = \App\Models\Gallery::create([
+    $bannerTwo = Gallery::create([
         'organization_id' => $this->organization->id,
         'original_name' => 'banner-2.png',
         'file_name' => 'banner-2.png',
@@ -144,6 +150,42 @@ test('news table api returns paginated rows', function () {
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->assertJsonFragment(['title' => 'Campus Wire Tips']);
+});
+
+test('news table supports multi-select flags and inclusive date ranges', function () {
+    foreach ([
+        ['title' => 'Featured News', 'is_featured' => true, 'published_at' => '2026-07-10 12:00:00'],
+        ['title' => 'Standard News', 'is_featured' => false, 'published_at' => '2026-07-12 08:00:00'],
+        ['title' => 'Old News', 'is_featured' => true, 'published_at' => '2026-06-30 23:59:59'],
+    ] as $index => $attributes) {
+        News::create([
+            'organization_id' => $this->organization->id,
+            'news_category_id' => $this->category->id,
+            'title' => $attributes['title'],
+            'slug' => 'filtered-news-'.$index,
+            'content' => '<p>Filter test.</p>',
+            'author_id' => $this->user->id,
+            'author_name' => 'News Editor',
+            'status' => 'published',
+            'is_featured' => $attributes['is_featured'],
+            'published_at' => $attributes['published_at'],
+            'created_by' => $this->user->id,
+        ]);
+    }
+
+    $this->actingAs($this->user)
+        ->getJson(route('admin.internal-api.news-table', [
+            'filters' => [
+                'is_featured' => ['0', '1'],
+                'date_from' => '2026-07-10',
+                'date_to' => '2026-07-12',
+            ],
+        ]))
+        ->assertOk()
+        ->assertJsonPath('meta.total', 2)
+        ->assertJsonFragment(['title' => 'Featured News'])
+        ->assertJsonFragment(['title' => 'Standard News'])
+        ->assertJsonMissing(['title' => 'Old News']);
 });
 
 test('user can soft delete and restore news', function () {

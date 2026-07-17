@@ -68,31 +68,31 @@ class ExamFormats
                 'id' => 'mcq',
                 'label' => 'Multiple Choice',
                 'description' => 'Objective questions with one or more options.',
-                'badge_class' => 'question-type-mcq',
+                'badge_class' => 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-400/30',
             ],
             [
                 'id' => 'true_false',
                 'label' => 'True / False',
                 'description' => 'Binary true or false questions.',
-                'badge_class' => 'question-type-true-false',
+                'badge_class' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30',
             ],
             [
                 'id' => 'short_answer',
                 'label' => 'Short Answer',
                 'description' => 'Brief written responses.',
-                'badge_class' => 'question-type-short-answer',
+                'badge_class' => 'bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30',
             ],
             [
                 'id' => 'long_answer',
                 'label' => 'Long Answer',
                 'description' => 'Extended descriptive answers.',
-                'badge_class' => 'question-type-long-answer',
+                'badge_class' => 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-400/30',
             ],
             [
                 'id' => 'fill_blank',
                 'label' => 'Fill in the Blanks',
                 'description' => 'Complete missing words or phrases.',
-                'badge_class' => 'question-type-fill-blank',
+                'badge_class' => 'bg-cyan-50 text-cyan-700 ring-cyan-600/20 dark:bg-cyan-500/15 dark:text-cyan-300 dark:ring-cyan-400/30',
             ],
         ];
     }

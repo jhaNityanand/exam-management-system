@@ -37,38 +37,45 @@
 
 .list-view-tabs {
     display: inline-flex;
-    align-items: center;
-    padding: 0.2rem;
     border: 1px solid #e2e8f0;
     border-radius: 0.75rem;
-    background: #f8fafc;
+    overflow: hidden;
+    background: #fff;
 }
 
 .list-view-tabs button {
-    min-height: 2rem;
-    padding: 0.35rem 0.75rem;
+    display: inline-flex;
+    min-height: 2.45rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.9rem;
     border: 0;
-    border-radius: 0.55rem;
     background: transparent;
     color: #64748b;
-    font-size: 0.78rem;
-    font-weight: 650;
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .list-view-tabs button:hover {
-    color: #312e81;
+    color: #334155;
+    background: #f8fafc;
 }
 
 .list-view-tabs button.is-active {
-    color: #3730a3;
-    background: #fff;
-    box-shadow: 0 1px 3px rgb(15 23 42 / 0.12);
+    color: #fff;
+    background: #4f46e5;
+}
+
+.list-view-tabs button.is-active:hover {
+    color: #fff;
+    background: #4338ca;
 }
 
 .dark .list-view-tabs {
     border-color: #334155;
-    background: #020617;
+    background: #0f172a;
 }
 
 .dark .list-view-tabs button {
@@ -76,12 +83,18 @@
 }
 
 .dark .list-view-tabs button:hover {
-    color: #c7d2fe;
+    color: #e2e8f0;
+    background: #1e293b;
 }
 
 .dark .list-view-tabs button.is-active {
-    color: #e0e7ff;
-    background: #1e293b;
+    color: #fff;
+    background: #4f46e5;
+}
+
+.dark .list-view-tabs button.is-active:hover {
+    color: #fff;
+    background: #4338ca;
 }
 
 .list-bulk-bar {

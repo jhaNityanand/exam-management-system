@@ -74,10 +74,7 @@
                                 <option value="{{ $s }}" @selected($status === $s)>{{ ucfirst($s) }}</option>
                             @endforeach
                         </select>
-                        <div class="list-view-tabs" role="tablist" aria-label="Category visibility">
-                            <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
-                            <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
-                        </div>
+                        <x-list-view-tabs aria-label="News category visibility" />
                         {{-- Expand All --}}
                         <button id="expand-all-btn" type="button"
                             class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">

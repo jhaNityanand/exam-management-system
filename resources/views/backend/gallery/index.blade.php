@@ -97,10 +97,11 @@
                             <option value="{{ $n }}" @selected($n == 24)>{{ $n }} / page</option>
                         @endforeach
                     </select>
-                    <div class="gallery-segmented gallery-segmented--text" id="gallery-trash-toggle" role="group" aria-label="Library or bin">
-                        <button type="button" data-trash="active" class="is-active">Library</button>
-                        <button type="button" data-trash="bin">Bin</button>
-                    </div>
+                    <x-list-view-tabs
+                        id="gallery-trash-toggle"
+                        active-label="Library"
+                        aria-label="Library or bin"
+                    />
                 </div>
             </div>
         </div>

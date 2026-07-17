@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Workspace;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Support\DatatableQuery;
+use App\Support\DateRangeFilter;
 use App\Support\ExamFormOptions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -194,13 +195,12 @@ class ExamDataController extends Controller
             $query->where('duration', '<=', (int) $special['duration_max']);
         }
 
-        if (! empty($special['created_from'])) {
-            $query->whereDate('created_at', '>=', $special['created_from']);
-        }
-
-        if (! empty($special['created_to'])) {
-            $query->whereDate('created_at', '<=', $special['created_to']);
-        }
+        DateRangeFilter::apply(
+            $query,
+            'created_at',
+            $special['created_from'] ?? null,
+            $special['created_to'] ?? null
+        );
     }
 
     private function applySearch(Builder $query, Request $request): void

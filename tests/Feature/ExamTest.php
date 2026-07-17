@@ -52,7 +52,12 @@ test('authenticated user can view exams list page', function () {
     $this->actingAs($this->user)
         ->get(route('admin.exams.index'))
         ->assertOk()
-        ->assertViewIs('backend.exams.index');
+        ->assertViewIs('backend.exams.index')
+        ->assertSee('name="filters[exam_mode][]"', false)
+        ->assertSee('name="filters[created_from]"', false)
+        ->assertSee('data-date-preset-select', false)
+        ->assertSee('This Quarter', false)
+        ->assertSee('Custom Range', false);
 });
 
 test('user can query exams table via internal API', function () {

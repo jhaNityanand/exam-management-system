@@ -7,51 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkActionsBin = document.getElementById('news-bulk-actions-bin');
     const trashToggle = document.querySelector('.blog-trash-toggle');
     const drawerTrashInput = document.getElementById('drawer-trash-filter');
-    const filterToggleBtn = document.getElementById('btn-toggle-filters');
-    const filterBadge = document.getElementById('news-filter-badge');
     let currentTrash = 'active';
     const selectedIds = new Set();
 
     const statusClass = (status) => `news-status-badge--${status || 'draft'}`;
 
-    const countActiveFilters = () => {
-        const form = document.getElementById('filter-drawer-form');
-        if (!form) return 0;
-        let count = 0;
-        const status = form.querySelector('[name="filters[status]"]')?.value;
-        if (status) count += 1;
-        const author = form.querySelector('[name="filters[author_id]"]')?.value;
-        if (author) count += 1;
-        const tag = form.querySelector('[name="filters[tag_id]"]')?.value;
-        if (tag) count += 1;
-        const dateFrom = form.querySelector('[name="filters[date_from]"]')?.value;
-        const dateTo = form.querySelector('[name="filters[date_to]"]')?.value;
-        if (dateFrom || dateTo) count += 1;
-        const createdFrom = form.querySelector('[name="filters[created_from]"]')?.value;
-        const createdTo = form.querySelector('[name="filters[created_to]"]')?.value;
-        if (createdFrom || createdTo) count += 1;
-        ['filters[is_featured]', 'filters[is_breaking]', 'filters[is_trending]'].forEach((name) => {
-            if (form.querySelector(`[name="${name}"]`)?.value) count += 1;
-        });
-
-        const categorySelect = form.querySelector('#drawer-category-filter');
-        if (categorySelect?.tomselect) {
-            if ((categorySelect.tomselect.getValue() || []).length) count += 1;
-        } else if (categorySelect) {
-            const selected = [...categorySelect.selectedOptions].filter((o) => o.value);
-            if (selected.length) count += 1;
-        }
-        return count;
-    };
-
-    const updateFilterBadge = () => {
-        const count = countActiveFilters();
-        if (filterBadge) {
-            filterBadge.textContent = String(count);
-            filterBadge.classList.toggle('is-visible', count > 0);
-        }
-        filterToggleBtn?.classList.toggle('is-active', count > 0);
-    };
     const updateBulkBar = () => {
         const count = selectedIds.size;
         if (bulkBar) bulkBar.hidden = count === 0 && !selectAll;
@@ -96,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
         onFetchSuccess: () => {
             selectedIds.clear();
             updateBulkBar();
-            updateFilterBadge();
             document.querySelectorAll('.blog-sort-btn').forEach((btn) => {
                 const active = btn.dataset.sortKey === newsTable.sort;
                 btn.classList.toggle('is-active', active);
@@ -189,25 +148,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterForm = document.getElementById('filter-drawer-form');
 
     filterForm?.addEventListener('reset', () => {
-        // Native reset fires before values clear; wait a tick then clear Tom Select.
         window.setTimeout(() => {
-            const category = document.getElementById('drawer-category-filter');
-            if (category?.tomselect) category.tomselect.clear(true);
-            const author = document.getElementById('drawer-author-filter');
-            if (author?.tomselect) author.tomselect.clear(true);
-            const tag = document.getElementById('drawer-tag-filter');
-            if (tag?.tomselect) tag.tomselect.clear(true);
             if (drawerTrashInput) drawerTrashInput.value = currentTrash;
-            updateFilterBadge();
         }, 0);
     });
 
     filterForm?.addEventListener('submit', () => {
         if (drawerTrashInput) drawerTrashInput.value = currentTrash;
-        window.setTimeout(updateFilterBadge, 0);
     });
-
-    updateFilterBadge();
 
     document.querySelectorAll('.blog-sort-btn').forEach((btn) => {
         btn.addEventListener('click', () => {

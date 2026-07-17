@@ -167,6 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const marksSelectAllBtn = document.getElementById('marks-select-all-btn');
     const marksHint = document.getElementById('marks-filter-hint');
     const marksButtons = () => Array.from(marksButtonsWrap?.querySelectorAll('.marks-option-btn') || []);
+    const getMarksMode = () => {
+        if (!marksTypeSelect) return '';
+        const value = marksTypeSelect.tomselect
+            ? marksTypeSelect.tomselect.getValue()
+            : Array.from(marksTypeSelect.selectedOptions || []).map((option) => option.value);
+        const selectedTypes = Array.isArray(value) ? value : [value].filter(Boolean);
+        return selectedTypes.length === 1 ? selectedTypes[0] : '';
+    };
 
     const getSelectedMarks = () => marksButtons()
         .filter((btn) => btn.classList.contains('is-selected'))
@@ -186,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!marksValuesHost) return;
         marksValuesHost.innerHTML = '';
 
-        const mode = marksTypeSelect?.value || '';
+        const mode = getMarksMode();
         const selected = getSelectedMarks();
 
         if (mode === 'multiple') {
@@ -212,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncMarksFilterMode = () => {
         if (!marksTypeSelect || !marksButtonsWrap) return;
 
-        const mode = marksTypeSelect.value;
+        const mode = getMarksMode();
         marksButtonsWrap.dataset.mode = mode;
         clearMarksSelection();
 
@@ -234,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             marksSelectAllBtn?.classList.add('hidden');
             if (marksHint) {
-                marksHint.textContent = 'Choose a Marks Type above to enable marks filtering.';
+                marksHint.textContent = 'Select exactly one Marks Type to enable marks filtering.';
             }
         }
     };
@@ -245,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = e.target.closest('.marks-option-btn');
         if (!btn || btn.disabled) return;
 
-        const mode = marksTypeSelect?.value;
+        const mode = getMarksMode();
         const willSelect = !btn.classList.contains('is-selected');
 
         if (mode === 'single') {
@@ -264,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     marksSelectAllBtn?.addEventListener('click', () => {
-        if (marksTypeSelect?.value !== 'multiple') return;
+        if (getMarksMode() !== 'multiple') return;
         const allSelected = marksButtons().every((btn) => btn.classList.contains('is-selected'));
         marksButtons().forEach((btn) => setMarkSelected(btn, !allSelected));
         marksSelectAllBtn.textContent = allSelected ? 'Select All' : 'Clear All';

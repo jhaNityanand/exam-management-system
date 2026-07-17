@@ -67,13 +67,10 @@
                         </select>
                     </div>
 
-                    <div class="list-view-tabs" role="tablist" aria-label="Question visibility">
-                        <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
-                        <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
-                    </div>
+                    <x-list-view-tabs aria-label="Question visibility" />
 
                     {{-- Filter Button --}}
-                    <button id="btn-toggle-filters" type="button" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
+                    <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/>
                         </svg>
@@ -157,22 +154,14 @@
 </div>
 
 {{-- Right-Side Filter Drawer --}}
-<div id="filter-drawer" class="offcanvas-drawer" tabindex="-1" aria-labelledby="filter-drawer-title">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="filter-drawer-title">Filter Questions</h5>
-        <button type="button" class="offcanvas-close" aria-label="Close">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-        </button>
-    </div>
-
-    <form id="filter-drawer-form" class="flex flex-col h-full overflow-hidden">
-        <div class="offcanvas-body">
+<x-filter-drawer
+    title="Filter Questions"
+    subtitle="Narrow results by category, type, difficulty, marks, status, and created date"
+>
             {{-- Category Filter --}}
             <div class="filter-group">
                 <label for="drawer-category-filter" class="filter-label">Category</label>
-                <select id="drawer-category-filter" name="filters[category_id][]" multiple placeholder="All Categories">
+                <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}"
                             data-level="{{ $cat->depth }}"
@@ -188,8 +177,7 @@
             {{-- Type Filter --}}
             <div class="filter-group">
                 <label for="drawer-type-filter" class="filter-label">Question Type</label>
-                <select id="drawer-type-filter" name="filters[type]" class="panel-input w-full text-sm">
-                    <option value="">All Types</option>
+                <select id="drawer-type-filter" name="filters[type][]" multiple data-filter-multiple data-placeholder="All question types">
                     @foreach(\App\Support\ExamFormats::questionTypes() as $type)
                         <option value="{{ $type['id'] }}">{{ $type['label'] }}</option>
                     @endforeach
@@ -199,8 +187,7 @@
             {{-- Difficulty Filter --}}
             <div class="filter-group">
                 <label for="drawer-difficulty-filter" class="filter-label">Difficulty</label>
-                <select id="drawer-difficulty-filter" name="filters[difficulty]" class="panel-input w-full text-sm">
-                    <option value="">All Difficulties</option>
+                <select id="drawer-difficulty-filter" name="filters[difficulty][]" multiple data-filter-multiple data-placeholder="All difficulties">
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
@@ -211,8 +198,7 @@
             {{-- Marks Type Filter --}}
             <div class="filter-group">
                 <label for="drawer-marks-type-filter" class="filter-label">Marks Type</label>
-                <select id="drawer-marks-type-filter" name="filters[marks_type]" class="panel-input w-full text-sm">
-                    <option value="">All Marks Types</option>
+                <select id="drawer-marks-type-filter" name="filters[marks_type][]" multiple data-filter-multiple data-placeholder="All marks types">
                     <option value="single">Single Mark</option>
                     <option value="multiple">Multiple Marks</option>
                 </select>
@@ -239,15 +225,14 @@
                 </div>
                 <div id="drawer-marks-filter-values" class="hidden" aria-hidden="true"></div>
                 <p id="marks-filter-hint" class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                    Choose a Marks Type above to enable marks filtering.
+                    Select exactly one Marks Type to enable marks filtering.
                 </p>
             </div>
 
             {{-- Status Filter --}}
             <div class="filter-group">
                 <label for="drawer-status-filter" class="filter-label">Status</label>
-                <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm">
-                    <option value="">All Statuses</option>
+                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                     <option value="suspended">Suspended</option>
@@ -257,24 +242,19 @@
             {{-- Multi-select MCQ Filter --}}
             <div class="filter-group">
                 <label for="drawer-allows-multiple-filter" class="filter-label">Answer Selection</label>
-                <select id="drawer-allows-multiple-filter" name="filters[allows_multiple]" class="panel-input w-full text-sm">
-                    <option value="">All</option>
+                <select id="drawer-allows-multiple-filter" name="filters[allows_multiple][]" multiple data-filter-multiple data-placeholder="All answer types">
                     <option value="0">Single Correct</option>
                     <option value="1">Multiple Correct</option>
                 </select>
             </div>
-        </div>
 
-        <div class="offcanvas-footer">
-            <button type="reset" class="panel-button-secondary">
-                Reset
-            </button>
-            <button type="submit" class="panel-button-primary">
-                Apply Filters
-            </button>
-        </div>
-    </form>
-</div>
+            <x-filter-date-range
+                id="drawer-created"
+                label="Created date"
+                from-name="filters[created_from]"
+                to-name="filters[created_to]"
+            />
+</x-filter-drawer>
 
 {{-- Delete Form (hidden) --}}
 <form id="delete-question-form" action="" method="POST" class="hidden">
@@ -292,13 +272,17 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
+    <script src="{{ versioned_asset('js/components/filter-drawer.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.questionsApiUrl = @json(route('admin.internal-api.questions-table'));
@@ -310,23 +294,6 @@
             )
         );
 
-        document.addEventListener('DOMContentLoaded', function() {
-            window.EmsTomSelectHierarchy?.create('#drawer-category-filter', {
-                plugins: ['remove_button'],
-                placeholder: 'Select categories…',
-                maxOptions: null,
-                maxItems: null,
-                closeAfterSelect: false,
-            }) || new TomSelect('#drawer-category-filter', {
-                create: false,
-                plugins: ['remove_button'],
-                placeholder: 'Select categories…',
-                maxOptions: null,
-                maxItems: null,
-                closeAfterSelect: false,
-            });
-            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
-        });
     </script>
     <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>

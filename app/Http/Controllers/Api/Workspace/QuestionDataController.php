@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Workspace;
 use App\Http\Controllers\Controller;
 use App\Models\Question;
 use App\Support\DatatableQuery;
+use App\Support\DateRangeFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -44,8 +45,12 @@ class QuestionDataController extends Controller
         }
 
         $filters = $request->query('filters', []);
+        $createdFrom = is_array($filters) ? ($filters['created_from'] ?? null) : null;
+        $createdTo = is_array($filters) ? ($filters['created_to'] ?? null) : null;
+
         if (is_array($filters)) {
             $filters = array_intersect_key($filters, array_flip(self::ALLOWED_FILTERS));
+            unset($filters['created_from'], $filters['created_to']);
 
             if (isset($filters['marks'])) {
                 $marks = is_array($filters['marks']) ? $filters['marks'] : [$filters['marks']];
@@ -96,6 +101,8 @@ class QuestionDataController extends Controller
         }
         $query->forOrg($orgId)
             ->with(['category', 'createdBy']);
+
+        DateRangeFilter::apply($query, 'created_at', $createdFrom, $createdTo);
 
         DatatableQuery::apply(
             $query,

@@ -120,6 +120,23 @@ class AjaxTable {
         if (this.elements.drawerForm) {
             this.elements.drawerForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+
+                const validation = window.EmsFilterDrawer?.validateAll?.(this.elements.drawerForm);
+                if (validation && validation.valid === false) {
+                    validation.container?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    if (window.Swal) {
+                        window.Swal.fire({
+                            icon: 'warning',
+                            title: 'Invalid date range',
+                            text: validation.message,
+                            confirmButtonText: 'OK',
+                        });
+                    } else {
+                        window.alert(validation.message);
+                    }
+                    return;
+                }
+
                 this.applyFiltersFromForm();
                 this.notifyFiltersChange();
                 this.closeDrawer();
@@ -138,8 +155,12 @@ class AjaxTable {
                     const tomSelects = this.elements.drawerForm.querySelectorAll('.tomselected');
                     tomSelects.forEach(select => {
                         if (select.tomselect) {
-                            select.tomselect.setValue('', true); // true silences change event
+                            select.tomselect.clear(true);
                         }
+                    });
+
+                    this.elements.drawerForm.querySelectorAll('[data-filter-date-range]').forEach((range) => {
+                        range._resetFilterDateRange?.();
                     });
 
                     // Restore default sort select value if present
@@ -281,7 +302,14 @@ class AjaxTable {
                 `[name="filters[${key}]"], [name="filters[${key}][]"]`
             );
             if (field) {
-                if (field.tomselect) {
+                const dateRange = field.closest('[data-filter-date-range]');
+                if (dateRange) {
+                    dateRange.querySelectorAll('[data-range-from], [data-range-to]').forEach((input) => {
+                        const match = input.name.match(/^filters\[(.*?)\]$/);
+                        if (match) delete this.filters[match[1]];
+                    });
+                    dateRange._resetFilterDateRange?.();
+                } else if (field.tomselect) {
                     field.tomselect.clear(true);
                 } else if (field.multiple) {
                     Array.from(field.options).forEach((opt) => {
@@ -312,9 +340,19 @@ class AjaxTable {
     }
 
     updateFilterBadge() {
-        const activeCount = Object.keys(this.filters).length;
+        const badgeGroups = new Set(
+            Object.keys(this.filters)
+                .filter((key) => key !== 'trash')
+                .map((key) => {
+                    if (key === 'date_from' || key === 'date_to') return 'published_date';
+                    if (key === 'created_from' || key === 'created_to') return 'created_date';
+                    return key;
+                })
+        );
+        const activeCount = badgeGroups.size;
         if (this.elements.toggle) {
             let badge = this.elements.toggle.querySelector('.filter-badge');
+            this.elements.toggle.classList.toggle('is-active', activeCount > 0);
             if (activeCount > 0) {
                 if (!badge) {
                     badge = document.createElement('span');
@@ -322,6 +360,7 @@ class AjaxTable {
                     this.elements.toggle.appendChild(badge);
                 }
                 badge.textContent = activeCount;
+                badge.classList.add('is-visible');
             } else if (badge) {
                 badge.remove();
             }

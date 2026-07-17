@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\News;
 use App\Models\NewsCategory;
 use App\Support\DatatableQuery;
+use App\Support\DateRangeFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -76,7 +77,20 @@ class NewsDataController extends Controller
 
                 continue;
             }
-            $datatableFilters[$flag] = filter_var($datatableFilters[$flag], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+
+            $values = is_array($datatableFilters[$flag])
+                ? $datatableFilters[$flag]
+                : [$datatableFilters[$flag]];
+            $values = array_values(array_unique(array_map(
+                'intval',
+                array_filter($values, fn ($value) => in_array((string) $value, ['0', '1'], true))
+            )));
+
+            if ($values === []) {
+                unset($datatableFilters[$flag]);
+            } else {
+                $datatableFilters[$flag] = count($values) === 1 ? $values[0] : $values;
+            }
         }
 
         $request->query->set('filters', $datatableFilters);
@@ -97,18 +111,8 @@ class NewsDataController extends Controller
             }
         }
 
-        if (! empty($dateFrom)) {
-            $query->whereDate('published_at', '>=', $dateFrom);
-        }
-        if (! empty($dateTo)) {
-            $query->whereDate('published_at', '<=', $dateTo);
-        }
-        if (! empty($createdFrom)) {
-            $query->whereDate('created_at', '>=', $createdFrom);
-        }
-        if (! empty($createdTo)) {
-            $query->whereDate('created_at', '<=', $createdTo);
-        }
+        DateRangeFilter::apply($query, 'published_at', $dateFrom, $dateTo);
+        DateRangeFilter::apply($query, 'created_at', $createdFrom, $createdTo);
 
         DatatableQuery::apply(
             $query,

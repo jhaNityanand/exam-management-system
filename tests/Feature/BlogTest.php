@@ -2,12 +2,14 @@
 
 use App\Models\Blog;
 use App\Models\BlogCategory;
+use App\Models\Gallery;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserOrganization;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create(['name' => 'Blog Editor']);
@@ -37,7 +39,12 @@ test('authenticated user can view blog list page', function () {
     $this->actingAs($this->user)
         ->get(route('admin.blogs.index'))
         ->assertOk()
-        ->assertViewIs('backend.blogs.index');
+        ->assertViewIs('backend.blogs.index')
+        ->assertSee('name="filters[status][]"', false)
+        ->assertSee('name="filters[date_from]"', false)
+        ->assertSee('name="filters[created_from]"', false)
+        ->assertSee('data-date-preset-select', false)
+        ->assertSee('Last Year', false);
 });
 
 test('authenticated user can view blog categories page', function () {
@@ -50,7 +57,7 @@ test('authenticated user can view blog categories page', function () {
 test('user can create a blog with multiple banner images', function () {
     Storage::fake('public');
 
-    $bannerOne = \App\Models\Gallery::create([
+    $bannerOne = Gallery::create([
         'organization_id' => $this->organization->id,
         'original_name' => 'banner-1.png',
         'file_name' => 'banner-1.png',
@@ -66,7 +73,7 @@ test('user can create a blog with multiple banner images', function () {
         'uploaded_by' => $this->user->id,
         'created_by' => $this->user->id,
     ]);
-    $bannerTwo = \App\Models\Gallery::create([
+    $bannerTwo = Gallery::create([
         'organization_id' => $this->organization->id,
         'original_name' => 'banner-2.png',
         'file_name' => 'banner-2.png',
@@ -144,6 +151,52 @@ test('blogs table api returns paginated rows', function () {
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->assertJsonFragment(['title' => 'API Design Tips']);
+});
+
+test('blogs table supports multi-select and inclusive date range filters', function () {
+    foreach ([
+        ['title' => 'Current Published', 'status' => 'published', 'published_at' => '2026-07-10 12:00:00'],
+        ['title' => 'Current Draft', 'status' => 'draft', 'published_at' => '2026-07-12 08:00:00'],
+        ['title' => 'Old Published', 'status' => 'published', 'published_at' => '2026-06-30 23:59:59'],
+    ] as $index => $attributes) {
+        Blog::create([
+            'organization_id' => $this->organization->id,
+            'blog_category_id' => $this->category->id,
+            'title' => $attributes['title'],
+            'slug' => 'filtered-blog-'.$index,
+            'content' => '<p>Filter test.</p>',
+            'author_id' => $this->user->id,
+            'author_name' => 'Blog Editor',
+            'status' => $attributes['status'],
+            'published_at' => $attributes['published_at'],
+            'created_by' => $this->user->id,
+        ]);
+    }
+
+    $this->actingAs($this->user)
+        ->getJson(route('admin.internal-api.blogs-table', [
+            'filters' => [
+                'status' => ['published', 'draft'],
+                'date_from' => '2026-07-10',
+                'date_to' => '2026-07-12',
+            ],
+        ]))
+        ->assertOk()
+        ->assertJsonPath('meta.total', 2)
+        ->assertJsonFragment(['title' => 'Current Published'])
+        ->assertJsonFragment(['title' => 'Current Draft'])
+        ->assertJsonMissing(['title' => 'Old Published']);
+});
+
+test('blogs table rejects a reversed date range', function () {
+    $this->actingAs($this->user)
+        ->getJson(route('admin.internal-api.blogs-table', [
+            'filters' => [
+                'date_from' => '2026-07-12',
+                'date_to' => '2026-07-10',
+            ],
+        ]))
+        ->assertUnprocessable();
 });
 
 test('user can soft delete and restore a blog', function () {

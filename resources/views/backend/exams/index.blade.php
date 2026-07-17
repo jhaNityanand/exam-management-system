@@ -56,10 +56,7 @@
                         </select>
                     </div>
 
-                    <div class="list-view-tabs" role="tablist" aria-label="Exam visibility">
-                        <button type="button" role="tab" aria-selected="true" data-trash="active" class="is-active">Active</button>
-                        <button type="button" role="tab" aria-selected="false" data-trash="bin">Bin</button>
-                    </div>
+                    <x-list-view-tabs aria-label="Exam visibility" />
 
                     <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,21 +145,13 @@
 </div>
 
 {{-- Right-Side Filter Drawer --}}
-<div id="filter-drawer" class="offcanvas-drawer" tabindex="-1" aria-labelledby="filter-drawer-title">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="filter-drawer-title">Filter Exams</h5>
-        <button type="button" class="offcanvas-close" aria-label="Close">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-        </button>
-    </div>
-
-    <form id="filter-drawer-form" class="flex flex-col h-full overflow-hidden">
-        <div class="offcanvas-body">
+<x-filter-drawer
+    title="Filter Exams"
+    subtitle="Narrow results by category, status, format, mode, difficulty, and date"
+>
             <div class="filter-group">
                 <label for="drawer-category-filter" class="filter-label">Category</label>
-                <select id="drawer-category-filter" name="filters[category_id][]" multiple placeholder="All Categories">
+                <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}"
                             data-level="{{ $cat->depth }}"
@@ -177,8 +166,7 @@
 
             <div class="filter-group">
                 <label for="drawer-status-filter" class="filter-label">Status</label>
-                <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm">
-                    <option value="">All Statuses</option>
+                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
                     <option value="active">Active</option>
@@ -189,7 +177,7 @@
 
             <div class="filter-group">
                 <label for="drawer-format-filter" class="filter-label">Exam Format</label>
-                <select id="drawer-format-filter" name="filters[exam_format][]" multiple class="panel-input w-full text-sm" size="5">
+                <select id="drawer-format-filter" name="filters[exam_format][]" multiple data-filter-multiple data-placeholder="All exam formats">
                     @foreach (\App\Support\ExamFormOptions::formatLabels() as $val => $label)
                         <option value="{{ $val }}">{{ $label }}</option>
                     @endforeach
@@ -198,8 +186,7 @@
 
             <div class="filter-group">
                 <label for="drawer-mode-filter" class="filter-label">Exam Mode</label>
-                <select id="drawer-mode-filter" name="filters[exam_mode]" class="panel-input w-full text-sm">
-                    <option value="">All Modes</option>
+                <select id="drawer-mode-filter" name="filters[exam_mode][]" multiple data-filter-multiple data-placeholder="All exam modes">
                     <option value="standard">Standard</option>
                     <option value="practice">Practice</option>
                     <option value="proctored">Proctored</option>
@@ -208,8 +195,7 @@
 
             <div class="filter-group">
                 <label for="drawer-difficulty-filter" class="filter-label">Difficulty</label>
-                <select id="drawer-difficulty-filter" name="filters[difficulty_level]" class="panel-input w-full text-sm">
-                    <option value="">All Difficulties</option>
+                <select id="drawer-difficulty-filter" name="filters[difficulty_level][]" multiple data-filter-multiple data-placeholder="All difficulties">
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
@@ -238,26 +224,12 @@
                 </div>
             </div>
 
-            <div class="filter-group grid grid-cols-2 gap-3">
-                <div>
-                    <label for="drawer-created-from" class="filter-label">Created From</label>
-                    <x-date-time-picker
-                        name="filters[created_from]"
-                        id="drawer-created-from"
-                        mode="date"
-                        input-class="panel-input w-full text-sm"
-                    />
-                </div>
-                <div>
-                    <label for="drawer-created-to" class="filter-label">Created To</label>
-                    <x-date-time-picker
-                        name="filters[created_to]"
-                        id="drawer-created-to"
-                        mode="date"
-                        input-class="panel-input w-full text-sm"
-                    />
-                </div>
-            </div>
+            <x-filter-date-range
+                id="drawer-created"
+                label="Created date"
+                from-name="filters[created_from]"
+                to-name="filters[created_to]"
+            />
 
             <div class="filter-group">
                 <label for="drawer-sort" class="filter-label">Sort By</label>
@@ -270,18 +242,7 @@
                     <option value="pass_percentage:asc">Lowest Pass %</option>
                 </select>
             </div>
-        </div>
-
-        <div class="offcanvas-footer">
-            <button type="reset" class="panel-button-secondary">
-                Reset
-            </button>
-            <button type="submit" class="panel-button-primary">
-                Apply Filters
-            </button>
-        </div>
-    </form>
-</div>
+</x-filter-drawer>
 
 <form id="delete-exam-form" action="" method="POST" class="hidden">
     @csrf
@@ -294,42 +255,27 @@
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}?v={{ filemtime(public_path('css/backend/tom-select-theme.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}?v={{ filemtime(public_path('css/backend/question-list.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-list.css') }}?v={{ filemtime(public_path('css/backend/exam-list.css')) }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}?v={{ filemtime(public_path('js/components/tom-select-blur.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ filemtime(public_path('js/components/tom-select-hierarchy.js')) }}"></script>
+    <script src="{{ versioned_asset('js/components/filter-drawer.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.examsApiUrl = @json(route('admin.internal-api.exams-table'));
         window.examsIndexUrl = @json(route('admin.exams.index'));
         window.examsRestoreUrl = @json(url('/admin/exams'));
 
-        document.addEventListener('DOMContentLoaded', function() {
-            window.EmsTomSelectHierarchy?.create('#drawer-category-filter', {
-                plugins: ['remove_button'],
-                placeholder: 'Select categories…',
-                maxOptions: null,
-                maxItems: null,
-                closeAfterSelect: false,
-            }) || new TomSelect('#drawer-category-filter', {
-                create: false,
-                plugins: ['remove_button'],
-                placeholder: 'Select categories…',
-                maxOptions: null,
-                maxItems: null,
-                closeAfterSelect: false,
-            });
-            window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('filter-drawer-form') || document);
-        });
     </script>
     <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
