@@ -160,8 +160,10 @@
 
         {{-- Content --}}
         <div class="gallery-content">
-            <div id="gallery-grid" class="gallery-grid" data-mode="grid"></div>
-            <div id="gallery-skeleton" class="gallery-grid" hidden></div>
+            <div id="gallery-grid" class="gallery-grid" data-mode="grid" hidden></div>
+            <div id="gallery-skeleton" class="gallery-grid" data-mode="grid" aria-busy="true">
+                <x-gallery-skeleton :count="12" />
+            </div>
             <div id="gallery-empty" class="gallery-empty" hidden>
                 <div class="gallery-empty__drop" id="gallery-empty-drop" tabindex="0" role="button" aria-label="Upload files">
                     <div class="gallery-empty__icon" aria-hidden="true">

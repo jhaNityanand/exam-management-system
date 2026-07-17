@@ -94,7 +94,9 @@
                         <th class="px-4 py-2.5 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="news-table-body" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+                <tbody id="news-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
+                    <x-ajax-table-skeleton :rows="10" :columns="10" />
+                </tbody>
             </table>
 
             <div id="news-loading" class="hidden table-loading-overlay">

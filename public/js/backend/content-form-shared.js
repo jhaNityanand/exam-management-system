@@ -282,7 +282,12 @@
 
             const loadGrid = async () => {
                 if (!grid) return;
-                grid.innerHTML = '<p class="gallery-picker-modal__status">Loading…</p>';
+                grid.innerHTML = Array.from({ length: 12 }).map((_, i) => `
+                    <div class="gallery-picker-skeleton" aria-hidden="true">
+                        <div class="gallery-picker-skeleton__thumb"></div>
+                        <div class="gallery-picker-skeleton__line" style="width:${50 + (i % 4) * 10}%"></div>
+                    </div>
+                `).join('');
                 try {
                     const json = await fetchGallery(kind, searchInput?.value?.trim() || '');
                     const items = json.data || [];

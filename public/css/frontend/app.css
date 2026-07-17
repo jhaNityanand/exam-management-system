@@ -407,6 +407,22 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   color: var(--et-text-muted);
   text-align: center;
 }
+.et-search-suggest__skeleton {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.35rem 0.15rem;
+}
+.et-search-suggest__skel-line {
+  height: 0.85rem;
+  border-radius: 999px;
+  width: 88%;
+  background: linear-gradient(90deg, var(--et-surface-2), var(--et-border), var(--et-surface-2));
+  background-size: 200% 100%;
+  animation: et-shimmer 1.2s infinite linear;
+}
+.et-search-suggest__skel-line--lg { width: 42%; height: 0.65rem; opacity: 0.8; }
+.et-search-suggest__skel-line--md { width: 72%; }
+.et-search-suggest__skel-line--sm { width: 54%; }
 
 /* Hero */
 .et-hero {

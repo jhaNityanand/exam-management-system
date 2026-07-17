@@ -116,9 +116,9 @@ class GalleryService
             'thumbnail_path' => $kind === 'image'
                 ? $this->createThumbnail($disk, $stored['path'], $organizationId)
                 : null,
-            'uploaded_by' => Auth::id(),
-            'created_by' => Auth::id(),
-            'updated_by' => Auth::id(),
+            'uploaded_by' => $meta['uploaded_by'] ?? Auth::id(),
+            'created_by' => $meta['created_by'] ?? Auth::id(),
+            'updated_by' => $meta['updated_by'] ?? Auth::id(),
         ]);
     }
 
@@ -464,6 +464,7 @@ class GalleryService
                 $gallery->original_path,
                 $gallery->original_file_path,
                 $gallery->modified_file_path,
+                $gallery->thumbnail_path,
             ]);
 
             foreach (array_unique($paths) as $path) {
@@ -848,21 +849,33 @@ class GalleryService
     public function publicUrl(string $disk, string $path): string
     {
         $path = str_replace('\\', '/', ltrim((string) $path, '/'));
+        $base = rtrim((string) config('app.url', ''), '/');
 
         if ($path === '') {
-            return url('/');
+            return $base !== '' ? $base.'/' : url('/');
         }
 
-        // Always resolve public-disk URLs against the current request root.
-        // Storage::url() uses APP_URL (often http://localhost) which breaks when
-        // the app is served via php artisan serve on 127.0.0.1:8000.
-        if ($disk === 'public' || $disk === '') {
-            return url('storage/'.$path);
+        $prefixes = (array) config('gallery.url_prefixes', [
+            'public' => '/storage',
+            'media' => '/media',
+        ]);
+
+        $diskKey = $disk !== '' ? $disk : (string) config('gallery.disk', 'media');
+        if (array_key_exists($diskKey, $prefixes)) {
+            $prefix = '/'.trim((string) $prefixes[$diskKey], '/');
+            $relative = $prefix.'/'.$path;
+
+            // Prefer APP_URL from .env so URLs stay stable across CLI seeding and HTTP.
+            if ($base !== '') {
+                return $base.$relative;
+            }
+
+            return $relative;
         }
 
-        $url = Storage::disk($disk)->url($path);
+        $url = Storage::disk($diskKey)->url($path);
         if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
-            return url($url);
+            return ($base !== '' ? $base : '').'/'.ltrim($url, '/');
         }
 
         return $url;

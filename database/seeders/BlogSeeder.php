@@ -5,65 +5,96 @@ namespace Database\Seeders;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
-use App\Models\Organization;
-use App\Models\User;
+use Database\Seeders\Concerns\ResolvesDemoContext;
+use Database\Seeders\Support\SeedImageLibrary;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
+use Throwable;
 
 /**
- * Seeds realistic published blog posts for demo-org.
+ * Seeds realistic published blog posts for demo-org with gallery banners.
  */
 class BlogSeeder extends Seeder
 {
+    use ResolvesDemoContext;
+
     public function run(): void
     {
-        $org    = Organization::where('slug', 'demo-org')->firstOrFail();
-        $editor = User::where('email', 'editor@examms.test')->firstOrFail();
+        $org = $this->demoOrganization();
+        $editor = $this->demoEditor();
+
+        if (! $org || ! $editor) {
+            $this->command?->warn('BlogSeeder: demo-org or editor missing. Skipping.');
+
+            return;
+        }
+
+        $images = new SeedImageLibrary;
+        $purged = $images->purge($org->id, 'blog');
+        $this->command?->info("BlogSeeder: purged {$purged} previously seeded blog image(s).");
 
         $categories = BlogCategory::forOrg($org->id)->get()->keyBy('slug');
-        $tags       = BlogTag::forOrg($org->id)->get()->keyBy('name');
-
+        $tags = BlogTag::forOrg($org->id)->get()->keyBy('name');
         $seeded = 0;
 
         foreach ($this->posts() as $post) {
             $category = $categories->get($post['category_slug']);
 
             if (! $category) {
-                $this->command->warn("BlogSeeder: category [{$post['category_slug']}] not found. Skipping {$post['slug']}.");
+                $this->command?->warn("BlogSeeder: category [{$post['category_slug']}] not found. Skipping {$post['slug']}.");
 
                 continue;
+            }
+
+            try {
+                $banner = $images->store(
+                    $org->id,
+                    $post['slug'],
+                    $editor->id,
+                    'blog',
+                    [
+                        'alt_text' => $post['title'],
+                        'description' => 'Banner for '.$post['title'],
+                    ]
+                );
+            } catch (Throwable $e) {
+                $this->command?->warn("BlogSeeder: image download failed for {$post['slug']}: {$e->getMessage()}");
+                $banner = null;
             }
 
             $blog = Blog::updateOrCreate(
                 [
                     'organization_id' => $org->id,
-                    'slug'            => $post['slug'],
+                    'slug' => $post['slug'],
                 ],
                 [
-                    'organization_id'  => $org->id,
+                    'organization_id' => $org->id,
                     'blog_category_id' => $category->id,
-                    'title'            => $post['title'],
-                    'excerpt'          => $post['excerpt'],
-                    'content'          => $post['content'],
-                    'banner_image_id'  => null,
-                    'author_id'        => $editor->id,
-                    'author_name'      => $editor->name,
-                    'status'           => Blog::STATUS_PUBLISHED,
-                    'published_at'     => now()->subDays(random_int(3, 120)),
-                    'view_count'       => random_int(10, 500),
-                    'seo_title'        => $post['seo_title'],
-                    'seo_description'  => $post['seo_description'],
-                    'seo_keywords'     => $post['seo_keywords'],
-                    'og_title'         => $post['og_title'],
-                    'og_description'   => $post['og_description'],
-                    'og_image_id'      => null,
-                    'canonical_url'    => null,
-                    'robots'           => 'index,follow',
-                    'ai_generated'     => false,
-                    'ai_improve'       => false,
-                    'created_by'       => $editor->id,
+                    'title' => $post['title'],
+                    'excerpt' => $post['excerpt'],
+                    'content' => $post['content'],
+                    'banner_image_id' => $banner?->id,
+                    'author_id' => $editor->id,
+                    'author_name' => $editor->name,
+                    'status' => Blog::STATUS_PUBLISHED,
+                    'published_at' => now()->subDays(random_int(3, 120)),
+                    'view_count' => random_int(40, 980),
+                    'seo_title' => $post['seo_title'],
+                    'seo_description' => $post['seo_description'],
+                    'seo_keywords' => $post['seo_keywords'],
+                    'og_title' => $post['og_title'],
+                    'og_description' => $post['og_description'],
+                    'og_image_id' => $banner?->id,
+                    'canonical_url' => null,
+                    'robots' => 'index,follow',
+                    'ai_generated' => false,
+                    'ai_improve' => false,
+                    'created_by' => $editor->id,
                 ]
             );
+
+            if ($banner) {
+                $blog->banners()->sync([$banner->id => ['sort_order' => 0]]);
+            }
 
             $tagIds = collect($post['tags'])
                 ->map(fn (string $name) => $tags->get($name)?->id)
@@ -75,7 +106,7 @@ class BlogSeeder extends Seeder
             $seeded++;
         }
 
-        $this->command->info("BlogSeeder: seeded {$seeded} blog posts.");
+        $this->command?->info("BlogSeeder: seeded {$seeded} blog posts with gallery banners.");
     }
 
     /**

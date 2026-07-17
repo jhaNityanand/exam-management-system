@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
+use App\Services\GalleryService;
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,6 +51,10 @@ class Gallery extends Model
         'restored_at',
     ];
 
+    protected $appends = [
+        'thumbnail_url',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -60,6 +66,50 @@ class Gallery extends Model
             'deleted_at' => 'datetime',
             'last_referenced_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Always rebuild the public URL from APP_URL + disk path so stale
+     * absolute hosts (e.g. http://localhost) never break image rendering.
+     */
+    protected function fileUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value): ?string {
+                $path = $this->displayPath();
+                if ($path === '') {
+                    return $value;
+                }
+
+                return $this->resolvePublicUrl($path);
+            },
+            set: fn (?string $value) => $value,
+        );
+    }
+
+    protected function thumbnailUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (): ?string {
+                if (filled($this->thumbnail_path)) {
+                    return $this->resolvePublicUrl((string) $this->thumbnail_path);
+                }
+
+                $path = $this->displayPath();
+
+                return $path !== '' ? $this->resolvePublicUrl($path) : null;
+            },
+        );
+    }
+
+    public function resolvePublicUrl(?string $path = null): string
+    {
+        $path = $path ?? $this->displayPath();
+
+        return app(GalleryService::class)->publicUrl(
+            (string) ($this->disk ?: config('gallery.disk', 'media')),
+            (string) $path
+        );
     }
 
     public function scopeOnlyTrashedBin(Builder $query): Builder

@@ -115,7 +115,7 @@ class BlogDataController extends Controller
             'author_id' => $blog->author_id,
             'blog_category_id' => $blog->blog_category_id,
             'category_name' => $blog->category?->name,
-            'banner_thumbnail_url' => $blog->bannerImage?->file_url,
+            'banner_thumbnail_url' => $blog->bannerImage?->thumbnail_url ?? $blog->bannerImage?->file_url,
             'tag_names' => $blog->tags->pluck('name')->values()->all(),
             'tags' => $blog->tags,
             'published_at' => $blog->published_at?->toIso8601String(),

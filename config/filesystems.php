@@ -41,9 +41,21 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            // Prefer relative base so Storage::url() is host-agnostic; GalleryService
-            // rebuilds absolute URLs with url() against the current request root.
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // Relative web path; GalleryService builds absolute URLs from APP_URL.
+            'url' => '/storage',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        /*
+        | Permanent browser-accessible media root (no storage:link required).
+        | Files live in public/media and are served as {APP_URL}/media/...
+        */
+        'media' => [
+            'driver' => 'local',
+            'root' => public_path('media'),
+            'url' => '/media',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

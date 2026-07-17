@@ -225,7 +225,15 @@
         return;
       }
 
-      suggestBox.innerHTML = '<div class="et-search-suggest__empty">Searching…</div>';
+      suggestBox.innerHTML = `
+        <div class="et-search-suggest__skeleton" aria-busy="true" aria-live="polite">
+          <div class="et-search-suggest__skel-line et-search-suggest__skel-line--lg"></div>
+          <div class="et-search-suggest__skel-line"></div>
+          <div class="et-search-suggest__skel-line et-search-suggest__skel-line--md"></div>
+          <div class="et-search-suggest__skel-line et-search-suggest__skel-line--sm"></div>
+          <div class="et-search-suggest__skel-line et-search-suggest__skel-line--md"></div>
+        </div>
+      `;
       fetch(suggestUrl + '?q=' + encodeURIComponent(q), {
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       })

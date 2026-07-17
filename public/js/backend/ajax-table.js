@@ -25,9 +25,11 @@ class AjaxTable {
         this.onFiltersChange = config.onFiltersChange || null;
         this.debounceTime = config.debounceTime || 350;
         this.defaultParams = config.defaultParams || {};
-        this.skeletonRows = config.skeletonRows ?? 6;
+        this.skeletonRows = config.skeletonRows ?? null;
         this.skeletonColumns = config.skeletonColumns ?? 5;
         this.skeletonTemplate = config.skeletonTemplate || null;
+        this.autoFetch = config.autoFetch !== false;
+        this.preferSkeleton = config.preferSkeleton !== false;
 
         // Local state
         this.page = 1;
@@ -67,8 +69,14 @@ class AjaxTable {
         // Set up Event Listeners
         this.bindEvents();
 
-        // Initial Fetch
-        this.fetch();
+        // Ensure first paint already shows a skeleton preview before JS fetch completes
+        if (this.elements.tableBody && !this.elements.tableBody.querySelector('.ajax-table-skeleton-row')) {
+            this.renderSkeleton();
+        }
+
+        if (this.autoFetch) {
+            this.fetch();
+        }
     }
 
     bindEvents() {
@@ -459,26 +467,55 @@ class AjaxTable {
         .catch(err => {
             this.loading = false;
             this.hideLoading();
+            if (this.elements.tableBody) {
+                this.elements.tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="${this.skeletonColumns}" class="px-6 py-10 text-center text-sm text-rose-500 dark:text-rose-400">
+                            Unable to load data. Please refresh and try again.
+                        </td>
+                    </tr>
+                `;
+            }
             console.error('AjaxTable Fetch Error:', err);
         });
     }
 
     showLoading() {
-        if (this.elements.loading) {
+        const container = this.elements.tableBody?.closest(this.containerSelector)
+            || document.querySelector(this.containerSelector);
+        if (container) {
+            container.setAttribute('aria-busy', 'true');
+        }
+
+        // Prefer skeleton preview over a blocking spinner overlay
+        if (this.preferSkeleton) {
+            if (this.elements.loading) {
+                this.elements.loading.classList.add('hidden');
+            }
+        } else if (this.elements.loading) {
             this.elements.loading.classList.remove('hidden');
         }
+
         if (this.elements.empty) {
             this.elements.empty.classList.add('hidden');
         }
         if (this.elements.tableBody) {
             const table = this.elements.tableBody.closest('table');
-            if (table) table.classList.add('opacity-40');
-            // Immediate skeleton feedback while waiting for the API
+            if (table && !this.preferSkeleton) {
+                table.classList.add('opacity-40');
+            } else if (table) {
+                table.classList.remove('opacity-40');
+            }
             this.renderSkeleton();
         }
     }
 
     hideLoading() {
+        const container = this.elements.tableBody?.closest(this.containerSelector)
+            || document.querySelector(this.containerSelector);
+        if (container) {
+            container.removeAttribute('aria-busy');
+        }
         if (this.elements.loading) {
             this.elements.loading.classList.add('hidden');
         }
@@ -488,21 +525,30 @@ class AjaxTable {
         }
     }
 
+    getSkeletonRowCount() {
+        if (this.skeletonRows != null) {
+            return this.skeletonRows;
+        }
+        const perPage = Number(this.per_page) || 10;
+        return Math.min(Math.max(perPage, 5), 10);
+    }
+
     renderSkeleton() {
         if (!this.elements.tableBody) return;
+        const rows = this.getSkeletonRowCount();
 
         if (typeof this.skeletonTemplate === 'function') {
-            this.elements.tableBody.innerHTML = Array.from({ length: this.skeletonRows }, (_, i) => this.skeletonTemplate(i)).join('');
+            this.elements.tableBody.innerHTML = Array.from({ length: rows }, (_, i) => this.skeletonTemplate(i)).join('');
             return;
         }
 
         let html = '';
-        for (let i = 0; i < this.skeletonRows; i++) {
+        for (let i = 0; i < rows; i++) {
             html += '<tr class="ajax-table-skeleton-row" aria-hidden="true">';
             for (let c = 0; c < this.skeletonColumns; c++) {
                 const width = c === this.skeletonColumns - 1 ? '40%' : `${55 + ((i + c) % 4) * 10}%`;
                 const align = c === this.skeletonColumns - 1 ? 'text-right' : '';
-                html += `<td class="px-6 py-4 ${align}"><div class="ajax-skeleton-bar" style="width:${width}; margin-left:${c === this.skeletonColumns - 1 ? 'auto' : '0'}"></div></td>`;
+                html += `<td class="px-4 py-3 sm:px-6 sm:py-4 ${align}"><div class="ajax-skeleton-bar" style="width:${width}; margin-left:${c === this.skeletonColumns - 1 ? 'auto' : '0'}"></div></td>`;
             }
             html += '</tr>';
         }

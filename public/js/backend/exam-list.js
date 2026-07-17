@@ -151,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderStats = (stats = {}) => {
         if (!statGridEl) return;
+        statGridEl.removeAttribute('aria-busy');
         statGridEl.innerHTML = [
             { title: 'Visible Exams', value: stats.total || 0 },
             { title: 'Published', value: stats.published || 0 },

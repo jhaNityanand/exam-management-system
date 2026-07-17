@@ -113,7 +113,7 @@
                     </tr>
                 </thead>
                 <tbody id="questions-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
-                    <!-- Loaded via JS -->
+                    <x-ajax-table-skeleton :rows="10" :columns="8" />
                 </tbody>
             </table>
 

@@ -8,6 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Content seeders (questions/blogs/news) replace demo data and regenerate gallery images on each run.
         $this->call([
             UserSeeder::class,
             ProfileSeeder::class,

@@ -1,11 +1,24 @@
 <?php
 
 return [
-    'disk' => env('GALLERY_DISK', 'public'),
+    'disk' => env('GALLERY_DISK', 'media'),
 
     'directory' => 'gallery',
 
     'bin_directory' => 'bin',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public URL prefix per disk
+    |--------------------------------------------------------------------------
+    |
+    | Absolute URLs are built as: rtrim(APP_URL, '/') + prefix + '/' + path
+    |
+    */
+    'url_prefixes' => [
+        'public' => '/storage',
+        'media' => '/media',
+    ],
 
     'max_image_kb' => (int) env('GALLERY_MAX_IMAGE_KB', 5120),
     'max_video_kb' => (int) env('GALLERY_MAX_VIDEO_KB', 51200),

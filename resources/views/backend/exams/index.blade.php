@@ -82,7 +82,14 @@
         </div>
 
         {{-- Stat grid (filled via AJAX) --}}
-        <div id="exam-stat-grid" class="grid gap-3 border-b border-slate-200/80 px-4 py-3 sm:grid-cols-2 sm:px-6 xl:grid-cols-4 dark:border-slate-800"></div>
+        <div id="exam-stat-grid" class="grid gap-3 border-b border-slate-200/80 px-4 py-3 sm:grid-cols-2 sm:px-6 xl:grid-cols-4 dark:border-slate-800" aria-busy="true">
+            @for ($i = 0; $i < 4; $i++)
+                <div class="ajax-stat-skeleton__card" aria-hidden="true">
+                    <div class="ajax-skeleton-bar" style="width: 45%"></div>
+                    <div class="ajax-skeleton-bar" style="width: 30%; height: 1.25rem;"></div>
+                </div>
+            @endfor
+        </div>
 
         <div id="exams-bulk-bar" class="list-bulk-bar" hidden>
             <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
@@ -116,7 +123,7 @@
                     </tr>
                 </thead>
                 <tbody id="exams-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
-                    {{-- Loaded via JS --}}
+                    <x-ajax-table-skeleton :rows="10" :columns="5" />
                 </tbody>
             </table>
 

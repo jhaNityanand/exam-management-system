@@ -140,7 +140,10 @@ class NewsDataController extends Controller
             'author_id' => $news->author_id,
             'news_category_id' => $news->news_category_id,
             'category_name' => $news->category?->name,
-            'banner_thumbnail_url' => $news->bannerImage?->file_url ?? $news->featuredImage?->file_url,
+            'banner_thumbnail_url' => $news->bannerImage?->thumbnail_url
+                ?? $news->bannerImage?->file_url
+                ?? $news->featuredImage?->thumbnail_url
+                ?? $news->featuredImage?->file_url,
             'tag_names' => $news->tags->pluck('name')->values()->all(),
             'tags' => $news->tags,
             'published_at' => $news->published_at?->toIso8601String(),

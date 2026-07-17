@@ -350,6 +350,57 @@
     color: #6ee7b7;
 }
 
+/* Shared Ajax table skeleton */
+.ajax-table-skeleton-row td {
+    vertical-align: middle;
+}
+
+.ajax-skeleton-bar {
+    height: 0.75rem;
+    border-radius: 0.375rem;
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: ajax-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.dark .ajax-skeleton-bar {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+}
+
+@keyframes ajax-skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.ajax-stat-skeleton {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.ajax-stat-skeleton__card {
+    min-height: 4.5rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.9rem;
+    background: #fff;
+}
+
+.dark .ajax-stat-skeleton__card {
+    border-color: #1e293b;
+    background: #0f172a;
+}
+
+.ajax-stat-skeleton__card .ajax-skeleton-bar + .ajax-skeleton-bar {
+    margin-top: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ajax-skeleton-bar {
+        animation: none;
+    }
+}
+
 @media (max-width: 767px) {
     .list-toolbar__controls {
         width: 100%;

@@ -179,22 +179,26 @@
         });
     }
 
-    function showSkeleton(count = 10) {
+    function showSkeleton(count = null) {
+        const cards = count || Number(els.perPage?.value) || 12;
         els.skeleton.hidden = false;
+        els.skeleton.removeAttribute('hidden');
         els.grid.hidden = true;
         els.empty.hidden = true;
         els.skeleton.setAttribute('data-mode', state.view);
-        els.skeleton.innerHTML = Array.from({ length: count }).map(() => `
-            <div class="gallery-skeleton-card">
+        els.skeleton.setAttribute('aria-busy', 'true');
+        els.skeleton.innerHTML = Array.from({ length: Math.min(Math.max(cards, 8), 24) }).map((_, i) => `
+            <div class="gallery-skeleton-card" aria-hidden="true">
                 <div class="gallery-skeleton-card__thumb"></div>
                 <div class="gallery-skeleton-card__line"></div>
-                <div class="gallery-skeleton-card__line" style="width:55%"></div>
+                <div class="gallery-skeleton-card__line" style="width:${45 + (i % 4) * 10}%"></div>
             </div>
         `).join('');
     }
 
     function hideSkeleton() {
         els.skeleton.hidden = true;
+        els.skeleton.removeAttribute('aria-busy');
         els.skeleton.innerHTML = '';
         els.grid.hidden = false;
     }
@@ -313,6 +317,7 @@
         }
 
         els.empty.hidden = false;
+        els.grid.hidden = true;
         els.grid.innerHTML = '';
         els.pagination.innerHTML = '';
         if (!copy.filtered) {
@@ -331,6 +336,7 @@
         }
 
         els.empty.hidden = true;
+        els.grid.hidden = false;
         els.grid.innerHTML = state.items.map(cardMarkup).join('');
         els.grid.querySelectorAll('img[data-thumb-fallback]').forEach((img) => {
             img.addEventListener('error', () => {

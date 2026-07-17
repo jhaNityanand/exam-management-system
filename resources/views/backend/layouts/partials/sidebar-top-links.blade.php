@@ -86,7 +86,8 @@
             <button @click="if(document.getElementById('app-sidebar').offsetWidth < 150) { window.location.href = '{{ route($link['parentRoute'] ?? 'admin.dashboard') }}'; } else { expanded = !expanded; }"
                     type="button"
                     data-bs-tooltip="{{ $link['label'] }}"
-                    class="sidebar-link w-full flex items-center justify-between gap-3 shrink-0 rounded-2xl px-3 py-3 text-sm font-medium transition {{ $childActive ? 'bg-slate-900 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+                    data-active="{{ $childActive ? 'true' : 'false' }}"
+                    class="sidebar-link w-full flex items-center justify-between gap-3 shrink-0 px-3 py-2.5 text-sm transition">
                 <div class="flex items-center gap-3 truncate">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $link['icon'] }}"/>
@@ -106,7 +107,8 @@
                         } catch (\Throwable) {}
                     @endphp
                     <a href="{{ $child['route'] !== '#' ? route($child['route']) : '#' }}"
-                       class="block rounded-xl px-3 py-2 text-sm font-medium transition {{ $isChildActive ? 'text-white font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+                       data-active="{{ $isChildActive ? 'true' : 'false' }}"
+                       class="sidebar-child-link block px-3 py-2 text-[13px] font-medium transition">
                         {{ $child['label'] }}
                     </a>
                 @endforeach
@@ -115,7 +117,8 @@
     @else
         <a href="{{ $link['route'] !== '#' ? route($link['route']) : '#' }}"
            data-bs-tooltip="{{ $link['label'] }}"
-           class="sidebar-link flex items-center gap-3 shrink-0 rounded-2xl px-3 py-3 text-sm font-medium transition {{ $active ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">
+           data-active="{{ $active ? 'true' : 'false' }}"
+           class="sidebar-link flex items-center gap-3 shrink-0 px-3 py-2.5 text-sm transition">
             <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $link['icon'] }}"/>
             </svg>
