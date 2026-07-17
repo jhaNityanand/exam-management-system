@@ -55,8 +55,8 @@ test('email verification status is unchanged when the email address is unchanged
 });
 
 test('profile avatar can be uploaded from cropped image data', function () {
-    Storage::fake('media');
-    config()->set('gallery.disk', 'media');
+    Storage::fake('public');
+    config()->set('gallery.disk', 'public');
 
     $user = User::factory()->create();
     $organization = Organization::create([
@@ -89,7 +89,7 @@ test('profile avatar can be uploaded from cropped image data', function () {
 
     expect($user->profile)->not->toBeNull();
     expect($user->profile->avatar)->not->toBeNull();
-    Storage::disk('media')->assertExists($user->profile->avatar);
+    Storage::disk('public')->assertExists($user->profile->avatar);
 });
 
 test('user can delete their account', function () {

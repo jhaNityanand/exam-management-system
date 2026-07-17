@@ -857,10 +857,9 @@ class GalleryService
 
         $prefixes = (array) config('gallery.url_prefixes', [
             'public' => '/storage',
-            'media' => '/media',
         ]);
 
-        $diskKey = $disk !== '' ? $disk : (string) config('gallery.disk', 'media');
+        $diskKey = $disk !== '' ? $disk : (string) config('gallery.disk', 'public');
         if (array_key_exists($diskKey, $prefixes)) {
             $prefix = '/'.trim((string) $prefixes[$diskKey], '/');
             $relative = $prefix.'/'.$path;

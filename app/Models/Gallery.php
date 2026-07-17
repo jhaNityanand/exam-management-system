@@ -107,7 +107,7 @@ class Gallery extends Model
         $path = $path ?? $this->displayPath();
 
         return app(GalleryService::class)->publicUrl(
-            (string) ($this->disk ?: config('gallery.disk', 'media')),
+            (string) ($this->disk ?: config('gallery.disk', 'public')),
             (string) $path
         );
     }

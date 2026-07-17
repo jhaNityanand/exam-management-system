@@ -1,7 +1,16 @@
 <?php
 
 return [
-    'disk' => env('GALLERY_DISK', 'media'),
+    /*
+    |--------------------------------------------------------------------------
+    | Gallery Filesystem Disk
+    |--------------------------------------------------------------------------
+    |
+    | Uploads are stored under storage/app/public and served via /storage
+    | after running: php artisan storage:link
+    |
+    */
+    'disk' => env('GALLERY_DISK', 'public'),
 
     'directory' => 'gallery',
 
@@ -17,7 +26,19 @@ return [
     */
     'url_prefixes' => [
         'public' => '/storage',
-        'media' => '/media',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Directories wiped before database seeding
+    |--------------------------------------------------------------------------
+    */
+    'seed_clean_paths' => [
+        'gallery',
+        'bin',
+        'avatars',
+        'editor',
+        'organizations',
     ],
 
     'max_image_kb' => (int) env('GALLERY_MAX_IMAGE_KB', 5120),

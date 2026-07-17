@@ -42,20 +42,7 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             // Relative web path; GalleryService builds absolute URLs from APP_URL.
-            'url' => '/storage',
-            'visibility' => 'public',
-            'throw' => false,
-            'report' => false,
-        ],
-
-        /*
-        | Permanent browser-accessible media root (no storage:link required).
-        | Files live in public/media and are served as {APP_URL}/media/...
-        */
-        'media' => [
-            'driver' => 'local',
-            'root' => public_path('media'),
-            'url' => '/media',
+            'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

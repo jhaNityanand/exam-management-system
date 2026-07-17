@@ -86,7 +86,7 @@ class ProfileAvatarService
             return;
         }
 
-        foreach (array_unique([(string) config('gallery.disk', 'media'), 'media', 'public']) as $disk) {
+        foreach (array_unique([(string) config('gallery.disk', 'public'), 'public']) as $disk) {
             if (config("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($path)) {
                 Storage::disk($disk)->delete($path);
 
@@ -113,7 +113,7 @@ class ProfileAvatarService
         }
 
         return $this->galleryService->publicUrl(
-            (string) config('gallery.disk', 'media'),
+            (string) config('gallery.disk', 'public'),
             $path
         );
     }

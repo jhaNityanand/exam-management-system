@@ -8,8 +8,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Content seeders (questions/blogs/news) replace demo data and regenerate gallery images on each run.
+        // Wipe previous uploads, then rebuild demo data and regenerate gallery images under storage/app/public.
         $this->call([
+            ClearUploadedMediaSeeder::class,
             UserSeeder::class,
             ProfileSeeder::class,
             OrganizationSeeder::class,
