@@ -20,7 +20,7 @@
                 <div class="et-alert et-alert--success">{{ session('success') }}</div>
             @endif
 
-            <form class="et-form" method="POST" action="{{ url()->current() }}">
+            <form class="et-form" method="POST" action="{{ route('frontend.account.settings.update') }}">
                 @csrf
                 @method('PUT')
                 <label>

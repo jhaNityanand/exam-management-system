@@ -21,6 +21,8 @@ use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\SlugController;
 use App\Http\Controllers\Frontend\AccountController;
 use App\Http\Controllers\Frontend\BlogController as FrontendBlogController;
+use App\Http\Controllers\Frontend\CandidateAttemptController;
+use App\Http\Controllers\Frontend\CandidateExamController;
 use App\Http\Controllers\Frontend\CategoryController;
 use App\Http\Controllers\Frontend\ExamController as FrontendExamController;
 use App\Http\Controllers\Frontend\HomeController;
@@ -41,6 +43,21 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/exams', [FrontendExamController::class, 'index'])->name('frontend.exams.index');
 Route::get('/exams/{exam:slug}', [FrontendExamController::class, 'show'])->name('frontend.exams.show');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/exams/{exam:slug}/rules', [CandidateExamController::class, 'rules'])->name('frontend.exams.rules');
+    Route::get('/exams/{exam:slug}/prepare', [CandidateExamController::class, 'prepare'])->name('frontend.exams.prepare');
+    Route::post('/exams/{exam:slug}/attempts', [CandidateExamController::class, 'start'])->name('frontend.exams.attempts.start');
+    Route::post('/exams/{exam:slug}/purchase', [CandidateExamController::class, 'purchase'])->name('frontend.exams.purchase');
+
+    Route::get('/attempts/{attempt}', [CandidateAttemptController::class, 'show'])->name('frontend.attempts.show');
+    Route::match(['patch', 'post'], '/attempts/{attempt}/answers', [CandidateAttemptController::class, 'saveAnswers'])->name('frontend.attempts.answers');
+    Route::post('/attempts/{attempt}/heartbeat', [CandidateAttemptController::class, 'heartbeat'])->name('frontend.attempts.heartbeat');
+    Route::post('/attempts/{attempt}/events', [CandidateAttemptController::class, 'events'])->name('frontend.attempts.events');
+    Route::post('/attempts/{attempt}/submit', [CandidateAttemptController::class, 'submit'])->name('frontend.attempts.submit');
+    Route::get('/attempts/{attempt}/result', [CandidateAttemptController::class, 'result'])->name('frontend.attempts.result');
+    Route::get('/attempts/{attempt}/review', [CandidateAttemptController::class, 'review'])->name('frontend.attempts.review');
+});
 
 Route::get('/blogs', [FrontendBlogController::class, 'index'])->name('frontend.blogs.index');
 Route::get('/blogs/category/{slug}', [FrontendBlogController::class, 'category'])->name('frontend.blogs.category');
@@ -66,6 +83,7 @@ Route::middleware('auth')->prefix('account')->name('frontend.account.')->group(f
     Route::get('/exams', [AccountController::class, 'exams'])->name('exams');
     Route::get('/results', [AccountController::class, 'results'])->name('results');
     Route::get('/settings', [AccountController::class, 'settings'])->name('settings');
+    Route::put('/settings', [AccountController::class, 'updateSettings'])->name('settings.update');
 });
 
 // Auth routes (Laravel Breeze)
@@ -77,7 +95,7 @@ require __DIR__.'/auth.php';
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -204,9 +222,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 |--------------------------------------------------------------------------
 */
 
-Route::get('/dashboard', fn () => redirect()->route('admin.dashboard'))
-    ->middleware(['auth'])
-    ->name('dashboard');
+Route::get('/dashboard', function () {
+    $user = auth()->user();
+
+    return redirect()->route(
+        $user && $user->canAccessAdminPanel()
+            ? 'admin.dashboard'
+            : 'frontend.account.dashboard'
+    );
+})->middleware(['auth'])->name('dashboard');
 
 Route::redirect('/profile', '/admin/profile')
     ->middleware(['auth'])

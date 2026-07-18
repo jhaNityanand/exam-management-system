@@ -11,7 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // No custom middleware aliases needed for single-role architecture
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureAdminAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

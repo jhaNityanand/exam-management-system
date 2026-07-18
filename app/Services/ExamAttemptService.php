@@ -26,11 +26,23 @@ class ExamAttemptService
         $this->assertExamAvailable($exam);
         $this->assertAttemptAllowed($exam, $user);
 
+        // Fast resume path — avoid holding row locks while loading questions.
+        $existing = ExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['active', 'in_progress'])
+            ->latest('id')
+            ->first();
+
+        if ($existing && $existing->attemptQuestions()->exists()) {
+            return $existing->load(['attemptQuestions' => fn ($q) => $q->orderBy('position')]);
+        }
+
         return DB::transaction(function () use ($exam, $user) {
             $active = ExamAttempt::query()
                 ->where('exam_id', $exam->id)
                 ->where('user_id', $user->id)
-                ->where('status', 'active')
+                ->whereIn('status', ['active', 'in_progress'])
                 ->lockForUpdate()
                 ->first();
 
@@ -44,9 +56,16 @@ class ExamAttemptService
                 return $active->load(['attemptQuestions' => fn ($q) => $q->orderBy('position')]);
             }
 
+            $attemptNo = ExamAttempt::query()
+                ->where('exam_id', $exam->id)
+                ->where('user_id', $user->id)
+                ->count() + 1;
+
             $attempt = ExamAttempt::create([
                 'exam_id' => $exam->id,
+                'organization_id' => $exam->organization_id,
                 'user_id' => $user->id,
+                'attempt_no' => $attemptNo,
                 'status' => 'active',
                 'started_at' => now(),
                 'created_by' => $user->id,
@@ -55,7 +74,7 @@ class ExamAttemptService
             $this->assignQuestions($attempt, $exam);
 
             return $attempt->load(['attemptQuestions' => fn ($q) => $q->orderBy('position')]);
-        });
+        }, 3);
     }
 
     protected function assignQuestions(ExamAttempt $attempt, Exam $exam): void
@@ -68,6 +87,7 @@ class ExamAttemptService
         }
 
         $rows = [];
+        $now = now();
         foreach (array_values($questions) as $index => $question) {
             /** @var Question $question */
             $options = is_array($question->options) ? $question->options : [];
@@ -99,13 +119,15 @@ class ExamAttemptService
                     'mode' => $mode,
                     'source_question_id' => $question->id,
                 ], JSON_THROW_ON_ERROR),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
         }
 
         ExamAttemptQuestion::query()->where('exam_attempt_id', $attempt->id)->delete();
-        ExamAttemptQuestion::query()->insert($rows);
+        foreach (array_chunk($rows, 100) as $chunk) {
+            ExamAttemptQuestion::query()->insert($chunk);
+        }
     }
 
     protected function assertExamAvailable(Exam $exam): void
@@ -143,7 +165,7 @@ class ExamAttemptService
         $activeExists = ExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->where('user_id', $user->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'in_progress'])
             ->exists();
         if ($activeExists) {
             return;
@@ -152,7 +174,7 @@ class ExamAttemptService
         $completedCount = ExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->where('user_id', $user->id)
-            ->whereIn('status', ['submitted', 'abandoned'])
+            ->whereIn('status', ['submitted', 'abandoned', 'expired', 'graded'])
             ->count();
 
         $allowed = $limitType === 'once' ? 1 : max(1, $maxAttempts);

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Organization;
+use App\Support\OrganizationRoles;
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -52,6 +54,38 @@ class User extends Authenticatable
     public function belongsToOrganization(int $organizationId): bool
     {
         return $this->organizations()->where('organizations.id', $organizationId)->exists();
+    }
+
+    public function activeOrganizationRole(): ?string
+    {
+        return $this->organizations()
+            ->wherePivot('status', 'active')
+            ->orderBy('user_organizations.id')
+            ->first()
+            ?->pivot
+            ?->role;
+    }
+
+    public function canAccessAdminPanel(): bool
+    {
+        return OrganizationRoles::canAccessAdminPanel($this->activeOrganizationRole());
+    }
+
+    public function ensureCandidateMembership(?int $organizationId = null): void
+    {
+        $organizationId = $organizationId ?: Organization::query()->value('id');
+        if (! $organizationId) {
+            return;
+        }
+
+        if ($this->belongsToOrganization((int) $organizationId)) {
+            return;
+        }
+
+        $this->organizations()->attach($organizationId, [
+            'role' => OrganizationRoles::CANDIDATE,
+            'status' => 'active',
+        ]);
     }
 
     public function questions()

@@ -54,9 +54,12 @@ function makeAttemptQuestion(int $orgId, int $categoryId, array $overrides = [])
 
 function makePublishedExam(int $orgId, array $overrides = []): Exam
 {
+    $suffix = uniqid();
+
     return Exam::create(array_merge([
         'organization_id' => $orgId,
-        'title' => 'Published Attempt Exam '.uniqid(),
+        'title' => 'Published Attempt Exam '.$suffix,
+        'slug' => 'published-attempt-exam-'.$suffix,
         'status' => 'published',
         'exam_mode' => 'standard',
         'exam_format' => ['mcq'],
@@ -175,23 +178,27 @@ test('start endpoint withholds correct answers and is idempotent', function () {
     ]);
 
     $first = $this->actingAs($this->candidateA)
-        ->postJson(route('admin.exams.attempts.start', $exam))
+        ->postJson(route('frontend.exams.attempts.start', $exam))
         ->assertOk()
         ->json();
 
-    expect($first['questions'])->toHaveCount(2);
-    $json = json_encode($first);
+    expect($first['attempt_id'])->not->toBeNull();
+    expect($first['redirect'])->toContain('/attempts/');
+
+    $attempt = \App\Models\ExamAttempt::query()->findOrFail($first['attempt_id']);
+    $payload = app(\App\Services\CandidateExam\ExamSessionService::class)->toRuntimePayload($attempt);
+
+    expect($payload['questions'])->toHaveCount(2);
+    $json = json_encode($payload);
     expect($json)->not->toContain('SECRET_TRUE');
     expect($json)->not->toContain('secret explanation');
 
     $second = $this->actingAs($this->candidateA)
-        ->postJson(route('admin.exams.attempts.start', $exam))
+        ->postJson(route('frontend.exams.attempts.start', $exam))
         ->assertOk()
         ->json();
 
-    expect($second['attempt']['id'])->toBe($first['attempt']['id']);
-    expect(collect($second['questions'])->pluck('question_id')->sort()->values()->all())
-        ->toEqual(collect($first['questions'])->pluck('question_id')->sort()->values()->all());
+    expect($second['attempt_id'])->toBe($first['attempt_id']);
 });
 
 test('snapshots remain immutable after source question edits', function () {

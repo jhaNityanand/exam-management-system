@@ -28,6 +28,9 @@ class Exam extends Model
         'exam_format',
         'difficulty_level',
         'visibility',
+        'demo_enabled',
+        'language',
+        'timezone',
         'tags',
         'pricing_option',
         'exam_currency',
@@ -44,6 +47,7 @@ class Exam extends Model
         'schedule_type',
         'scheduled_start',
         'scheduled_end',
+        'registration_deadline',
 
         // Attempts
         'attempt_limit_type',
@@ -53,6 +57,8 @@ class Exam extends Model
         'pass_percentage',
         'total_marks',
         'passing_marks',
+        'result_release_mode',
+        'result_release_at',
         'negative_mark_per_question',
         'enable_negative_marking',
         'negative_marking_type',
@@ -95,6 +101,7 @@ class Exam extends Model
         'og_title',
         'og_description',
         'og_image_id',
+        'banner_image_id',
         'robots',
         'schema_markup',
         'instructions',
@@ -123,10 +130,13 @@ class Exam extends Model
             'fix_category_marks'         => 'boolean',
             'ai_generated'               => 'boolean',
             'ai_improve'                 => 'boolean',
+            'demo_enabled'               => 'boolean',
 
             // Dates
             'scheduled_start'            => 'datetime',
             'scheduled_end'              => 'datetime',
+            'registration_deadline'      => 'datetime',
+            'result_release_at'          => 'datetime',
 
             // Numbers
             'exam_amount'                => 'decimal:2',
@@ -173,6 +183,21 @@ class Exam extends Model
         return $this->belongsTo(Gallery::class, 'og_image_id');
     }
 
+    public function bannerImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'banner_image_id');
+    }
+
+    public function proctoringPolicy()
+    {
+        return $this->hasOne(ExamProctoringPolicy::class);
+    }
+
+    public function entitlements()
+    {
+        return $this->hasMany(ExamEntitlement::class);
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -181,6 +206,21 @@ class Exam extends Model
     public function attempts()
     {
         return $this->hasMany(ExamAttempt::class);
+    }
+
+    public function bannerUrl(): ?string
+    {
+        return $this->bannerImage?->file_url ?? $this->ogImage?->file_url;
+    }
+
+    public function isPaid(): bool
+    {
+        return ($this->pricing_option ?: 'free') === 'paid' || (float) ($this->exam_amount ?? 0) > 0;
+    }
+
+    public function scopePublicCatalog($query)
+    {
+        return $query->published()->where('visibility', 'public');
     }
 
     public function questions()

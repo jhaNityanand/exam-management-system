@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Models\ExamCategory;
+use App\Services\CandidateExam\ExamEligibilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,14 +16,19 @@ class ExamController extends Controller
 {
     use RespondsWithFrontendJson;
 
+    public function __construct(
+        protected ExamEligibilityService $eligibility
+    ) {}
+
     public function index(Request $request): View|JsonResponse
     {
         $orgId = $this->organizationId();
+        $user = $request->user();
 
         $query = Exam::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->with(['category:id,name,slug'])
+            ->with(['category:id,name,slug', 'bannerImage', 'ogImage'])
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', (int) $request->input('category_id')))
             ->when($request->filled('difficulty_level'), fn ($q) => $q->where('difficulty_level', $request->input('difficulty_level')))
             ->when($request->filled('search'), function ($q) use ($request) {
@@ -33,15 +40,36 @@ class ExamController extends Controller
                 });
             });
 
+        if (! $user) {
+            $query->where('visibility', 'public');
+        }
+
         $sort = $request->input('sort', 'latest');
         match ($sort) {
             'oldest' => $query->oldest('id'),
             'title' => $query->orderBy('title'),
             'difficulty' => $query->orderBy('difficulty_level')->orderByDesc('id'),
+            'duration' => $query->orderBy('duration')->orderByDesc('id'),
             default => $query->latest('id'),
         };
 
-        $exams = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
+        if ($user) {
+            $all = $query->get()->filter(
+                fn (Exam $exam) => $this->eligibility->canViewPublicDetail($exam, $user)
+            )->values();
+
+            $page = max(1, (int) $request->input('page', 1));
+            $perPage = max(1, (int) $request->input('per_page', 12));
+            $exams = new \Illuminate\Pagination\LengthAwarePaginator(
+                $all->forPage($page, $perPage)->values(),
+                $all->count(),
+                $perPage,
+                $page,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            $exams = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
+        }
 
         if ($this->wantsFrontendJson($request)) {
             return $this->paginatedJson($exams);
@@ -61,20 +89,42 @@ class ExamController extends Controller
         ]);
     }
 
-    public function show(Exam $exam): View
+    public function show(Request $request, Exam $exam): View
     {
         $orgId = $this->organizationId();
+        $user = $request->user();
 
-        abort_unless(
-            $exam->status === 'published'
-                && ($orgId === null || (int) $exam->organization_id === $orgId),
-            404
-        );
+        abort_unless($exam->status === 'published', 404);
+        if ($orgId !== null && (int) $exam->organization_id !== $orgId && ! ($user && $this->eligibility->canViewPublicDetail($exam, $user))) {
+            abort(404);
+        }
+        abort_unless($this->eligibility->canViewPublicDetail($exam, $user), 404);
 
-        $exam->load(['category:id,name,slug,description', 'ogImage']);
+        $exam->load(['category:id,name,slug,description', 'ogImage', 'bannerImage', 'proctoringPolicy']);
+
+        $evaluation = $user ? $this->eligibility->evaluate($exam, $user) : [
+            'can_attempt' => false,
+            'can_continue' => false,
+            'requires_payment' => $this->eligibility->requiresPayment($exam),
+            'has_entitlement' => false,
+            'active_attempt_id' => null,
+            'reasons' => ['Login required'],
+            'attempts_used' => 0,
+            'attempts_allowed' => $this->eligibility->allowedAttempts($exam),
+        ];
+
+        $previousAttempts = $user
+            ? ExamAttempt::query()
+                ->where('exam_id', $exam->id)
+                ->where('user_id', $user->id)
+                ->whereIn('status', ['submitted', 'expired', 'graded', 'abandoned'])
+                ->latest('id')
+                ->limit(10)
+                ->get(['id', 'status', 'score', 'percentage', 'passed', 'submitted_at', 'started_at'])
+            : collect();
 
         $relatedExams = Exam::query()
-            ->published()
+            ->publicCatalog()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('id', '!=', $exam->id)
             ->when($exam->category_id, fn ($q) => $q->where('category_id', $exam->category_id))
@@ -85,6 +135,8 @@ class ExamController extends Controller
 
         return view('frontend.exam.show', [
             'exam' => $exam,
+            'evaluation' => $evaluation,
+            'previousAttempts' => $previousAttempts,
             'relatedExams' => $relatedExams,
         ]);
     }
