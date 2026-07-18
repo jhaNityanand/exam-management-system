@@ -121,6 +121,35 @@ class QuestionBankService
     }
 
     /**
+     * Count matching questions for each selected category bucket (includes descendants).
+     *
+     * @param  array<string, mixed>  $filters
+     * @param  list<int|string>  $bucketCategoryIds
+     * @return array{data: array<string, int>, meta: array{total: int}}
+     */
+    public function countsByCategory(int $orgId, array $filters, array $bucketCategoryIds): array
+    {
+        $buckets = array_values(array_unique(array_filter(array_map('intval', $bucketCategoryIds), static fn (int $id) => $id > 0)));
+        $counts = [];
+        $total = 0;
+
+        foreach ($buckets as $bucketId) {
+            $bucketFilters = $filters;
+            $bucketFilters['categories'] = [$bucketId];
+            $count = $this->filteredQuery($orgId, $bucketFilters)->count();
+            $counts[(string) $bucketId] = $count;
+            $total += $count;
+        }
+
+        return [
+            'data' => $counts,
+            'meta' => [
+                'total' => $total,
+            ],
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $filters
      * @param  array<int|string, int>  $categoryQuotas
      * @return list<array<string, mixed>>

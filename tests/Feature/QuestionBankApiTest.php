@@ -156,3 +156,19 @@ test('question bank random sample respects count and filters', function () {
         expect((int) $row['marks'])->toBe(1);
     }
 });
+
+test('question bank counts endpoint returns per-category totals with descendants', function () {
+    makeBankQuestion($this->organization->id, $this->category->id, ['body' => 'Parent count Q', 'marks' => 1]);
+    makeBankQuestion($this->organization->id, $this->child->id, ['body' => 'Child count Q', 'marks' => 1]);
+    makeBankQuestion($this->organization->id, $this->child->id, ['body' => 'Child count Q2', 'marks' => 2]);
+
+    $this->actingAs($this->user)
+        ->getJson(route('admin.api.question-bank.counts', [
+            'categories' => $this->category->id.','.$this->child->id,
+            'marks' => '1',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('meta.total', 3)
+        ->assertJsonPath('data.'.$this->category->id, 2)
+        ->assertJsonPath('data.'.$this->child->id, 1);
+});

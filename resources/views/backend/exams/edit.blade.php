@@ -155,6 +155,7 @@
             endpoints: {
                 categories: @json(route('admin.api.question-bank.categories')),
                 questionBank: @json(route('admin.api.question-bank.questions')),
+                questionBankCounts: @json(route('admin.api.question-bank.counts')),
                 questionBankRandom: @json(route('admin.api.question-bank.random')),
                 questionCreate: @json(route('admin.questions.create')),
                 examCreate: @json(route('admin.exams.create')),

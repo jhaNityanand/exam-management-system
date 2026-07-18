@@ -142,6 +142,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::resource('categories', ExamCategoryController::class)->names('categories');
     });
     Route::get('api/question-bank/categories', [ExamController::class, 'apiCategories'])->name('api.question-bank.categories');
+    Route::get('api/question-bank/counts', [ExamController::class, 'apiQuestionCounts'])->name('api.question-bank.counts');
     Route::get('api/question-bank/questions', [ExamController::class, 'apiQuestions'])->name('api.question-bank.questions');
     Route::get('api/question-bank/random', [ExamController::class, 'apiRandomQuestions'])->name('api.question-bank.random');
     Route::post('exams/bulk-destroy', [ExamController::class, 'bulkDestroy'])->name('exams.bulk-destroy');

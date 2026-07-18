@@ -526,9 +526,12 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         questionBank: [],
         questionBankMeta: { total: 0, next_cursor: null, has_more: false, per_page: 50 },
+        categoryCounts: {},
+        categoryLoadState: {},
         selectedQuestionCache: {},
         questionBankRequestSeq: 0,
         questionBankAbortController: null,
+        countsAbortController: null,
         categoryAvailability: {},
         selectedCategories: new Set(),
         selectedMarks: new Set(),
@@ -2264,22 +2267,44 @@ document.addEventListener('DOMContentLoaded', () => {
             updateQuestionBankCards();
         });
         refs.questionBankLoadMoreBtn?.addEventListener('click', () => {
-            syncQuestionBankFromServer({ append: true });
+            // Per-category load-more buttons handle pagination.
         });
 
         refs.questionCategoryCards.addEventListener('click', (event) => {
             const expandButton = event.target.closest('[data-action="toggle-expand"]');
             const addButton = event.target.closest('[data-action="add-question"]');
             const addMissingButton = event.target.closest('[data-action="add-missing-question"]');
+            const loadCategoryBtn = event.target.closest('[data-action="load-category-questions"]');
+            const loadMoreCategoryBtn = event.target.closest('[data-action="load-more-category-questions"]');
+
+            if (loadCategoryBtn) {
+                const categoryId = String(loadCategoryBtn.dataset.categoryId || '');
+                if (!categoryId) return;
+                state.expandedCards.add(categoryId);
+                loadCategoryQuestions(categoryId, { append: false });
+                return;
+            }
+
+            if (loadMoreCategoryBtn) {
+                const categoryId = String(loadMoreCategoryBtn.dataset.categoryId || '');
+                if (!categoryId) return;
+                loadCategoryQuestions(categoryId, { append: true });
+                return;
+            }
 
             if (expandButton) {
-                const categoryId = expandButton.dataset.categoryId;
+                const categoryId = String(expandButton.dataset.categoryId || '');
                 if (state.expandedCards.has(categoryId)) {
                     state.expandedCards.delete(categoryId);
+                    updateQuestionBankCards();
                 } else {
                     state.expandedCards.add(categoryId);
+                    updateQuestionBankCards();
+                    const loadState = state.categoryLoadState[categoryId];
+                    if (!loadState || loadState.status === 'idle') {
+                        loadCategoryQuestions(categoryId, { append: false });
+                    }
                 }
-                updateQuestionBankCards();
                 return;
             }
 
@@ -2864,12 +2889,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const requiredTotal = limits.viewOnly
             ? Math.max(1, toInt(refs.totalQuestions?.value, 1))
             : limits.max;
-        const availableTotal = Number(state.questionBankMeta?.total ?? 0) > 0
-            ? Number(state.questionBankMeta.total)
-            : state.questionBank.filter((question) => {
-                return selectedCategories.some((categoryId) => questionMatchesSelectedCategory(question, categoryId))
-                    && (!selectedMarks.length || selectedMarks.includes(Number(question.marks)));
-            }).length;
+        const countedTotal = Object.values(state.categoryCounts || {}).reduce(
+            (sum, value) => sum + Number(value || 0),
+            0
+        );
+        const availableTotal = countedTotal > 0
+            ? countedTotal
+            : (Number(state.questionBankMeta?.total ?? 0) > 0
+                ? Number(state.questionBankMeta.total)
+                : state.questionBank.filter((question) => {
+                    return selectedCategories.some((categoryId) => questionMatchesSelectedCategory(question, categoryId))
+                        && (!selectedMarks.length || selectedMarks.includes(Number(question.marks)));
+                }).length);
 
         if (availableTotal < requiredTotal) {
             shortages.push({
@@ -4021,8 +4052,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateQuestionBankCards() {
-        const query = cleanText(refs.questionSearch.value).toLowerCase();
-        const selectedCategoryIds = [...state.selectedCategories];
+        const selectedCategoryIds = [...state.selectedCategories].map(String);
         const hasMarksFilter = state.selectedMarks.size > 0;
         const limits = getQuestionSelectionLimits();
         const selectionEnabled = !limits.viewOnly;
@@ -4046,13 +4076,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const filteredQuestions = bankWithSelected
-            .filter((q) => selectedCategoryIds.some((categoryId) => questionMatchesSelectedCategory(q, categoryId)))
-            .filter((q) => !hasMarksFilter || state.selectedMarks.has(Number(q.marks)))
-            .filter((q) => !query || String(q.text || '').toLowerCase().includes(query));
-
         const byCategory = new Map();
-        for (const q of filteredQuestions) {
+        for (const q of bankWithSelected) {
             const targetCategoryId = resolveQuestionDisplayCategory(q, selectedCategoryIds);
             if (!targetCategoryId) {
                 continue;
@@ -4063,9 +4088,7 @@ document.addEventListener('DOMContentLoaded', () => {
             byCategory.get(targetCategoryId).push(q);
         }
 
-        const totalShown = filteredQuestions.length;
         const totalSelectedGlobal = state.selectedQuestions.size;
-
         if (refs.globalSelectedCount) refs.globalSelectedCount.textContent = totalSelectedGlobal;
         if (refs.globalAllowedCount) {
             refs.globalAllowedCount.textContent = selectionEnabled ? String(totalQuestionsAllowed) : '0';
@@ -4076,23 +4099,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectedCategoryIds.length) {
             refs.questionCategoryCards.innerHTML = '';
             refs.questionBankFeedback.textContent = 'Select categories above to load the question bank.';
+            updateQuestionBankLoadMeta();
             return;
         }
 
         refs.questionCategoryCards.innerHTML = selectedCategoryIds
             .map((categoryId) => {
-                const categoryName = getCategoryLabelById(categoryId);
-                const questions = byCategory.get(categoryId) || [];
-                const expanded = state.expandedCards.has(categoryId);
-                const count = questions.length;
+                const categoryKey = String(categoryId);
+                const categoryName = getCategoryLabelById(categoryKey);
+                const questions = byCategory.get(categoryKey) || [];
+                const expanded = state.expandedCards.has(categoryKey);
+                const serverCount = Number(state.categoryCounts[categoryKey] ?? 0);
+                const loadState = state.categoryLoadState[categoryKey] || { status: 'idle', has_more: false };
+                const loadedCount = questions.length;
 
                 let categoryAllowedLimit = totalQuestionsAllowed;
                 if (fixedPerCategory) {
-                    const row = fixedDistribution.rows.find((r) => String(r.categoryId) === String(categoryId));
+                    const row = fixedDistribution.rows.find((r) => String(r.categoryId) === categoryKey);
                     categoryAllowedLimit = row ? row.count : 0;
                 }
 
-                const selectedInCategory = questions.filter((q) => state.selectedQuestions.has(q.id)).length;
+                const selectedInCategory = [...state.selectedQuestions].filter((questionId) => {
+                    const question = getQuestionById(questionId);
+                    return question && questionMatchesSelectedCategory(question, categoryKey);
+                }).length;
                 const categoryLimitReached = selectionEnabled && fixedPerCategory
                     ? selectedInCategory >= categoryAllowedLimit
                     : false;
@@ -4104,10 +4134,39 @@ document.addEventListener('DOMContentLoaded', () => {
                         : `<span class="question-accordion__selection-count">${selectedInCategory} picked</span>`;
                 }
 
-                const questionsList = count
-                    ? questions
+                let questionsList = '';
+                if (loadState.status === 'loading') {
+                    questionsList = '<li class="question-accordion__empty">Loading questions...</li>';
+                } else if (loadState.status === 'idle') {
+                    questionsList = `
+                        <li class="question-accordion__empty">
+                            ${serverCount} matching question(s) available.
+                            <div style="margin-top:0.75rem;">
+                                <button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">
+                                    Load questions
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                } else if (loadState.status === 'error') {
+                    questionsList = `
+                        <li class="question-accordion__empty">
+                            Could not load questions.
+                            <div style="margin-top:0.75rem;">
+                                <button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">
+                                    Retry
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                } else if (loadedCount === 0) {
+                    questionsList = `<li class="question-accordion__empty">No questions found for this category${hasMarksFilter ? ' matching the selected marks filter' : ''}.</li>`;
+                } else {
+                    questionsList = questions
                         .map((question) => {
-                            const isSelected = state.selectedQuestions.has(question.id);
+                            const isSelected = state.selectedQuestions.has(question.id)
+                                || state.selectedQuestions.has(String(question.id))
+                                || state.selectedQuestions.has(Number(question.id));
                             const disabled = selectionEnabled && !isSelected && (globalLimitReached || categoryLimitReached);
                             const diffBadge = question.difficulty
                                 ? `<span class="question-accordion__badge question-accordion__badge--${escapeHtml(question.difficulty)}">${escapeHtml(question.difficulty)}</span>`
@@ -4133,7 +4192,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             return `
                                 <li class="question-accordion__item ${isSelected ? 'is-selected' : ''}">
                                     <label class="question-checkbox-label ${disabled ? 'is-disabled' : ''}">
-                                        <input type="checkbox" class="question-checkbox" data-question-id="${question.id}" data-category-id="${escapeHtml(categoryId)}" ${isSelected ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+                                        <input type="checkbox" class="question-checkbox" data-question-id="${question.id}" data-category-id="${escapeHtml(categoryKey)}" ${isSelected ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
                                         <div class="question-accordion__body">
                                             <span class="question-accordion__text">${escapeHtml(question.text)}</span>
                                             <div class="question-accordion__meta">${diffBadge}${marksBadge}${typeBadge}</div>
@@ -4142,36 +4201,50 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </li>
                             `;
                         })
-                        .join('')
-                    : `<li class="question-accordion__empty">No questions found for this category${hasMarksFilter ? ' matching the selected marks filter' : ''}.</li>`;
+                        .join('');
+
+                    if (loadState.has_more) {
+                        questionsList += `
+                            <li class="question-accordion__empty">
+                                <button type="button" class="panel-button-secondary panel-button--small" data-action="load-more-category-questions" data-category-id="${escapeHtml(categoryKey)}">
+                                    Load more (${loadedCount} of ${serverCount})
+                                </button>
+                            </li>
+                        `;
+                    }
+                }
 
                 const randomSelectHtml = selectionEnabled && fixedPerCategory
-                    ? `<button type="button" class="panel-button-secondary panel-button--small" data-action="random-select-category" data-category-id="${escapeHtml(categoryId)}">Random Select</button>`
+                    ? `<button type="button" class="panel-button-secondary panel-button--small" data-action="random-select-category" data-category-id="${escapeHtml(categoryKey)}">Random Select</button>`
+                    : '';
+
+                const loadBtnHtml = loadState.status === 'idle' || loadState.status === 'error'
+                    ? `<button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">Load questions</button>`
                     : '';
 
                 return `
-                    <article class="question-accordion" data-category-accordion="${escapeHtml(categoryId)}" data-expanded="${expanded ? 'true' : 'false'}">
+                    <article class="question-accordion" data-category-accordion="${escapeHtml(categoryKey)}" data-expanded="${expanded ? 'true' : 'false'}">
                         <button
                             type="button"
                             class="question-accordion__header"
                             data-action="toggle-expand"
-                            data-category-id="${escapeHtml(categoryId)}"
+                            data-category-id="${escapeHtml(categoryKey)}"
                             aria-expanded="${expanded ? 'true' : 'false'}"
                         >
                             <span class="question-accordion__chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
                             <span class="question-accordion__title">
                                 ${escapeHtml(categoryName)}
-                                <span class="question-accordion__count">(${count} question${count !== 1 ? 's' : ''})</span>
+                                <span class="question-accordion__count">(${serverCount} question${serverCount !== 1 ? 's' : ''})</span>
                             </span>
                         </button>
 
                         <div class="question-accordion__panel" data-role="accordion-panel"${expanded ? '' : ' hidden'}>
                             <div class="question-accordion__panel-inner">
                                 <div class="question-accordion__toolbar">
-                                    <div class="toolbar-left">${randomSelectHtml}</div>
+                                    <div class="toolbar-left">${randomSelectHtml}${loadBtnHtml}</div>
                                     <div class="toolbar-right">
                                         ${categorySelectionText}
-                                        <button type="button" class="panel-button-secondary panel-button--small" data-action="add-question" data-category-id="${escapeHtml(categoryId)}">+ Add Question</button>
+                                        <button type="button" class="panel-button-secondary panel-button--small" data-action="add-question" data-category-id="${escapeHtml(categoryKey)}">+ Add Question</button>
                                     </div>
                                 </div>
                                 <ul class="question-accordion__list">${questionsList}</ul>
@@ -4188,9 +4261,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? ` Select between ${limits.min} and ${limits.max} questions for the pool.`
                 : ` Select exactly ${limits.exact} question(s).`);
 
-        const totalAvailable = Number(state.questionBankMeta?.total || totalShown);
+        const totalAvailable = Object.values(state.categoryCounts || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+        const loadedRows = state.questionBank.length;
         refs.questionBankFeedback.textContent = (
-            `Loaded ${state.questionBank.length} of ${totalAvailable} matching question(s) across ${selectedCategoryIds.length} selected categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}.`
+            `${totalAvailable} matching question(s) across ${selectedCategoryIds.length} categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}. Expand a category or click Load questions to fetch rows (${loadedRows} loaded).`
         ) + modeHint;
         updateQuestionBankLoadMeta();
     }
@@ -4199,35 +4273,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function scheduleQuestionBankSync(delayMs = 350) {
         clearTimeout(questionBankSyncTimer);
         questionBankSyncTimer = setTimeout(() => {
-            syncQuestionBankFromServer({ append: false });
+            syncQuestionBankFromServer();
         }, delayMs);
     }
 
-    function buildQuestionBankUrl({ append = false } = {}) {
-        const endpoints = window.examCreateConfig?.endpoints || {};
-        if (!endpoints.questionBank) {
-            return null;
-        }
-
-        const categoryIds = [...state.selectedCategories].join(',');
+    function buildSharedQuestionBankParams() {
         const marks = [...state.selectedMarks].join(',');
         const formats = [...state.selectedExamFormat].join(',');
         const keyword = cleanText(refs.questionSearch?.value || '');
-
-        const url = new URL(endpoints.questionBank, window.location.origin);
-        if (categoryIds) url.searchParams.set('categories', categoryIds);
-        if (marks) url.searchParams.set('marks', marks);
-        if (formats) url.searchParams.set('formats', formats);
-        if (keyword) url.searchParams.set('q', keyword);
-        url.searchParams.set('per_page', String(state.questionBankMeta?.per_page || 50));
-        if (append && state.questionBankMeta?.next_cursor) {
-            url.searchParams.set('cursor', String(state.questionBankMeta.next_cursor));
-        }
-        return url;
+        return { marks, formats, keyword };
     }
 
-    function mergeQuestionBankRows(rows, { append = false } = {}) {
+    function mergeQuestionBankRows(rows, { append = false, replaceCategoryId = null } = {}) {
         const incoming = Array.isArray(rows) ? rows : [];
+        if (replaceCategoryId) {
+            const keep = state.questionBank.filter((q) => !questionMatchesSelectedCategory(q, replaceCategoryId));
+            state.questionBank = keep.concat(incoming);
+            return;
+        }
         if (!append) {
             state.questionBank = incoming.slice();
             return;
@@ -4245,18 +4308,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateQuestionBankLoadMeta() {
         const loaded = state.questionBank.length;
-        const total = Number(state.questionBankMeta?.total || 0);
+        const total = Object.values(state.categoryCounts || {}).reduce((sum, n) => sum + Number(n || 0), 0);
         if (refs.questionBankLoadMeta) {
             refs.questionBankLoadMeta.textContent = total > 0
-                ? `Loaded ${loaded} of ${total} matching question(s).`
+                ? `Counts ready: ${total} matching. Loaded rows: ${loaded}.`
                 : (loaded > 0 ? `Loaded ${loaded} question(s).` : '');
         }
         if (refs.questionBankLoadMoreWrap) {
-            refs.questionBankLoadMoreWrap.hidden = !state.questionBankMeta?.has_more;
+            refs.questionBankLoadMoreWrap.hidden = true;
         }
-        if (refs.questionBankLoadMoreBtn) {
-            refs.questionBankLoadMoreBtn.disabled = Boolean(state.questionBankAbortController);
-        }
+    }
+
+    function resetCategoryQuestionLoads() {
+        state.questionBank = [];
+        state.categoryLoadState = {};
+        [...state.selectedCategories].forEach((categoryId) => {
+            state.categoryLoadState[String(categoryId)] = {
+                status: 'idle',
+                next_cursor: null,
+                has_more: false,
+                requestSeq: 0,
+            };
+        });
     }
 
     async function fetchSelectedQuestionMetadata(ids) {
@@ -4274,7 +4347,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(url, {
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                signal: state.questionBankAbortController?.signal,
             });
             if (!response.ok) {
                 return;
@@ -4284,110 +4356,185 @@ document.addEventListener('DOMContentLoaded', () => {
             rows.forEach((question) => rememberSelectedQuestion(question));
             mergeQuestionBankRows(rows, { append: true });
         } catch (err) {
-            if (err?.name !== 'AbortError') {
-                console.error('Failed to hydrate selected questions', err);
-            }
+            console.error('Failed to hydrate selected questions', err);
         }
     }
 
-    async function syncQuestionBankFromServer({ append = false } = {}) {
+    async function syncQuestionBankCounts() {
+        const endpoints = window.examCreateConfig?.endpoints || {};
+        const countsUrl = endpoints.questionBankCounts || endpoints.questionBank;
+        if (!countsUrl) return;
+
+        const categoryIds = [...state.selectedCategories].map(String);
+        if (!categoryIds.length) {
+            state.categoryCounts = {};
+            state.questionBankMeta = { total: 0, next_cursor: null, has_more: false, per_page: 50 };
+            resetCategoryQuestionLoads();
+            updateQuestionBankLoadMeta();
+            updateQuestionBankCards();
+            return;
+        }
+
+        if (state.countsAbortController) {
+            state.countsAbortController.abort();
+        }
+        state.countsAbortController = new AbortController();
+        const { marks, formats, keyword } = buildSharedQuestionBankParams();
+        const url = new URL(countsUrl, window.location.origin);
+        url.searchParams.set('categories', categoryIds.join(','));
+        if (marks) url.searchParams.set('marks', marks);
+        if (formats) url.searchParams.set('formats', formats);
+        if (keyword) url.searchParams.set('q', keyword);
+
+        try {
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                signal: state.countsAbortController.signal,
+            });
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            const payload = await response.json();
+            const counts = payload?.data && typeof payload.data === 'object' ? payload.data : {};
+            state.categoryCounts = {};
+            categoryIds.forEach((id) => {
+                state.categoryCounts[id] = Number(counts[id] ?? counts[String(id)] ?? 0);
+            });
+            state.questionBankMeta = {
+                total: Number(payload?.meta?.total ?? Object.values(state.categoryCounts).reduce((s, n) => s + Number(n || 0), 0)),
+                next_cursor: null,
+                has_more: false,
+                per_page: 50,
+            };
+        } catch (err) {
+            if (err?.name === 'AbortError') {
+                return;
+            }
+            console.error('Failed to load question bank counts', err);
+            window.EmsToast?.error('Failed to load question counts.');
+        } finally {
+            state.countsAbortController = null;
+            updateQuestionBankLoadMeta();
+        }
+    }
+
+    async function loadCategoryQuestions(categoryId, { append = false } = {}) {
         const endpoints = window.examCreateConfig?.endpoints || {};
         if (!endpoints.questionBank) return;
 
-        if (!state.selectedCategories.size) {
-            state.questionBank = [];
-            state.questionBankMeta = { total: 0, next_cursor: null, has_more: false, per_page: 50 };
-            updateQuestionBankLoadMeta();
-            updateAll();
+        const categoryKey = String(categoryId || '');
+        if (!categoryKey) return;
+
+        const current = state.categoryLoadState[categoryKey] || {
+            status: 'idle',
+            next_cursor: null,
+            has_more: false,
+            requestSeq: 0,
+        };
+        if (append && !current.has_more) {
             return;
         }
 
-        if (append && !state.questionBankMeta?.has_more) {
-            return;
+        const requestSeq = (current.requestSeq || 0) + 1;
+        state.categoryLoadState[categoryKey] = {
+            ...current,
+            status: 'loading',
+            requestSeq,
+        };
+        updateQuestionBankCards();
+
+        const { marks, formats, keyword } = buildSharedQuestionBankParams();
+        const url = new URL(endpoints.questionBank, window.location.origin);
+        url.searchParams.set('categories', categoryKey);
+        if (marks) url.searchParams.set('marks', marks);
+        if (formats) url.searchParams.set('formats', formats);
+        if (keyword) url.searchParams.set('q', keyword);
+        url.searchParams.set('per_page', '50');
+        if (append && current.next_cursor) {
+            url.searchParams.set('cursor', String(current.next_cursor));
         }
 
+        try {
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            if ((state.categoryLoadState[categoryKey]?.requestSeq || 0) !== requestSeq) {
+                return;
+            }
+            const payload = await response.json();
+            const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            const meta = payload?.meta && typeof payload.meta === 'object' ? payload.meta : {};
+
+            if (append) {
+                mergeQuestionBankRows(rows, { append: true });
+            } else {
+                mergeQuestionBankRows(rows, { replaceCategoryId: categoryKey });
+            }
+
+            rows.forEach((question) => {
+                if (
+                    state.selectedQuestions.has(question.id)
+                    || state.selectedQuestions.has(String(question.id))
+                    || state.selectedQuestions.has(Number(question.id))
+                ) {
+                    rememberSelectedQuestion(question);
+                }
+            });
+
+            state.categoryLoadState[categoryKey] = {
+                status: 'loaded',
+                next_cursor: meta.next_cursor ?? null,
+                has_more: Boolean(meta.has_more),
+                requestSeq,
+            };
+            if (typeof meta.total === 'number') {
+                state.categoryCounts[categoryKey] = Number(meta.total);
+            }
+            updateQuestionBankCards();
+            updateWorkflowAndSnapshot();
+        } catch (err) {
+            console.error('Failed to load category questions', err);
+            state.categoryLoadState[categoryKey] = {
+                status: 'error',
+                next_cursor: null,
+                has_more: false,
+                requestSeq,
+            };
+            updateQuestionBankCards();
+            window.EmsToast?.error('Failed to load questions for ' + getCategoryLabelById(categoryKey));
+        }
+    }
+
+    async function syncQuestionBankFromServer() {
         const refreshBtn = document.getElementById('refresh-question-bank');
         const bankSection = document.getElementById('question-bank-section');
         const managedByButton = Boolean(refreshBtn?.classList.contains('is-loading'));
 
-        if (!append && refs.questionBankFeedback) {
-            refs.questionBankFeedback.textContent = 'Loading matching questions from server...';
+        if (refs.questionBankFeedback) {
+            refs.questionBankFeedback.textContent = 'Loading question counts...';
         }
-        if (!append && refreshBtn && !managedByButton) {
+        if (refreshBtn && !managedByButton) {
             refreshBtn.disabled = true;
             refreshBtn.classList.add('is-loading');
             refreshBtn.setAttribute('aria-busy', 'true');
         }
         bankSection?.classList.add('is-loading');
 
-        if (state.questionBankAbortController) {
-            state.questionBankAbortController.abort();
-        }
-        state.questionBankAbortController = new AbortController();
-        const requestSeq = ++state.questionBankRequestSeq;
-        const url = buildQuestionBankUrl({ append });
-        if (!url) {
-            bankSection?.classList.remove('is-loading');
-            return;
-        }
-
         try {
-            const response = await fetch(url, {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                signal: state.questionBankAbortController.signal,
-            });
-            if (requestSeq !== state.questionBankRequestSeq) {
-                return;
+            resetCategoryQuestionLoads();
+            await syncQuestionBankCounts();
+            await fetchSelectedQuestionMetadata([...state.selectedQuestions]);
+            if (state.isEditMode && !state.hasHydratedSelectedQuestions) {
+                await fetchSelectedQuestionMetadata(state.hydratedQuestionIds || []);
+                hydrateSelectedQuestions();
             }
-            if (response.ok) {
-                const payload = await response.json();
-                const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-                const meta = payload?.meta && typeof payload.meta === 'object' ? payload.meta : {};
-                mergeQuestionBankRows(rows, { append });
-                state.questionBankMeta = {
-                    total: Number(meta.total || rows.length || 0),
-                    next_cursor: meta.next_cursor ?? null,
-                    has_more: Boolean(meta.has_more),
-                    per_page: Number(meta.per_page || 50),
-                };
-                [...state.selectedQuestions].forEach((id) => {
-                    const question = state.questionBank.find((item) => String(item.id) === String(id));
-                    if (question) {
-                        rememberSelectedQuestion(question);
-                    }
-                });
-                await fetchSelectedQuestionMetadata([...state.selectedQuestions]);
-                pruneSelectedQuestionsToVisibleBank();
-                updateQuestionBankLoadMeta();
-                updateAll();
-                if (state.isEditMode && !state.hasHydratedSelectedQuestions) {
-                    await fetchSelectedQuestionMetadata(state.hydratedQuestionIds || []);
-                    hydrateSelectedQuestions();
-                }
-                if (refs.questionBankFeedback) {
-                    refs.questionBankFeedback.textContent = `Loaded ${state.questionBank.length} of ${state.questionBankMeta.total} matching question(s).`;
-                }
-            } else {
-                console.error('Failed to sync question bank: HTTP', response.status);
-                if (refs.questionBankFeedback) {
-                    refs.questionBankFeedback.textContent = 'Could not load questions. Please try again.';
-                }
-                window.EmsToast?.error('Failed to load question bank.');
-            }
-        } catch (err) {
-            if (err?.name === 'AbortError') {
-                return;
-            }
-            console.error('Failed to sync question bank:', err);
-            if (refs.questionBankFeedback) {
-                refs.questionBankFeedback.textContent = 'Network error while loading questions.';
-            }
-            window.EmsToast?.error('Network error while loading questions.');
+            updateQuestionBankCards();
+            updateWorkflowAndSnapshot();
         } finally {
-            if (requestSeq === state.questionBankRequestSeq) {
-                state.questionBankAbortController = null;
-            }
-            if (!append && refreshBtn && !managedByButton) {
+            if (refreshBtn && !managedByButton) {
                 refreshBtn.disabled = false;
                 refreshBtn.classList.remove('is-loading');
                 refreshBtn.removeAttribute('aria-busy');
@@ -4396,7 +4543,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateQuestionBankLoadMeta();
         }
     }
-    window.syncQuestionBankFromServer = () => syncQuestionBankFromServer({ append: false });
+    window.syncQuestionBankFromServer = syncQuestionBankFromServer;
+    window.loadCategoryQuestions = loadCategoryQuestions;
+
 
     function renderDiscountSummary() {
         if (!state.selectedDiscounts.size) {

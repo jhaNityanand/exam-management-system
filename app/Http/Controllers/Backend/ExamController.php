@@ -302,6 +302,26 @@ class ExamController extends Controller
     }
 
     /**
+     * Per-category matching counts for question-bank accordion headers.
+     */
+    public function apiQuestionCounts(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $orgId = $this->currentOrgId();
+        $filters = $this->questionBankFiltersFromRequest($request);
+        $bucketIds = $filters['categories'] ?? [];
+        if (is_string($bucketIds)) {
+            $bucketIds = array_filter(explode(',', $bucketIds));
+        }
+        if (! is_array($bucketIds)) {
+            $bucketIds = [];
+        }
+
+        return response()->json(
+            $this->questionBankService->countsByCategory($orgId, $filters, $bucketIds)
+        );
+    }
+
+    /**
      * Cursor-paginated question bank for exam create/edit.
      */
     public function apiQuestions(Request $request): \Illuminate\Http\JsonResponse
