@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Question;
 use App\Models\QuestionCategory;
+use App\Support\UniqueOrgSlug;
 use Database\Seeders\Concerns\ResolvesDemoContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -45,6 +46,7 @@ class QuestionSeeder extends Seeder
         $created = 0;
         $singleMcq = 0;
         $multiMcq = 0;
+        $reservedSlugs = [];
 
         foreach ($categories as $slug => $category) {
             $path = database_path('seeders/data/questions/'.$slug.'.php');
@@ -59,14 +61,21 @@ class QuestionSeeder extends Seeder
 
             foreach ($bank as $payload) {
                 $normalized = $this->normalizePayload($payload);
+                $bodyText = strip_tags((string) $normalized['body']);
 
                 Question::query()->create(array_merge($normalized, [
                     'organization_id' => $org->id,
                     'category_id' => $category->id,
                     'created_by' => $editor->id,
                     'status' => 'active',
-                    'meta_title' => Str::limit(strip_tags((string) $normalized['body']), 60, ''),
-                    'slug' => Str::slug(Str::limit(strip_tags((string) $normalized['body']), 80, '')),
+                    'meta_title' => Str::limit($bodyText, 60, ''),
+                    'slug' => UniqueOrgSlug::forModel(
+                        Question::class,
+                        Str::limit($bodyText, 80, ''),
+                        (int) $org->id,
+                        null,
+                        $reservedSlugs,
+                    ),
                     'ai_generated' => false,
                     'ai_improve' => false,
                 ]));

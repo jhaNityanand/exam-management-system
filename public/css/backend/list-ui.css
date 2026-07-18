@@ -276,18 +276,120 @@
     color: #f1f5f9;
 }
 
-.list-row-check,
-.list-select-all {
+/*
+ * Shared selection controls.
+ *
+ * Tailwind Forms gives unchecked checkboxes a white background. Keep every
+ * list checkbox theme-aware, including controls rendered by JavaScript.
+ */
+:is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+) {
     width: 1rem;
     height: 1rem;
+    flex: 0 0 auto;
     border-radius: 0.3rem;
     border: 1px solid #cbd5e1;
+    background-color: #fff;
+    color: #4f46e5;
     accent-color: #4f46e5;
     cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+:is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+):hover:not(:disabled) {
+    border-color: #818cf8;
+}
+
+:is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+):checked,
+:is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+):indeterminate {
+    border-color: #4f46e5;
+    background-color: #4f46e5;
+}
+
+.dark :is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+) {
+    border-color: #64748b;
+    background-color: #0f172a;
+    color: #818cf8;
+    accent-color: #818cf8;
+}
+
+.dark :is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+):hover:not(:disabled) {
+    border-color: #a5b4fc;
+    background-color: #1e293b;
+}
+
+.dark :is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+):checked,
+.dark :is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+):indeterminate {
+    border-color: #818cf8;
+    background-color: #6366f1;
+}
+
+:is(
+    .list-row-check,
+    .list-select-all,
+    .blog-row-check,
+    #gallery-select-all,
+    input[type="checkbox"][data-select]
+):disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .list-row-check:focus-visible,
 .list-select-all:focus-visible,
+.blog-row-check:focus-visible,
+#gallery-select-all:focus-visible,
+input[type="checkbox"][data-select]:focus-visible,
 .list-sort-btn:focus-visible,
 .list-view-tabs button:focus-visible,
 .list-bulk-btn:focus-visible {

@@ -69,6 +69,7 @@
             baseUrl: @json(url('/blogs')),
             tagItemClass: 'blog-tag-item',
             module: 'blog',
+            resolveUrl: @json(route('admin.slug.resolve')),
             isCreate: true,
             existingMedia: {},
         };

@@ -879,7 +879,8 @@
                     {{-- Slug --}}
                     <div class="qcat-meta-field col-lg-4">
                         <label class="qcat-meta-label" for="meta-slug">Slug</label>
-                        <input type="text" id="meta-slug" name="slug" value="{{ old('slug', $seoItem?->slug ?? '') }}" placeholder="e.g. slug-value" class="panel-input qcat-meta-input">
+                        <input type="text" id="meta-slug" name="slug" value="{{ old('slug', $seoItem?->slug ?? '') }}" placeholder="auto-generated-from-title" class="panel-input qcat-meta-input" autocomplete="off">
+                        <p class="ems-slug-status mt-1 text-xs text-slate-400" aria-live="polite"></p>
                         @error('slug')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
                     </div>
 

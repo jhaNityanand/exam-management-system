@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Blog;
 use App\Models\BlogTag;
+use App\Support\UniqueOrgSlug;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -29,7 +30,11 @@ class BlogService
             $data['author_name'] = Auth::user()?->name;
         }
 
-        $data['slug'] = $this->uniqueSlug($data['slug'] ?? $data['title'] ?? '', $orgId);
+        $data['slug'] = UniqueOrgSlug::forModel(
+            Blog::class,
+            $this->slugSource($data['slug'] ?? null, $data['title'] ?? ''),
+            $orgId,
+        );
         $this->applyPublishedAt($data);
         $data = $this->applyPrimaryBanner($data, is_array($bannerIds) ? $bannerIds : []);
 
@@ -52,8 +57,12 @@ class BlogService
         unset($data['tags'], $data['attachment_ids'], $data['banner_ids']);
 
         if (array_key_exists('slug', $data) || array_key_exists('title', $data)) {
-            $slugSource = $data['slug'] ?? $data['title'] ?? $blog->title;
-            $data['slug'] = $this->uniqueSlug($slugSource, (int) $blog->organization_id, (int) $blog->id);
+            $data['slug'] = UniqueOrgSlug::forModel(
+                Blog::class,
+                $this->slugSource($data['slug'] ?? null, $data['title'] ?? $blog->title),
+                (int) $blog->organization_id,
+                (int) $blog->id,
+            );
         }
 
         if (array_key_exists('status', $data) || array_key_exists('published_at', $data)) {
@@ -186,31 +195,14 @@ class BlogService
 
     public function uniqueSlug(string $titleOrSlug, int $orgId, ?int $ignoreId = null): string
     {
-        $base = Str::slug($titleOrSlug);
-        if ($base === '') {
-            $base = Str::slug(uniqid('blog-', false));
-        }
-
-        $slug = $base;
-        $suffix = 2;
-
-        while ($this->slugExists($slug, $orgId, $ignoreId)) {
-            $slug = "{$base}-{$suffix}";
-            $suffix++;
-        }
-
-        return $slug;
+        return UniqueOrgSlug::forModel(Blog::class, $titleOrSlug, $orgId, $ignoreId);
     }
 
-    protected function slugExists(string $slug, int $orgId, ?int $ignoreId = null): bool
+    protected function slugSource(mixed $slug, string $fallback): string
     {
-        $query = Blog::query()->forOrg($orgId)->where('slug', $slug);
+        $slug = trim((string) $slug);
 
-        if ($ignoreId !== null) {
-            $query->where('id', '!=', $ignoreId);
-        }
-
-        return $query->exists();
+        return $slug !== '' ? $slug : $fallback;
     }
 
     /**

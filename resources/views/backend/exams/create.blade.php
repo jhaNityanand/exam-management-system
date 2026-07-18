@@ -61,8 +61,10 @@
     <script src="{{ asset('js/components/question-bank-accordion.js') }}?v={{ filemtime(public_path('js/components/question-bank-accordion.js')) }}"></script>
     <script src="{{ asset('js/backend/question-bank-init.js') }}?v={{ filemtime(public_path('js/backend/question-bank-init.js')) }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}?v={{ filemtime(public_path('js/backend/seo-manager.js')) }}"></script>
+    <script src="{{ asset('js/backend/slug-field.js') }}?v={{ filemtime(public_path('js/backend/slug-field.js')) }}"></script>
     <script src="{{ asset('js/core/form-utils.js') }}?v={{ filemtime(public_path('js/core/form-utils.js')) }}"></script>
     <script>
+        window.slugResolveUrl = @json(route('admin.slug.resolve'));
         window.examCreateConfig = {
             options: @json($formOptions),
             endpoints: {
@@ -92,6 +94,12 @@
                 window.EmsTomSelectBlur?.attach(categorySelect);
             }
             window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
+            window.EmsSlugField?.bind({
+                module: 'exam',
+                sourceSelector: '#exam_title',
+                slugSelector: '#meta-slug',
+                resolveUrl: window.slugResolveUrl,
+            });
         });
     </script>
     <script src="{{ asset('js/backend/exam-create.js') }}?v={{ filemtime(public_path('js/backend/exam-create.js')) }}"></script>

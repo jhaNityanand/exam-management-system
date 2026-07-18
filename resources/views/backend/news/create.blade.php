@@ -69,6 +69,7 @@
             baseUrl: @json(url('/news')),
             tagItemClass: 'news-tag-item',
             module: 'news',
+            resolveUrl: @json(route('admin.slug.resolve')),
             isCreate: true,
             existingMedia: {},
         };

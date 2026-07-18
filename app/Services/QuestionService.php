@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Question;
+use App\Support\UniqueOrgSlug;
 use Illuminate\Support\Facades\Auth;
 
 class QuestionService
@@ -21,6 +22,7 @@ class QuestionService
             'options',
             'correct_answers',
         ]);
+        $this->applyUniqueSlug($data, (int) $data['organization_id'], null, (string) ($data['body'] ?? ''));
 
         $question = Question::create($data);
         $this->syncGalleryMedia($question);
@@ -39,11 +41,34 @@ class QuestionService
             'options',
             'correct_answers',
         ]);
+
+        if (array_key_exists('slug', $data) || array_key_exists('body', $data) || empty($question->slug)) {
+            $this->applyUniqueSlug(
+                $data,
+                (int) $question->organization_id,
+                (int) $question->id,
+                (string) ($data['body'] ?? $question->body),
+            );
+        }
+
         $question->update($data);
         $question = $question->fresh();
         $this->syncGalleryMedia($question);
 
         return $question;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function applyUniqueSlug(array &$data, int $orgId, ?int $ignoreId, string $fallback): void
+    {
+        $source = trim((string) ($data['slug'] ?? ''));
+        if ($source === '') {
+            $source = $fallback;
+        }
+
+        $data['slug'] = UniqueOrgSlug::forModel(Question::class, $source, $orgId, $ignoreId);
     }
 
     /**

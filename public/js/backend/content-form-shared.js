@@ -403,15 +403,22 @@
         const previewUrl = document.getElementById('seo-preview-url');
         const previewDesc = document.getElementById('seo-preview-desc');
         const baseUrl = config.baseUrl || global.location.origin;
+        const resolveUrl = config.resolveUrl || global.slugResolveUrl;
+        const moduleName = config.module || null;
+        const ignoreId = config.ignoreId || null;
 
         let slugManual = Boolean(slugInput?.value?.trim());
+        let debounceTimer = null;
+        let requestId = 0;
 
         const slugify = (text) => String(text || '')
             .toLowerCase()
             .trim()
             .replace(/[^\w\s-]/g, '')
             .replace(/[\s_-]+/g, '-')
-            .replace(/^-+|-+$/g, '');
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 80)
+            .replace(/-+$/g, '');
 
         const syncSeoSlugPreview = () => {
             if (seoSlugPreview && slugInput) seoSlugPreview.value = slugInput.value;
@@ -426,16 +433,59 @@
             if (previewUrl) previewUrl.textContent = `${baseUrl}/${slug}`;
         };
 
-        slugInput?.addEventListener('input', () => {
-            slugManual = slugInput.value.trim() !== '';
+        const resolveUniqueSlug = async (preferred) => {
+            if (!slugInput) return;
+            if (!resolveUrl || !moduleName) {
+                slugInput.value = slugify(preferred);
+                syncSeoSlugPreview();
+                updateSeoPreview();
+                return;
+            }
+
+            const currentRequest = ++requestId;
+            const params = new URLSearchParams();
+            params.set('module', moduleName);
+            params.set('source', preferred);
+            if (ignoreId) params.set('ignore_id', String(ignoreId));
+
+            try {
+                const res = await fetch(`${resolveUrl}?${params.toString()}`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (!res.ok) throw new Error('Slug resolve failed');
+                const payload = await res.json();
+                if (currentRequest !== requestId) return;
+                slugInput.value = payload.slug || slugify(preferred);
+            } catch {
+                if (currentRequest !== requestId) return;
+                slugInput.value = slugify(preferred);
+            }
+
             syncSeoSlugPreview();
             updateSeoPreview();
+        };
+
+        const scheduleResolve = (preferred) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => resolveUniqueSlug(preferred), 350);
+        };
+
+        slugInput?.addEventListener('input', () => {
+            slugManual = slugInput.value.trim() !== '';
+            if (!slugManual) {
+                scheduleResolve(titleInput?.value || '');
+                return;
+            }
+            scheduleResolve(slugInput.value);
         });
 
         titleInput?.addEventListener('input', () => {
-            if (!slugManual && slugInput) slugInput.value = slugify(titleInput.value);
-            syncSeoSlugPreview();
-            updateSeoPreview();
+            if (!slugManual) scheduleResolve(titleInput.value);
+            else {
+                syncSeoSlugPreview();
+                updateSeoPreview();
+            }
         });
 
         [metaTitle, metaDesc].forEach((el) => el?.addEventListener('input', updateSeoPreview));

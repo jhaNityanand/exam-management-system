@@ -15,7 +15,6 @@ class CategoryTreeRules
             'categories' => ['required', 'array', 'min:1'],
             'categories.*.name' => ['required', 'string', 'max:255'],
             'categories.*.description' => ['nullable', 'string', 'max:2000'],
-            'slug' => self::uniqueSlugRule($table),
         ]);
     }
 
@@ -35,7 +34,6 @@ class CategoryTreeRules
             ],
             'categories.*.name' => ['required', 'string', 'max:255'],
             'categories.*.description' => ['nullable', 'string', 'max:2000'],
-            'slug' => self::uniqueSlugRule($table, $ignoreId),
         ]);
     }
 
@@ -46,7 +44,6 @@ class CategoryTreeRules
             'categories.*.name.required' => 'Each category must have a name.',
             'status.required' => 'Please select a status for the categories.',
             'canonical_url.url' => 'The canonical URL must be a valid URL (e.g. https://example.com).',
-            'slug.unique' => 'This slug is already in use within your organization.',
         ];
     }
 
@@ -64,21 +61,5 @@ class CategoryTreeRules
             'ai_generated' => ['nullable', 'boolean'],
             'ai_improve' => ['nullable', 'boolean'],
         ];
-    }
-
-    protected static function uniqueSlugRule(string $table, mixed $ignoreId = null): array
-    {
-        $rule = Rule::unique($table, 'slug')->where(function ($query) {
-            $orgId = current_organization_id();
-            if ($orgId !== null) {
-                $query->where('organization_id', $orgId);
-            }
-        });
-
-        if ($ignoreId !== null) {
-            $rule = $rule->ignore($ignoreId);
-        }
-
-        return ['nullable', 'string', 'max:255', $rule];
     }
 }

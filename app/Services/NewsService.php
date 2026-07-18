@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\News;
 use App\Models\NewsTag;
+use App\Support\UniqueOrgSlug;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -31,7 +32,11 @@ class NewsService
             $data['author_name'] = Auth::user()?->name;
         }
 
-        $data['slug'] = $this->uniqueSlug($data['slug'] ?? $data['title'] ?? '', $orgId);
+        $data['slug'] = UniqueOrgSlug::forModel(
+            News::class,
+            $this->slugSource($data['slug'] ?? null, $data['title'] ?? ''),
+            $orgId,
+        );
         $this->applyPublishedAt($data);
         $data = $this->applyPrimaryBanner($data, is_array($bannerIds) ? $bannerIds : []);
 
@@ -54,8 +59,12 @@ class NewsService
         unset($data['tags'], $data['attachment_ids'], $data['banner_ids']);
 
         if (array_key_exists('slug', $data) || array_key_exists('title', $data)) {
-            $slugSource = $data['slug'] ?? $data['title'] ?? $news->title;
-            $data['slug'] = $this->uniqueSlug($slugSource, (int) $news->organization_id, (int) $news->id);
+            $data['slug'] = UniqueOrgSlug::forModel(
+                News::class,
+                $this->slugSource($data['slug'] ?? null, $data['title'] ?? $news->title),
+                (int) $news->organization_id,
+                (int) $news->id,
+            );
         }
 
         if (array_key_exists('status', $data) || array_key_exists('published_at', $data)) {
@@ -207,31 +216,14 @@ class NewsService
 
     public function uniqueSlug(string $titleOrSlug, int $orgId, ?int $ignoreId = null): string
     {
-        $base = Str::slug($titleOrSlug);
-        if ($base === '') {
-            $base = Str::slug(uniqid('news-', false));
-        }
-
-        $slug = $base;
-        $suffix = 2;
-
-        while ($this->slugExists($slug, $orgId, $ignoreId)) {
-            $slug = "{$base}-{$suffix}";
-            $suffix++;
-        }
-
-        return $slug;
+        return UniqueOrgSlug::forModel(News::class, $titleOrSlug, $orgId, $ignoreId);
     }
 
-    protected function slugExists(string $slug, int $orgId, ?int $ignoreId = null): bool
+    protected function slugSource(mixed $slug, string $fallback): string
     {
-        $query = News::query()->forOrg($orgId)->where('slug', $slug);
+        $slug = trim((string) $slug);
 
-        if ($ignoreId !== null) {
-            $query->where('id', '!=', $ignoreId);
-        }
-
-        return $query->exists();
+        return $slug !== '' ? $slug : $fallback;
     }
 
     /**

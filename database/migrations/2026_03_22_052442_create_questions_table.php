@@ -56,6 +56,7 @@ return new class extends Migration
             $table->index(['organization_id', 'category_id']);
             $table->index(['organization_id', 'type']);
             $table->index(['organization_id', 'difficulty']);
+            $table->unique(['organization_id', 'slug']);
         });
     }
 

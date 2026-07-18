@@ -328,7 +328,8 @@
                                 {{-- Slug --}}
                                 <div class="qcat-meta-field col-lg-4">
                                     <label class="qcat-meta-label" for="meta-slug">Slug</label>
-                                    <input type="text" id="meta-slug" name="slug" value="{{ old('slug', $seoItem?->slug ?? '') }}" placeholder="e.g. slug-value" class="panel-input qcat-meta-input">
+                                    <input type="text" id="meta-slug" name="slug" value="{{ old('slug', $seoItem?->slug ?? '') }}" placeholder="auto-generated-from-question" class="panel-input qcat-meta-input" autocomplete="off">
+                                    <p class="ems-slug-status mt-1 text-xs text-slate-400" aria-live="polite"></p>
                                     @error('slug')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
                                 </div>
 
@@ -472,4 +473,17 @@
     </script>
     <script src="{{ asset('js/backend/question-create.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/seo-manager.js') }}"></script>
+    <script src="{{ asset('js/backend/slug-field.js') }}?v={{ filemtime(public_path('js/backend/slug-field.js')) }}"></script>
+    <script>
+        window.slugResolveUrl = @json(route('admin.slug.resolve'));
+        document.addEventListener('DOMContentLoaded', function () {
+            window.EmsSlugField?.bind({
+                module: 'question',
+                sourceSelector: '#body',
+                slugSelector: '#meta-slug',
+                resolveUrl: window.slugResolveUrl,
+                sourceIsHtml: true,
+            });
+        });
+    </script>
 @endpush

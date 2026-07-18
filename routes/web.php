@@ -18,6 +18,7 @@ use App\Http\Controllers\Backend\QuestionController;
 use App\Http\Controllers\Backend\QuestionCategoryController;
 use App\Http\Controllers\Backend\ExamCategoryController;
 use App\Http\Controllers\Backend\SettingController;
+use App\Http\Controllers\Backend\SlugController;
 use App\Http\Controllers\Frontend\AccountController;
 use App\Http\Controllers\Frontend\BlogController as FrontendBlogController;
 use App\Http\Controllers\Frontend\CategoryController;
@@ -113,6 +114,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('internal-api/questions-table', QuestionDataController::class)->name('internal-api.questions-table');
     Route::get('internal-api/blogs-table',     BlogDataController::class)->name('internal-api.blogs-table');
     Route::get('internal-api/news-table',      NewsDataController::class)->name('internal-api.news-table');
+    Route::get('slug/resolve', [SlugController::class, 'resolve'])->name('slug.resolve');
 
     // ── Questions Module ──────────────────────────────────────────────────────
     Route::prefix('questions')->name('questions.')->group(function () {

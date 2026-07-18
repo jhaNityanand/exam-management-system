@@ -65,10 +65,6 @@ class HierarchicalCategoryService
             $parentNodeId = $parentMap[$nodeId] ?? null;
             $parentDbId = $parentNodeId ? ($idMap[$parentNodeId] ?? null) : null;
 
-            $slugSource = ($rootNode === null && ! empty($meta['slug']))
-                ? $meta['slug']
-                : ($attrs['name'] ?? '');
-
             $created = $modelClass::create([
                 'organization_id' => $orgId,
                 'parent_id' => $parentDbId,
@@ -80,8 +76,8 @@ class HierarchicalCategoryService
                 'meta_description' => $meta['meta_description'] ?? null,
                 'meta_keywords' => $meta['meta_keywords'] ?? null,
                 'slug' => UniqueOrgSlug::make(
-                    $slugSource,
-                    fn () => $modelClass::query()->forOrg($orgId),
+                    (string) ($attrs['name'] ?? ''),
+                    fn () => $modelClass::query()->withTrashed()->forOrg($orgId),
                     null,
                     $reserved
                 ),
@@ -153,10 +149,6 @@ class HierarchicalCategoryService
                 $parentDbId = $root->parent_id;
             }
 
-            $slugSource = ($nodeDbId && $nodeDbId === (int) $root->id && ! empty($meta['slug']))
-                ? $meta['slug']
-                : ($attrs['name'] ?? '');
-
             $fields = [
                 'parent_id' => $parentDbId,
                 'name' => trim($attrs['name'] ?? ''),
@@ -167,8 +159,8 @@ class HierarchicalCategoryService
                 'meta_description' => $meta['meta_description'] ?? null,
                 'meta_keywords' => $meta['meta_keywords'] ?? null,
                 'slug' => UniqueOrgSlug::make(
-                    $slugSource,
-                    fn () => $modelClass::query()->forOrg($orgId),
+                    (string) ($attrs['name'] ?? ''),
+                    fn () => $modelClass::query()->withTrashed()->forOrg($orgId),
                     $nodeDbId,
                     $reserved
                 ),

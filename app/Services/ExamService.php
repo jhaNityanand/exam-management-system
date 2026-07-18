@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Support\UniqueOrgSlug;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -179,6 +180,7 @@ class ExamService
 
             $data['created_by'] = Auth::id();
             $data['status'] = $data['status'] ?? 'draft';
+            $this->applyUniqueSlug($data, (int) $data['organization_id'], null, (string) ($data['title'] ?? ''));
 
             $exam = Exam::create($data);
             $this->syncQuestions($exam, $ids);
@@ -202,6 +204,15 @@ class ExamService
             if (array_key_exists('selected_categories', $data)) {
                 $selectedCats = $this->normalizeCategoryIds($data['selected_categories'] ?? []);
                 $data['selected_categories'] = $selectedCats;
+            }
+
+            if (array_key_exists('slug', $data) || array_key_exists('title', $data) || empty($exam->slug)) {
+                $this->applyUniqueSlug(
+                    $data,
+                    (int) $exam->organization_id,
+                    (int) $exam->id,
+                    (string) ($data['title'] ?? $exam->title),
+                );
             }
 
             $exam->update($data);
@@ -294,6 +305,19 @@ class ExamService
             $exam->description,
             $exam->instructions,
         ], (int) $exam->organization_id);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function applyUniqueSlug(array &$data, int $orgId, ?int $ignoreId, string $fallback): void
+    {
+        $source = trim((string) ($data['slug'] ?? ''));
+        if ($source === '') {
+            $source = $fallback;
+        }
+
+        $data['slug'] = UniqueOrgSlug::forModel(Exam::class, $source, $orgId, $ignoreId);
     }
 
     public function getStats(int $orgId): array

@@ -106,7 +106,7 @@ return new class extends Migration
 
             $table->index(['organization_id', 'status']);
             $table->index(['organization_id', 'category_id']);
-            $table->index(['organization_id', 'slug']);
+            $table->unique(['organization_id', 'slug']);
         });
     }
 

@@ -148,24 +148,18 @@
                                 </div>
                             </div>
 
-                            <!-- Row 2: Meta Title, Slug, OG Title (col-lg-4 each) -->
-                            <div class="qcat-seo-row qcat-seo-row--three-cols">
+                            <!-- Row 2: Meta Title, OG Title -->
+                            <div class="qcat-seo-row qcat-seo-row--two-cols">
                                 {{-- Meta Title --}}
-                                <div class="qcat-meta-field col-lg-4">
+                                <div class="qcat-meta-field col-lg-6">
                                     <label class="qcat-meta-label" for="meta-title">Meta Title</label>
                                     <input type="text" id="meta-title" name="meta_title" value="{{ old('meta_title', $seoItem?->meta_title ?? '') }}" placeholder="e.g. University Admissions" class="panel-input qcat-meta-input">
                                     @error('meta_title')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
                                 </div>
 
-                                {{-- Slug --}}
-                                <div class="qcat-meta-field col-lg-4">
-                                    <label class="qcat-meta-label" for="meta-slug">Slug</label>
-                                    <input type="text" id="meta-slug" name="slug" value="{{ old('slug', $seoItem?->slug ?? '') }}" placeholder="e.g. slug-value" class="panel-input qcat-meta-input">
-                                    @error('slug')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
-                                </div>
 
                                 {{-- OG Title --}}
-                                <div class="qcat-meta-field col-lg-4">
+                                <div class="qcat-meta-field col-lg-6">
                                     <label class="qcat-meta-label" for="meta-og-title">OG Title</label>
                                     <input type="text" id="meta-og-title" name="og_title" value="{{ old('og_title', $seoItem?->og_title ?? '') }}" placeholder="e.g. Open Graph Title" class="panel-input qcat-meta-input">
                                     @error('og_title')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror

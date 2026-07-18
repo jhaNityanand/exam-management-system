@@ -81,6 +81,8 @@
             baseUrl: @json(url('/news')),
             tagItemClass: 'news-tag-item',
             module: 'news',
+            resolveUrl: @json(route('admin.slug.resolve')),
+            ignoreId: @json($news->id),
             isCreate: false,
             existingMedia: @json($newsExistingMedia),
         };
