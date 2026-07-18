@@ -98,6 +98,69 @@ class ExamSeeder extends Seeder
 
         return [
             [
+                'title' => 'First Round Interview — Aptitude Screening',
+                'exam_category' => 'round-aptitude-reasoning',
+                'question_categories' => [
+                    'aptitude',
+                    'general-knowledge',
+                    'programming-fundamentals',
+                    'interview-preparation',
+                    'bca',
+                ],
+                'selection_mode' => 'pool',
+                'total_questions' => 20,
+                'pool_size' => 60,
+                'total_marks' => 50,
+                'passing_marks' => 25,
+                'formats' => ['mcq', 'multi_select'],
+                'difficulty' => 'easy',
+                'visibility' => 'public',
+                'duration' => 20,
+                'pricing_option' => 'free',
+                'attempt_limit_type' => 'unlimited',
+                'max_attempts' => 0,
+                'question_marks_filter' => [1, 2, 3, 4],
+                'shuffle_questions' => true,
+                'shuffle_options' => true,
+                'fix_category_questions' => true,
+                'category_question_allocations' => [4, 4, 4, 4, 4],
+                'distribution_type' => 'category_wise',
+                'tags' => ['first round', 'aptitude', 'interview screening', 'public'],
+                'description' => <<<'HTML'
+<p><strong>First Round Interview — Aptitude Screening</strong> is the opening assessment in the hiring funnel. It measures quantitative aptitude, general awareness, programming fundamentals, interview readiness, and BCA-level computer applications before candidates progress to technical rounds.</p>
+<p>Each attempt draws <strong>20 questions</strong> from a curated <strong>60-question pool</strong>, distributed evenly across five categories. Formats are limited to MCQ and multi-select so scoring stays objective and fast.</p>
+HTML,
+                'instruction_rules' => $this->allInstructionRuleSlugs(),
+                'instructions' => <<<'HTML'
+<ol>
+    <li><strong>Purpose:</strong> This is the first-round aptitude screening used before technical interviews.</li>
+    <li><strong>Time limit:</strong> You have <strong>20 minutes</strong> to complete the exam. The session auto-submits when time expires.</li>
+    <li><strong>Question set:</strong> You will receive <strong>20 questions</strong> drawn from a curated pool of 60 questions across five categories.</li>
+    <li><strong>Formats:</strong> Expect single-choice MCQs and multi-select questions. Read every option carefully before answering.</li>
+    <li><strong>Scoring:</strong> The paper carries <strong>50 marks</strong>. Passing requires at least <strong>25 marks</strong>.</li>
+    <li><strong>Environment:</strong> Use a stable internet connection. Do not refresh, close the browser, or open multiple sessions.</li>
+    <li><strong>Integrity:</strong> Unfair means, screenshots, and unauthorized devices are prohibited. Suspicious activity may be flagged.</li>
+    <li><strong>Submission:</strong> Review answers before final submit. Once submitted, the attempt cannot be reverted.</li>
+</ol>
+HTML,
+                'meta_title' => 'First Round Interview Aptitude Screening | Demo Org',
+                'meta_description' => 'Public first-round aptitude screening with 20 timed MCQ and multi-select questions drawn from a 60-question pool across five categories.',
+                'meta_keywords' => 'first round interview, aptitude screening, mcq, multi select, public assessment',
+                'og_title' => 'First Round Interview — Aptitude Screening',
+                'og_description' => '20-minute public aptitude screening with category-wise MCQ and multi-select questions for interview shortlisting.',
+                'robots' => 'index,follow',
+                'schema_markup' => json_encode([
+                    '@context' => 'https://schema.org',
+                    '@type' => 'Quiz',
+                    'name' => 'First Round Interview — Aptitude Screening',
+                    'description' => 'Public first-round aptitude screening with 20 timed MCQ and multi-select questions drawn from a 60-question pool across five categories.',
+                    'timeRequired' => 'PT20M',
+                    'educationalLevel' => 'easy',
+                    'numberOfQuestions' => 20,
+                    'isAccessibleForFree' => true,
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
                 'title' => 'Primary Interview',
                 'exam_category' => 'primary-interview',
                 'question_categories' => ['interview-preparation', 'aptitude', 'programming-fundamentals', 'database'],
@@ -629,7 +692,7 @@ class ExamSeeder extends Seeder
             'created_by' => $adminId,
             'updated_by' => $adminId,
             'title' => $scenario['title'],
-            'description' => '<p>'.$this->descriptionFor($scenario).'</p>',
+            'description' => (string) ($config['description'] ?? ('<p>'.$this->descriptionFor($scenario).'</p>')),
             'status' => $config['status'],
             'exam_mode' => $config['exam_mode'],
             'exam_format' => $scenario['formats'],
@@ -681,15 +744,24 @@ class ExamSeeder extends Seeder
             'instructions' => $config['instructions'],
             'predefined_instruction_rules' => $config['instruction_rules'],
             'slug' => $slug,
-            'meta_title' => Str::limit($scenario['title'].' | Interview Assessment', 255, ''),
-            'meta_description' => Str::limit($this->descriptionFor($scenario), 500, ''),
-            'meta_keywords' => implode(', ', array_unique(array_merge(
+            'meta_title' => Str::limit((string) ($config['meta_title'] ?? ($scenario['title'].' | Interview Assessment')), 255, ''),
+            'meta_description' => Str::limit((string) ($config['meta_description'] ?? $this->descriptionFor($scenario)), 500, ''),
+            'meta_keywords' => (string) ($config['meta_keywords'] ?? implode(', ', array_unique(array_merge(
                 ['interview assessment', 'candidate screening'],
                 $config['tags']
-            ))),
-            'canonical_url' => rtrim((string) config('app.url'), '/').'/exams/'.$slug,
-            'og_title' => $scenario['title'],
-            'og_description' => Str::limit($this->descriptionFor($scenario), 500, ''),
+            )))),
+            'canonical_url' => (string) ($config['canonical_url'] ?? (rtrim((string) config('app.url'), '/').'/exams/'.$slug)),
+            'og_title' => Str::limit((string) ($config['og_title'] ?? $scenario['title']), 255, ''),
+            'og_description' => Str::limit((string) ($config['og_description'] ?? $this->descriptionFor($scenario)), 500, ''),
+            'robots' => (string) ($config['robots'] ?? 'index,follow'),
+            'schema_markup' => (string) ($config['schema_markup'] ?? json_encode([
+                '@context' => 'https://schema.org',
+                '@type' => 'Quiz',
+                'name' => $scenario['title'],
+                'description' => $this->descriptionFor($scenario),
+                'timeRequired' => 'PT'.((int) $config['duration']).'M',
+                'educationalLevel' => $config['difficulty'] ?? 'medium',
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)),
             'ai_generated' => false,
             'ai_improve' => false,
         ]);
@@ -779,6 +851,35 @@ class ExamSeeder extends Seeder
         return collect($categoryIds)
             ->mapWithKeys(fn (int $categoryId, int $index) => [$categoryId => (int) $values[$index]])
             ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allInstructionRuleSlugs(): array
+    {
+        return [
+            'do-not-use-unfair-means-during-the-examination',
+            'mobile-phones-and-electronic-devices-are-prohibited',
+            'the-exam-will-automatically-end-when-the-allotted-time-expires',
+            'ensure-a-stable-internet-connection',
+            'do-not-refresh-or-close-the-browser-window',
+            'multiple-login-sessions-are-not-allowed',
+            'read-all-questions-carefully-before-answering',
+            'negative-marking-rules-apply-where-configured',
+            'no_revert_after_submit',
+            'no_retake_after_submit',
+            'tab_switch_autosubmit',
+            'fullscreen_required',
+            'no_page_refresh',
+            'disable_copy_paste',
+            'webcam_monitoring_enabled',
+            'disconnection_may_affect_session',
+            'single_attempt_per_question',
+            'id_verification_required',
+            'suspicious_activity_flagged',
+            'no_screenshots',
+        ];
     }
 
     /**

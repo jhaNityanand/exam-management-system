@@ -95,6 +95,12 @@ class NewsSeeder extends Seeder
                 'og_title' => $article['title'],
                 'og_description' => $article['excerpt'],
                 'robots' => 'index,follow',
+                'schema_markup' => json_encode([
+                    '@context' => 'https://schema.org',
+                    '@type' => 'NewsArticle',
+                    'headline' => $article['title'],
+                    'description' => $article['seo_description'] ?? $article['excerpt'],
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'created_by' => $author->id,
                 'ai_generated' => false,
                 'ai_improve' => false,
@@ -139,6 +145,18 @@ class NewsSeeder extends Seeder
                     'sort_order' => $item['sort'],
                     'created_by' => $authorId,
                     'description' => $item['name'].' for learners and institutions.',
+                    'meta_title' => $item['name'].' — News',
+                    'meta_description' => $item['name'].' updates for learners and institutions.',
+                    'meta_keywords' => strtolower($item['name']).', campus news, education',
+                    'og_title' => $item['name'].' News',
+                    'og_description' => $item['name'].' updates for learners and institutions.',
+                    'robots' => 'index,follow',
+                    'schema_markup' => json_encode([
+                        '@context' => 'https://schema.org',
+                        '@type' => 'CollectionPage',
+                        'name' => $item['name'].' — News',
+                        'description' => $item['name'].' for learners and institutions.',
+                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 ]
             );
         }

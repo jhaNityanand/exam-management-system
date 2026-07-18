@@ -86,6 +86,12 @@ class BlogSeeder extends Seeder
                     'og_image_id' => $banner?->id,
                     'canonical_url' => null,
                     'robots' => 'index,follow',
+                    'schema_markup' => json_encode([
+                        '@context' => 'https://schema.org',
+                        '@type' => 'BlogPosting',
+                        'headline' => $post['title'],
+                        'description' => $post['seo_description'] ?? $post['excerpt'],
+                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                     'ai_generated' => false,
                     'ai_improve' => false,
                     'created_by' => $editor->id,

@@ -72,6 +72,14 @@ class ExamController extends Controller
         $exam = $this->findExamOrFail((int) $id);
         abort_if($exam->organization_id !== $this->currentOrgId(), 403, 'Unauthorized access to this exam.');
 
+        $exam->load([
+            'questions.category:id,name',
+            'category:id,name',
+            'createdBy:id,name',
+            'ogImage',
+            'selectedQuestionCategories:id,name',
+        ]);
+
         $stats = $this->examService->getAttemptStats($exam);
         $questions = $exam->questions;
 
@@ -90,8 +98,49 @@ class ExamController extends Controller
             ->map->count()
             ->sortKeysUsing(fn ($a, $b) => (int) $a <=> (int) $b);
 
+        $orgId = $this->currentOrgId();
+        $formOptions = ExamFormOptions::all($orgId);
         $formatLabels = ExamFormOptions::formatLabels();
         $formats = is_array($exam->exam_format) ? $exam->exam_format : [];
+
+        $labelMap = static function (array $options): array {
+            $map = [];
+            foreach ($options as $option) {
+                if (isset($option['id'], $option['label'])) {
+                    $map[(string) $option['id']] = $option['label'];
+                }
+            }
+
+            return $map;
+        };
+
+        $labels = [
+            'difficulty' => $labelMap($formOptions['difficultyLevels'] ?? []),
+            'status' => $labelMap($formOptions['examStatus'] ?? []),
+            'mode' => $labelMap($formOptions['examModes'] ?? []),
+            'visibility' => $labelMap($formOptions['visibilityOptions'] ?? []),
+            'schedule' => $labelMap($formOptions['scheduleTypes'] ?? []),
+            'attemptLimit' => $labelMap($formOptions['attemptLimitTypes'] ?? []),
+            'pricing' => $labelMap($formOptions['pricingOptions'] ?? []),
+            'distribution' => $labelMap($formOptions['distributionTypes'] ?? []),
+            'discount' => $labelMap($formOptions['discountRules'] ?? []),
+            'instructionRules' => $labelMap($formOptions['instructionRules'] ?? []),
+        ];
+
+        $selectedCategoryNames = $exam->selectedQuestionCategories
+            ->pluck('name')
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($selectedCategoryNames === [] && is_array($exam->selected_categories) && $exam->selected_categories !== []) {
+            $selectedCategoryNames = \App\Models\QuestionCategory::query()
+                ->forOrg($orgId)
+                ->whereIn('id', $exam->selected_categories)
+                ->orderBy('name')
+                ->pluck('name')
+                ->all();
+        }
 
         return view('backend.exams.show', compact(
             'exam',
@@ -100,7 +149,9 @@ class ExamController extends Controller
             'typeDistribution',
             'marksDistribution',
             'formatLabels',
-            'formats'
+            'formats',
+            'labels',
+            'selectedCategoryNames',
         ));
     }
 

@@ -69,6 +69,13 @@ class QuestionSeeder extends Seeder
                     'created_by' => $editor->id,
                     'status' => 'active',
                     'meta_title' => Str::limit($bodyText, 60, ''),
+                    'meta_description' => Str::limit($bodyText, 160, ''),
+                    'meta_keywords' => implode(', ', array_filter([
+                        $category->name,
+                        $normalized['type'] ?? null,
+                        $normalized['difficulty'] ?? null,
+                        'practice question',
+                    ])),
                     'slug' => UniqueOrgSlug::forModel(
                         Question::class,
                         Str::limit($bodyText, 80, ''),
@@ -76,6 +83,15 @@ class QuestionSeeder extends Seeder
                         null,
                         $reservedSlugs,
                     ),
+                    'og_title' => Str::limit($bodyText, 70, ''),
+                    'og_description' => Str::limit($bodyText, 160, ''),
+                    'robots' => 'index,follow',
+                    'schema_markup' => json_encode([
+                        '@context' => 'https://schema.org',
+                        '@type' => 'Question',
+                        'name' => Str::limit($bodyText, 110, ''),
+                        'eduQuestionType' => $normalized['type'] ?? 'mcq',
+                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                     'ai_generated' => false,
                     'ai_improve' => false,
                 ]));

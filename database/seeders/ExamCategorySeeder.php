@@ -170,6 +170,13 @@ class ExamCategorySeeder extends Seeder
             'canonical_url' => rtrim((string) config('app.url'), '/').'/exam-categories/'.$node['slug'],
             'og_title' => $node['name'].' Assessments',
             'og_description' => Str::limit($node['description'], 500, ''),
+            'robots' => 'index,follow',
+            'schema_markup' => json_encode([
+                '@context' => 'https://schema.org',
+                '@type' => 'CollectionPage',
+                'name' => $node['name'].' Interview Assessments',
+                'description' => $node['description'],
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'ai_generated' => false,
             'ai_improve' => false,
         ]);

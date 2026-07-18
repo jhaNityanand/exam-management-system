@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\QuestionCategory;
 use Database\Seeders\Concerns\ResolvesDemoContext;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 /**
  * Seeds interview / competitive-exam oriented question categories for demo-org.
@@ -41,6 +42,24 @@ class QuestionCategorySeeder extends Seeder
                 'status' => 'active',
                 'sort_order' => $sort++,
                 'created_by' => $editor->id,
+                'meta_title' => Str::limit($item['name'].' Question Bank', 255, ''),
+                'meta_description' => Str::limit($item['description'], 500, ''),
+                'meta_keywords' => implode(', ', [
+                    Str::lower($item['name']),
+                    'question bank',
+                    'practice questions',
+                    'assessment',
+                ]),
+                'canonical_url' => rtrim((string) config('app.url'), '/').'/question-categories/'.$item['slug'],
+                'og_title' => $item['name'].' Questions',
+                'og_description' => Str::limit($item['description'], 500, ''),
+                'robots' => 'index,follow',
+                'schema_markup' => json_encode([
+                    '@context' => 'https://schema.org',
+                    '@type' => 'CollectionPage',
+                    'name' => $item['name'].' Question Bank',
+                    'description' => $item['description'],
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'ai_generated' => false,
                 'ai_improve' => false,
             ]);

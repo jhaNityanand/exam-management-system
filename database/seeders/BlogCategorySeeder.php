@@ -74,6 +74,13 @@ class BlogCategorySeeder extends Seeder
             'meta_keywords'    => strtolower(str_replace([' and ', ' & ', '/'], [', ', ', ', ', '], $name)),
             'og_title'         => "{$name} Articles",
             'og_description'   => Str::limit($description, 160),
+            'robots'           => 'index,follow',
+            'schema_markup'    => json_encode([
+                '@context' => 'https://schema.org',
+                '@type' => 'CollectionPage',
+                'name' => "{$name} — Blog",
+                'description' => Str::limit($description, 160),
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'children'         => $children,
         ];
     }
