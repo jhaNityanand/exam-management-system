@@ -71,7 +71,7 @@ class ExamController extends Controller
             404
         );
 
-        $exam->load(['category:id,name,slug,description']);
+        $exam->load(['category:id,name,slug,description', 'ogImage']);
 
         $relatedExams = Exam::query()
             ->published()

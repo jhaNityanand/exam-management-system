@@ -43,6 +43,7 @@
     <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/news-create.css') }}?v={{ filemtime(public_path('css/backend/news-create.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/gallery-picker.css') }}?v={{ filemtime(public_path('css/backend/gallery-picker.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
@@ -65,7 +66,7 @@
         window.contentFormConfig = {
             formId: 'news-form',
             categorySelector: '#news_category_id',
-            seoSlugId: 'news-seo-slug',
+            seoSlugId: null,
             baseUrl: @json(url('/news')),
             tagItemClass: 'news-tag-item',
             module: 'news',

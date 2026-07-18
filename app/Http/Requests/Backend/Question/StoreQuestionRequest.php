@@ -53,6 +53,18 @@ class StoreQuestionRequest extends FormRequest
             'canonical_url'    => ['nullable', 'url', 'max:500'],
             'og_title'         => ['nullable', 'string', 'max:255'],
             'og_description'   => ['nullable', 'string', 'max:500'],
+            'og_image_id'      => [
+                'nullable',
+                'integer',
+                Rule::exists('galleries', 'id')->where(function ($query) {
+                    $orgId = current_organization_id();
+                    if ($orgId !== null) {
+                        $query->where('organization_id', $orgId);
+                    }
+                }),
+            ],
+            'robots'           => ['nullable', 'string', 'max:255'],
+            'schema_markup'    => ['nullable', 'string'],
 
             // AI Flags
             'ai_generated'     => ['nullable', 'boolean'],

@@ -249,7 +249,7 @@ class ExamController extends Controller
     protected function findExamOrFail(int $id): Exam
     {
         return Exam::query()
-            ->with(['questions', 'category', 'createdBy'])
+            ->with(['questions', 'category', 'createdBy', 'ogImage'])
             ->findOrFail($id);
     }
 

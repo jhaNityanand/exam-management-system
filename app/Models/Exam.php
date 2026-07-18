@@ -7,6 +7,7 @@ use App\Models\Concerns\BelongsToOrganization;
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Exam extends Model
@@ -93,6 +94,9 @@ class Exam extends Model
         'canonical_url',
         'og_title',
         'og_description',
+        'og_image_id',
+        'robots',
+        'schema_markup',
         'instructions',
         'predefined_instruction_rules',
 
@@ -162,6 +166,11 @@ class Exam extends Model
     public function category()
     {
         return $this->belongsTo(ExamCategory::class, 'category_id');
+    }
+
+    public function ogImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'og_image_id');
     }
 
     public function createdBy()

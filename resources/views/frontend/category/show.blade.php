@@ -6,6 +6,9 @@
         'description' => $category->meta_description ?: ($category->description ?: 'Exams in '.$category->name),
         'keywords' => $category->meta_keywords,
         'canonical' => $category->canonical_url ?: url()->current(),
+        'og_title' => $category->og_title,
+        'og_description' => $category->og_description,
+        'image' => $category->ogImage?->file_url,
     ];
 @endphp
 

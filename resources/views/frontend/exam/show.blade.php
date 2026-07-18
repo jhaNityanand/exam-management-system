@@ -6,6 +6,9 @@
         'description' => $exam->meta_description ?: \Illuminate\Support\Str::limit(strip_tags((string) $exam->description), 160),
         'keywords' => $exam->meta_keywords,
         'canonical' => $exam->canonical_url ?: url()->current(),
+        'og_title' => $exam->og_title,
+        'og_description' => $exam->og_description,
+        'image' => $exam->ogImage?->file_url,
     ];
     $isFree = ($exam->pricing_option ?? 'free') === 'free' || (float) ($exam->exam_amount ?? 0) <= 0;
 @endphp

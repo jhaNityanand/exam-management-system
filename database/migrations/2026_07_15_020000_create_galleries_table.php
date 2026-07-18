@@ -66,10 +66,23 @@ return new class extends Migration
             $table->index(['organization_id', 'created_at']);
             $table->index('file_name');
         });
+
+        // Early SEO tables declare og_image_id without a constraint (created before galleries).
+        foreach (['questions', 'exams', 'question_categories', 'exam_categories'] as $tableName) {
+            Schema::table($tableName, function (Blueprint $table) {
+                $table->foreign('og_image_id')->references('id')->on('galleries')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
+        foreach (['exam_categories', 'question_categories', 'exams', 'questions'] as $tableName) {
+            Schema::table($tableName, function (Blueprint $table) {
+                $table->dropForeign(['og_image_id']);
+            });
+        }
+
         Schema::dropIfExists('galleries');
     }
 };

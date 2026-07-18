@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Blog;
 use App\Models\BlogTag;
+use App\Models\Gallery;
 use App\Support\UniqueOrgSlug;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -227,5 +228,26 @@ class BlogService
             $blog->content,
             $blog->excerpt,
         ], (int) $blog->organization_id);
+
+        $galleryIds = array_values(array_unique(array_filter([
+            $blog->banner_image_id,
+            $blog->og_image_id,
+            ...$blog->banners()->pluck('galleries.id')->all(),
+            ...$blog->galleryAttachments()->pluck('galleries.id')->all(),
+        ])));
+
+        if ($galleryIds === []) {
+            return;
+        }
+
+        Gallery::query()
+            ->where('organization_id', $blog->organization_id)
+            ->whereIn('id', $galleryIds)
+            ->update([
+                'module' => 'blog',
+                'attachable_type' => $blog->getMorphClass(),
+                'attachable_id' => $blog->getKey(),
+                'last_referenced_at' => now(),
+            ]);
     }
 }

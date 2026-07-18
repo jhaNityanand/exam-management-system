@@ -26,6 +26,14 @@
                 </div>
                 <div class="shrink-0 flex items-center gap-2">
                     <button type="button"
+                            id="btn-import-questions"
+                            class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V4m0 0L7 9m5-5 5 5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/>
+                        </svg>
+                        <span>Import Questions</span>
+                    </button>
+                    <button type="button"
                             id="btn-refresh-questions"
                             class="q-refresh-btn inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                             title="Refresh list"
@@ -57,6 +65,14 @@
                 </div>
 
                 <div class="list-toolbar__controls">
+                    <div class="relative w-44">
+                        <select id="questions-source-filter" class="panel-input w-full text-sm" aria-label="Question source">
+                            <option value="all">All questions</option>
+                            <option value="imported">Imported questions</option>
+                            <option value="manual">Manually created</option>
+                        </select>
+                    </div>
+
                     {{-- Per Page Dropdown --}}
                     <div class="relative w-28 sm:w-32">
                         <select id="questions-per-page" class="panel-input per-page-select w-full text-sm">
@@ -105,6 +121,7 @@
                         <th scope="col" class="list-table__heading w-10"><input type="checkbox" id="questions-select-all" class="list-select-all" aria-label="Select all questions"></th>
                         <x-list-sort-header key="id" label="S.No" class="w-14" />
                         <x-list-sort-header key="body" label="Question Details" />
+                        <th scope="col" class="px-4 py-2.5 font-semibold">Source</th>
                         <x-list-sort-header key="type" label="Type" />
                         <th scope="col" class="px-4 py-2.5 font-semibold">Category</th>
                         <x-list-sort-header key="difficulty" label="Difficulty" />
@@ -113,7 +130,7 @@
                     </tr>
                 </thead>
                 <tbody id="questions-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
-                    <x-ajax-table-skeleton :rows="10" :columns="8" />
+                    <x-ajax-table-skeleton :rows="10" :columns="9" />
                 </tbody>
             </table>
 
@@ -266,12 +283,15 @@
 <form id="bulk-restore-question-form" action="{{ route('admin.questions.bulk-restore') }}" method="POST" class="hidden">@csrf</form>
 <form id="bulk-status-question-form" action="{{ route('admin.questions.bulk-status') }}" method="POST" class="hidden">@csrf @method('PATCH')<input type="hidden" name="status"></form>
 
+@include('backend.questions.partials.import-modal')
+
 @endsection
 
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/question-import.css') }}?v={{ filemtime(public_path('css/backend/question-import.css')) }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
@@ -284,10 +304,15 @@
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>
     <script src="{{ versioned_asset('js/components/filter-drawer.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         window.questionsApiUrl = @json(route('admin.internal-api.questions-table'));
         window.questionsIndexUrl = @json(route('admin.questions.index'));
         window.questionsRestoreUrl = @json(url('/admin/questions'));
+        window.questionImportUrl = @json(route('admin.questions.import'));
+        window.questionImportStartUrl = @json(route('admin.questions.imports.start'));
+        window.questionImportsUrl = @json(url('/admin/questions/imports'));
+        window.questionImportCsrf = @json(csrf_token());
         window.questionTypeMeta = @json(
             collect(\App\Support\ExamFormats::questionTypes())->mapWithKeys(
                 fn ($type) => [$type['id'] => ['label' => $type['label'], 'class' => $type['badge_class']]]
@@ -299,4 +324,5 @@
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/list-ui.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/question-list.js') }}"></script>
+    <script src="{{ asset('js/backend/question-import.js') }}?v={{ filemtime(public_path('js/backend/question-import.js')) }}"></script>
 @endpush

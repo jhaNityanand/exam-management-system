@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('questions-table-body');
     const questionTypeMeta = window.questionTypeMeta || {};
+    const sourceFilter = document.getElementById('questions-source-filter');
     let currentTrash = 'active';
     const selection = new window.EmsListUi.ListSelection({
         bodySelector: '#questions-table-body',
@@ -34,6 +35,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return tmp.textContent || tmp.innerText || '';
     };
 
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+    })[character]);
+
+    const getSourceBadge = (question) => {
+        if (!question.import_question_id) {
+            return '<span class="question-source-badge question-source-badge--manual">Manual</span>';
+        }
+
+        return `<button type="button"
+                    class="question-source-badge question-source-badge--imported js-import-details"
+                    data-import-id="${question.import_question_id}"
+                    title="View source import details">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0-12 4 4m-4-4L8 7M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/>
+                    </svg>
+                    Imported
+                </button>`;
+    };
+
     const questionsTable = new AjaxTable({
         containerSelector: '#ajax-table-container',
         apiUrl: window.questionsApiUrl,
@@ -47,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingSelector: '#questions-loading',
         emptySelector: '#questions-empty',
         totalCountSelector: '#questions-total-count',
-        skeletonColumns: 8,
+        skeletonColumns: 9,
         defaultSort: 'id',
         defaultDirection: 'desc',
         onFetchSuccess: () => {
@@ -87,6 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td class="px-4 py-2.5 align-middle">
                         <div class="text-sm font-medium text-slate-900 dark:text-slate-100 q-body-preview" title="${plain.replace(/"/g, '&quot;')}">${bodyPreview}</div>
+                    </td>
+                    <td class="px-4 py-2.5 align-middle whitespace-nowrap">
+                        ${getSourceBadge(q)}
                     </td>
                     <td class="px-4 py-2.5 align-middle whitespace-nowrap">
                         ${getTypeBadge(q.type)}
@@ -142,9 +170,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const originalFetch = questionsTable.fetch.bind(questionsTable);
     questionsTable.fetch = function patchedFetch() {
-        this.filters = { ...this.filters, trash: currentTrash };
+        this.filters = {
+            ...this.filters,
+            trash: currentTrash,
+            import_source: sourceFilter?.value || 'all',
+        };
         return originalFetch();
     };
+
+    sourceFilter?.addEventListener('change', () => {
+        questionsTable.page = 1;
+        questionsTable.fetch();
+    });
+
+    document.addEventListener('questions:imported', () => {
+        currentTrash = 'active';
+        questionsTable.page = 1;
+        questionsTable.fetch();
+    });
 
     document.querySelector('.list-view-tabs')?.addEventListener('click', (event) => {
         const button = event.target.closest('[data-trash]');
@@ -315,6 +358,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (tableBody) {
         tableBody.addEventListener('click', (e) => {
+            const importBadge = e.target.closest('.js-import-details');
+            if (importBadge) {
+                const importId = importBadge.dataset.importId;
+                Swal.fire({
+                    title: 'Loading import details…',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading(),
+                });
+
+                fetch(`${window.questionImportsUrl}/${importId}`, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' },
+                })
+                    .then(async (response) => {
+                        const payload = await response.json();
+                        if (!response.ok) throw new Error(payload.message || 'Unable to load import details.');
+                        return payload.import;
+                    })
+                    .then((item) => {
+                        const size = Number(item.file_size || 0);
+                        const sizeLabel = size >= 1048576
+                            ? `${(size / 1048576).toFixed(2)} MB`
+                            : `${Math.max(0, size / 1024).toFixed(1)} KB`;
+                        const importedAt = item.imported_at
+                            ? new Date(item.imported_at).toLocaleString()
+                            : '—';
+                        const errors = Array.isArray(item.errors) ? item.errors : [];
+                        const errorHtml = errors.length
+                            ? `<div class="question-import-detail__errors">
+                                <strong>Errors</strong>
+                                <ul>${errors.slice(0, 10).map((error) => (
+                                    `<li>Row ${escapeHtml(error.row)}: ${escapeHtml((error.errors || []).join(', '))}</li>`
+                                )).join('')}</ul>
+                                ${errors.length > 10 ? `<small>Showing 10 of ${errors.length} errors.</small>` : ''}
+                            </div>`
+                            : '';
+
+                        Swal.fire({
+                            title: 'Question Import Details',
+                            width: 680,
+                            showConfirmButton: false,
+                            showCloseButton: true,
+                            html: `<div class="question-import-detail">
+                                <div class="question-import-detail__file">
+                                    <span>${escapeHtml(item.file_type)}</span>
+                                    <div><strong>${escapeHtml(item.original_file_name)}</strong><small>${sizeLabel}</small></div>
+                                </div>
+                                <div class="question-import-detail__grid">
+                                    <div><span>Status</span><strong>${escapeHtml(String(item.status).replaceAll('_', ' '))}</strong></div>
+                                    <div><span>Imported by</span><strong>${escapeHtml(item.created_by || 'Unknown')}</strong></div>
+                                    <div><span>Total rows</span><strong>${item.total_rows}</strong></div>
+                                    <div><span>Successful</span><strong class="is-success">${item.successful_rows}</strong></div>
+                                    <div><span>Failed</span><strong class="is-error">${item.failed_rows}</strong></div>
+                                    <div><span>Imported at</span><strong>${escapeHtml(importedAt)}</strong></div>
+                                </div>
+                                ${errorHtml}
+                                <a class="question-import-detail__download" href="${escapeHtml(item.download_url)}">Download original file</a>
+                            </div>`,
+                        });
+                    })
+                    .catch((error) => {
+                        Swal.fire('Import details unavailable', error.message, 'error');
+                    });
+                return;
+            }
+
             const restoreBtn = e.target.closest('.js-restore-question');
             if (restoreBtn) {
                 const form = document.getElementById('restore-question-form');

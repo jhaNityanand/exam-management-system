@@ -7,6 +7,7 @@ use App\Models\Concerns\BelongsToOrganization;
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Question extends Model
@@ -17,6 +18,7 @@ class Question extends Model
         // Relations & Audit
         'organization_id',
         'category_id',
+        'import_question_id',
         'created_by',
         'updated_by',
         'updated_by_history',
@@ -46,6 +48,9 @@ class Question extends Model
         'canonical_url',
         'og_title',
         'og_description',
+        'og_image_id',
+        'robots',
+        'schema_markup',
 
         // AI flags
         'ai_generated',
@@ -75,6 +80,16 @@ class Question extends Model
     public function category()
     {
         return $this->belongsTo(QuestionCategory::class, 'category_id');
+    }
+
+    public function importQuestion(): BelongsTo
+    {
+        return $this->belongsTo(ImportQuestion::class, 'import_question_id');
+    }
+
+    public function ogImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'og_image_id');
     }
 
     public function createdBy()

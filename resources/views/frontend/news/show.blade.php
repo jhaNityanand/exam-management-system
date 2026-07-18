@@ -10,6 +10,8 @@
         'description' => $article->seo_description ?: ($article->short_description ?: $article->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $article->content), 160)),
         'keywords' => $article->seo_keywords,
         'canonical' => $article->canonical_url ?: url()->current(),
+        'og_title' => $article->og_title,
+        'og_description' => $article->og_description,
         'image' => $article->ogImage->file_url ?? $banner,
         'type' => 'article',
     ];

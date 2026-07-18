@@ -10,9 +10,10 @@ class QuestionService
 {
     public function __construct(protected GalleryService $gallery) {}
 
-    public function create(array $data): Question
+    public function create(array $data, ?int $actorId = null): Question
     {
-        $data['created_by'] = Auth::id();
+        $data['created_by'] = $actorId ?? Auth::id();
+        $data['updated_by'] = $actorId ?? Auth::id();
         $this->normalizeAnswers($data);
         $this->normalizeMarks($data);
         $data = $this->gallery->sanitizeHtmlFields($data, [

@@ -83,6 +83,7 @@ class CategoryController extends Controller
         $category->load([
             'children' => fn ($q) => $q->where('status', 'active')->orderBy('sort_order')->orderBy('name'),
             'parent:id,name,slug',
+            'ogImage',
         ]);
 
         $exams = Exam::query()

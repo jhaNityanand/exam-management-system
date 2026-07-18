@@ -28,6 +28,10 @@ return new class extends Migration
             $table->string('canonical_url')->nullable();
             $table->string('og_title')->nullable();
             $table->text('og_description')->nullable();
+            // FK added after galleries table exists (see create_galleries_table).
+            $table->foreignId('og_image_id')->nullable();
+            $table->string('robots')->default('index,follow');
+            $table->text('schema_markup')->nullable();
 
             $table->boolean('ai_generated')->default(false);
             $table->boolean('ai_improve')->default(false);

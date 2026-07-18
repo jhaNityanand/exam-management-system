@@ -306,6 +306,23 @@
     width: 100%;
 }
 
+select.qcat-meta-input {
+    min-height: 2.625rem;
+    padding: 0.625rem 1rem;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 1rem;
+    background-color: white;
+    color: rgb(15 23 42);
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.dark select.qcat-meta-input {
+    border-color: rgb(51 65 85);
+    background-color: rgb(15 23 42);
+    color: white;
+}
+
 .qcat-meta-textarea {
     resize: vertical;
     min-height: 3rem;

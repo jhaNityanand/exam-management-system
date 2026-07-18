@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Complete technical and operational documentation for the Exam Management System.">
+    <title>Exam Management System — Documentation</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4f7fb;
+            --surface: #ffffff;
+            --surface-2: #eef3f9;
+            --text: #172033;
+            --muted: #5f6b7c;
+            --border: #dce3ec;
+            --primary: #4f46e5;
+            --primary-soft: #eef2ff;
+            --accent: #0891b2;
+            --success: #15803d;
+            --warning: #b45309;
+            --danger: #b91c1c;
+            --code: #111827;
+            --code-text: #e5e7eb;
+            --shadow: 0 18px 45px rgba(25, 39, 65, .08);
+        }
+
+        [data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #0b1120;
+            --surface: #111827;
+            --surface-2: #182235;
+            --text: #e5edf8;
+            --muted: #9eabc0;
+            --border: #29364a;
+            --primary: #818cf8;
+            --primary-soft: #202752;
+            --accent: #22d3ee;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --code: #050914;
+            --code-text: #d9e2ef;
+            --shadow: 0 18px 45px rgba(0, 0, 0, .28);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: 1.25rem; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 15px/1.65 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button, input { font: inherit; }
+        .shell { display: grid; grid-template-columns: 290px minmax(0, 1fr); min-height: 100vh; }
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 1.5rem 1rem;
+            border-right: 1px solid var(--border);
+            background: color-mix(in srgb, var(--surface) 94%, transparent);
+        }
+        .brand { padding: .25rem .6rem 1.25rem; border-bottom: 1px solid var(--border); }
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            margin-bottom: .75rem;
+            border-radius: 13px;
+            background: linear-gradient(135deg, #4f46e5, #0891b2);
+            color: #fff;
+            font-size: 1.15rem;
+            font-weight: 800;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, .25);
+        }
+        .brand strong { display: block; font-size: 1rem; }
+        .brand span { color: var(--muted); font-size: .8rem; }
+        .search {
+            width: 100%;
+            margin: 1rem 0 .7rem;
+            padding: .7rem .8rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            outline: none;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+        .toc-title {
+            margin: .9rem .65rem .4rem;
+            color: var(--muted);
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .toc { display: grid; gap: .15rem; }
+        .toc a {
+            padding: .48rem .65rem;
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: .84rem;
+        }
+        .toc a:hover, .toc a.active {
+            background: var(--primary-soft);
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .sidebar-actions { display: flex; gap: .5rem; margin-top: 1rem; }
+        .icon-btn {
+            flex: 1;
+            padding: .55rem;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+        }
+        .icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+        main { min-width: 0; padding: 2.25rem clamp(1.1rem, 4vw, 4rem) 5rem; }
+        .content { width: 100%; }
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: clamp(1.8rem, 5vw, 3.5rem);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            background: linear-gradient(135deg, var(--surface), var(--primary-soft));
+            box-shadow: var(--shadow);
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            right: -90px;
+            top: -110px;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: radial-gradient(circle, color-mix(in srgb, var(--primary) 24%, transparent), transparent 68%);
+        }
+        .eyebrow {
+            color: var(--primary);
+            font-size: .76rem;
+            font-weight: 800;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+        h1 { max-width: 780px; margin: .45rem 0 .8rem; font-size: clamp(2rem, 5vw, 3.8rem); line-height: 1.08; letter-spacing: -.04em; }
+        .hero p { max-width: 780px; margin: 0; color: var(--muted); font-size: 1.05rem; }
+        .meta-row, .badge-row { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.25rem; }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .32rem .62rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: .78rem;
+            font-weight: 700;
+        }
+        section {
+            margin-top: 1.4rem;
+            padding: clamp(1.25rem, 3vw, 2rem);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: var(--surface);
+            box-shadow: 0 8px 26px rgba(20, 35, 60, .04);
+        }
+        section.filtered-out { display: none; }
+        h2 { margin: 0 0 .4rem; font-size: 1.55rem; letter-spacing: -.02em; }
+        h3 { margin: 1.4rem 0 .45rem; font-size: 1.05rem; }
+        h4 { margin: 1rem 0 .35rem; }
+        p { margin: .35rem 0 .9rem; }
+        .lead { color: var(--muted); }
+        ul, ol { padding-left: 1.25rem; }
+        li + li { margin-top: .25rem; }
+        .grid { display: grid; gap: .85rem; }
+        .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .card {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: var(--surface-2);
+        }
+        .card h3, .card h4 { margin-top: 0; }
+        .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+        .stat strong { display: block; color: var(--primary); font-size: 1.55rem; line-height: 1.2; }
+        .stat span { color: var(--muted); font-size: .8rem; }
+        .callout {
+            margin: 1rem 0;
+            padding: .85rem 1rem;
+            border-left: 4px solid var(--accent);
+            border-radius: 0 10px 10px 0;
+            background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+        }
+        .callout.warning { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, var(--surface)); }
+        .callout.danger { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, var(--surface)); }
+        .status-ready { color: var(--success); }
+        .status-partial { color: var(--warning); }
+        .status-missing { color: var(--danger); }
+        code {
+            padding: .12rem .3rem;
+            border-radius: 5px;
+            background: var(--surface-2);
+            color: var(--primary);
+            font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        pre {
+            overflow-x: auto;
+            margin: .7rem 0 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            background: var(--code);
+            color: var(--code-text);
+            font: .84rem/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        pre code { padding: 0; background: transparent; color: inherit; }
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+        table { width: 100%; border-collapse: collapse; min-width: 620px; }
+        th, td { padding: .7rem .8rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+        th { background: var(--surface-2); font-size: .76rem; letter-spacing: .04em; text-transform: uppercase; }
+        tr:last-child td { border-bottom: 0; }
+        .flow { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+        .flow span { padding: .55rem .7rem; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); font-weight: 700; }
+        .flow b { color: var(--primary); }
+        .file-tree { columns: 2; column-gap: 2rem; }
+        .file-tree li { break-inside: avoid; }
+        .muted { color: var(--muted); }
+        .footer { padding: 2rem .5rem 0; color: var(--muted); text-align: center; font-size: .8rem; }
+        .mobile-bar { display: none; }
+
+        @media (max-width: 920px) {
+            .shell { display: block; }
+            .sidebar { display: none; }
+            main { padding-top: 4.8rem; }
+            .mobile-bar {
+                position: fixed;
+                z-index: 20;
+                top: 0;
+                left: 0;
+                right: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: .8rem 1rem;
+                border-bottom: 1px solid var(--border);
+                background: color-mix(in srgb, var(--surface) 94%, transparent);
+                backdrop-filter: blur(12px);
+            }
+            .mobile-bar strong { font-size: .9rem; }
+            .mobile-bar .icon-btn { flex: 0 0 auto; padding: .4rem .65rem; }
+            .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            main { padding-inline: .75rem; }
+            section { border-radius: 14px; }
+            .hero { border-radius: 17px; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .file-tree { columns: 1; }
+        }
+        @media print {
+            :root { --bg: #fff; --surface: #fff; --surface-2: #f6f7f9; --text: #111; --muted: #444; --border: #ccc; }
+            .sidebar, .mobile-bar, .no-print { display: none !important; }
+            .shell { display: block; }
+            main { padding: 0; }
+            .content { width: 100%; }
+            .hero, section { break-inside: avoid; box-shadow: none; }
+            section { margin-top: .65rem; }
+            a { color: inherit; }
+        }
+    </style>
+</head>
+<body>
+<div class="mobile-bar">
+    <strong>EMS Documentation</strong>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle color theme">Theme</button>
+</div>
+
+<div class="shell">
+    <aside class="sidebar" aria-label="Documentation navigation">
+        <div class="brand">
+            <div class="brand-mark">EMS</div>
+            <strong>Exam Management System</strong>
+            <span>Technical &amp; operational guide</span>
+        </div>
+        <label>
+            <span class="toc-title">Find in sections</span>
+            <input class="search" id="docSearch" type="search" placeholder="Search documentation…" autocomplete="off">
+        </label>
+        <div class="toc-title">Contents</div>
+        <nav class="toc" id="toc">
+            <a href="#status">Project status</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#quick-start">Installation</a>
+            <a href="#configuration">Configuration</a>
+            <a href="#accounts">Demo accounts</a>
+            <a href="#modules">Application modules</a>
+            <a href="#questions">Questions &amp; import</a>
+            <a href="#exams">Exams &amp; attempts</a>
+            <a href="#content">CMS, SEO &amp; frontend</a>
+            <a href="#gallery">Gallery &amp; storage</a>
+            <a href="#database">Data model</a>
+            <a href="#routes">Routes &amp; APIs</a>
+            <a href="#frontend-stack">UI &amp; themes</a>
+            <a href="#development">Development guide</a>
+            <a href="#testing">Testing</a>
+            <a href="#production">Production</a>
+            <a href="#security">Security &amp; limits</a>
+            <a href="#troubleshooting">Troubleshooting</a>
+            <a href="#admin-notes">Admin review notes</a>
+            <a href="#roadmap">Roadmap</a>
+        </nav>
+        <div class="sidebar-actions">
+            <button class="icon-btn" type="button" data-theme-toggle>Theme</button>
+            <button class="icon-btn" type="button" onclick="window.print()">Print</button>
+        </div>
+    </aside>
+
+    <main>
+        <div class="content">
+            <header class="hero">
+                <div class="eyebrow">Complete project reference</div>
+                <h1>Exam Management System Documentation</h1>
+                <p>
+                    A verified guide to the Laravel application’s architecture, installation, features,
+                    data model, workflows, operations, testing, current constraints, and roadmap.
+                </p>
+                <div class="meta-row">
+                    <span class="badge">Laravel 11.50</span>
+                    <span class="badge">PHP 8.2+</span>
+                    <span class="badge">Blade + Tailwind CSS 3</span>
+                    <span class="badge">Pest 4</span>
+                    <span class="badge">Reviewed 18 July 2026</span>
+                    <span class="badge">README + admin review pass</span>
+                </div>
+            </header>
+
+            <section id="status" data-searchable>
+                <h2>Project status</h2>
+                <p class="lead">
+                    The application is an organization-scoped exam and publishing platform with a public
+                    website and authenticated administration workspace. Core content management is functional;
+                    several candidate and governance features remain intentionally incomplete.
+                </p>
+                <div class="grid grid-3">
+                    <div class="card stat"><strong>170</strong><span>registered application routes</span></div>
+                    <div class="card stat"><strong>41</strong><span>Eloquent model classes</span></div>
+                    <div class="card stat"><strong>19</strong><span>domain and frontend services</span></div>
+                    <div class="card stat"><strong>36</strong><span>database migrations</span></div>
+                    <div class="card stat"><strong>20</strong><span>feature test files</span></div>
+                    <div class="card stat"><strong>4</strong><span>seeded demo roles</span></div>
+                </div>
+                <h3>Capability summary</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Area</th><th>Status</th><th>Notes</th></tr></thead>
+                        <tbody>
+                        <tr><td>Authentication and profiles</td><td class="status-ready">Operational</td><td>Breeze session authentication, email verification, password reset, profile and avatar management.</td></tr>
+                        <tr><td>Question bank</td><td class="status-ready">Operational</td><td>CRUD, hierarchical categories, filtering, bulk actions, tracked XLSX/CSV import.</td></tr>
+                        <tr><td>Exam authoring</td><td class="status-ready">Operational</td><td>CRUD, categories, question-bank APIs, fixed/pool/dynamic selection, publish and assignment.</td></tr>
+                        <tr><td>Blogs, news and public CMS</td><td class="status-ready">Operational</td><td>Publishing workflows, categories, tags, banners, frontend listings and seeded CMS content.</td></tr>
+                        <tr><td>Gallery/media library</td><td class="status-ready">Operational</td><td>Upload, metadata, editing, thumbnails, recycle bin, restore and permanent deletion.</td></tr>
+                        <tr><td>Candidate exam completion</td><td class="status-partial">Partial</td><td>Attempt creation and immutable question assignment exist; answer saving, submission, scoring and timer workspace are not complete.</td></tr>
+                        <tr><td>Candidates, notifications and logs</td><td class="status-missing">Placeholder</td><td>Routes exist but currently render the shared Coming Soon page.</td></tr>
+                        <tr><td>Role authorization and org switching</td><td class="status-partial">Deferred</td><td>Authentication and organization scoping exist, but backend routes do not yet enforce role policies and there is no active organization switcher.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="architecture" data-searchable>
+                <h2>Architecture</h2>
+                <p class="lead">A conventional Laravel monolith with server-rendered Blade pages, page-specific JavaScript, JSON endpoints for rich lists, and service classes for domain workflows.</p>
+                <div class="flow" aria-label="Application request flow">
+                    <span>Browser</span><b>→</b><span>Web routes</span><b>→</b><span>Controller + Form Request</span><b>→</b><span>Service</span><b>→</b><span>Eloquent / Storage</span><b>→</b><span>Blade or JSON</span>
+                </div>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3>Server side</h3>
+                        <ul>
+                            <li>Laravel <strong>11.50</strong>, requiring PHP <strong>8.2+</strong>.</li>
+                            <li>Controllers are split into <code>Backend</code>, <code>Frontend</code>, <code>Api\Workspace</code>, and <code>Auth</code>.</li>
+                            <li>Form Requests centralize validation for questions, exams, categories, blogs, news, gallery and import operations.</li>
+                            <li>Services own domain behavior such as exam creation, category trees, question import, gallery persistence and attempt assignment.</li>
+                            <li>Eloquent models use organization scopes, soft deletes, casts and explicit relationships.</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Client side</h3>
+                        <ul>
+                            <li>Blade templates render public and administration interfaces.</li>
+                            <li>Tailwind CSS 3 provides utility styling; larger modules also use scoped files under <code>public/css</code>.</li>
+                            <li>Alpine.js powers light interactions; dedicated ES modules handle tables, forms, import and media tools.</li>
+                            <li>Axios/fetch communicate with protected internal JSON endpoints.</li>
+                            <li>Vite builds <code>resources/css/app.css</code> and <code>resources/js/app.js</code>.</li>
+                        </ul>
+                    </div>
+                </div>
+                <h3>Important directories</h3>
+                <ul class="file-tree">
+                    <li><code>app/Http/Controllers</code> — HTTP orchestration</li>
+                    <li><code>app/Http/Requests</code> — validation and authorization hooks</li>
+                    <li><code>app/Models</code> — domain and CMS models</li>
+                    <li><code>app/Services</code> — business workflows</li>
+                    <li><code>app/Support</code> — shared options/query helpers</li>
+                    <li><code>database/migrations</code> — schema history</li>
+                    <li><code>database/seeders</code> — complete demo data</li>
+                    <li><code>resources/views/backend</code> — administration UI</li>
+                    <li><code>resources/views/frontend</code> — public website and account UI</li>
+                    <li><code>resources/js/core</code> — theme/sidebar/table foundations</li>
+                    <li><code>public/js/backend</code> — page-level backend scripts</li>
+                    <li><code>public/css/backend</code> — page-level backend styles</li>
+                    <li><code>tests/Feature</code> — end-to-end application behavior</li>
+                </ul>
+            </section>
+
+            <section id="quick-start" data-searchable>
+                <h2>Installation and quick start</h2>
+                <h3>Requirements</h3>
+                <ul>
+                    <li>PHP 8.2 or newer with common Laravel extensions (openssl, pdo, mbstring, tokenizer, xml, ctype, json, fileinfo, gd)</li>
+                    <li>Composer 2</li>
+                    <li>Node.js 18+ and npm</li>
+                    <li>MySQL 8 / MariaDB 10.4+ (SQLite is fine for automated tests)</li>
+                    <li>A web server such as Apache, Nginx, Laravel’s development server, or WAMP</li>
+                </ul>
+                <h3>Fresh installation</h3>
+                <pre><code>composer install
+npm install
+
+# macOS / Linux / Git Bash:
+cp .env.example .env
+# Windows Command Prompt:
+# copy .env.example .env
+
+php artisan key:generate
+
+# Create the MySQL database from .env, then:
+php artisan migrate --seed
+php artisan storage:link
+
+npm run build
+php artisan serve</code></pre>
+                <div class="callout warning">
+                    <strong>Seeder warning:</strong> <code>DatabaseSeeder</code> starts with
+                    <code>ClearUploadedMediaSeeder</code>. Running a full reseed intentionally clears configured
+                    demo upload directories before rebuilding sample media. Do not run it against production uploads.
+                </div>
+                <h3>Minimum <code>.env</code> values</h3>
+                <pre><code>APP_URL=http://127.0.0.1:8000
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=exam-management-system
+DB_USERNAME=root
+DB_PASSWORD=
+SESSION_DRIVER=database
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+MAIL_MAILER=log
+GALLERY_DISK=public</code></pre>
+                <h3>Development processes</h3>
+                <pre><code># Runs Laravel server, database queue listener, Pail logs and Vite together
+composer run dev
+
+# Or run only the asset watcher when WAMP/Apache serves PHP
+npm run dev</code></pre>
+                <h3>WAMP / Apache notes</h3>
+                <ul>
+                    <li>Document root must be the project <code>public/</code> directory (or a vhost alias to it).</li>
+                    <li>Set <code>APP_URL</code> to the exact public URL you browse (including port/path if needed).</li>
+                    <li>Run <code>php artisan storage:link</code> so gallery files are reachable under <code>/storage</code>.</li>
+                    <li>Use <code>npm run build</code> for a one-shot asset build, or keep <code>npm run dev</code> running while editing frontend files.</li>
+                </ul>
+                <p>The queue uses the database driver by default. The tracked question import itself is request-based and does not require a queue worker.</p>
+            </section>
+
+            <section id="configuration" data-searchable>
+                <h2>Environment configuration</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Variable</th><th>Default/example</th><th>Purpose</th></tr></thead>
+                        <tbody>
+                        <tr><td><code>APP_URL</code></td><td><code>http://127.0.0.1:8000</code></td><td>Canonical base URL and generated media URLs.</td></tr>
+                        <tr><td><code>APP_TIMEZONE</code></td><td><code>UTC</code></td><td>Application dates, schedules and timestamps.</td></tr>
+                        <tr><td><code>DB_*</code></td><td>MySQL localhost</td><td>Primary application database.</td></tr>
+                        <tr><td><code>SESSION_DRIVER</code></td><td><code>database</code></td><td>Authenticated web sessions.</td></tr>
+                        <tr><td><code>CACHE_STORE</code></td><td><code>database</code></td><td>Application cache.</td></tr>
+                        <tr><td><code>QUEUE_CONNECTION</code></td><td><code>database</code></td><td>Queued jobs.</td></tr>
+                        <tr><td><code>MAIL_MAILER</code></td><td><code>log</code></td><td>Email verification and reset messages in local development.</td></tr>
+                        <tr><td><code>FILESYSTEM_DISK</code></td><td><code>local</code></td><td>Default private filesystem; import source files are retained privately.</td></tr>
+                        <tr><td><code>GALLERY_DISK</code></td><td><code>public</code></td><td>Media library storage disk.</td></tr>
+                        <tr><td><code>GALLERY_MAX_IMAGE_KB</code></td><td><code>5120</code></td><td>Gallery image upload limit.</td></tr>
+                        <tr><td><code>GALLERY_MAX_VIDEO_KB</code></td><td><code>51200</code></td><td>Gallery video upload limit.</td></tr>
+                        <tr><td><code>GALLERY_MAX_FILE_KB</code></td><td><code>20480</code></td><td>Gallery document upload limit.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout">Set <code>APP_DEBUG=false</code>, configure a real mail transport, and use production-safe cache/session/queue settings before deployment.</div>
+            </section>
+
+            <section id="accounts" data-searchable>
+                <h2>Seeded demo accounts</h2>
+                <p>All seeded users use password <code>password</code>. Change or remove them outside local/demo environments.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Email</th><th>Role label</th><th>Intended access</th></tr></thead>
+                        <tbody>
+                        <tr><td><code>admin@examms.test</code></td><td>Admin</td><td>Super-admin workspace</td></tr>
+                        <tr><td><code>orgadmin@examms.test</code></td><td>Org Admin</td><td>Organization management</td></tr>
+                        <tr><td><code>editor@examms.test</code></td><td>Editor</td><td>Question, exam and content authoring</td></tr>
+                        <tr><td><code>student@examms.test</code></td><td>Viewer</td><td>Candidate/account experience</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="muted">These are currently role labels in organization membership data. Backend route-level role enforcement is not yet implemented.</p>
+            </section>
+
+            <section id="modules" data-searchable>
+                <h2>Application modules</h2>
+                <div class="grid grid-3">
+                    <div class="card"><h3>Dashboard</h3><p>Organization-scoped live totals, charts and recent activity assembled by <code>DashboardService</code>.</p></div>
+                    <div class="card"><h3>Questions</h3><p>CRUD, filters, status lifecycle, hierarchical categories, bulk actions and tracked spreadsheet imports.</p></div>
+                    <div class="card"><h3>Exams</h3><p>Rich configuration, question selection modes, category rules, scheduling, publishing and assignment snapshots.</p></div>
+                    <div class="card"><h3>Blog</h3><p>Posts, categories, tags, banners, attachments, publication metadata and public discovery.</p></div>
+                    <div class="card"><h3>News</h3><p>Articles, categories, tags, banners, breaking/trending attributes, scheduling and public pages.</p></div>
+                    <div class="card"><h3>Gallery</h3><p>Images, video and documents with metadata, editing, thumbnails, download and recycle-bin workflows.</p></div>
+                    <div class="card"><h3>Frontend CMS</h3><p>Site pages, menus, settings, hero banners, FAQs, testimonials, partners, ads, contact and newsletter data models.</p></div>
+                    <div class="card"><h3>Public site</h3><p>Home, exams, categories, blogs, news, global search, clean CMS slugs and authenticated account pages.</p></div>
+                    <div class="card"><h3>Profile</h3><p>Identity, contact details, social links, password, cropped avatar and account deletion.</p></div>
+                </div>
+            </section>
+
+            <section id="questions" data-searchable>
+                <h2>Questions, categories and spreadsheet import</h2>
+                <h3>Question bank</h3>
+                <ul>
+                    <li>Organization-scoped create, view, edit, soft delete, restore, bulk status and bulk recycle-bin actions.</li>
+                    <li>AJAX list with search, category, type, difficulty, status, source and pagination controls.</li>
+                    <li>Supported authoring types include MCQ, true/false, fill blank, short answer and long answer.</li>
+                    <li>Question categories are maintained as nested trees with status, ordering and SEO fields.</li>
+                    <li>Imported questions expose a clickable source badge linked to their import record.</li>
+                </ul>
+                <h3>Tracked import lifecycle</h3>
+                <div class="flow">
+                    <span>Select XLSX/CSV</span><b>→</b><span>Browser preview</span><b>→</b><span>Validate/edit rows</span><b>→</b><span>Upload source</span><b>→</b><span>Import chunks</span><b>→</b><span>Finalize log</span>
+                </div>
+                <ul>
+                    <li>Maximum upload size: <strong>15 MB</strong>.</li>
+                    <li>Maximum rows: <strong>10,000</strong>; the first Excel worksheet is processed.</li>
+                    <li>Rows are sent sequentially in batches of <strong>100</strong> to constrain request size and memory.</li>
+                    <li>The original source file is stored on the private local disk and can be downloaded through an authenticated, organization-scoped controller action.</li>
+                    <li><code>import_questions</code> tracks file metadata, status, totals, successes, failures, logs, errors, creator and timestamps.</li>
+                    <li><code>questions.import_question_id</code> links each successfully imported question to its source.</li>
+                    <li>Every row is validated again on the server. Valid rows remain committed even when other rows fail.</li>
+                </ul>
+                <h3>Spreadsheet columns</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Group</th><th>Columns</th></tr></thead>
+                        <tbody>
+                        <tr><td>Required</td><td>Question, Type, Category, Difficulty, Marks Type, Marks</td></tr>
+                        <tr><td>Conditional</td><td>Option A/B for MCQ; Correct Answer for single-answer rows; Correct Answers for multi-answer MCQ</td></tr>
+                        <tr><td>Optional</td><td>Option C–F, Explanation, Reference, Status</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>Nested category paths use <code>Parent &gt; Child &gt; Leaf</code>. Existing nodes are reused within the organization and missing nodes are created.</p>
+            </section>
+
+            <section id="exams" data-searchable>
+                <h2>Exams and attempt assignment</h2>
+                <h3>Exam authoring</h3>
+                <ul>
+                    <li>Create/edit forms share options from <code>App\Support\ExamFormOptions</code> and validation rules from dedicated Form Requests.</li>
+                    <li>The live question bank loads categories, counts, filtered questions and random selections through protected JSON routes.</li>
+                    <li>Configuration covers duration, attempts, passing rules, visibility, schedule, negative marking, question/option shuffling, paper sets and result behavior.</li>
+                    <li>List and detail pages provide analytics, filtering, bulk actions, soft deletion, restoration and publishing.</li>
+                    <li>OG title, description and gallery image fields integrate with frontend social metadata.</li>
+                </ul>
+                <h3>Question selection modes</h3>
+                <div class="grid grid-3">
+                    <div class="card"><h3>Fixed</h3><p>The author selects the exact questions attached through <code>exam_question</code>. Every candidate receives that set, optionally shuffled.</p></div>
+                    <div class="card"><h3>Pool</h3><p>A larger attached pool is stored and a stable candidate subset is sampled when the attempt starts.</p></div>
+                    <div class="card"><h3>Dynamic</h3><p>Questions are selected at attempt time from category rules; the exam pivot remains empty.</p></div>
+                </div>
+                <h3>Attempt guarantees already implemented</h3>
+                <ul>
+                    <li>Starting an attempt is transactional and resumes an existing active attempt.</li>
+                    <li>Assigned rows are stored in <code>exam_attempt_questions</code> with position, marks, option order and selection metadata.</li>
+                    <li>Question snapshots are immutable if the source question is edited later.</li>
+                    <li>Candidate payloads omit correct answers.</li>
+                    <li>Published status, fixed schedule window and attempt limits are validated.</li>
+                    <li>Question shortages roll back the attempt and return a structured validation response.</li>
+                </ul>
+                <div class="callout warning"><strong>Current boundary:</strong> assignment/start is implemented, but the complete candidate workspace—autosave, timer, submit, scoring, pass/fail and result review—still needs implementation.</div>
+            </section>
+
+            <section id="content" data-searchable>
+                <h2>CMS, SEO and public frontend</h2>
+                <h3>Publishing modules</h3>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3>Blog</h3>
+                        <p>Post CRUD, status lifecycle, categories, tags, multiple banners, attachments, list filtering, soft delete/restore and public category/tag routes.</p>
+                    </div>
+                    <div class="card">
+                        <h3>News</h3>
+                        <p>Article CRUD, categories/tags, multiple banners, breaking and trending metadata, publish/expiry validation, list filtering and public trending route.</p>
+                    </div>
+                </div>
+                <h3>SEO model</h3>
+                <p>SEO sections use one canonical slug input and support meta title/description, canonical URL, Open Graph title/description and a reusable gallery-backed OG image picker. OG images are available for questions, exams and all question/exam/blog/news category types; blog and news content also use their existing media integration.</p>
+                <h3>Public experience</h3>
+                <ul>
+                    <li>Database-driven home page sections, navigation and site settings.</li>
+                    <li>Published exam, blog, news and category listings with filters and pagination.</li>
+                    <li>Global search and JSON search suggestions.</li>
+                    <li>Root-level clean CMS page slugs; <code>/pages/{slug}</code> redirects permanently to <code>/{slug}</code>.</li>
+                    <li>Contact submissions and newsletter subscriptions.</li>
+                    <li>Authenticated account dashboard, exams, results and settings pages.</li>
+                </ul>
+            </section>
+
+            <section id="gallery" data-searchable>
+                <h2>Gallery and file storage</h2>
+                <ul>
+                    <li>Gallery uploads use <code>GALLERY_DISK</code> (default <code>public</code>) and require <code>php artisan storage:link</code>.</li>
+                    <li>Supported kinds are images, videos and documents, each with configurable size and extension rules.</li>
+                    <li>Rows preserve original and optional modified paths; reverting removes only the modified asset.</li>
+                    <li>Image metadata includes dimensions and generated thumbnail paths.</li>
+                    <li>Search, kind/source/folder filters, sorting, pagination and statistics are exposed through gallery endpoints.</li>
+                    <li>Delete moves records into a bin; restore and force-delete actions are separate.</li>
+                    <li>Rich-text editor uploads use the same gallery service and organization ownership.</li>
+                </ul>
+                <div class="callout">
+                    Question import files intentionally do <strong>not</strong> use the public gallery. They remain on the private local disk because spreadsheets may contain sensitive question-bank content.
+                </div>
+            </section>
+
+            <section id="database" data-searchable>
+                <h2>Database and domain model</h2>
+                <p class="lead">The schema is migration-driven and uses organization foreign keys throughout authoring modules. Major entities are grouped below.</p>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3>Identity and tenancy</h3>
+                        <p><code>users</code>, <code>profiles</code>, <code>organizations</code>, <code>user_organizations</code>, <code>user_app_settings</code>, <code>system_settings</code>.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Question bank</h3>
+                        <p><code>questions</code>, <code>question_categories</code>, <code>import_questions</code>.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Exam engine</h3>
+                        <p><code>exams</code>, <code>exam_categories</code>, <code>exam_question</code>, <code>exam_attempts</code>, <code>exam_attempt_questions</code>, instruction rules and templates.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Publishing</h3>
+                        <p><code>blogs</code>, blog categories/tags/banners/attachments and equivalent news entities.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Media</h3>
+                        <p><code>galleries</code> stores organization ownership, paths, URLs, metadata, edit state, thumbnails and audit columns.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Frontend CMS</h3>
+                        <p>Site settings/pages/menus, hero banners, FAQs, testimonials, partners, ads, contact messages, social links and newsletter subscribers.</p>
+                    </div>
+                </div>
+                <h3>Common conventions</h3>
+                <ul>
+                    <li>Most authoring records include <code>organization_id</code> and are queried with <code>forOrg()</code>.</li>
+                    <li>Recoverable content uses Eloquent soft deletes.</li>
+                    <li>JSON casts store structured options, answers, configuration, logs and snapshots.</li>
+                    <li>Foreign keys use cascade or null-on-delete behavior appropriate to ownership and optional media links.</li>
+                    <li>Audit columns such as <code>created_by</code> and <code>updated_by</code> identify actors where supported.</li>
+                </ul>
+            </section>
+
+            <section id="routes" data-searchable>
+                <h2>Routes and internal APIs</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Prefix</th><th>Access</th><th>Purpose</th></tr></thead>
+                        <tbody>
+                        <tr><td><code>/</code>, <code>/exams</code>, <code>/blogs</code>, <code>/news</code></td><td>Public</td><td>Frontend home and published content.</td></tr>
+                        <tr><td><code>/search</code></td><td>Public</td><td>Search page and suggestion JSON.</td></tr>
+                        <tr><td><code>/account/*</code></td><td>Authenticated</td><td>Candidate dashboard, exams, results and settings.</td></tr>
+                        <tr><td><code>/admin/*</code></td><td>Authenticated</td><td>Administration workspace and CRUD modules.</td></tr>
+                        <tr><td><code>/admin/internal-api/*-table</code></td><td>Authenticated</td><td>Paginated, searchable list data for questions, exams, blogs and news.</td></tr>
+                        <tr><td><code>/admin/api/question-bank/*</code></td><td>Authenticated</td><td>Exam builder category, count, query and random-selection APIs.</td></tr>
+                        <tr><td><code>/admin/questions/imports/*</code></td><td>Authenticated</td><td>Start, inspect, download and complete tracked imports.</td></tr>
+                        <tr><td><code>/admin/gallery/*</code></td><td>Authenticated</td><td>Media CRUD, editing, stats and recycle-bin operations.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <pre><code># Inspect the complete current route inventory
+php artisan route:list --except-vendor</code></pre>
+                <p>Fixed routes must remain before the final root CMS route <code>/{slug}</code>; otherwise clean page slugs can shadow application endpoints.</p>
+            </section>
+
+            <section id="frontend-stack" data-searchable>
+                <h2>UI, assets and theme system</h2>
+                <ul>
+                    <li>Tailwind is configured with <code>darkMode: 'class'</code>.</li>
+                    <li><code>resources/views/partials/theme-init.blade.php</code> applies the theme before CSS paints to reduce flash.</li>
+                    <li><code>resources/js/core/theme.js</code> resolves light/dark/system preference and stores it under <code>ems.theme</code>.</li>
+                    <li>Resolution order is local storage, server-provided <code>data-theme-default</code>, then OS preference for system mode.</li>
+                    <li>The shared <code>&lt;x-theme-toggle /&gt;</code> component is used in backend, guest and public layouts.</li>
+                    <li>Complex page CSS uses <code>.dark</code> overrides or theme-aware variables; third-party editors and dialogs require explicit dark styles.</li>
+                    <li><code>versioned_asset()</code> adds file modification timestamps to public assets for cache busting.</li>
+                </ul>
+                <h3>Asset commands</h3>
+                <pre><code>npm run dev      # Vite watcher and hot reload
+npm run build    # production bundle</code></pre>
+            </section>
+
+            <section id="development" data-searchable>
+                <h2>Development guide</h2>
+                <h3>Adding a backend module</h3>
+                <ol>
+                    <li>Create migration and organization-scoped Eloquent model.</li>
+                    <li>Add Form Requests with validation and organization-aware <code>exists</code> rules.</li>
+                    <li>Place domain mutations and complex queries in a service.</li>
+                    <li>Keep controllers focused on organization resolution, orchestration and responses.</li>
+                    <li>Add routes inside the authenticated <code>admin</code> group, before dynamic catch-all routes.</li>
+                    <li>Build Blade screens using existing panel, form, gallery-picker and list conventions.</li>
+                    <li>Add feature tests for authentication, organization isolation, CRUD, validation and lifecycle actions.</li>
+                </ol>
+                <h3>Existing reusable patterns</h3>
+                <ul>
+                    <li><code>ResolvesCurrentOrganization</code> — controller organization resolution.</li>
+                    <li><code>BelongsToOrganization</code> — model organization scope.</li>
+                    <li><code>HierarchicalCategoryService</code> — nested category persistence.</li>
+                    <li><code>HandlesCategoryListActions</code> — shared bulk list actions.</li>
+                    <li><code>ajax-table.js</code> and workspace data controllers — server-driven tables.</li>
+                    <li><code>gallery-picker.blade.php</code> — reusable single/multiple media selection.</li>
+                    <li><code>seo-og-image.blade.php</code> — consistent Open Graph image field.</li>
+                    <li><code>ExamFormOptions</code> — one source for exam option lists.</li>
+                </ul>
+                <h3>Code quality</h3>
+                <pre><code>vendor/bin/pint
+php artisan test
+npm run build</code></pre>
+            </section>
+
+            <section id="testing" data-searchable>
+                <h2>Testing</h2>
+                <p>The suite uses Pest 4 with Laravel’s testing integration. Feature coverage currently includes:</p>
+                <ul>
+                    <li>Breeze authentication, verification, password and profile workflows</li>
+                    <li>Question CRUD, filters, pagination, organization isolation and exam-builder handoff</li>
+                    <li>Tracked question import, error reporting, source filtering and organization isolation</li>
+                    <li>Question and exam category tree behavior</li>
+                    <li>Exam CRUD, validation, selection modes, publishing and list filtering</li>
+                    <li>Question-bank APIs and cursor pagination</li>
+                    <li>Attempt assignment stability, immutable snapshots, answer secrecy and rollback on shortages</li>
+                    <li>Blog/news publishing, date filters, banners, recycle bin and restoration</li>
+                    <li>Gallery/editor upload, edits, restore and permanent deletion</li>
+                    <li>Public home, CMS clean URLs, contact/newsletter and search suggestions</li>
+                </ul>
+                <pre><code># Entire suite
+php artisan test
+
+# A focused file
+php artisan test tests/Feature/QuestionImportTest.php
+
+# A name filter
+php artisan test --filter="question bank"</code></pre>
+                <p class="muted">There is no repository CI workflow yet, so the suite must currently be run locally or added to the deployment pipeline.</p>
+            </section>
+
+            <section id="production" data-searchable>
+                <h2>Production checklist</h2>
+                <ol>
+                    <li>Set <code>APP_ENV=production</code>, <code>APP_DEBUG=false</code>, the canonical <code>APP_URL</code>, and a secure generated key.</li>
+                    <li>Configure production database, mail, queue, cache and session drivers.</li>
+                    <li>Install optimized PHP dependencies with <code>composer install --no-dev --optimize-autoloader</code>.</li>
+                    <li>Build assets with <code>npm ci &amp;&amp; npm run build</code>.</li>
+                    <li>Run <code>php artisan migrate --force</code>. Do not run demo seeders unless explicitly required.</li>
+                    <li>Run <code>php artisan storage:link</code> when the public gallery disk is used.</li>
+                    <li>Cache framework metadata with <code>php artisan optimize</code>.</li>
+                    <li>Run a persistent queue worker for queued jobs and restart it after deployments.</li>
+                    <li>Point the web server document root to <code>public/</code>; deny direct access to <code>.env</code>, storage internals and source files.</li>
+                    <li>Back up the database and both public gallery and private import storage.</li>
+                </ol>
+                <h3>Scheduler</h3>
+                <pre><code>* * * * * cd /path/to/exam-management-system &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code></pre>
+            </section>
+
+            <section id="security" data-searchable>
+                <h2>Security and current constraints</h2>
+                <div class="callout danger">
+                    <strong>Authorization gap:</strong> administration routes require authentication but do not yet have route-level role middleware or model policies. Organization checks protect many domain records, but role labels alone are not an authorization boundary.
+                </div>
+                <ul>
+                    <li>Form Requests validate uploaded files, enums, relationships and organization-owned gallery IDs.</li>
+                    <li>Controllers and services commonly scope records by the resolved organization and return 403/404 for cross-organization access.</li>
+                    <li>Authentication uses Laravel sessions, CSRF protection, login throttling and signed email verification links.</li>
+                    <li>Question import source files are private and downloaded only through application routes.</li>
+                    <li>Chunked import requests validate <code>import_question_id</code> against the current organization and <code>processing</code> status.</li>
+                    <li>Gallery validation applies type and size allowlists, but production web-server MIME and malware scanning policies should be added as needed.</li>
+                    <li>The application is effectively single-active-organization: the helper resolves an authenticated user’s first active membership, while shared navigation currently displays the first organization. A validated session switcher is future work.</li>
+                    <li>Public registration remains enabled by Breeze.</li>
+                </ul>
+            </section>
+
+            <section id="troubleshooting" data-searchable>
+                <h2>Troubleshooting</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Symptom</th><th>Resolution</th></tr></thead>
+                        <tbody>
+                        <tr><td>Uploaded gallery images return 404</td><td>Run <code>php artisan storage:link</code>; verify <code>APP_URL</code>, <code>GALLERY_DISK</code> and filesystem permissions.</td></tr>
+                        <tr><td>Vite manifest missing</td><td>Run <code>npm install</code> and <code>npm run build</code>, or keep <code>npm run dev</code> active.</td></tr>
+                        <tr><td>Database table/session/cache errors</td><td>Check DB credentials, create the database, then run <code>php artisan migrate</code>.</td></tr>
+                        <tr><td>CSS or Blade changes appear stale</td><td>Run <code>php artisan optimize:clear</code> and rebuild/watch assets as applicable.</td></tr>
+                        <tr><td>Email is not received locally</td><td>The default mailer writes messages to logs. Inspect Laravel logs or configure SMTP.</td></tr>
+                        <tr><td>Queue work does not run</td><td>Start <code>php artisan queue:work</code> and ensure the jobs table migration is applied.</td></tr>
+                        <tr><td>Import stops after some chunks</td><td>Completed chunks remain stored. Review the import details/errors, correct failed rows and retry only those rows.</td></tr>
+                        <tr><td>OG image picker looks unstyled or does not open</td><td>Confirm <code>public/css/backend/gallery-picker.css</code> and <code>public/js/backend/content-form-shared.js</code> load on the page; hard-refresh after asset changes.</td></tr>
+                        <tr><td>No organization can be resolved</td><td>Run the organization/user membership seeders or create an organization and active membership.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="admin-notes" data-searchable>
+                <h2>Admin review notes (18 July 2026)</h2>
+                <p class="lead">Findings from a full admin-side review and the fixes applied in the same pass.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Area</th><th>Issue</th><th>Fix</th></tr></thead>
+                        <tbody>
+                        <tr><td>Question import</td><td><code>import_question_id</code> existence check was not organization-scoped.</td><td>Validation now requires the import to belong to the current organization and remain in <code>processing</code> status.</td></tr>
+                        <tr><td>SEO / OG images</td><td>Edit screens did not eager-load <code>ogImage</code>; blog/news pickers lacked <code>previewUrl</code>.</td><td>Controllers load <code>ogImage</code>; blog/news forms pass preview URLs; shared gallery picker CSS is linked on content pages.</td></tr>
+                        <tr><td>Gallery picker JS</td><td>Repeated <code>initGalleryPickers</code> calls could attach duplicate listeners.</td><td>Fields are marked bound after the first initialization.</td></tr>
+                        <tr><td>Detail pages</td><td>Invalid Tailwind classes such as <code>slate-550</code> / <code>emerald-250</code>.</td><td>Replaced with valid <code>slate-500</code> / <code>emerald-200</code> utilities.</td></tr>
+                        <tr><td>Documentation</td><td>README was too thin for day-to-day setup.</td><td>Expanded setup, WAMP notes, import, storage, commands, and production checklist; HTML docs updated to match.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout">
+                    Candidates, Notifications, and Logs remain intentional Coming Soon placeholders. Candidate answer submission and scoring remain incomplete by design until the exam-taking roadmap items are implemented.
+                </div>
+            </section>
+
+            <section id="roadmap" data-searchable>
+                <h2>Current roadmap</h2>
+                <p class="lead">The authoritative task list is maintained in <code>TODO.md</code>. Highest-value remaining work:</p>
+                <ol>
+                    <li>Enforce role-based backend authorization with policies and middleware.</li>
+                    <li>Complete the candidate exam lifecycle: workspace, answers, timer, submit, scoring and results.</li>
+                    <li>Implement active organization switching with membership validation.</li>
+                    <li>Replace Candidates, Notifications and Logs placeholders with functional modules.</li>
+                    <li>Expose system settings and frontend CMS administration rather than relying primarily on seed data.</li>
+                    <li>Add CI for formatting, tests and frontend production builds.</li>
+                    <li>Expand factories and test coverage for remaining services and security boundaries.</li>
+                </ol>
+            </section>
+
+            <div class="footer">
+                Exam Management System documentation · reviewed 18 July 2026 · see README.md for setup and TODO.md for remaining work.
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    (() => {
+        const root = document.documentElement;
+        const stored = localStorage.getItem('ems.docs.theme') || 'system';
+        const applyTheme = (preference) => {
+            const dark = preference === 'dark'
+                || (preference === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+            root.dataset.theme = dark ? 'dark' : 'light';
+            root.dataset.preference = preference;
+        };
+        applyTheme(stored);
+
+        document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const next = root.dataset.preference === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('ems.docs.theme', next);
+                applyTheme(next);
+            });
+        });
+
+        const search = document.getElementById('docSearch');
+        const sections = [...document.querySelectorAll('[data-searchable]')];
+        search?.addEventListener('input', () => {
+            const term = search.value.trim().toLowerCase();
+            sections.forEach((section) => {
+                section.classList.toggle('filtered-out', term !== '' && !section.textContent.toLowerCase().includes(term));
+            });
+        });
+
+        const links = [...document.querySelectorAll('#toc a')];
+        const observer = new IntersectionObserver((entries) => {
+            const visible = entries
+                .filter((entry) => entry.isIntersecting)
+                .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            links.forEach((link) => link.classList.toggle('active', link.hash === `#${visible.target.id}`));
+        }, { rootMargin: '-10% 0px -75%', threshold: [0, .25, .75] });
+        sections.forEach((section) => observer.observe(section));
+    })();
+</script>
+</body>
+</html>

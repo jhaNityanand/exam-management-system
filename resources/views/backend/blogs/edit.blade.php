@@ -44,6 +44,7 @@
     <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/blog-create.css') }}?v={{ filemtime(public_path('css/backend/blog-create.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/gallery-picker.css') }}?v={{ filemtime(public_path('css/backend/gallery-picker.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
@@ -76,7 +77,7 @@
         window.contentFormConfig = {
             formId: 'blog-form',
             categorySelector: '#blog_category_id',
-            seoSlugId: 'blog-seo-slug',
+            seoSlugId: null,
             baseUrl: @json(url('/blogs')),
             tagItemClass: 'blog-tag-item',
             module: 'blog',

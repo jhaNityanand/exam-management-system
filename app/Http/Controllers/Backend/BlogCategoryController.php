@@ -168,6 +168,9 @@ class BlogCategoryController extends Controller
             'canonical_url'   => $data['canonical_url']   ?? null,
             'og_title'        => $data['og_title']        ?? null,
             'og_description'  => $data['og_description']  ?? null,
+            'og_image_id'     => $data['og_image_id']     ?? null,
+            'robots'          => $data['robots']          ?? null,
+            'schema_markup'   => $data['schema_markup']   ?? null,
             'ai_generated'    => (bool) ($data['ai_generated'] ?? false),
             'ai_improve'      => (bool) ($data['ai_improve']   ?? false),
         ], fn ($v) => $v !== null);
@@ -188,6 +191,7 @@ class BlogCategoryController extends Controller
         abort_if($category->organization_id !== $orgId, 403, 'Unauthorized access to this category.');
 
         $category->load([
+            'ogImage',
             'childrenRecursive' => fn ($q) => $q->orderBy('name'),
         ]);
 
@@ -217,6 +221,9 @@ class BlogCategoryController extends Controller
             'canonical_url'   => $data['canonical_url']   ?? null,
             'og_title'        => $data['og_title']        ?? null,
             'og_description'  => $data['og_description']  ?? null,
+            'og_image_id'     => $data['og_image_id']     ?? null,
+            'robots'          => $data['robots']          ?? null,
+            'schema_markup'   => $data['schema_markup']   ?? null,
             'ai_generated'    => (bool) ($data['ai_generated'] ?? false),
             'ai_improve'      => (bool) ($data['ai_improve']   ?? false),
         ];

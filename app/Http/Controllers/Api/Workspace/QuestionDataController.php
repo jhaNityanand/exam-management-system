@@ -47,6 +47,7 @@ class QuestionDataController extends Controller
         $filters = $request->query('filters', []);
         $createdFrom = is_array($filters) ? ($filters['created_from'] ?? null) : null;
         $createdTo = is_array($filters) ? ($filters['created_to'] ?? null) : null;
+        $importSource = is_array($filters) ? (string) ($filters['import_source'] ?? 'all') : 'all';
 
         if (is_array($filters)) {
             $filters = array_intersect_key($filters, array_flip(self::ALLOWED_FILTERS));
@@ -101,6 +102,12 @@ class QuestionDataController extends Controller
         }
         $query->forOrg($orgId)
             ->with(['category', 'createdBy']);
+
+        if ($importSource === 'imported') {
+            $query->whereNotNull('import_question_id');
+        } elseif ($importSource === 'manual') {
+            $query->whereNull('import_question_id');
+        }
 
         DateRangeFilter::apply($query, 'created_at', $createdFrom, $createdTo);
 

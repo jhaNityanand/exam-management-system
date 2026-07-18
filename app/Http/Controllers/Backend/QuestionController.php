@@ -4,17 +4,24 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Backend\Question\ImportQuestionsRequest;
+use App\Http\Requests\Backend\Question\StartQuestionImportRequest;
 use App\Http\Requests\Backend\Question\StoreQuestionRequest;
 use App\Http\Requests\Backend\Question\UpdateQuestionRequest;
+use App\Models\ImportQuestion;
 use App\Models\Question;
 use App\Models\QuestionCategory;
 use App\Services\QuestionCategoryService;
+use App\Services\QuestionImportService;
 use App\Services\QuestionService;
 use App\Support\ExamFormats;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class QuestionController extends Controller
 {
@@ -22,7 +29,8 @@ class QuestionController extends Controller
 
     public function __construct(
         protected QuestionService $service,
-        protected QuestionCategoryService $categoryService
+        protected QuestionCategoryService $categoryService,
+        protected QuestionImportService $importService,
     ) {}
 
     public function index(): View
@@ -82,9 +90,96 @@ class QuestionController extends Controller
             ->with('success', 'Question created successfully.');
     }
 
+    public function import(ImportQuestionsRequest $request): JsonResponse
+    {
+        $import = ImportQuestion::query()
+            ->forOrg($this->currentOrgId())
+            ->findOrFail($request->integer('import_question_id'));
+        abort_if($import->status !== 'processing', 409, 'This import is no longer accepting rows.');
+
+        $result = $this->importService->importChunk(
+            $request->validated('rows'),
+            $import,
+            $this->currentOrgId(),
+            $request->user()?->id,
+        );
+
+        return response()->json([
+            'message' => $result['failed'] === 0
+                ? 'Question batch imported successfully.'
+                : 'Question batch processed with validation errors.',
+            ...$result,
+        ], $result['imported'] > 0 ? 201 : 422);
+    }
+
+    public function startImport(StartQuestionImportRequest $request): JsonResponse
+    {
+        $import = $this->importService->start(
+            $request->file('file'),
+            $request->integer('total_rows'),
+            $request->integer('failed_rows'),
+            $request->validated('initial_errors', []),
+            $this->currentOrgId(),
+            $request->user()?->id,
+        );
+
+        return response()->json([
+            'message' => 'Import file stored successfully.',
+            'import_question_id' => $import->id,
+        ], 201);
+    }
+
+    public function completeImport(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'unrecorded_errors' => ['nullable', 'array', 'max:10000'],
+            'unrecorded_errors.*.row' => ['required', 'integer', 'min:2'],
+            'unrecorded_errors.*.errors' => ['required', 'array', 'min:1'],
+            'unrecorded_errors.*.errors.*' => ['required', 'string', 'max:1000'],
+        ]);
+        $import = ImportQuestion::query()
+            ->forOrg($this->currentOrgId())
+            ->findOrFail($id);
+        abort_if($import->status !== 'processing', 409, 'This import has already been completed.');
+
+        $import = $this->importService->complete($import, $validated['unrecorded_errors'] ?? []);
+
+        return response()->json([
+            'message' => 'Question import completed.',
+            'import' => $this->importDetailsPayload($import),
+        ]);
+    }
+
+    public function importDetails(int $id): JsonResponse
+    {
+        $import = ImportQuestion::query()
+            ->forOrg($this->currentOrgId())
+            ->with('creator:id,name')
+            ->findOrFail($id);
+
+        return response()->json([
+            'import' => $this->importDetailsPayload($import),
+        ]);
+    }
+
+    public function downloadImport(int $id): BinaryFileResponse
+    {
+        $import = ImportQuestion::query()
+            ->forOrg($this->currentOrgId())
+            ->findOrFail($id);
+
+        abort_unless(Storage::disk($import->disk)->exists($import->file_path), 404, 'Import file not found.');
+
+        return response()->download(
+            Storage::disk($import->disk)->path($import->file_path),
+            $import->original_file_name,
+            ['Content-Type' => $import->mime_type ?: 'application/octet-stream'],
+        );
+    }
+
     public function show($id): View
     {
-        $question = Question::with(['category', 'createdBy'])->findOrFail($id);
+        $question = Question::with(['category', 'createdBy', 'ogImage', 'importQuestion'])->findOrFail($id);
         $orgId = $this->currentOrgId();
         abort_if($question->organization_id !== $orgId, 403, 'Unauthorized access to this question.');
 
@@ -93,7 +188,7 @@ class QuestionController extends Controller
 
     public function edit($id): View
     {
-        $question = Question::findOrFail($id);
+        $question = Question::with(['ogImage'])->findOrFail($id);
         $orgId = $this->currentOrgId();
         abort_if($question->organization_id !== $orgId, 403, 'Unauthorized access to this question.');
 
@@ -183,6 +278,27 @@ class QuestionController extends Controller
         ]);
 
         return array_values(array_unique(array_map('intval', $validated['ids'])));
+    }
+
+    /** @return array<string, mixed> */
+    private function importDetailsPayload(ImportQuestion $import): array
+    {
+        return [
+            'id' => $import->id,
+            'original_file_name' => $import->original_file_name,
+            'file_type' => $import->file_type,
+            'file_size' => $import->file_size,
+            'status' => $import->status,
+            'total_rows' => $import->total_rows,
+            'successful_rows' => $import->successful_rows,
+            'failed_rows' => $import->failed_rows,
+            'import_logs' => $import->import_logs ?? [],
+            'errors' => $import->errors ?? [],
+            'created_by' => $import->creator?->name,
+            'imported_at' => $import->imported_at?->toIso8601String(),
+            'completed_at' => $import->completed_at?->toIso8601String(),
+            'download_url' => route('admin.questions.imports.download', $import->id),
+        ];
     }
 
     /**

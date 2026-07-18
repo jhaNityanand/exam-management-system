@@ -129,7 +129,7 @@
             <!-- Linked Questions Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                 <div class="px-6 py-4 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider">Linked Questions ({{ $exam->questions->count() }})</h2>
+                    <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Linked Questions ({{ $exam->questions->count() }})</h2>
                     <span class="text-xs bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold px-2.5 py-1 rounded-full border border-indigo-100 dark:border-indigo-500/20">
                         {{ $exam->questions->sum('pivot.marks_override') ?: $exam->questions->sum('marks') }} Total Marks
                     </span>
@@ -173,7 +173,7 @@
             
             <!-- Settings Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
                     Configurations
                 </h2>
 
@@ -254,7 +254,7 @@
 
             <!-- Schedule Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
                     Schedule Bounds
                 </h2>
 
@@ -277,7 +277,7 @@
 
             <!-- Attempt Statistics Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-550 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
                     Attempt Statistics
                 </h2>
 

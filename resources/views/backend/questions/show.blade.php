@@ -55,14 +55,14 @@
             <!-- Question Content Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
                 <div>
-                    <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider mb-3">Question Content</h2>
+                    <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Question Content</h2>
                     <x-rich-text-content :content="$question->body" class="text-lg leading-relaxed font-medium text-slate-800 dark:text-slate-100" />
                 </div>
 
                 <!-- Answer options -->
                 <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
                     @if ($question->type === 'mcq' && is_array($question->options))
-                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider mb-4">Options &amp; Correct Answer</h3>
+                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Options &amp; Correct Answer</h3>
                         <div class="grid grid-cols-1 gap-3">
                             @foreach ($question->options as $opt)
                                 @php
@@ -76,7 +76,7 @@
                                 @endphp
                                 <div class="flex items-start gap-4 p-4 rounded-2xl border transition duration-200
                                     {{ $isCorrect 
-                                        ? 'bg-emerald-50/70 border-emerald-250 dark:bg-emerald-500/10 dark:border-emerald-500/30' 
+                                        ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30' 
                                         : 'bg-slate-50 dark:bg-slate-950/20 border-slate-200/80 dark:border-slate-800' }}"
                                 >
                                     <div class="mt-0.5 flex-shrink-0">
@@ -110,11 +110,11 @@
                         </div>
 
                     @elseif ($question->type === 'true_false')
-                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider mb-4">Correct Answer</h3>
+                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Correct Answer</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div class="p-4 rounded-2xl border flex items-center justify-between transition duration-200
                                 {{ $question->correct_answer === 'True' 
-                                    ? 'bg-emerald-50/70 border-emerald-250 dark:bg-emerald-500/10 dark:border-emerald-500/30' 
+                                    ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30' 
                                     : 'bg-slate-50 dark:bg-slate-950/20 border-slate-200/80 dark:border-slate-800' }}"
                             >
                                 <span class="font-semibold text-slate-800 dark:text-slate-200">True</span>
@@ -124,7 +124,7 @@
                             </div>
                             <div class="p-4 rounded-2xl border flex items-center justify-between transition duration-200
                                 {{ $question->correct_answer === 'False' 
-                                    ? 'bg-emerald-50/70 border-emerald-250 dark:bg-emerald-500/10 dark:border-emerald-500/30' 
+                                    ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30' 
                                     : 'bg-slate-50 dark:bg-slate-950/20 border-slate-200/80 dark:border-slate-800' }}"
                             >
                                 <span class="font-semibold text-slate-800 dark:text-slate-200">False</span>
@@ -155,7 +155,7 @@
                 <!-- Answer Explanation -->
                 @if ($question->explanation)
                     <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
-                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider mb-3">Answer Explanation</h3>
+                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Answer Explanation</h3>
                         <div class="p-5 bg-amber-50/30 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
                             <x-rich-text-content :content="$question->explanation" class="prose-sm text-slate-800 dark:text-slate-200 leading-relaxed" />
                         </div>
@@ -165,7 +165,7 @@
 
             <!-- SEO / Metadata Details -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-555 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-800">SEO &amp; Metadata details</h2>
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-800">SEO &amp; Metadata details</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                     <div>

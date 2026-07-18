@@ -242,6 +242,12 @@
         };
 
         document.querySelectorAll('[data-gallery-picker]').forEach((fieldRoot) => {
+            if (fieldRoot.dataset.emsGalleryBound === '1') {
+                hydrateExistingMedia(fieldRoot);
+                return;
+            }
+            fieldRoot.dataset.emsGalleryBound = '1';
+
             const multiple = fieldRoot.dataset.multiple === '1';
             const kind = fieldRoot.dataset.kind || 'image';
             const modalId = fieldRoot.dataset.modalId;
@@ -393,8 +399,8 @@
 
     const bindSeoPreview = (config) => {
         const titleInput = document.getElementById('title');
-        const slugInput = document.getElementById('slug');
-        const seoSlugPreview = document.getElementById(config.seoSlugId);
+        const slugInput = document.getElementById('slug') || document.getElementById('meta-slug');
+        const seoSlugPreview = config.seoSlugId ? document.getElementById(config.seoSlugId) : null;
         const authorSelect = document.getElementById('author_id');
         const authorNameInput = document.getElementById('author_name');
         const metaTitle = document.getElementById('meta-title');
@@ -524,7 +530,7 @@
                 isValid = false;
             }
 
-            const slugInput = document.getElementById('slug');
+            const slugInput = document.getElementById('slug') || document.getElementById('meta-slug');
             if (slugInput?.value?.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(slugInput.value.trim())) {
                 showError(slugInput, 'Slug may only contain letters, numbers, and hyphens.');
                 isValid = false;

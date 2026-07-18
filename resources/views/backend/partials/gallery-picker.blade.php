@@ -6,6 +6,7 @@
     'kind' => 'image',
     'inputId' => null,
     'previewId' => null,
+    'previewUrl' => null,
 ])
 
 @php
@@ -36,8 +37,12 @@
         <div id="{{ $previewId }}" class="gallery-picker-preview mb-2">
             @if (!empty($selected[0]))
                 <div class="gallery-picker-thumb is-selected" data-id="{{ $selected[0] }}">
-                    <img src="" alt="" class="gallery-picker-thumb__img hidden">
-                    <span class="gallery-picker-thumb__placeholder">#{{ $selected[0] }}</span>
+                    @if ($previewUrl)
+                        <img src="{{ $previewUrl }}" alt="" class="gallery-picker-thumb__img">
+                    @else
+                        <img src="" alt="" class="gallery-picker-thumb__img hidden">
+                        <span class="gallery-picker-thumb__placeholder">#{{ $selected[0] }}</span>
+                    @endif
                 </div>
             @endif
         </div>

@@ -91,6 +91,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ------------------------------------------------------------------ */
+    /*  Live Search Preview                                               */
+    /* ------------------------------------------------------------------ */
+    const previewWrap = document.querySelector('[data-seo-preview]');
+    if (previewWrap) {
+        const baseUrl = (previewWrap.dataset.baseUrl || window.location.origin).replace(/\/+$/, '');
+        const metaTitle = document.getElementById('meta-title');
+        const pageTitle = document.getElementById('title');
+        const metaDesc = document.getElementById('meta-desc');
+        const slugField = document.getElementById('meta-slug') || document.getElementById('slug');
+        const nameField = document.getElementById('name');
+        const previewTitle = document.getElementById('seo-preview-title');
+        const previewUrl = document.getElementById('seo-preview-url');
+        const previewDesc = document.getElementById('seo-preview-desc');
+
+        const slugify = (text) => String(text || '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+        const render = () => {
+            const title = metaTitle?.value?.trim() || pageTitle?.value?.trim() || nameField?.value?.trim() || 'Page title preview';
+            const desc = metaDesc?.value?.trim() || 'Meta description preview will appear here.';
+            const slug = slugField?.value?.trim() || slugify(pageTitle?.value || nameField?.value) || 'example-slug';
+            if (previewTitle) previewTitle.textContent = title;
+            if (previewDesc) previewDesc.textContent = desc;
+            if (previewUrl) previewUrl.textContent = `${baseUrl}/${slug}`;
+        };
+
+        [metaTitle, pageTitle, metaDesc, slugField, nameField].forEach((el) => {
+            el?.addEventListener('input', render);
+        });
+        render();
+    }
+
+    /* ------------------------------------------------------------------ */
     /*  Auto-Expand on Validation Errors                                  */
     /* ------------------------------------------------------------------ */
     if (accordionBody) {

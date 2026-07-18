@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToOrganization;
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -36,6 +37,9 @@ class NewsCategory extends Model
         'canonical_url',
         'og_title',
         'og_description',
+        'og_image_id',
+        'robots',
+        'schema_markup',
         'ai_generated',
         'ai_improve',
     ];
@@ -66,6 +70,11 @@ class NewsCategory extends Model
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function ogImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'og_image_id');
     }
 
     public function parent()

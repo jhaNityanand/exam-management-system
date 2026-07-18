@@ -132,6 +132,11 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('questions/bulk-destroy', [QuestionController::class, 'bulkDestroy'])->name('questions.bulk-destroy');
     Route::post('questions/bulk-restore', [QuestionController::class, 'bulkRestore'])->name('questions.bulk-restore');
     Route::patch('questions/bulk-status', [QuestionController::class, 'bulkUpdateStatus'])->name('questions.bulk-status');
+    Route::post('questions/imports', [QuestionController::class, 'startImport'])->name('questions.imports.start');
+    Route::get('questions/imports/{id}', [QuestionController::class, 'importDetails'])->name('questions.imports.show')->whereNumber('id');
+    Route::get('questions/imports/{id}/download', [QuestionController::class, 'downloadImport'])->name('questions.imports.download')->whereNumber('id');
+    Route::patch('questions/imports/{id}/complete', [QuestionController::class, 'completeImport'])->name('questions.imports.complete')->whereNumber('id');
+    Route::post('questions/import', [QuestionController::class, 'import'])->name('questions.import');
     Route::patch('questions/{id}/restore', [QuestionController::class, 'restore'])->name('questions.restore')->whereNumber('id');
     Route::resource('questions', QuestionController::class);
 

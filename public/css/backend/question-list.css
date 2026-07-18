@@ -14,6 +14,179 @@
     vertical-align: middle;
 }
 
+.question-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid;
+    border-radius: 999px;
+    padding: 0.28rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.question-source-badge svg {
+    width: 0.8rem;
+    height: 0.8rem;
+}
+
+.question-source-badge--imported {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
+    cursor: pointer;
+}
+
+.question-source-badge--imported:hover {
+    border-color: #818cf8;
+    background: #e0e7ff;
+}
+
+.question-source-badge--manual {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.dark .question-source-badge--imported {
+    border-color: rgb(129 140 248 / 0.55);
+    background: rgb(79 70 229 / 0.25);
+    color: #c7d2fe;
+}
+
+.dark .question-source-badge--manual {
+    border-color: #334155;
+    background: #111827;
+    color: #94a3b8;
+}
+
+.question-import-detail {
+    color: #334155;
+    text-align: left;
+}
+
+.question-import-detail__file {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+}
+
+.question-import-detail__file > span {
+    border-radius: 0.45rem;
+    background: #4f46e5;
+    padding: 0.38rem 0.5rem;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.question-import-detail__file div {
+    display: grid;
+    min-width: 0;
+}
+
+.question-import-detail__file strong {
+    overflow: hidden;
+    color: #0f172a;
+    font-size: 0.86rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.question-import-detail__file small,
+.question-import-detail__grid span,
+.question-import-detail__errors small {
+    color: #64748b;
+    font-size: 0.72rem;
+}
+
+.question-import-detail__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.question-import-detail__grid > div {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.7rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.65rem;
+}
+
+.question-import-detail__grid strong {
+    color: #0f172a;
+    font-size: 0.8rem;
+    text-transform: capitalize;
+}
+
+.question-import-detail__grid .is-success { color: #047857; }
+.question-import-detail__grid .is-error { color: #be123c; }
+
+.question-import-detail__errors {
+    max-height: 12rem;
+    overflow: auto;
+    margin-top: 0.9rem;
+    padding: 0.75rem;
+    border: 1px solid #fecdd3;
+    border-radius: 0.65rem;
+    background: #fff1f2;
+    color: #9f1239;
+    font-size: 0.76rem;
+}
+
+.question-import-detail__errors ul {
+    margin: 0.4rem 0;
+    padding-left: 1rem;
+}
+
+.question-import-detail__download {
+    display: inline-flex;
+    margin-top: 1rem;
+    border-radius: 0.65rem;
+    background: #4f46e5;
+    padding: 0.6rem 0.9rem;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.dark .swal2-popup {
+    background: #0f172a;
+    color: #f8fafc;
+}
+
+.dark .swal2-title,
+.dark .question-import-detail,
+.dark .question-import-detail__file strong,
+.dark .question-import-detail__grid strong {
+    color: #f8fafc;
+}
+
+.dark .question-import-detail__file,
+.dark .question-import-detail__grid > div {
+    border-color: #334155;
+    background: #111c30;
+}
+
+.dark .question-import-detail__file small,
+.dark .question-import-detail__grid span {
+    color: #94a3b8;
+}
+
+.dark .question-import-detail__errors {
+    border-color: rgb(251 113 133 / 0.4);
+    background: rgb(136 19 55 / 0.25);
+    color: #fecdd3;
+}
+
 /* Row action buttons — explicit dark-mode contrast (JS templates are not Tailwind-scanned) */
 .q-action-btn {
     display: inline-flex;
@@ -298,4 +471,10 @@
 @keyframes ajax-skeleton-shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
+}
+
+@media (max-width: 640px) {
+    .question-import-detail__grid {
+        grid-template-columns: 1fr 1fr;
+    }
 }
