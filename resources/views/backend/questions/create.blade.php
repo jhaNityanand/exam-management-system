@@ -13,6 +13,19 @@
 @endsection
 
 @section('content')
+@php
+    $defaults = $defaults ?? [
+        'source' => null,
+        'category_id' => null,
+        'type' => null,
+        'allows_multiple' => null,
+        'difficulty' => null,
+        'marks_type' => 'single',
+        'marks' => null,
+        'marks_list' => [],
+        'formats' => [],
+    ];
+@endphp
 <div class="w-full relative">
     <x-page-card class="category-builder-card overflow-visible relative z-10 w-full">
         <form action="{{ route('admin.questions.store') }}" method="POST" id="question-form" enctype="multipart/form-data" class="category-builder">
@@ -20,12 +33,22 @@
 
             <div class="category-builder__header px-4 py-6 sm:px-6">
                 <div>
-                    <h1 class="category-builder__title tracking-tight text-slate-900">Create Question</h1>
+                    <h1 class="category-builder__title tracking-tight text-slate-900">
+                        {{ ($defaults['source'] ?? null) === 'exam-create' ? 'Create Question for Exam' : 'Create Question' }}
+                    </h1>
                     <p class="category-builder__subtitle text-slate-500">
-                        Add a new question to the repository with options, answers, and explanations.
+                        @if(($defaults['source'] ?? null) === 'exam-create')
+                            Prefill values from Exam Create. After saving, this tab will close and refresh the exam question bank.
+                        @else
+                            Add a new question to the repository with options, answers, and explanations.
+                        @endif
                     </p>
                 </div>
             </div>
+
+            @if(($defaults['source'] ?? null) === 'exam-create')
+                <input type="hidden" name="source" value="exam-create">
+            @endif
 
             <div class="px-4 py-5 sm:p-6 space-y-8">
                 <!-- Row 1: Category, Type, Difficulty, Status -->
@@ -39,7 +62,7 @@
                                 data-level="{{ $cat->depth }}"
                                 data-category-name="{{ $cat->name }}"
                                 class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}"
-                                {{ old('category_id') == $cat->id ? 'selected' : '' }}>
+                                {{ (string) old('category_id', $defaults['category_id'] ?? '') === (string) $cat->id ? 'selected' : '' }}>
                                 {{ $cat->name }}
                             </option>
                             @endforeach
@@ -51,7 +74,7 @@
                         <label for="type" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question Type <span class="text-red-500">*</span></label>
                         <select id="type" name="type" class="panel-input mt-1 block w-full">
                             @foreach(($questionTypes ?? \App\Support\ExamFormats::questionTypes()) as $type)
-                                <option value="{{ $type['id'] }}" {{ old('type') == $type['id'] ? 'selected' : '' }}>{{ $type['label'] }}</option>
+                                <option value="{{ $type['id'] }}" {{ old('type', $defaults['type'] ?? '') == $type['id'] ? 'selected' : '' }}>{{ $type['label'] }}</option>
                             @endforeach
                         </select>
                         <p class="qcat-field-error" id="err-type"></p>
@@ -60,10 +83,10 @@
                     <div>
                         <label for="difficulty" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Difficulty <span class="text-red-500">*</span></label>
                         <select id="difficulty" name="difficulty" class="panel-input mt-1 block w-full">
-                            <option value="easy" {{ old('difficulty') == 'easy' ? 'selected' : '' }}>Easy</option>
-                            <option value="medium" {{ old('difficulty', 'medium') == 'medium' ? 'selected' : '' }}>Medium</option>
-                            <option value="hard" {{ old('difficulty') == 'hard' ? 'selected' : '' }}>Hard</option>
-                            <option value="very_hard" {{ old('difficulty') == 'very_hard' ? 'selected' : '' }}>Very Hard</option>
+                            <option value="easy" {{ old('difficulty', $defaults['difficulty'] ?? '') == 'easy' ? 'selected' : '' }}>Easy</option>
+                            <option value="medium" {{ old('difficulty', $defaults['difficulty'] ?? 'medium') == 'medium' ? 'selected' : '' }}>Medium</option>
+                            <option value="hard" {{ old('difficulty', $defaults['difficulty'] ?? '') == 'hard' ? 'selected' : '' }}>Hard</option>
+                            <option value="very_hard" {{ old('difficulty', $defaults['difficulty'] ?? '') == 'very_hard' ? 'selected' : '' }}>Very Hard</option>
                         </select>
                         <p class="qcat-field-error" id="err-difficulty"></p>
                     </div>
@@ -97,8 +120,8 @@
                     <div class="lg:col-span-3">
                         <label for="marks_type" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Marks Type <span class="text-red-500">*</span></label>
                         <select id="marks_type" name="marks_type" class="panel-input mt-1 block w-full">
-                            <option value="single" {{ old('marks_type', 'single') == 'single' ? 'selected' : '' }}>Single Marks</option>
-                            <option value="multiple" {{ old('marks_type') == 'multiple' ? 'selected' : '' }}>Multiple Marks</option>
+                            <option value="single" {{ old('marks_type', $defaults['marks_type'] ?? 'single') == 'single' ? 'selected' : '' }}>Single Marks</option>
+                            <option value="multiple" {{ old('marks_type', $defaults['marks_type'] ?? 'single') == 'multiple' ? 'selected' : '' }}>Multiple Marks</option>
                         </select>
                         <p class="qcat-field-error" id="err-marks_type"></p>
                     </div>
@@ -117,10 +140,13 @@
                         <p class="qcat-field-error" id="err-marks"></p>
 
                         <!-- Hidden fields for value binding -->
-                        <input type="hidden" name="marks" id="marks" value="{{ old('marks', 1) }}">
+                        <input type="hidden" name="marks" id="marks" value="{{ old('marks', $defaults['marks'] ?? 1) }}">
                         <select name="marks_list[]" id="marks_list" class="hidden" multiple>
+                            @php
+                                $selectedMarksList = old('marks_list', $defaults['marks_list'] ?? []);
+                            @endphp
                             @for ($i = 1; $i <= 10; $i++)
-                                <option value="{{ $i }}" {{ in_array($i, old('marks_list', [])) ? 'selected' : '' }}>{{ $i }}</option>
+                                <option value="{{ $i }}" {{ in_array($i, $selectedMarksList, false) ? 'selected' : '' }}>{{ $i }}</option>
                             @endfor
                         </select>
                     </div>
@@ -151,7 +177,7 @@
                             <h4 class="text-base font-semibold text-slate-900 dark:text-white">Options <span class="text-red-500">*</span></h4>
 
                             <label class="flex items-center cursor-pointer gap-2">
-                                <input type="checkbox" id="allows_multiple" name="allows_multiple" value="1" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" {{ old('allows_multiple') ? 'checked' : '' }}>
+                                <input type="checkbox" id="allows_multiple" name="allows_multiple" value="1" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" {{ old('allows_multiple', ($defaults['allows_multiple'] ?? false) ? '1' : null) ? 'checked' : '' }}>
                                 <span class="text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 px-2 py-1 rounded-md hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100 font-medium">Allow multiple answers</span>
                             </label>
                         </div>
@@ -416,6 +442,32 @@
             });
             window.EmsTomSelectBlur?.attach(categorySelect);
             window.EmsTomSelectBlur?.blurNativeSelects(document.getElementById('question-form') || document);
+
+            @if(!empty($createdFromExam))
+                (function () {
+                    const payload = {
+                        type: 'exam-create-question-created',
+                        question: @json($createdFromExam),
+                    };
+                    const examCreateUrl = @json($examCreateReturn ?: route('admin.exams.create'));
+
+                    try {
+                        if (window.opener && !window.opener.closed) {
+                            window.opener.postMessage(payload, window.location.origin);
+                            window.close();
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('Unable to notify Exam Create opener.', error);
+                    }
+
+                    const notice = document.createElement('div');
+                    notice.className = 'mx-4 mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200';
+                    notice.innerHTML = 'Question created. <a class="font-semibold underline" href="' + examCreateUrl + '">Return to Exam Create</a> and refresh the question bank.';
+                    const form = document.getElementById('question-form');
+                    form?.parentElement?.insertBefore(notice, form);
+                })();
+            @endif
         });
     </script>
     <script src="{{ asset('js/backend/question-create.js') }}?v={{ time() }}"></script>

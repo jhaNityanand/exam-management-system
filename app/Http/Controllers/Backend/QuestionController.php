@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Question\StoreQuestionRequest;
 use App\Http\Requests\Backend\Question\UpdateQuestionRequest;
 use App\Models\Question;
+use App\Models\QuestionCategory;
 use App\Services\QuestionCategoryService;
 use App\Services\QuestionService;
+use App\Support\ExamFormats;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,13 +33,24 @@ class QuestionController extends Controller
         return view('backend.questions.index', compact('categories'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $orgId = $this->currentOrgId();
         $categories = $this->categoryService->getHierarchicalList($orgId);
-        $questionTypes = \App\Support\ExamFormats::questionTypes();
+        $questionTypes = ExamFormats::questionTypes();
+        $defaults = $this->resolveCreateDefaults($request, $orgId);
+        $examCreateReturn = $defaults['source'] === 'exam-create'
+            ? route('admin.exams.create')
+            : null;
+        $createdFromExam = session()->pull('exam_create_question_created');
 
-        return view('backend.questions.create', compact('categories', 'questionTypes'));
+        return view('backend.questions.create', compact(
+            'categories',
+            'questionTypes',
+            'defaults',
+            'examCreateReturn',
+            'createdFromExam'
+        ));
     }
 
     public function store(StoreQuestionRequest $request): RedirectResponse
@@ -46,7 +59,23 @@ class QuestionController extends Controller
         $data = $request->validated();
         $data['organization_id'] = $orgId;
 
-        $this->service->create($data);
+        $question = $this->service->create($data);
+        $source = (string) $request->input('source', '');
+
+        if ($source === 'exam-create') {
+            return redirect()
+                ->route('admin.questions.create', ['source' => 'exam-create'])
+                ->with('success', 'Question created successfully.')
+                ->with('exam_create_question_created', [
+                    'id' => $question->id,
+                    'categoryId' => (string) $question->category_id,
+                    'marks' => (int) $question->marks,
+                    'difficulty' => $question->difficulty,
+                    'type' => $question->type,
+                    'allowsMultiple' => (bool) $question->allows_multiple,
+                    'text' => strip_tags((string) $question->body),
+                ]);
+        }
 
         return redirect()
             ->route('admin.questions.index')
@@ -69,7 +98,7 @@ class QuestionController extends Controller
         abort_if($question->organization_id !== $orgId, 403, 'Unauthorized access to this question.');
 
         $categories = $this->categoryService->getHierarchicalList($orgId);
-        $questionTypes = \App\Support\ExamFormats::questionTypes();
+        $questionTypes = ExamFormats::questionTypes();
 
         return view('backend.questions.edit', compact('question', 'categories', 'questionTypes'));
     }
@@ -154,5 +183,88 @@ class QuestionController extends Controller
         ]);
 
         return array_values(array_unique(array_map('intval', $validated['ids'])));
+    }
+
+    /**
+     * @return array{
+     *     source: string|null,
+     *     category_id: int|null,
+     *     type: string|null,
+     *     allows_multiple: bool|null,
+     *     difficulty: string|null,
+     *     marks_type: string,
+     *     marks: int|null,
+     *     marks_list: list<int>,
+     *     formats: list<string>
+     * }
+     */
+    private function resolveCreateDefaults(Request $request, int $orgId): array
+    {
+        $source = $request->query('source') === 'exam-create' ? 'exam-create' : null;
+
+        $categoryId = $request->integer('category_id') ?: null;
+        if ($categoryId) {
+            $exists = QuestionCategory::query()
+                ->where('organization_id', $orgId)
+                ->where('status', 'active')
+                ->whereKey($categoryId)
+                ->exists();
+            if (! $exists) {
+                $categoryId = null;
+            }
+        }
+
+        $marksInput = $request->query('marks', []);
+        if (! is_array($marksInput)) {
+            $marksInput = [$marksInput];
+        }
+        $marksList = array_values(array_unique(array_filter(array_map(
+            static fn ($value) => (int) $value,
+            $marksInput
+        ), static fn (int $value) => $value >= 1 && $value <= 10)));
+
+        $formatsInput = $request->query('formats', []);
+        if (! is_array($formatsInput)) {
+            $formatsInput = [$formatsInput];
+        }
+        $formats = array_values(array_unique(array_filter(
+            array_map('strval', $formatsInput),
+            static fn (string $format) => in_array($format, ExamFormats::ids(), true)
+        )));
+
+        $type = null;
+        $allowsMultiple = null;
+        $constraints = ExamFormats::questionConstraints();
+        if (count($formats) === 1) {
+            $rules = $constraints[$formats[0]] ?? [];
+            if (count($rules) === 1) {
+                $type = $rules[0]['type'] ?? null;
+                $allowsMultiple = array_key_exists('allows_multiple', $rules[0])
+                    ? $rules[0]['allows_multiple']
+                    : null;
+            }
+        }
+
+        $requestedType = (string) $request->query('type', '');
+        if (in_array($requestedType, ExamFormats::questionTypeIds(), true)) {
+            $type = $requestedType;
+        }
+
+        $difficulty = (string) $request->query('difficulty', '');
+        if (! in_array($difficulty, ['easy', 'medium', 'hard', 'very_hard'], true)) {
+            $difficulty = null;
+        }
+
+        return [
+            'source' => $source,
+            'category_id' => $categoryId,
+            'type' => $type,
+            'allows_multiple' => is_bool($allowsMultiple) ? $allowsMultiple : null,
+            'difficulty' => $difficulty,
+            'marks_type' => count($marksList) > 1 ? 'multiple' : 'single',
+            'marks' => $marksList[0] ?? null,
+            'marks_list' => $marksList,
+            'formats' => $formats,
+        ];
     }
 }

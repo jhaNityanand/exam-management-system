@@ -49,4 +49,9 @@ class ExamAttempt extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function attemptQuestions()
+    {
+        return $this->hasMany(ExamAttemptQuestion::class)->orderBy('position');
+    }
 }

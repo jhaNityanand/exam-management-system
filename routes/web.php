@@ -143,12 +143,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     });
     Route::get('api/question-bank/categories', [ExamController::class, 'apiCategories'])->name('api.question-bank.categories');
     Route::get('api/question-bank/questions', [ExamController::class, 'apiQuestions'])->name('api.question-bank.questions');
+    Route::get('api/question-bank/random', [ExamController::class, 'apiRandomQuestions'])->name('api.question-bank.random');
     Route::post('exams/bulk-destroy', [ExamController::class, 'bulkDestroy'])->name('exams.bulk-destroy');
     Route::post('exams/bulk-restore', [ExamController::class, 'bulkRestore'])->name('exams.bulk-restore');
     Route::patch('exams/bulk-status', [ExamController::class, 'bulkUpdateStatus'])->name('exams.bulk-status');
     Route::patch('exams/{id}/restore', [ExamController::class, 'restore'])->name('exams.restore')->whereNumber('id');
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
+    Route::post('exams/{exam}/attempts/start', [ExamController::class, 'startAttempt'])->name('exams.attempts.start');
 
     // ── Blogs ─────────────────────────────────────────────────────────────────
     Route::prefix('blogs')->name('blogs.')->group(function () {

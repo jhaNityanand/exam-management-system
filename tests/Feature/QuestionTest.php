@@ -353,3 +353,88 @@ test('questions table supports pagination and per page', function () {
         ->assertJsonPath('meta.per_page', 10)
         ->assertJsonCount(10, 'data');
 });
+
+test('question create page accepts exam create query defaults', function () {
+    $category = QuestionCategory::create([
+        'organization_id' => $this->organization->id,
+        'name' => 'Exam Prefill Category',
+        'status' => 'active',
+    ]);
+
+    $otherOrg = Organization::create([
+        'name' => 'Foreign Org',
+        'slug' => 'foreign-org-'.uniqid(),
+        'status' => 'active',
+    ]);
+    $foreignCategory = QuestionCategory::create([
+        'organization_id' => $otherOrg->id,
+        'name' => 'Foreign Category',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.questions.create', [
+            'source' => 'exam-create',
+            'category_id' => $category->id,
+            'marks' => [1, 2, 3],
+            'formats' => ['multi_select'],
+            'difficulty' => 'hard',
+        ]))
+        ->assertOk()
+        ->assertViewIs('backend.questions.create')
+        ->assertViewHas('defaults', function (array $defaults) {
+            return $defaults['marks_type'] === 'multiple'
+                && $defaults['marks'] === 1
+                && $defaults['marks_list'] === [1, 2, 3];
+        })
+        ->assertSee('Create Question for Exam', false)
+        ->assertSee('value="exam-create"', false)
+        ->assertSee('value="'.$category->id.'"', false)
+        ->assertSee('<option value="multiple" selected>Multiple Marks</option>', false);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.questions.create', [
+            'source' => 'exam-create',
+            'category_id' => $foreignCategory->id,
+            'marks' => [99],
+            'formats' => ['not-a-format'],
+        ]))
+        ->assertOk()
+        ->assertViewHas('defaults', function (array $defaults) {
+            return $defaults['source'] === 'exam-create'
+                && $defaults['category_id'] === null
+                && $defaults['marks'] === null
+                && $defaults['formats'] === [];
+        });
+});
+
+test('exam create sourced question store flashes opener payload', function () {
+    $category = QuestionCategory::create([
+        'organization_id' => $this->organization->id,
+        'name' => 'Return Category',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($this->user)
+        ->post(route('admin.questions.store'), [
+            'source' => 'exam-create',
+            'category_id' => $category->id,
+            'type' => 'true_false',
+            'difficulty' => 'medium',
+            'marks_type' => 'single',
+            'marks' => 2,
+            'body' => 'Exam-linked question body',
+            'correct_answer' => 'True',
+            'status' => 'active',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('admin.questions.create', ['source' => 'exam-create']))
+        ->assertSessionHas('exam_create_question_created')
+        ->assertSessionHas('success');
+
+    $this->assertDatabaseHas('questions', [
+        'body' => 'Exam-linked question body',
+        'marks' => 2,
+        'category_id' => $category->id,
+    ]);
+});

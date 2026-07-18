@@ -59,18 +59,24 @@ class Exam extends Model
 
         // Question Configuration
         'total_questions',
-        'total_categories',
+        'use_question_pool',
+        'maximum_questions',
+        'fixed_questions',
+        'fixed_paper_set',
         'paper_sets',
         'fix_category_questions',
+        'fix_category_marks',
         'distribution_type',
         'selected_categories',
         'extra_questions_categories',
         'extra_questions_allocations',
+        'extra_marks_allocations',
         'question_marks_filter',
         'category_question_rules',
 
         // Shuffle
         'shuffle_questions',
+        'shuffle_categories',
         'shuffle_options',
 
         // Candidate Access
@@ -101,11 +107,16 @@ class Exam extends Model
             // Booleans
             'enable_exam_timer'          => 'boolean',
             'auto_submit_on_timer_end'   => 'boolean',
+            'use_question_pool'          => 'boolean',
+            'fixed_questions'            => 'boolean',
+            'fixed_paper_set'            => 'boolean',
             'shuffle_questions'          => 'boolean',
+            'shuffle_categories'         => 'boolean',
             'shuffle_options'            => 'boolean',
             'enable_negative_marking'    => 'boolean',
             'fix_marks_each_question'    => 'boolean',
             'fix_category_questions'     => 'boolean',
+            'fix_category_marks'         => 'boolean',
             'ai_generated'               => 'boolean',
             'ai_improve'                 => 'boolean',
 
@@ -122,6 +133,7 @@ class Exam extends Model
             'selected_categories'        => 'array',
             'extra_questions_categories' => 'array',
             'extra_questions_allocations'=> 'array',
+            'extra_marks_allocations'    => 'array',
             'question_marks_filter'      => 'array',
             'category_question_rules'    => 'array',
             'imported_candidates'             => 'array',

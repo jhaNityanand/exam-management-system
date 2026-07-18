@@ -6,6 +6,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ExamService
 {
@@ -38,9 +39,17 @@ class ExamService
             $data['scheduled_end'] = $data['schedule_end_at'] ?: null;
             unset($data['schedule_end_at']);
         }
+        if (array_key_exists('attempt_limit_type', $data) && $data['attempt_limit_type'] === 'fixed_count') {
+            $data['attempt_limit_type'] = 'fixed';
+        }
         if (isset($data['attempt_limit_count'])) {
             $data['max_attempts'] = (int) $data['attempt_limit_count'];
             unset($data['attempt_limit_count']);
+        }
+        if (($data['attempt_limit_type'] ?? null) === 'unlimited') {
+            $data['max_attempts'] = 0;
+        } elseif (($data['attempt_limit_type'] ?? null) === 'once') {
+            $data['max_attempts'] = 1;
         }
 
         // Map exam_category_id (the create form uses this name) → category_id
@@ -61,6 +70,7 @@ class ExamService
             'free_manual_candidate_emails',
             'extra_questions_categories',
             'extra_questions_allocations',
+            'extra_marks_allocations',
             'category_question_rules',
             'selected_discounts',
             'custom_discounts',
@@ -87,6 +97,58 @@ class ExamService
                 : 0;
         }
 
+        if (array_key_exists('use_question_pool', $data)) {
+            $data['use_question_pool'] = (bool) $data['use_question_pool'];
+            if ($data['use_question_pool']) {
+                $data['fixed_questions'] = false;
+                $data['maximum_questions'] = max(
+                    (int) ($data['total_questions'] ?? 0) + 1,
+                    (int) ($data['maximum_questions'] ?? 0)
+                );
+            } else {
+                $data['maximum_questions'] = null;
+            }
+        }
+
+        if (array_key_exists('fixed_questions', $data)) {
+            $data['fixed_questions'] = (bool) $data['fixed_questions'];
+        }
+        $data['fixed_paper_set'] = (bool) ($data['fixed_paper_set'] ?? false);
+        $data['shuffle_questions'] = (bool) ($data['shuffle_questions'] ?? false);
+        $data['shuffle_categories'] = (bool) ($data['shuffle_categories'] ?? false);
+        $data['fix_category_questions'] = (bool) ($data['fix_category_questions'] ?? false);
+        $data['fix_category_marks'] = (bool) ($data['fix_category_marks'] ?? false);
+        $data['enable_negative_marking'] = (bool) ($data['enable_negative_marking'] ?? false);
+
+        if (! $data['fix_category_questions']) {
+            $data['extra_questions_allocations'] = [];
+            $data['extra_questions_categories'] = [];
+        }
+
+        if (! $data['fix_category_marks']) {
+            $data['extra_marks_allocations'] = [];
+        }
+
+        if (! $data['fixed_paper_set']) {
+            $data['paper_sets'] = 1;
+        } else {
+            $data['paper_sets'] = max(1, (int) ($data['paper_sets'] ?? 1));
+        }
+
+        if ($data['enable_negative_marking']) {
+            $type = $data['negative_marking_type'] ?? null;
+            $allowedTypes = ['25', '33.33', '50', '100'];
+            if (! in_array((string) $type, $allowedTypes, true)) {
+                $data['negative_marking_type'] = '25';
+            }
+            if (! array_key_exists('negative_mark_per_question', $data) || $data['negative_mark_per_question'] === null) {
+                $data['negative_mark_per_question'] = 0;
+            }
+        } else {
+            $data['negative_marking_type'] = null;
+            $data['negative_mark_per_question'] = 0;
+        }
+
         $data['ai_generated'] = (bool) ($data['ai_generated'] ?? false);
         $data['ai_improve'] = (bool) ($data['ai_improve'] ?? false);
 
@@ -106,50 +168,95 @@ class ExamService
 
     public function create(array $data): Exam
     {
-        $data = $this->prepareData($data);
+        return DB::transaction(function () use ($data) {
+            $data = $this->prepareData($data);
 
-        $ids = $data['question_ids'] ?? [];
-        unset($data['question_ids']);
+            $ids = $this->resolvePersistedQuestionIds($data);
+            unset($data['question_ids']);
 
-        $selectedCats = $data['selected_categories'] ?? [];
+            $selectedCats = $this->normalizeCategoryIds($data['selected_categories'] ?? []);
+            $data['selected_categories'] = $selectedCats;
 
-        $data['created_by'] = Auth::id();
-        $data['status'] = $data['status'] ?? 'draft';
+            $data['created_by'] = Auth::id();
+            $data['status'] = $data['status'] ?? 'draft';
 
-        $exam = Exam::create($data);
-        $this->syncQuestions($exam, is_array($ids) ? $ids : []);
-
-        if (! empty($selectedCats) && is_array($selectedCats)) {
+            $exam = Exam::create($data);
+            $this->syncQuestions($exam, $ids);
             $exam->selectedQuestionCategories()->sync($selectedCats);
-        }
+            $this->syncGalleryMedia($exam);
 
-        $this->syncGalleryMedia($exam);
-
-        return $exam->fresh(['questions']);
+            return $exam->fresh(['questions']);
+        });
     }
 
     public function update(Exam $exam, array $data): Exam
     {
-        $data = $this->prepareData($data);
+        return DB::transaction(function () use ($exam, $data) {
+            $data = $this->prepareData($data);
 
-        $ids = $data['question_ids'] ?? null;
-        unset($data['question_ids']);
+            $hasQuestionIds = array_key_exists('question_ids', $data);
+            $ids = $hasQuestionIds ? $this->resolvePersistedQuestionIds($data) : null;
+            unset($data['question_ids']);
 
-        $selectedCats = $data['selected_categories'] ?? null;
+            $selectedCats = null;
+            if (array_key_exists('selected_categories', $data)) {
+                $selectedCats = $this->normalizeCategoryIds($data['selected_categories'] ?? []);
+                $data['selected_categories'] = $selectedCats;
+            }
 
-        $exam->update($data);
+            $exam->update($data);
 
-        if (is_array($ids)) {
-            $this->syncQuestions($exam, $ids);
+            if ($hasQuestionIds) {
+                $this->syncQuestions($exam, $ids ?? []);
+            }
+
+            if (is_array($selectedCats)) {
+                $exam->selectedQuestionCategories()->sync($selectedCats);
+            }
+
+            $this->syncGalleryMedia($exam->fresh());
+
+            return $exam->fresh(['questions']);
+        });
+    }
+
+    /**
+     * Fixed / Pool modes persist IDs. Dynamic mode (both off) clears exam_question.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<int>
+     */
+    protected function resolvePersistedQuestionIds(array $data): array
+    {
+        $usePool = (bool) ($data['use_question_pool'] ?? false);
+        $fixedQuestions = (bool) ($data['fixed_questions'] ?? false);
+        $rawIds = $data['question_ids'] ?? [];
+
+        if (! $usePool && ! $fixedQuestions) {
+            return [];
         }
 
-        if (is_array($selectedCats)) {
-            $exam->selectedQuestionCategories()->sync($selectedCats);
+        if (! is_array($rawIds)) {
+            return [];
         }
 
-        $this->syncGalleryMedia($exam->fresh());
+        return array_values(array_unique(array_filter(array_map('intval', $rawIds), static fn (int $id) => $id > 0)));
+    }
 
-        return $exam->fresh(['questions']);
+    /**
+     * @param  mixed  $categories
+     * @return list<int|string>
+     */
+    protected function normalizeCategoryIds(mixed $categories): array
+    {
+        if (! is_array($categories)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn ($id) => is_numeric($id) ? (int) $id : trim((string) $id),
+            $categories
+        ), static fn ($id) => $id !== '' && $id !== null && $id !== 0));
     }
 
     public function syncQuestions(Exam $exam, array $questionIds): void

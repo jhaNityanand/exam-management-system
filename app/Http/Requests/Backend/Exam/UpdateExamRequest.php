@@ -24,8 +24,26 @@ class UpdateExamRequest extends FormRequest
             // ── Section 1: Basic Information ──────────────────────────────
             'title'            => ['sometimes', 'required', 'string', 'max:255'],
             'description'      => ['nullable', 'string'],
-            'exam_category_id' => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
-            'category_id'      => ['nullable', 'integer', Rule::exists('exam_categories', 'id')],
+            'exam_category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('exam_categories', 'id')->where(function ($query) {
+                    $orgId = current_organization_id();
+                    if ($orgId) {
+                        $query->where('organization_id', $orgId);
+                    }
+                }),
+            ],
+            'category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('exam_categories', 'id')->where(function ($query) {
+                    $orgId = current_organization_id();
+                    if ($orgId) {
+                        $query->where('organization_id', $orgId);
+                    }
+                }),
+            ],
             'difficulty_level' => ['nullable', Rule::in(['easy', 'medium', 'hard'])],
             'status'           => ['sometimes', 'required', Rule::in(['draft', 'published', 'active', 'inactive', 'suspended'])],
             'exam_mode'        => ['sometimes', 'required', Rule::in(['standard', 'practice', 'proctored'])],
@@ -61,27 +79,66 @@ class UpdateExamRequest extends FormRequest
 
             // ── Section 6: Exam Configuration ─────────────────────────────
             'total_questions'              => ['sometimes', 'integer', 'min:1'],
-            'total_categories'             => ['sometimes', 'integer', 'min:1'],
             'total_marks'                  => ['sometimes', 'integer', 'min:1'],
-            'passing_marks'                => ['sometimes', 'integer', 'min:0'],
-            'paper_sets'                   => ['sometimes', 'integer', 'min:1'],
+            'passing_marks'                => ['sometimes', 'integer', 'min:0', 'lte:total_marks'],
+            'use_question_pool'             => ['sometimes', 'boolean'],
+            'maximum_questions'             => [
+                Rule::requiredIf(fn () => $this->boolean('use_question_pool')),
+                'nullable',
+                'integer',
+                'gt:total_questions',
+                'max:65535',
+            ],
+            'fixed_questions'              => ['sometimes', 'boolean'],
+            'fixed_paper_set'              => ['sometimes', 'boolean'],
+            'paper_sets'                   => ['sometimes', 'integer', 'min:1', 'lte:total_questions'],
             'fix_category_questions'       => ['sometimes', 'boolean'],
+            'fix_category_marks'           => ['sometimes', 'boolean'],
             'distribution_type'            => ['nullable', Rule::in(['mixed', 'category_wise', 'equal', 'weighted', 'manual'])],
-            'selected_categories'          => ['nullable'],
+            'selected_categories'          => ['sometimes', 'array', 'min:1'],
+            'selected_categories.*'        => [
+                'integer',
+                Rule::exists('question_categories', 'id')->where(function ($query) {
+                    $orgId = current_organization_id();
+                    $query->where('status', 'active');
+                    if ($orgId) {
+                        $query->where('organization_id', $orgId);
+                    }
+                }),
+            ],
             'extra_questions_categories'   => ['nullable'],
             'extra_questions_allocations'  => ['nullable'],
-            'question_ids'                 => ['nullable'],
-            'question_ids.*'               => ['integer', Rule::exists('questions', 'id')],
+            'extra_marks_allocations'      => ['nullable', 'array'],
+            'extra_marks_allocations.*'    => ['integer', 'min:0'],
+            'question_ids'                 => ['nullable', 'array'],
+            'question_ids.*'               => [
+                'integer',
+                Rule::exists('questions', 'id')->where(function ($query) {
+                    $orgId = current_organization_id();
+                    $query->where('status', 'active');
+                    if ($orgId) {
+                        $query->where('organization_id', $orgId);
+                    }
+                }),
+            ],
 
             // ── Section 7: Question Rules & Filters ───────────────────────
             'fix_marks_each_question'    => ['sometimes', 'boolean'],
             'enable_negative_marking'    => ['sometimes', 'boolean'],
-            'negative_marking_type'      => ['nullable', 'string', 'max:10'],
+            'negative_marking_type'      => [
+                'nullable',
+                Rule::in(['25', '33.33', '50', '100']),
+            ],
             'negative_mark_per_question' => ['nullable', 'numeric', 'min:0'],
-            'question_marks_filter'      => ['nullable'],
+            'question_marks_filter'      => ['sometimes', 'array', 'min:1'],
+            'question_marks_filter.*'    => ['integer', 'min:1', 'max:10'],
             'shuffle_questions'          => ['sometimes', 'boolean'],
+            'shuffle_categories'         => ['sometimes', 'boolean'],
             'shuffle_options'            => ['sometimes', 'boolean'],
-            'category_question_rules'    => ['nullable'],
+            'category_question_rules'    => ['nullable', 'array'],
+            'category_question_rules.*.category_id' => ['required_with:category_question_rules', 'integer'],
+            'category_question_rules.*.marks' => ['required_with:category_question_rules', 'integer', 'min:1', 'max:10'],
+            'category_question_rules.*.required' => ['required_with:category_question_rules', 'integer', 'min:1'],
 
             // ── Pricing & Discounts ───────────────────────────────────────
             'pricing_option'     => ['nullable', Rule::in(['paid', 'free', 'free_for_imported'])],
@@ -141,6 +198,7 @@ class UpdateExamRequest extends FormRequest
             'enable_negative_marking'  => (bool) $this->input('enable_negative_marking', false),
             'fix_marks_each_question'  => (bool) $this->input('fix_marks_each_question', false),
             'fix_category_questions'   => (bool) $this->input('fix_category_questions', false),
+            'fix_category_marks'       => (bool) $this->input('fix_category_marks', false),
             'ai_generated'             => (bool) $this->input('ai_generated', false),
             'ai_improve'               => (bool) $this->input('ai_improve', false),
             'attempt_limit_type'       => $this->input('attempt_limit_type') === 'fixed_count'
@@ -148,6 +206,12 @@ class UpdateExamRequest extends FormRequest
                 : $this->input('attempt_limit_type'),
             'category_id'              => $this->input('exam_category_id') ?: $this->input('category_id'),
         ];
+
+        foreach (['use_question_pool', 'fixed_questions', 'fixed_paper_set', 'shuffle_categories'] as $field) {
+            if ($this->exists($field)) {
+                $payload[$field] = $this->boolean($field);
+            }
+        }
 
         // Wizard aliases → DB columns (edit form already posts DB names).
         if (! $this->filled('duration') && $this->exists('exam_duration_minutes')) {
@@ -198,6 +262,7 @@ class UpdateExamRequest extends FormRequest
             'imported_candidates',
             'free_imported_candidates',
             'extra_questions_allocations',
+            'extra_marks_allocations',
             'selected_discounts',
             'custom_discounts',
             'category_question_rules',
@@ -205,11 +270,124 @@ class UpdateExamRequest extends FormRequest
 
         foreach ($jsonObjectFields as $field) {
             if ($this->exists($field)) {
-                $payload[$field] = $this->decodeJsonValue($this->input($field, []));
+                $decoded = $this->decodeJsonValue($this->input($field, []));
+                if ($field === 'category_question_rules') {
+                    $payload[$field] = $this->normalizeCategoryQuestionRules($decoded);
+                } else {
+                    $payload[$field] = $decoded;
+                }
             }
         }
 
         $this->merge($payload);
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $usePool = $this->boolean('use_question_pool');
+            $fixedQuestions = $this->boolean('fixed_questions');
+            $totalQuestions = (int) $this->input('total_questions', 0);
+            $maximumQuestions = (int) $this->input('maximum_questions', 0);
+            $questionIds = array_values(array_unique(array_map('intval', $this->input('question_ids', []))));
+            $selectedCount = count($questionIds);
+
+            if ($usePool && $this->exists('question_ids')) {
+                if ($selectedCount < $totalQuestions || $selectedCount > $maximumQuestions) {
+                    $validator->errors()->add(
+                        'question_ids',
+                        "Select between {$totalQuestions} and {$maximumQuestions} questions for the question pool."
+                    );
+                }
+            } elseif ($fixedQuestions && $this->exists('question_ids')) {
+                if ($selectedCount !== $totalQuestions) {
+                    $validator->errors()->add(
+                        'question_ids',
+                        "Select exactly {$totalQuestions} question(s) when Fixed Questions is enabled."
+                    );
+                }
+            } elseif (
+                $this->exists('question_ids')
+                && ! $usePool
+                && ! $fixedQuestions
+                && $selectedCount > 0
+            ) {
+                $validator->errors()->add(
+                    'question_ids',
+                    'Do not select specific questions when Fixed Questions and Question Pool are both disabled. Questions are assigned dynamically per candidate.'
+                );
+            }
+
+            if ($this->boolean('fix_category_marks')) {
+                $categories = $this->input('selected_categories', []);
+                $categoryCount = is_array($categories) ? count($categories) : 0;
+                $totalMarks = (int) $this->input('total_marks', 0);
+                if ($categoryCount > 0 && $totalMarks > 0) {
+                    $minimum = intdiv($totalMarks, $categoryCount);
+                    $allocations = $this->input('extra_marks_allocations', []);
+                    $allocated = is_array($allocations)
+                        ? collect($allocations)->sum(fn ($marks) => max(0, (int) $marks))
+                        : 0;
+                    $belowMinimum = is_array($allocations)
+                        && collect($allocations)->contains(fn ($marks) => (int) $marks < $minimum);
+
+                    if ($allocated !== $totalMarks || $belowMinimum) {
+                        $validator->errors()->add(
+                            'extra_marks_allocations',
+                            "Allocate exactly {$totalMarks} marks across categories (minimum {$minimum} each)."
+                        );
+                    }
+                }
+            }
+
+            if ($this->boolean('fix_category_questions')) {
+                $categories = $this->input('selected_categories', []);
+                $categoryCount = is_array($categories) ? count($categories) : 0;
+                if ($categoryCount > 0 && $totalQuestions > 0) {
+                    $minimum = intdiv($totalQuestions, $categoryCount);
+                    $allocations = $this->input('extra_questions_allocations', []);
+                    $allocated = is_array($allocations)
+                        ? collect($allocations)->sum(fn ($count) => max(0, (int) $count))
+                        : 0;
+                    $belowMinimum = is_array($allocations)
+                        && collect($allocations)->contains(fn ($count) => (int) $count < $minimum);
+
+                    if ($allocated !== $totalQuestions || $belowMinimum) {
+                        $validator->errors()->add(
+                            'extra_questions_allocations',
+                            "Allocate exactly {$totalQuestions} questions across categories (minimum {$minimum} each)."
+                        );
+                    }
+                }
+            }
+        });
+    }
+
+    protected function normalizeCategoryQuestionRules(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($value as $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+            $categoryId = (int) ($rule['category_id'] ?? $rule['categoryId'] ?? 0);
+            $marks = (int) ($rule['marks'] ?? 0);
+            $required = (int) ($rule['required'] ?? 0);
+            if ($categoryId < 1 || $marks < 1 || $required < 1) {
+                continue;
+            }
+            $normalized[] = [
+                'category_id' => $categoryId,
+                'marks' => $marks,
+                'required' => $required,
+            ];
+        }
+
+        return array_values($normalized);
     }
 
     protected function normalizeJsonList(mixed $value): array

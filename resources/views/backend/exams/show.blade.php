@@ -241,7 +241,11 @@
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-slate-500 dark:text-slate-400">Negative Penalty</span>
                             <span class="font-semibold text-rose-650 dark:text-rose-400">
-                                -{{ $exam->negative_mark_per_question }} pts
+                                @if(filled($exam->negative_marking_type))
+                                    -{{ rtrim(rtrim(number_format((float) $exam->negative_marking_type, 2, '.', ''), '0'), '.') }}% of question marks
+                                @else
+                                    -{{ $exam->negative_mark_per_question }} pts
+                                @endif
                             </span>
                         </div>
                     @endif

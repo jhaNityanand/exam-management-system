@@ -2,24 +2,31 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Exceptions\AttemptQuestionShortageException;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Exam\StoreExamRequest;
 use App\Http\Requests\Backend\Exam\UpdateExamRequest;
 use App\Models\Exam;
-use App\Models\Question;
+use App\Services\ExamAttemptService;
 use App\Services\ExamService;
+use App\Services\QuestionBankService;
 use App\Support\ExamFormOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ExamController extends Controller
 {
     use ResolvesCurrentOrganization;
 
-    public function __construct(protected ExamService $examService) {}
+    public function __construct(
+        protected ExamService $examService,
+        protected QuestionBankService $questionBankService,
+        protected ExamAttemptService $examAttemptService,
+    ) {}
 
     // ── List ──────────────────────────────────────────────────────────────────
 
@@ -108,13 +115,12 @@ class ExamController extends Controller
         $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
         $formOptions = ExamFormOptions::all($orgId);
 
-        $questions = Question::query()
-            ->forOrg($orgId)
-            ->orderBy('body')
-            ->limit(500)
-            ->get(['id', 'body', 'category_id', 'marks', 'difficulty', 'type']);
+        // The edit form only needs the currently linked question ids for
+        // hydration (window.examFormConfig); the full question bank is loaded
+        // on demand client-side, so there is no need for the 500-row list.
+        $exam->load('questions:id');
 
-        return view('backend.exams.edit', compact('exam', 'categories', 'questions', 'formOptions'));
+        return view('backend.exams.edit', compact('exam', 'categories', 'formOptions'));
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -128,6 +134,33 @@ class ExamController extends Controller
         return redirect()
             ->route('admin.exams.show', $exam)
             ->with('success', 'Exam updated successfully.');
+    }
+
+    /**
+     * Start or resume an attempt with stable assigned questions (no correct answers).
+     */
+    public function startAttempt(Request $request, $exam): \Illuminate\Http\JsonResponse
+    {
+        $examModel = $this->findExamOrFail((int) $exam);
+        abort_if($examModel->organization_id !== $this->currentOrgId(), 403, 'Unauthorized access to this exam.');
+
+        try {
+            $attempt = $this->examAttemptService->start($examModel, $request->user());
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?: 'Unable to start attempt.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (AttemptQuestionShortageException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'shortages' => $e->report(),
+            ], 422);
+        }
+
+        return response()->json(
+            $this->examAttemptService->toCandidateStartPayload($attempt)
+        );
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────────
@@ -269,117 +302,62 @@ class ExamController extends Controller
     }
 
     /**
-     * Get dynamic list of filtered questions.
+     * Cursor-paginated question bank for exam create/edit.
      */
     public function apiQuestions(Request $request): \Illuminate\Http\JsonResponse
     {
         $orgId = $this->currentOrgId();
+        $filters = $this->questionBankFiltersFromRequest($request);
+        $cursor = $request->filled('cursor') ? (int) $request->query('cursor') : null;
+        $perPage = (int) $request->query('per_page', QuestionBankService::DEFAULT_PAGE_SIZE);
 
-        $query = \App\Models\Question::where('organization_id', $orgId)
-            ->where('status', 'active');
-
-        // Filter by categories (include descendants recursively)
-        $categoriesParam = $request->query('categories');
-        if ($categoriesParam) {
-            $categoryIds = array_filter(explode(',', $categoriesParam));
-            if (!empty($categoryIds)) {
-                $descendantIds = $this->getDescendantCategoryIds($categoryIds);
-                $query->whereIn('category_id', $descendantIds);
-            }
-        }
-
-        // Filter by marks
-        $marksParam = $request->query('marks');
-        if ($marksParam) {
-            $marksList = array_filter(explode(',', $marksParam));
-            if (!empty($marksList)) {
-                $query->whereIn('marks', $marksList);
-            }
-        }
-
-        // Filter by formats → question types
-        $formatsParam = $request->query('formats');
-        if ($formatsParam) {
-            $formatList = array_values(array_filter(explode(',', $formatsParam)));
-            $constraints = \App\Support\ExamFormOptions::examFormatQuestionConstraints();
-
-            if ($formatList !== []) {
-                $query->where(function ($q) use ($formatList, $constraints) {
-                    foreach ($formatList as $format) {
-                        $rules = $constraints[$format] ?? [];
-                        foreach ($rules as $rule) {
-                            $q->orWhere(function ($sub) use ($rule) {
-                                $sub->where('type', $rule['type']);
-                                if ($rule['allows_multiple'] !== null) {
-                                    $sub->where('allows_multiple', $rule['allows_multiple']);
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        }
-
-        // Filter by difficulty
-        $difficultyParam = $request->query('difficulty');
-        if ($difficultyParam) {
-            $difficulties = array_values(array_filter(explode(',', $difficultyParam)));
-            if ($difficulties !== []) {
-                $query->whereIn('difficulty', $difficulties);
-            }
-        }
-
-        // Filter by question type (direct, optional)
-        $typesParam = $request->query('types');
-        if ($typesParam) {
-            $types = array_values(array_filter(explode(',', $typesParam)));
-            if ($types !== []) {
-                $query->whereIn('type', $types);
-            }
-        }
-
-        $questions = $query
-            ->with('category:id,name,parent_id')
-            ->orderBy('id')
-            ->limit(2000)
-            ->get(['id', 'category_id', 'marks', 'difficulty', 'type', 'allows_multiple', 'body']);
-
-        $formatted = $questions->map(function ($q) {
-            return [
-                'id'              => $q->id,
-                'categoryId'      => (string) $q->category_id,
-                'marks'           => $q->marks,
-                'difficulty'      => $q->difficulty,
-                'type'            => $q->type,
-                'allowsMultiple'  => (bool) $q->allows_multiple,
-                'text'            => strip_tags($q->body),
-            ];
-        });
-
-        return response()->json($formatted);
+        return response()->json(
+            $this->questionBankService->paginate($orgId, $filters, $cursor, $perPage)
+        );
     }
 
     /**
-     * Resolve descendant category IDs recursively.
+     * Server-side random sample respecting filters and optional category quotas.
      */
-    protected function getDescendantCategoryIds(array $categoryIds): array
+    public function apiRandomQuestions(Request $request): \Illuminate\Http\JsonResponse
     {
-        $allIds = array_map('intval', $categoryIds);
-        $toProcess = $allIds;
-
-        while (!empty($toProcess)) {
-            $childrenIds = \App\Models\QuestionCategory::whereIn('parent_id', $toProcess)
-                ->pluck('id')
-                ->toArray();
-
-            $newChildren = array_diff($childrenIds, $allIds);
-            if (empty($newChildren)) {
-                break;
-            }
-            $allIds = array_merge($allIds, $newChildren);
-            $toProcess = $newChildren;
+        $orgId = $this->currentOrgId();
+        $filters = $this->questionBankFiltersFromRequest($request);
+        $count = max(0, (int) $request->input('count', $request->query('count', 0)));
+        $quotas = $request->input('category_quotas', $request->query('category_quotas', []));
+        if (is_string($quotas)) {
+            $decoded = json_decode($quotas, true);
+            $quotas = is_array($decoded) ? $decoded : [];
+        }
+        if (! is_array($quotas)) {
+            $quotas = [];
         }
 
-        return $allIds;
+        $sample = $this->questionBankService->randomSample($orgId, $filters, $count, $quotas);
+
+        return response()->json([
+            'data' => $sample,
+            'meta' => [
+                'requested' => $count,
+                'returned' => count($sample),
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function questionBankFiltersFromRequest(Request $request): array
+    {
+        return [
+            'categories' => $request->input('categories', $request->query('categories')),
+            'marks' => $request->input('marks', $request->query('marks')),
+            'formats' => $request->input('formats', $request->query('formats')),
+            'difficulty' => $request->input('difficulty', $request->query('difficulty')),
+            'types' => $request->input('types', $request->query('types')),
+            'exclude_ids' => $request->input('exclude_ids', $request->query('exclude_ids')),
+            'ids' => $request->input('ids', $request->query('ids')),
+            'q' => $request->input('q', $request->query('q')),
+        ];
     }
 }

@@ -132,24 +132,6 @@ class ExamInstructionRuleSeeder extends Seeder
                 'slug' => 'no_page_refresh',
             ],
             [
-                'title' => 'Questions will appear in random order.',
-                'description' => 'Each candidate can receive the same questions in a different sequence.',
-                'category' => 'other',
-                'icon' => 'shuffle',
-                'is_default' => false,
-                'is_required' => false,
-                'slug' => 'random_question_order',
-            ],
-            [
-                'title' => 'Candidates cannot skip mandatory questions.',
-                'description' => 'Mandatory items must be answered before moving forward.',
-                'category' => 'submission',
-                'icon' => 'list-check',
-                'is_default' => false,
-                'is_required' => false,
-                'slug' => 'mandatory_questions_no_skip',
-            ],
-            [
                 'title' => 'Disable copy/paste during the exam.',
                 'description' => 'Clipboard actions can be blocked while the exam is active.',
                 'category' => 'integrity',
@@ -202,6 +184,15 @@ class ExamInstructionRuleSeeder extends Seeder
                 'is_default' => false,
                 'is_required' => false,
                 'slug' => 'suspicious_activity_flagged',
+            ],
+            [
+                'title' => 'Taking screenshots is not allowed during the exam.',
+                'description' => 'Candidates must not capture screenshots or screen recordings while the exam is in progress.',
+                'category' => 'integrity',
+                'icon' => 'camera-off',
+                'is_default' => false,
+                'is_required' => false,
+                'slug' => 'no_screenshots',
             ],
         ];
 

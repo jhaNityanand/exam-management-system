@@ -60,18 +60,24 @@ return new class extends Migration
 
             // Question Configuration
             $table->unsignedSmallInteger('total_questions')->nullable();
-            $table->unsignedSmallInteger('total_categories')->nullable();
+            $table->boolean('use_question_pool')->default(false);
+            $table->unsignedSmallInteger('maximum_questions')->nullable();
+            $table->boolean('fixed_questions')->default(false); // true = exact selected question set for all candidates
+            $table->boolean('fixed_paper_set')->default(false);
             $table->unsignedTinyInteger('paper_sets')->default(1);
             $table->boolean('fix_category_questions')->default(false);
+            $table->boolean('fix_category_marks')->default(false);
             $table->string('distribution_type')->nullable(); // mixed | category_wise | equal | weighted | manual
             $table->json('selected_categories')->nullable();
             $table->json('extra_questions_categories')->nullable();
             $table->json('extra_questions_allocations')->nullable();
+            $table->json('extra_marks_allocations')->nullable();
             $table->json('question_marks_filter')->nullable();
             $table->json('category_question_rules')->nullable();
 
             // Shuffle
             $table->boolean('shuffle_questions')->default(false);
+            $table->boolean('shuffle_categories')->default(false);
             $table->boolean('shuffle_options')->default(false);
 
             // Candidate Access
