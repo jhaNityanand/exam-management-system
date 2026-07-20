@@ -177,13 +177,40 @@ test('start endpoint withholds correct answers and is idempotent', function () {
         $q2->id => ['sort_order' => 1, 'status' => 'active'],
     ]);
 
+    $this->actingAs($this->candidateA)
+        ->get(route('frontend.exams.prepare', $exam))
+        ->assertOk();
+
+    $challenge = \App\Models\ExamVerificationChallenge::query()
+        ->where('exam_id', $exam->id)
+        ->where('user_id', $this->candidateA->id)
+        ->latest('id')
+        ->first();
+
+    expect($challenge)->not->toBeNull();
+
     $first = $this->actingAs($this->candidateA)
-        ->postJson(route('frontend.exams.attempts.start', $exam))
+        ->postJson(route('frontend.exams.attempts.start', $exam), [
+            'challenge_token' => $challenge->token,
+            'checks' => [
+                'webcam' => true,
+                'microphone' => true,
+                'fullscreen' => true,
+                'selfie' => true,
+            ],
+            'device' => [
+                'browser' => 'phpunit',
+                'device_type' => 'desktop',
+                'session_token' => 'assignment-session-1',
+            ],
+        ])
         ->assertOk()
         ->json();
 
     expect($first['attempt_id'])->not->toBeNull();
-    expect($first['redirect'])->toContain('/attempts/');
+    expect($first['redirect'])->toContain('/started');
+    expect($first['started_url'])->toContain('/started');
+    expect($first['runner_html'] ?? '')->toContain('id="cx-exam"');
 
     $attempt = \App\Models\ExamAttempt::query()->findOrFail($first['attempt_id']);
     $payload = app(\App\Services\CandidateExam\ExamSessionService::class)->toRuntimePayload($attempt);
@@ -193,8 +220,31 @@ test('start endpoint withholds correct answers and is idempotent', function () {
     expect($json)->not->toContain('SECRET_TRUE');
     expect($json)->not->toContain('secret explanation');
 
+    $this->actingAs($this->candidateA)
+        ->get(route('frontend.exams.prepare', $exam))
+        ->assertOk();
+
+    $challenge2 = \App\Models\ExamVerificationChallenge::query()
+        ->where('exam_id', $exam->id)
+        ->where('user_id', $this->candidateA->id)
+        ->latest('id')
+        ->first();
+
     $second = $this->actingAs($this->candidateA)
-        ->postJson(route('frontend.exams.attempts.start', $exam))
+        ->postJson(route('frontend.exams.attempts.start', $exam), [
+            'challenge_token' => $challenge2->token,
+            'checks' => [
+                'webcam' => true,
+                'microphone' => true,
+                'fullscreen' => true,
+                'selfie' => true,
+            ],
+            'device' => [
+                'browser' => 'phpunit',
+                'device_type' => 'desktop',
+                'session_token' => 'assignment-session-1',
+            ],
+        ])
         ->assertOk()
         ->json();
 

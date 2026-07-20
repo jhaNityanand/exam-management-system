@@ -52,7 +52,10 @@ class QuestionCategory extends Model
         // Content
         'name',
         'description',
+        'icon',
+        'image_path',
         'status',
+        'is_public',
         'sort_order',
 
         // SEO / Metadata
@@ -76,9 +79,10 @@ class QuestionCategory extends Model
     {
         return [
             'updated_by_history' => 'array',
-            'ai_generated'       => 'boolean',
-            'ai_improve'         => 'boolean',
-            'sort_order'         => 'integer',
+            'ai_generated' => 'boolean',
+            'ai_improve' => 'boolean',
+            'sort_order' => 'integer',
+            'is_public' => 'boolean',
         ];
     }
 
@@ -147,5 +151,15 @@ class QuestionCategory extends Model
     public function scopeWithStatus($query, string $status)
     {
         return $query->where('status', $status);
+    }
+
+    public function scopePubliclyVisible($query)
+    {
+        return $query->where('status', 'active')->where('is_public', true);
+    }
+
+    public function publicQuestions()
+    {
+        return $this->questions()->publiclyVisible();
     }
 }

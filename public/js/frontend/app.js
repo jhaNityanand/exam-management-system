@@ -135,6 +135,9 @@
     }
 
     function start() {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+      }
       stop();
       timer = setInterval(next, 6500);
     }
@@ -184,10 +187,16 @@
     const input = qs('[data-search-input]');
     const suggestBox = qs('[data-search-suggest]');
     const suggestUrl = overlay && overlay.getAttribute('data-suggest-url');
+    const panel = qs('.et-search-panel', overlay);
     if (!overlay) return;
+    let lastOpener = null;
 
-    function open() {
+    function open(fromEl) {
+      lastOpener = fromEl || document.activeElement;
       overlay.classList.add('is-open');
+      openers.forEach(function (btn) {
+        btn.setAttribute('aria-expanded', 'true');
+      });
       setTimeout(function () {
         if (input) input.focus();
       }, 30);
@@ -195,10 +204,18 @@
 
     function close() {
       overlay.classList.remove('is-open');
+      openers.forEach(function (btn) {
+        btn.setAttribute('aria-expanded', 'false');
+      });
+      if (lastOpener && typeof lastOpener.focus === 'function') {
+        lastOpener.focus();
+      }
     }
 
     openers.forEach(function (btn) {
-      btn.addEventListener('click', open);
+      btn.addEventListener('click', function () {
+        open(btn);
+      });
     });
 
     overlay.addEventListener('click', function (e) {
@@ -210,6 +227,20 @@
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         open();
+      }
+      if (e.key === 'Tab' && overlay.classList.contains('is-open') && panel) {
+        const focusable = qsa('a, button, input, [tabindex]:not([tabindex="-1"])', panel)
+          .filter(function (el) { return !el.hasAttribute('disabled') && el.offsetParent !== null; });
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && doc.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && doc.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     });
 
@@ -230,8 +261,6 @@
           <div class="et-search-suggest__skel-line et-search-suggest__skel-line--lg"></div>
           <div class="et-search-suggest__skel-line"></div>
           <div class="et-search-suggest__skel-line et-search-suggest__skel-line--md"></div>
-          <div class="et-search-suggest__skel-line et-search-suggest__skel-line--sm"></div>
-          <div class="et-search-suggest__skel-line et-search-suggest__skel-line--md"></div>
         </div>
       `;
       fetch(suggestUrl + '?q=' + encodeURIComponent(q), {
@@ -244,6 +273,7 @@
           const data = payload.data || payload;
           const groups = [
             { key: 'exams', label: 'Exams' },
+            { key: 'questions', label: 'Questions' },
             { key: 'blogs', label: 'Blogs' },
             { key: 'news', label: 'News' },
             { key: 'categories', label: 'Categories' },

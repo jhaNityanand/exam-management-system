@@ -36,7 +36,7 @@ class BlogController extends Controller
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
-            return $this->paginatedJson($blogs);
+            return $this->paginatedHtmlJson($blogs, 'frontend.components.blog-card', 'blog');
         }
 
         $categories = BlogCategory::query()
@@ -116,7 +116,7 @@ class BlogController extends Controller
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
-            return $this->paginatedJson($blogs);
+            return $this->paginatedHtmlJson($blogs, 'frontend.components.blog-card', 'blog');
         }
 
         return view('frontend.blog.category', [
@@ -144,7 +144,7 @@ class BlogController extends Controller
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
-            return $this->paginatedJson($blogs);
+            return $this->paginatedHtmlJson($blogs, 'frontend.components.blog-card', 'blog');
         }
 
         return view('frontend.blog.tag', [

@@ -42,6 +42,20 @@ class ExamController extends Controller
 
         if (! $user) {
             $query->where('visibility', 'public');
+        } else {
+            $query->where(function ($q) use ($user) {
+                $q->where('visibility', 'public')
+                    ->orWhereHas('entitlements', function ($entitlements) use ($user) {
+                        $entitlements->where('user_id', $user->id)
+                            ->where('status', 'active')
+                            ->where(function ($window) {
+                                $window->whereNull('valid_from')->orWhere('valid_from', '<=', now());
+                            })
+                            ->where(function ($window) {
+                                $window->whereNull('valid_until')->orWhere('valid_until', '>', now());
+                            });
+                    });
+            });
         }
 
         $sort = $request->input('sort', 'latest');
@@ -53,26 +67,10 @@ class ExamController extends Controller
             default => $query->latest('id'),
         };
 
-        if ($user) {
-            $all = $query->get()->filter(
-                fn (Exam $exam) => $this->eligibility->canViewPublicDetail($exam, $user)
-            )->values();
-
-            $page = max(1, (int) $request->input('page', 1));
-            $perPage = max(1, (int) $request->input('per_page', 12));
-            $exams = new \Illuminate\Pagination\LengthAwarePaginator(
-                $all->forPage($page, $perPage)->values(),
-                $all->count(),
-                $perPage,
-                $page,
-                ['path' => $request->url(), 'query' => $request->query()]
-            );
-        } else {
-            $exams = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
-        }
+        $exams = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
-            return $this->paginatedJson($exams);
+            return $this->paginatedHtmlJson($exams, 'frontend.components.exam-card', 'exam');
         }
 
         $categories = ExamCategory::query()

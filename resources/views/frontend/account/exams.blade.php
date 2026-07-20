@@ -45,8 +45,8 @@
                                 <td>{{ $attempt->percentage !== null ? $attempt->percentage.'%' : '—' }}</td>
                                 <td>{{ optional($attempt->started_at)->format('d M Y H:i') ?: '—' }}</td>
                                 <td>
-                                    @if(in_array($attempt->status, ['active', 'in_progress'], true))
-                                        <a class="et-btn et-btn--primary et-btn--sm" href="{{ route('frontend.attempts.show', $attempt) }}">Continue</a>
+                                    @if(in_array($attempt->status, ['active', 'in_progress'], true) && $attempt->exam)
+                                        <a class="et-btn et-btn--primary et-btn--sm" href="{{ route('frontend.exams.started', $attempt->exam) }}">Continue</a>
                                     @else
                                         <a class="et-btn et-btn--ghost et-btn--sm" href="{{ route('frontend.attempts.result', $attempt) }}">Result</a>
                                     @endif

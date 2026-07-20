@@ -11,9 +11,13 @@
 <footer class="et-footer">
     <div class="et-container et-footer__grid">
         <div class="et-footer__about">
-            <a href="{{ route('home') }}" class="et-logo">
-                <span class="et-logo__mark">{{ strtoupper(mb_substr($logoText, 0, 1)) }}</span>
-                <span class="et-logo__text">{{ $logoText }}</span>
+            <a href="{{ route('home') }}" class="et-logo" aria-label="{{ $brandName }}">
+                @if(is_file(public_path('images/brand/examtube-logo.svg')))
+                    <img class="et-logo__img" src="{{ asset('images/brand/examtube-logo.svg') }}" alt="{{ $brandName }}" width="150" height="32">
+                @else
+                    <span class="et-logo__mark">{{ strtoupper(mb_substr($logoText, 0, 1)) }}</span>
+                    <span class="et-logo__text">{{ $logoText }}</span>
+                @endif
             </a>
             @if($about !== '')
                 <p>{{ $about }}</p>

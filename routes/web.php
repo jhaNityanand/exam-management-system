@@ -44,9 +44,26 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/exams', [FrontendExamController::class, 'index'])->name('frontend.exams.index');
 Route::get('/exams/{exam:slug}', [FrontendExamController::class, 'show'])->name('frontend.exams.show');
 
+Route::get('/questions', [\App\Http\Controllers\Frontend\QuestionController::class, 'index'])->name('frontend.questions.index');
+Route::get('/questions/categories', [\App\Http\Controllers\Frontend\QuestionController::class, 'categories'])->name('frontend.questions.categories');
+Route::get('/questions/category/{slug}', [\App\Http\Controllers\Frontend\QuestionController::class, 'category'])->name('frontend.questions.category');
+Route::get('/questions/{question:slug}', [\App\Http\Controllers\Frontend\QuestionController::class, 'show'])->name('frontend.questions.show');
+Route::redirect('/question/categories', '/questions/categories', 301);
+Route::get('/question/category/{slug}', function (string $slug) {
+    return redirect()->route('frontend.questions.category', $slug, 301);
+});
+Route::redirect('/question', '/questions', 301);
+Route::get('/question/{slug}', function (string $slug) {
+    return redirect()->route('frontend.questions.show', $slug, 301);
+});
+Route::redirect('/about', '/about-us', 301);
+Route::redirect('/contact', '/contact-us', 301);
+
 Route::middleware('auth')->group(function () {
     Route::get('/exams/{exam:slug}/rules', [CandidateExamController::class, 'rules'])->name('frontend.exams.rules');
     Route::get('/exams/{exam:slug}/prepare', [CandidateExamController::class, 'prepare'])->name('frontend.exams.prepare');
+    Route::get('/exams/{exam:slug}/started', [CandidateExamController::class, 'started'])->name('frontend.exams.started');
+    Route::post('/exams/{exam:slug}/verification', [CandidateExamController::class, 'storeVerification'])->name('frontend.exams.verification');
     Route::post('/exams/{exam:slug}/attempts', [CandidateExamController::class, 'start'])->name('frontend.exams.attempts.start');
     Route::post('/exams/{exam:slug}/purchase', [CandidateExamController::class, 'purchase'])->name('frontend.exams.purchase');
 
@@ -67,6 +84,7 @@ Route::get('/blogs/{blog:slug}', [FrontendBlogController::class, 'show'])->name(
 Route::get('/news', [FrontendNewsController::class, 'index'])->name('frontend.news.index');
 Route::get('/news/trending', [FrontendNewsController::class, 'trending'])->name('frontend.news.trending');
 Route::get('/news/category/{slug}', [FrontendNewsController::class, 'category'])->name('frontend.news.category');
+Route::get('/news/tag/{slug}', [FrontendNewsController::class, 'tag'])->name('frontend.news.tag');
 Route::get('/news/{news:slug}', [FrontendNewsController::class, 'show'])->name('frontend.news.show');
 
 Route::get('/categories', [CategoryController::class, 'index'])->name('frontend.categories.index');

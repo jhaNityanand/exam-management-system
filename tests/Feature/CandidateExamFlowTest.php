@@ -134,15 +134,23 @@ test('candidate can start attempt save answers and submit for grading', function
     $this->actingAs($this->candidate);
 
     $this->get(route('frontend.exams.rules', $this->exam))->assertOk();
-    $this->get(route('frontend.exams.prepare', $this->exam))->assertOk();
+    $prepare = $this->get(route('frontend.exams.prepare', $this->exam))->assertOk();
+    $prepare->assertDontSee('Your preferences', false);
+
+    $challenge = \App\Models\ExamVerificationChallenge::query()
+        ->where('exam_id', $this->exam->id)
+        ->where('user_id', $this->candidate->id)
+        ->latest('id')
+        ->first();
+    expect($challenge)->not->toBeNull();
 
     $start = $this->post(route('frontend.exams.attempts.start', $this->exam), [
-        'preferences' => [
-            'theme' => 'light',
-            'font_size' => 'md',
-            'language' => 'en',
-            'palette_position' => 'right',
-            'timezone' => 'UTC',
+        'challenge_token' => $challenge->token,
+        'checks' => [
+            'webcam' => true,
+            'microphone' => true,
+            'fullscreen' => true,
+            'selfie' => true,
         ],
         'device' => [
             'browser' => 'phpunit',
@@ -150,6 +158,7 @@ test('candidate can start attempt save answers and submit for grading', function
             'os' => 'test',
             'screen_resolution' => '1920x1080',
             'timezone' => 'UTC',
+            'session_token' => 'test-session-token-1',
         ],
     ]);
 
@@ -157,6 +166,7 @@ test('candidate can start attempt save answers and submit for grading', function
     $attempt = ExamAttempt::query()->where('user_id', $this->candidate->id)->first();
     expect($attempt)->not->toBeNull();
     expect($attempt->expires_at)->not->toBeNull();
+    expect($attempt->policy_snapshot)->toBeArray();
     expect($attempt->attemptQuestions)->toHaveCount(2);
 
     $qRows = $attempt->attemptQuestions()->orderBy('position')->get();
@@ -210,6 +220,72 @@ test('paid exam requires entitlement before prepare', function () {
         ->assertOk();
 });
 
+test('start without challenge token is rejected', function () {
+    $this->actingAs($this->candidate)
+        ->postJson(route('frontend.exams.attempts.start', $this->exam), [
+            'device' => ['browser' => 'phpunit'],
+        ])
+        ->assertStatus(422);
+});
+
+test('required selfie blocks start when identity rule is enabled', function () {
+    $this->exam->update([
+        'predefined_instruction_rules' => ['id_verification_required', 'webcam_monitoring_enabled'],
+    ]);
+
+    \App\Models\ExamInstructionRule::query()->create([
+        'organization_id' => $this->organization->id,
+        'rule_key' => 'id_verification_required',
+        'slug' => 'id_verification_required',
+        'title' => 'Identity verification is required before exam start.',
+        'description' => 'Selfie required',
+        'status' => 'active',
+        'is_actionable' => true,
+        'requirements' => [
+            'require_webcam' => true,
+            'require_photo_verification' => true,
+            'require_identity_verification' => true,
+        ],
+    ]);
+    \App\Models\ExamInstructionRule::query()->create([
+        'organization_id' => $this->organization->id,
+        'rule_key' => 'webcam_monitoring_enabled',
+        'slug' => 'webcam_monitoring_enabled',
+        'title' => 'Webcam monitoring is enabled.',
+        'description' => 'Webcam required',
+        'status' => 'active',
+        'is_actionable' => true,
+        'requirements' => ['require_webcam' => true],
+    ]);
+
+    app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($this->exam);
+
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.prepare', $this->exam))
+        ->assertOk()
+        ->assertSee('Identity selfie', false);
+
+    $challenge = \App\Models\ExamVerificationChallenge::query()
+        ->where('exam_id', $this->exam->id)
+        ->where('user_id', $this->candidate->id)
+        ->latest('id')
+        ->first();
+
+    $this->actingAs($this->candidate)
+        ->postJson(route('frontend.exams.attempts.start', $this->exam), [
+            'challenge_token' => $challenge->token,
+            'checks' => [
+                'webcam' => true,
+                'microphone' => true,
+                'fullscreen' => true,
+                'selfie' => true,
+            ],
+            'device' => ['browser' => 'phpunit', 'session_token' => 'tok-2'],
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['selfie']);
+});
+
 test('timer expiry auto submits attempt', function () {
     $service = app(ExamSessionService::class);
     $attempt = $service->startOrResume($this->exam, $this->candidate, ['theme' => 'light'], ['browser' => 'test']);
@@ -231,4 +307,130 @@ test('results remain hidden when release mode is never', function () {
     $this->actingAs($this->candidate)
         ->get(route('frontend.attempts.review', $attempt))
         ->assertForbidden();
+});
+
+test('attempt runner page exposes redesigned shell and answer acknowledgements', function () {
+    $service = app(ExamSessionService::class);
+    $attempt = $service->startOrResume($this->exam, $this->candidate, [], [
+        'browser' => 'phpunit',
+        'session_token' => 'runner-ui-token',
+    ]);
+    $attempt->update([
+        'policy_snapshot' => array_merge($attempt->policy_snapshot ?? [], [
+            'require_webcam' => true,
+        ]),
+    ]);
+
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.started', $this->exam))
+        ->assertOk()
+        ->assertSee('id="cx-rail"', false)
+        ->assertSee('id="cx-drawer-toggle"', false)
+        ->assertSee('id="cx-toast"', false)
+        ->assertSee('id="cx-webcam"', false)
+        ->assertSee('Save &amp; next', false)
+        ->assertSee('Mark for review &amp; next', false)
+        ->assertSee('Final submit', false)
+        ->assertDontSee('cx-side--info', false)
+        ->assertDontSee('id="cx-mark-review"', false);
+
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.attempts.show', $attempt))
+        ->assertRedirect(route('frontend.exams.started', $this->exam));
+
+    $qid = $attempt->attemptQuestions()->orderBy('position')->value('id');
+
+    $save = $this->actingAs($this->candidate)
+        ->postJson(route('frontend.attempts.answers', $attempt), [
+            'revision' => 0,
+            'answers' => [
+                [
+                    'exam_attempt_question_id' => $qid,
+                    'answer_value' => 'B',
+                    'is_visited' => true,
+                    'is_marked_for_review' => false,
+                ],
+                [
+                    'exam_attempt_question_id' => 999999,
+                    'answer_value' => 'X',
+                    'is_visited' => true,
+                ],
+            ],
+        ])
+        ->assertOk()
+        ->json();
+
+    expect($save['saved'])->toBe(1);
+    expect($save['requested'])->toBe(2);
+    expect($save['skipped'])->toContain(999999);
+    expect($save['revision'])->toBeGreaterThan(0);
+
+    $this->actingAs($this->candidate)
+        ->postJson(route('frontend.attempts.events', $attempt), [
+            'event' => 'media_lost',
+            'payload' => ['reason' => 'track_ended'],
+        ])
+        ->assertOk()
+        ->assertJsonPath('ok', true);
+
+    app(ExamGradingService::class)->submit($attempt->fresh());
+
+    $this->actingAs($this->candidate)
+        ->postJson(route('frontend.attempts.answers', $attempt->fresh()), [
+            'answers' => [
+                [
+                    'exam_attempt_question_id' => $qid,
+                    'answer_value' => 'A',
+                    'is_visited' => true,
+                ],
+            ],
+        ])
+        ->assertStatus(422);
+});
+
+test('start returns runner html for in-place modal mount and started resumes', function () {
+    $this->actingAs($this->candidate);
+
+    $prepare = $this->get(route('frontend.exams.prepare', $this->exam))->assertOk();
+    $prepare->assertSee('id="cx-runner-host"', false);
+
+    $challenge = \App\Models\ExamVerificationChallenge::query()
+        ->where('exam_id', $this->exam->id)
+        ->where('user_id', $this->candidate->id)
+        ->latest('id')
+        ->first();
+
+    $start = $this->postJson(route('frontend.exams.attempts.start', $this->exam), [
+        'challenge_token' => $challenge->token,
+        'checks' => [
+            'webcam' => true,
+            'microphone' => true,
+            'fullscreen' => true,
+            'selfie' => true,
+        ],
+        'device' => [
+            'browser' => 'phpunit',
+            'device_type' => 'desktop',
+            'session_token' => 'modal-start-token',
+        ],
+    ])->assertOk()->json();
+
+    expect($start['ok'])->toBeTrue();
+    expect($start['started_url'])->toContain('/started');
+    expect($start['runner_html'])->toContain('id="cx-exam"');
+    expect($start['runner_html'])->toContain('Save &amp; next');
+    expect($start['runner_html'])->toContain('Mark for review &amp; next');
+
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.started', $this->exam))
+        ->assertOk()
+        ->assertSee('id="cx-exam"', false);
+
+    // Without an active attempt after submit, started redirects back to prepare.
+    $attempt = \App\Models\ExamAttempt::query()->findOrFail($start['attempt_id']);
+    app(ExamGradingService::class)->submit($attempt);
+
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.started', $this->exam))
+        ->assertRedirect(route('frontend.attempts.result', $attempt));
 });

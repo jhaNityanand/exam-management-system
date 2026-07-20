@@ -16,6 +16,7 @@ class ExamAttemptDevice extends Model
         'os',
         'screen_resolution',
         'timezone',
+        'session_token',
         'meta',
     ];
 

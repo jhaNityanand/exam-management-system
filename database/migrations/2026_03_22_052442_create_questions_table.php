@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
 
             // Content
+            $table->string('title')->nullable();
             $table->text('body');
             $table->string('type')->default('mcq'); // mcq | true_false | short_answer | long_answer | fill_blank
             $table->boolean('allows_multiple')->default(false);
@@ -35,6 +36,10 @@ return new class extends Migration
             $table->unsignedTinyInteger('marks')->default(1);
             $table->string('difficulty')->default('medium'); // easy | medium | hard | very_hard
             $table->string('status')->default('active'); // active | inactive | suspended
+            $table->boolean('is_public')->default(false);
+            $table->boolean('show_explanation_publicly')->default(true);
+            $table->unsignedInteger('view_count')->default(0);
+            $table->json('public_tags')->nullable();
 
             // SEO / Metadata
             $table->string('meta_title')->nullable();
@@ -60,6 +65,7 @@ return new class extends Migration
             $table->index(['organization_id', 'category_id']);
             $table->index(['organization_id', 'type']);
             $table->index(['organization_id', 'difficulty']);
+            $table->index(['organization_id', 'is_public', 'status']);
             $table->unique(['organization_id', 'slug']);
         });
     }

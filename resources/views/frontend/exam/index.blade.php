@@ -19,8 +19,8 @@
         </div>
     </div>
 
-    <div class="et-container" style="padding:1.5rem 0 3rem">
-        <form class="et-filters" method="get" action="{{ route('frontend.exams.index') }}">
+    <div class="et-container et-section">
+        <form class="et-filters" method="get" action="{{ route('frontend.exams.index') }}" data-load-more-filters>
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Search exams…">
             <select name="category_id" aria-label="Category">
                 <option value="">All categories</option>
@@ -48,14 +48,15 @@
                 'message' => 'Try clearing filters or check back later.',
             ])
         @else
-            <div class="et-grid et-grid--3">
+            <div class="et-grid et-grid--3" data-load-more-list>
                 @foreach($exams as $exam)
                     @include('frontend.components.exam-card', ['exam' => $exam])
                 @endforeach
             </div>
-            @if(method_exists($exams, 'links'))
-                <div class="et-pagination">{{ $exams->withQueryString()->links() }}</div>
-            @endif
+            @include('frontend.partials.load-more', [
+                'paginator' => $exams,
+                'endpoint' => route('frontend.exams.index', request()->query()),
+            ])
         @endif
     </div>
 @endsection

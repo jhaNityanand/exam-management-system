@@ -63,27 +63,17 @@
                 <p>No custom instructions provided.</p>
             @endif
         </div>
-        @if($rules->isNotEmpty())
-            <h3>Rules & regulations</h3>
-            <ol>
-                @foreach($rules as $rule)
-                    <li><strong>{{ $rule->title }}</strong>
-                        @if($rule->description)
-                            <div>{{ $rule->description }}</div>
-                        @endif
-                    </li>
-                @endforeach
-            </ol>
-        @endif
     </div>
 
-    <div class="et-card" style="padding:1.25rem;display:flex;gap:.75rem;flex-wrap:wrap;align-items:center">
+    @include('frontend.partials.exam-rules', ['rules' => $rules])
+
+    <div class="et-card et-rules-actions">
         @if(! empty($evaluation['requires_payment']))
             <button type="button" class="et-btn et-btn--primary" id="rules-purchase-btn"
                     data-url="{{ route('frontend.exams.purchase', $exam) }}">Purchase Exam</button>
             <span style="color:var(--et-text-muted)">Payment is required before continuing.</span>
         @elseif(! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']))
-            <a href="{{ route('frontend.attempts.show', $evaluation['active_attempt_id']) }}" class="et-btn et-btn--primary">Continue Exam</a>
+            <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
         @elseif(! empty($evaluation['can_attempt']) || empty($evaluation['reasons']))
             <a href="{{ route('frontend.exams.prepare', $exam) }}" class="et-btn et-btn--primary">Continue to verification</a>
         @else

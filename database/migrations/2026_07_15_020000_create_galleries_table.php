@@ -67,16 +67,24 @@ return new class extends Migration
             $table->index('file_name');
         });
 
-        // Early SEO tables declare og_image_id without a constraint (created before galleries).
+        // Early SEO/media tables declare image FKs without a constraint (created before galleries).
         foreach (['questions', 'exams', 'question_categories', 'exam_categories'] as $tableName) {
             Schema::table($tableName, function (Blueprint $table) {
                 $table->foreign('og_image_id')->references('id')->on('galleries')->nullOnDelete();
             });
         }
+
+        Schema::table('exams', function (Blueprint $table) {
+            $table->foreign('banner_image_id')->references('id')->on('galleries')->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('exams', function (Blueprint $table) {
+            $table->dropForeign(['banner_image_id']);
+        });
+
         foreach (['exam_categories', 'question_categories', 'exams', 'questions'] as $tableName) {
             Schema::table($tableName, function (Blueprint $table) {
                 $table->dropForeign(['og_image_id']);

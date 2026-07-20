@@ -4,9 +4,13 @@
     $q = $q ?? request('q', '');
     $seo = [
         'title' => $q !== '' ? 'Search: '.$q : 'Search',
-        'description' => 'Search exams, blogs, news, and categories on Examtube.in.',
+        'description' => 'Search exams, questions, blogs, news, and categories on Examtube.in.',
     ];
-    $results = $results ?? [];
+    $exams = $exams ?? collect();
+    $blogs = $blogs ?? collect();
+    $newsItems = $news ?? collect();
+    $categories = $categories ?? collect();
+    $questions = $questions ?? collect();
 @endphp
 
 @section('content')
@@ -17,7 +21,7 @@
                 ['label' => 'Search'],
             ]])
             <h1>Search</h1>
-            <p>Find exams, blogs, news, and categories.</p>
+            <p>Find exams, questions, blogs, news, and categories.</p>
             <form class="et-hero__search" style="margin-top:1rem;max-width:560px" method="get" action="{{ route('frontend.search') }}">
                 <input type="search" name="q" value="{{ $q }}" placeholder="What are you preparing for?" autofocus>
                 <button type="submit" class="et-btn et-btn--primary et-btn--sm">Search</button>
@@ -25,19 +29,15 @@
         </div>
     </div>
 
-    <div class="et-container et-search-results" style="padding-top:1.5rem">
+    <div class="et-container et-search-results et-section">
         @if($q === '')
             @include('frontend.partials.empty-state', [
                 'title' => 'Start searching',
-                'message' => 'Enter a keyword to see exams, blogs, and news.',
+                'message' => 'Enter a keyword to see exams, questions, blogs, and news.',
             ])
         @else
             @php
-                $exams = $results['exams'] ?? collect();
-                $blogs = $results['blogs'] ?? collect();
-                $newsItems = $results['news'] ?? collect();
-                $categories = $results['categories'] ?? collect();
-                $hasAny = collect([$exams, $blogs, $newsItems, $categories])->contains(fn ($c) => count($c));
+                $hasAny = collect([$exams, $questions, $blogs, $newsItems, $categories])->contains(fn ($c) => count($c));
             @endphp
 
             @unless($hasAny)
@@ -54,6 +54,17 @@
                         <div class="et-grid et-grid--3">
                             @foreach($exams as $exam)
                                 @include('frontend.components.exam-card', ['exam' => $exam])
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+                @if(count($questions))
+                    <section>
+                        <h2>Questions</h2>
+                        <div class="et-grid et-grid--3">
+                            @foreach($questions as $question)
+                                @include('frontend.components.question-card', ['question' => $question])
                             @endforeach
                         </div>
                     </section>

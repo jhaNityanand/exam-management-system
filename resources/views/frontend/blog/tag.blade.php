@@ -22,18 +22,19 @@
         </div>
     </div>
 
-    <div class="et-container" style="padding:1.5rem 0 3rem">
+    <div class="et-container et-section">
         @if(($blogs ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No posts with this tag', 'message' => ''])
         @else
-            <div class="et-grid et-grid--3">
+            <div class="et-grid et-grid--3" data-load-more-list>
                 @foreach($blogs as $blog)
                     @include('frontend.components.blog-card', ['blog' => $blog])
                 @endforeach
             </div>
-            @if(method_exists($blogs, 'links'))
-                <div class="et-pagination">{{ $blogs->withQueryString()->links() }}</div>
-            @endif
+            @include('frontend.partials.load-more', [
+                'paginator' => $blogs,
+                'endpoint' => route('frontend.blogs.tag', $tag->slug).(($qs = request()->getQueryString()) ? '?'.$qs : ''),
+            ])
         @endif
     </div>
 @endsection

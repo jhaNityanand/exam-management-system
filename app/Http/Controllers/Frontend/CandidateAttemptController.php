@@ -31,6 +31,12 @@ class CandidateAttemptController extends Controller
             return redirect()->route('frontend.attempts.result', $attempt);
         }
 
+        $attempt->loadMissing('exam');
+
+        if ($attempt->exam) {
+            return redirect()->route('frontend.exams.started', $attempt->exam);
+        }
+
         $payload = $this->sessions->toRuntimePayload($attempt);
 
         return view('frontend.candidate.attempts.show', [
@@ -60,6 +66,8 @@ class CandidateAttemptController extends Controller
                 'ok' => true,
                 'revision' => $result['revision'],
                 'saved' => $result['saved'],
+                'requested' => $result['requested'] ?? count($data['answers']),
+                'skipped' => $result['skipped'] ?? [],
                 'server_now' => now()->toIso8601String(),
                 'answers' => $result['answers'],
             ]);
@@ -111,6 +119,7 @@ class CandidateAttemptController extends Controller
     public function submit(Request $request, ExamAttempt $attempt): JsonResponse|RedirectResponse
     {
         $this->authorizeAttempt($request, $attempt);
+        $attempt = $this->sessions->expireIfNeeded($attempt);
 
         if ($request->filled('answers') && is_array($request->input('answers'))) {
             $this->answers->saveBatch($attempt, $request->input('answers', []));

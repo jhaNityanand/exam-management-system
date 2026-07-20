@@ -10,29 +10,53 @@ use App\Models\ExamProctoringPolicy;
 use App\Models\User;
 use App\Services\ExamAttemptService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ExamSessionService
 {
     public function __construct(
         protected ExamAttemptService $attemptService,
         protected ExamEligibilityService $eligibility,
+        protected ExamRequirementResolver $requirements,
     ) {}
 
     /**
      * @param  array<string, mixed>  $preferences
      * @param  array<string, mixed>  $deviceMeta
+     * @param  array<string, mixed>|null  $policySnapshot
      */
-    public function startOrResume(Exam $exam, User $user, array $preferences = [], array $deviceMeta = [], ?Request $request = null): ExamAttempt
-    {
+    public function startOrResume(
+        Exam $exam,
+        User $user,
+        array $preferences = [],
+        array $deviceMeta = [],
+        ?Request $request = null,
+        ?array $policySnapshot = null,
+        ?string $sessionToken = null
+    ): ExamAttempt {
         $this->eligibility->assertCanStart($exam, $user);
-        $this->ensureProctoringPolicy($exam);
+        $policy = $this->ensureProctoringPolicy($exam);
+        $resolvedPolicy = $policySnapshot ?: $policy->toRuntimeArray();
 
-        $wasNew = ! ExamAttempt::query()
+        $active = ExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->where('user_id', $user->id)
             ->whereIn('status', ['active', 'in_progress'])
-            ->exists();
+            ->latest('id')
+            ->first();
+
+        $wasNew = ! $active;
+
+        if ($active && ! empty($resolvedPolicy['enforce_single_session'])) {
+            $existingToken = (string) ($active->session_token ?: data_get($active->device_meta, 'session_token'));
+            $incoming = (string) ($sessionToken ?: ($deviceMeta['session_token'] ?? ''));
+            if ($existingToken !== '' && $incoming !== '' && ! hash_equals($existingToken, $incoming)) {
+                throw ValidationException::withMessages([
+                    'session' => 'This exam is already active in another browser or device.',
+                ]);
+            }
+        }
 
         $attempt = $this->attemptService->start($exam, $user);
 
@@ -41,6 +65,10 @@ class ExamSessionService
         if (! $expiresAt && $exam->enable_exam_timer && $duration > 0) {
             $expiresAt = ($attempt->started_at ?? now())->copy()->addMinutes($duration);
         }
+
+        $token = $sessionToken
+            ?: (string) ($deviceMeta['session_token'] ?? '')
+            ?: (string) ($attempt->session_token ?: Str::random(40));
 
         $attempt->fill([
             'organization_id' => $exam->organization_id,
@@ -51,13 +79,15 @@ class ExamSessionService
             'timezone' => $preferences['timezone'] ?? $exam->timezone ?? config('app.timezone'),
             'exam_config_snapshot' => $attempt->exam_config_snapshot ?: $this->buildConfigSnapshot($exam),
             'preferences_snapshot' => $preferences !== [] ? $preferences : ($attempt->preferences_snapshot ?? []),
+            'policy_snapshot' => $attempt->policy_snapshot ?: $resolvedPolicy,
             'device_meta' => $deviceMeta !== [] ? $deviceMeta : ($attempt->device_meta ?? []),
+            'session_token' => $attempt->session_token ?: $token,
             'paper_set' => $attempt->paper_set ?: 1,
         ])->save();
 
         if ($request) {
             try {
-                $this->recordDevice($attempt, $request, $deviceMeta);
+                $this->recordDevice($attempt, $request, array_merge($deviceMeta, ['session_token' => $attempt->session_token]));
             } catch (\Throwable $e) {
                 report($e);
             }
@@ -67,7 +97,10 @@ class ExamSessionService
             ExamAttemptEvent::query()->create([
                 'exam_attempt_id' => $attempt->id,
                 'event' => 'session_started',
-                'payload' => ['preferences' => $preferences],
+                'payload' => [
+                    'policy' => $attempt->policy_snapshot,
+                    'device' => $deviceMeta,
+                ],
                 'occurred_at' => now(),
             ]);
         }
@@ -105,7 +138,8 @@ class ExamSessionService
     {
         $attempt->loadMissing(['attemptQuestions', 'exam.proctoringPolicy', 'attemptAnswers', 'exam']);
         $exam = $attempt->exam;
-        $policy = $exam?->proctoringPolicy;
+        $policy = $attempt->policy_snapshot
+            ?: ($exam?->proctoringPolicy?->toRuntimeArray() ?? []);
         $answers = $attempt->attemptAnswers->keyBy('exam_attempt_question_id');
 
         $questions = $attempt->attemptQuestions->sortBy('position')->values()->map(function ($row) use ($answers) {
@@ -129,6 +163,7 @@ class ExamSessionService
                 'expires_at' => optional($attempt->expires_at)?->toIso8601String(),
                 'revision' => $attempt->revision,
                 'preferences' => $attempt->preferences_snapshot ?? [],
+                'session_token' => $attempt->session_token,
             ],
             'exam' => [
                 'id' => $exam?->id,
@@ -146,16 +181,23 @@ class ExamSessionService
                     'per_question' => $exam?->negative_mark_per_question,
                 ],
             ],
-            'policy' => [
-                'require_webcam' => (bool) $policy?->require_webcam,
-                'require_microphone' => (bool) $policy?->require_microphone,
-                'require_fullscreen' => (bool) $policy?->require_fullscreen,
-                'block_copy_paste' => (bool) $policy?->block_copy_paste,
-                'detect_tab_switch' => (bool) ($policy?->detect_tab_switch ?? true),
-                'focus_violation_limit' => (int) ($policy?->focus_violation_limit ?? 3),
-                'focus_violation_action' => $policy?->focus_violation_action ?? 'warn',
-                'auto_submit_on_violation' => (bool) $policy?->auto_submit_on_violation,
-            ],
+            'policy' => array_merge([
+                'require_webcam' => false,
+                'require_microphone' => false,
+                'require_fullscreen' => false,
+                'require_photo_verification' => false,
+                'require_identity_verification' => false,
+                'block_copy_paste' => false,
+                'block_context_menu' => false,
+                'detect_devtools' => false,
+                'block_page_refresh' => false,
+                'enforce_single_session' => false,
+                'single_attempt_per_question' => false,
+                'detect_tab_switch' => false,
+                'focus_violation_limit' => 3,
+                'focus_violation_action' => 'warn',
+                'auto_submit_on_violation' => false,
+            ], $policy),
             'questions' => $questions,
         ];
     }
@@ -186,6 +228,9 @@ class ExamSessionService
                 'timezone' => isset($deviceMeta['timezone'])
                     ? mb_substr((string) $deviceMeta['timezone'], 0, 64)
                     : null,
+                'session_token' => isset($deviceMeta['session_token'])
+                    ? mb_substr((string) $deviceMeta['session_token'], 0, 64)
+                    : $attempt->session_token,
                 'meta' => $deviceMeta,
             ]
         );
@@ -193,23 +238,7 @@ class ExamSessionService
 
     protected function ensureProctoringPolicy(Exam $exam): ExamProctoringPolicy
     {
-        return ExamProctoringPolicy::query()->firstOrCreate(
-            ['exam_id' => $exam->id],
-            [
-                'require_webcam' => $exam->exam_mode === 'proctored',
-                'require_microphone' => $exam->exam_mode === 'proctored',
-                'require_fullscreen' => in_array('fullscreen_required', $exam->predefined_instruction_rules ?? [], true)
-                    || $exam->exam_mode === 'proctored',
-                'require_photo_verification' => in_array('id_verification_required', $exam->predefined_instruction_rules ?? [], true),
-                'detect_tab_switch' => true,
-                'focus_violation_limit' => 3,
-                'focus_violation_action' => in_array('tab_switch_autosubmit', $exam->predefined_instruction_rules ?? [], true)
-                    ? 'auto_submit'
-                    : 'warn',
-                'auto_submit_on_violation' => in_array('tab_switch_autosubmit', $exam->predefined_instruction_rules ?? [], true),
-                'block_copy_paste' => in_array('disable_copy_paste', $exam->predefined_instruction_rules ?? [], true),
-            ]
-        );
+        return $this->requirements->syncPolicy($exam);
     }
 
     /**

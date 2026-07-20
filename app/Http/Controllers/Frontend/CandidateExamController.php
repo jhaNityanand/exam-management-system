@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
-use App\Models\ExamInstructionRule;
+use App\Models\ExamVerificationChallenge;
 use App\Services\CandidateExam\ExamEligibilityService;
 use App\Services\CandidateExam\ExamPaymentPlaceholderService;
 use App\Services\CandidateExam\ExamProctoringService;
+use App\Services\CandidateExam\ExamRequirementResolver;
 use App\Services\CandidateExam\ExamSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CandidateExamController extends Controller
@@ -21,6 +26,7 @@ class CandidateExamController extends Controller
         protected ExamSessionService $sessions,
         protected ExamPaymentPlaceholderService $payments,
         protected ExamProctoringService $proctoring,
+        protected ExamRequirementResolver $requirements,
     ) {}
 
     public function rules(Request $request, Exam $exam): View|RedirectResponse
@@ -31,21 +37,19 @@ class CandidateExamController extends Controller
 
         $user->ensureCandidateMembership((int) $exam->organization_id);
         $evaluation = $this->eligibility->evaluate($exam, $user);
-        $exam->loadMissing(['category:id,name,slug', 'proctoringPolicy']);
+        $policy = $this->requirements->syncPolicy($exam);
+        $exam->setRelation('proctoringPolicy', $policy);
 
-        $ruleSlugs = $exam->predefined_instruction_rules ?? [];
-        $rules = ExamInstructionRule::query()
-            ->where('organization_id', $exam->organization_id)
-            ->whereIn('slug', $ruleSlugs)
-            ->where('status', 'active')
-            ->orderBy('sort_order')
-            ->get();
+        $rules = $this->requirements->rulesForExam(
+            $exam,
+            array_values(array_filter(array_map('strval', $exam->predefined_instruction_rules ?? [])))
+        );
 
         return view('frontend.candidate.exams.rules', [
             'exam' => $exam,
             'evaluation' => $evaluation,
             'rules' => $rules,
-            'policy' => $exam->proctoringPolicy,
+            'policy' => $policy,
         ]);
     }
 
@@ -62,32 +66,72 @@ class CandidateExamController extends Controller
                 ->with('error', 'Payment is required before preparing this exam.');
         }
 
-        $exam->loadMissing(['proctoringPolicy', 'category:id,name,slug']);
-        if (! $exam->proctoringPolicy) {
-            \App\Models\ExamProctoringPolicy::query()->firstOrCreate(
-                ['exam_id' => $exam->id],
-                [
-                    'require_webcam' => $exam->exam_mode === 'proctored',
-                    'require_microphone' => $exam->exam_mode === 'proctored',
-                    'require_fullscreen' => $exam->exam_mode === 'proctored'
-                        || in_array('fullscreen_required', $exam->predefined_instruction_rules ?? [], true),
-                    'require_photo_verification' => in_array('id_verification_required', $exam->predefined_instruction_rules ?? [], true),
-                    'detect_tab_switch' => true,
-                    'focus_violation_limit' => 3,
-                    'focus_violation_action' => in_array('tab_switch_autosubmit', $exam->predefined_instruction_rules ?? [], true)
-                        ? 'auto_submit'
-                        : 'warn',
-                    'auto_submit_on_violation' => in_array('tab_switch_autosubmit', $exam->predefined_instruction_rules ?? [], true),
-                    'block_copy_paste' => in_array('disable_copy_paste', $exam->predefined_instruction_rules ?? [], true),
-                ]
-            );
-            $exam->load('proctoringPolicy');
-        }
+        $policy = $this->requirements->syncPolicy($exam);
+        $exam->setRelation('proctoringPolicy', $policy);
+        $checks = $this->requirements->readinessChecks($policy->toRuntimeArray());
+        $challenge = $this->createChallenge($exam, $user->id, $policy->toRuntimeArray());
 
         return view('frontend.candidate.exams.prepare', [
             'exam' => $exam,
             'evaluation' => $evaluation,
-            'policy' => $exam->proctoringPolicy,
+            'policy' => $policy,
+            'checks' => $checks,
+            'challenge' => $challenge,
+        ]);
+    }
+
+    public function storeVerification(Request $request, Exam $exam): JsonResponse
+    {
+        $this->assertPublished($exam);
+        $user = $request->user();
+        abort_unless($this->eligibility->canViewPublicDetail($exam, $user), 403);
+
+        $data = $request->validate([
+            'challenge_token' => ['required', 'string', 'max:64'],
+            'completed_checks' => ['nullable', 'array'],
+            'completed_checks.*' => ['string', 'max:64'],
+            'selfie' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        $challenge = ExamVerificationChallenge::query()
+            ->where('token', $data['challenge_token'])
+            ->where('exam_id', $exam->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $challenge || ! $challenge->isValid()) {
+            throw ValidationException::withMessages([
+                'challenge_token' => 'Verification session expired. Refresh the prepare page.',
+            ]);
+        }
+
+        $completed = array_values(array_unique(array_merge(
+            $challenge->completed_checks ?? [],
+            $data['completed_checks'] ?? []
+        )));
+
+        if ($request->hasFile('selfie')) {
+            if ($challenge->selfie_path) {
+                Storage::disk($challenge->selfie_disk ?: 'local')->delete($challenge->selfie_path);
+            }
+
+            $path = $request->file('selfie')->store(
+                'exam-verification/'.$exam->id.'/'.$user->id,
+                'local'
+            );
+            $challenge->selfie_path = $path;
+            $challenge->selfie_disk = 'local';
+            $completed[] = 'selfie';
+            $completed[] = 'webcam';
+        }
+
+        $challenge->completed_checks = array_values(array_unique($completed));
+        $challenge->save();
+
+        return response()->json([
+            'ok' => true,
+            'completed_checks' => $challenge->completed_checks,
+            'has_selfie' => filled($challenge->selfie_path),
         ]);
     }
 
@@ -98,13 +142,11 @@ class CandidateExamController extends Controller
         $user->ensureCandidateMembership((int) $exam->organization_id);
 
         try {
+            $policy = $this->requirements->syncPolicy($exam);
+            $policyArray = $policy->toRuntimeArray();
+
             $data = $request->validate([
-                'preferences' => ['nullable', 'array'],
-                'preferences.theme' => ['nullable', 'in:light,dark,system'],
-                'preferences.font_size' => ['nullable', 'in:sm,md,lg'],
-                'preferences.language' => ['nullable', 'string', 'max:16'],
-                'preferences.palette_position' => ['nullable', 'in:left,right'],
-                'preferences.timezone' => ['nullable', 'string', 'max:64'],
+                'challenge_token' => ['required', 'string', 'max:64'],
                 'device' => ['nullable', 'array'],
                 'device.browser' => ['nullable', 'string', 'max:120'],
                 'device.device_type' => ['nullable', 'string', 'max:64'],
@@ -112,21 +154,70 @@ class CandidateExamController extends Controller
                 'device.screen_resolution' => ['nullable', 'string', 'max:32'],
                 'device.timezone' => ['nullable', 'string', 'max:64'],
                 'device.local_time' => ['nullable', 'string', 'max:64'],
-                'photo' => ['nullable', 'image', 'max:5120'],
+                'device.session_token' => ['nullable', 'string', 'max:64'],
+                'checks' => ['nullable', 'array'],
+                'checks.webcam' => ['nullable', 'boolean'],
+                'checks.microphone' => ['nullable', 'boolean'],
+                'checks.fullscreen' => ['nullable', 'boolean'],
+                'checks.selfie' => ['nullable', 'boolean'],
+                'selfie' => ['nullable', 'image', 'max:5120'],
             ]);
 
-            $attempt = $this->sessions->startOrResume(
-                $exam,
-                $user,
-                $data['preferences'] ?? [],
-                $data['device'] ?? [],
-                $request
-            );
+            $challenge = ExamVerificationChallenge::query()
+                ->where('token', $data['challenge_token'])
+                ->where('exam_id', $exam->id)
+                ->where('user_id', $user->id)
+                ->first();
 
-            if ($request->hasFile('photo')) {
-                $this->proctoring->storeSnapshot($attempt, $request->file('photo'), 'photo');
+            if (! $challenge || ! $challenge->isValid()) {
+                throw ValidationException::withMessages([
+                    'challenge_token' => 'Verification session expired. Refresh and try again.',
+                ]);
             }
-        } catch (\Illuminate\Validation\ValidationException $e) {
+
+            $this->assertReadyToStart($policyArray, $data, $challenge, $request);
+
+            $attempt = DB::transaction(function () use ($exam, $user, $data, $request, $policyArray, $challenge) {
+                if ($request->hasFile('selfie') && ! $challenge->selfie_path) {
+                    $challenge->selfie_path = $request->file('selfie')->store(
+                        'exam-verification/'.$exam->id.'/'.$user->id,
+                        'local'
+                    );
+                    $challenge->selfie_disk = 'local';
+                    $challenge->save();
+                }
+
+                $sessionToken = (string) ($data['device']['session_token'] ?? Str::random(40));
+                $attempt = $this->sessions->startOrResume(
+                    $exam,
+                    $user,
+                    [
+                        'timezone' => $data['device']['timezone'] ?? $exam->timezone ?? config('app.timezone'),
+                    ],
+                    array_merge($data['device'] ?? [], ['session_token' => $sessionToken]),
+                    $request,
+                    $policyArray,
+                    $sessionToken
+                );
+
+                if (
+                    (! empty($policyArray['require_photo_verification']) || ! empty($policyArray['require_identity_verification']))
+                    && $challenge->selfie_path
+                ) {
+                    $this->proctoring->attachVerificationSelfie(
+                        $attempt,
+                        $challenge->selfie_path,
+                        $challenge->selfie_disk ?: 'local',
+                        $challenge->token
+                    );
+                }
+
+                $challenge->consumed_at = now();
+                $challenge->save();
+
+                return $attempt;
+            });
+        } catch (ValidationException $e) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
                     'message' => collect($e->errors())->flatten()->first() ?: 'Unable to start exam.',
@@ -157,14 +248,69 @@ class CandidateExamController extends Controller
         }
 
         if ($request->wantsJson() || $request->ajax()) {
+            $payload = $this->sessions->toRuntimePayload($attempt);
+            $startedUrl = route('frontend.exams.started', $exam);
+            $runnerHtml = view('frontend.candidate.attempts.partials.runner', [
+                'attempt' => $attempt,
+                'exam' => $exam,
+                'payload' => $payload,
+                'asOverlay' => true,
+            ])->render();
+
             return response()->json([
                 'ok' => true,
-                'redirect' => route('frontend.attempts.show', $attempt),
                 'attempt_id' => $attempt->id,
+                'started_url' => $startedUrl,
+                'redirect' => $startedUrl,
+                'runner_html' => $runnerHtml,
             ]);
         }
 
-        return redirect()->route('frontend.attempts.show', $attempt);
+        return redirect()->route('frontend.exams.started', $exam);
+    }
+
+    public function started(Request $request, Exam $exam): View|RedirectResponse
+    {
+        $this->assertPublished($exam);
+        $user = $request->user();
+        abort_unless($this->eligibility->canViewPublicDetail($exam, $user), 403);
+
+        $attempt = \App\Models\ExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['active', 'in_progress'])
+            ->latest('id')
+            ->first();
+
+        if (! $attempt) {
+            $latest = \App\Models\ExamAttempt::query()
+                ->where('exam_id', $exam->id)
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->first();
+
+            if ($latest && ! $latest->isOpen()) {
+                return redirect()->route('frontend.attempts.result', $latest);
+            }
+
+            return redirect()
+                ->route('frontend.exams.prepare', $exam)
+                ->with('error', 'No active exam session found. Complete preparation to start.');
+        }
+
+        $attempt = $this->sessions->expireIfNeeded($attempt);
+
+        if (! $attempt->isOpen()) {
+            return redirect()->route('frontend.attempts.result', $attempt);
+        }
+
+        $payload = $this->sessions->toRuntimePayload($attempt);
+
+        return view('frontend.candidate.exams.started', [
+            'attempt' => $attempt,
+            'exam' => $exam,
+            'payload' => $payload,
+        ]);
     }
 
     public function purchase(Request $request, Exam $exam): RedirectResponse|JsonResponse
@@ -191,5 +337,70 @@ class CandidateExamController extends Controller
     protected function assertPublished(Exam $exam): void
     {
         abort_unless($exam->status === 'published', 404);
+    }
+
+    /**
+     * @param  array<string, mixed>  $policy
+     */
+    protected function createChallenge(Exam $exam, int $userId, array $policy): ExamVerificationChallenge
+    {
+        ExamVerificationChallenge::query()
+            ->where('exam_id', $exam->id)
+            ->where('user_id', $userId)
+            ->whereNull('consumed_at')
+            ->delete();
+
+        $required = [];
+        if (! empty($policy['require_webcam'])) {
+            $required[] = 'webcam';
+        }
+        if (! empty($policy['require_microphone'])) {
+            $required[] = 'microphone';
+        }
+        if (! empty($policy['require_fullscreen'])) {
+            $required[] = 'fullscreen';
+        }
+        if (! empty($policy['require_photo_verification']) || ! empty($policy['require_identity_verification'])) {
+            $required[] = 'selfie';
+        }
+
+        return ExamVerificationChallenge::query()->create([
+            'organization_id' => $exam->organization_id,
+            'exam_id' => $exam->id,
+            'user_id' => $userId,
+            'token' => Str::random(48),
+            'required_checks' => $required,
+            'completed_checks' => [],
+            'expires_at' => now()->addMinutes(30),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $policy
+     * @param  array<string, mixed>  $data
+     */
+    protected function assertReadyToStart(array $policy, array $data, ExamVerificationChallenge $challenge, Request $request): void
+    {
+        $checks = $data['checks'] ?? [];
+        $errors = [];
+
+        if (! empty($policy['require_webcam']) && empty($checks['webcam'])) {
+            $errors['checks.webcam'] = 'Webcam access is required before starting.';
+        }
+        if (! empty($policy['require_microphone']) && empty($checks['microphone'])) {
+            $errors['checks.microphone'] = 'Microphone access is required before starting.';
+        }
+        if (! empty($policy['require_fullscreen']) && empty($checks['fullscreen'])) {
+            $errors['checks.fullscreen'] = 'Fullscreen mode is required before starting.';
+        }
+
+        $needsSelfie = ! empty($policy['require_photo_verification']) || ! empty($policy['require_identity_verification']);
+        if ($needsSelfie && ! $challenge->selfie_path && ! $request->hasFile('selfie')) {
+            $errors['selfie'] = 'Capture a live selfie with your webcam before starting. Uploads are not allowed.';
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 }

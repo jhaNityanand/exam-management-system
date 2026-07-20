@@ -1,11 +1,14 @@
 /**
- * Standalone prepare-page boot (no Vite dependency).
- * Uses fetch AJAX and always surfaces errors to the user.
+ * Rule-driven prepare boot:
+ * - separate camera / mic permission flows
+ * - clear device / permission errors
+ * - live selfie capture (no upload)
+ * - Start stays disabled until checks pass
  */
 (function () {
     'use strict';
 
-    function ready(fn) {
+    function onReady(fn) {
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', fn);
         } else {
@@ -14,10 +17,15 @@
     }
 
     function csrfToken() {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') || '' : '';
     }
 
-    function deviceMeta() {
+    function boolAttr(el, name) {
+        return el && el.getAttribute(name) === '1';
+    }
+
+    function deviceMeta(sessionToken) {
         var ua = navigator.userAgent || '';
         return {
             browser: ua.slice(0, 120),
@@ -26,348 +34,688 @@
             screen_resolution: String(window.screen.width) + 'x' + String(window.screen.height),
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             local_time: new Date().toISOString(),
+            session_token: sessionToken,
         };
     }
 
+    function mediaErrorMessage(err, kind) {
+        var name = (err && err.name) || '';
+        var label = kind === 'audio' ? 'microphone' : 'camera';
+
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            return 'Browser blocked ' + label + ' access. Click the lock/camera icon in the address bar, allow ' + label + ', then retry.';
+        }
+        if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            return 'No ' + label + ' was found on this device. Connect a ' + label + ' and retry.';
+        }
+        if (name === 'NotReadableError' || name === 'TrackStartError') {
+            return 'Your ' + label + ' is already in use by another app. Close that app and retry.';
+        }
+        if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+            return 'This ' + label + ' does not meet the required settings. Try another device.';
+        }
+        if (name === 'SecurityError') {
+            return 'Camera/mic can only be used on a secure page (https or localhost).';
+        }
+        if (name === 'TypeError') {
+            return 'This browser could not open the ' + label + '. Use the latest Chrome, Edge, or Firefox.';
+        }
+        return (err && err.message) ? err.message : ('Unable to access ' + label + '.');
+    }
+
     function setStatus(root, perm, state) {
-        const el = root.querySelector('[data-perm="' + perm + '"] .cx-status');
+        var row = root.querySelector('[data-perm="' + perm + '"]');
+        if (!row) return;
+        var el = row.querySelector('.cx-status');
         if (!el) return;
-        if (state === 'granted') el.textContent = 'Granted';
-        else if (state === 'denied') el.textContent = 'Denied';
-        else if (state === 'skipped' || state === 'optional') el.textContent = 'Optional';
-        else if (state === 'info') el.textContent = 'Info';
-        else el.textContent = 'Required';
+        var labels = {
+            granted: 'Granted',
+            denied: 'Denied',
+            required: 'Required',
+            waiting: 'Waiting',
+            optional: 'Optional',
+            info: 'Info',
+            captured: 'Captured',
+            ready: 'Ready',
+            missing: 'Missing',
+        };
+        el.textContent = labels[state] || state;
         el.dataset.state = state;
     }
 
-    async function requestMedia(needCam, needMic) {
-        const result = { webcam: needCam ? 'denied' : 'skipped', microphone: needMic ? 'denied' : 'skipped', stream: null };
-        if (!needCam && !needMic) return result;
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: !!needCam, audio: !!needMic });
-            result.stream = stream;
-            if (needCam) result.webcam = 'granted';
-            if (needMic) result.microphone = 'granted';
-        } catch (e) {
-            // keep denied
-        }
-        return result;
-    }
-
-    async function requestFullscreen() {
-        try {
-            if (!document.fullscreenElement) {
-                await document.documentElement.requestFullscreen();
-            }
-            return !!document.fullscreenElement;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    function firstError(data, fallback) {
-        if (!data) return fallback;
-        if (typeof data.message === 'string' && data.message.trim()) return data.message;
-        if (data.errors) {
-            for (const value of Object.values(data.errors)) {
-                if (Array.isArray(value) && value[0]) return String(value[0]);
-                if (typeof value === 'string') return value;
+    function firstError(payload, fallback) {
+        if (!payload) return fallback;
+        if (typeof payload.message === 'string' && payload.message) return payload.message;
+        if (payload.errors) {
+            var keys = Object.keys(payload.errors);
+            for (var i = 0; i < keys.length; i += 1) {
+                var list = payload.errors[keys[i]];
+                if (list && list.length) return list[0];
             }
         }
         return fallback;
     }
 
-    ready(function () {
-        const root = document.getElementById('cx-prepare');
+    function supportsMedia() {
+        return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+    }
+
+    onReady(function () {
+        var root = document.getElementById('cx-prepare');
         if (!root) return;
 
-        const startUrl = root.dataset.startUrl;
-        const requireWebcam = root.dataset.requireWebcam === '1';
-        const requireMic = root.dataset.requireMic === '1';
-        const requireFullscreen = root.dataset.requireFullscreen === '1';
-        const requirePhoto = root.dataset.requirePhoto === '1';
-        const suggestFullscreen = root.dataset.suggestFullscreen === '1';
+        var requireWebcam = boolAttr(root, 'data-require-webcam');
+        var requireMic = boolAttr(root, 'data-require-mic');
+        var requireFullscreen = boolAttr(root, 'data-require-fullscreen');
+        var requireSelfie = boolAttr(root, 'data-require-selfie');
+        var startUrl = root.getAttribute('data-start-url') || '';
+        var verifyUrl = root.getAttribute('data-verify-url') || '';
+        var challengeToken = root.getAttribute('data-challenge-token') || '';
+        var sessionToken = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID().replace(/-/g, '')
+            : String(Date.now()) + Math.random().toString(16).slice(2);
 
-        const startBtn = document.getElementById('cx-start-exam');
-        const cancelBtn = document.getElementById('cx-cancel-start');
-        const errorEl = document.getElementById('cx-prepare-error');
-        const alertEl = document.getElementById('cx-prepare-alert');
-        const loading = document.getElementById('cx-loading');
-        const progress = document.getElementById('cx-progress-bar');
-        const stepEl = document.getElementById('cx-loading-step');
-        const preview = document.getElementById('cx-preview');
-
-        let stream = null;
-        let photoBlob = null;
-        let starting = false;
-        let abortController = null;
-
-        const state = {
-            webcam: requireWebcam ? 'required' : 'optional',
-            microphone: requireMic ? 'required' : 'optional',
-            fullscreen: requireFullscreen ? 'required' : 'optional',
+        var state = {
+            webcam: !requireWebcam && !requireSelfie,
+            microphone: !requireMic,
+            fullscreen: !requireFullscreen,
+            selfie: !requireSelfie,
+            videoStream: null,
+            audioStream: null,
+            photoBlob: null,
+            audioCtx: null,
+            micTimer: null,
+            requesting: false,
         };
 
-        setStatus(root, 'webcam', state.webcam);
-        setStatus(root, 'microphone', state.microphone);
-        setStatus(root, 'fullscreen', document.fullscreenElement ? 'granted' : state.fullscreen);
-        setStatus(root, 'clipboard', 'info');
-        if (document.fullscreenElement) state.fullscreen = 'granted';
+        var preview = document.getElementById('cx-preview');
+        var canvas = document.getElementById('cx-snapshot-canvas');
+        var photoPreview = document.getElementById('cx-photo-preview');
+        var captureBtn = document.getElementById('cx-capture-photo');
+        var retakeBtn = document.getElementById('cx-retake-photo');
+        var permBtn = document.getElementById('cx-request-permissions');
+        var fsBtn = document.getElementById('cx-request-fullscreen');
+        var startBtn = document.getElementById('cx-start-exam');
+        var errorEl = document.getElementById('cx-prepare-error');
+        var readyEl = document.getElementById('cx-ready-msg');
+        var loading = document.getElementById('cx-loading');
+        var progressBar = document.getElementById('cx-progress-bar');
+        var loadingStep = document.getElementById('cx-loading-step');
+        var micLevel = document.getElementById('cx-mic-level');
+        var helpBtn = document.getElementById('cx-help-toggle');
+        var helpPanel = document.getElementById('cx-help-panel');
+        var abortController = null;
 
-        document.addEventListener('fullscreenchange', function () {
-            if (document.fullscreenElement) {
-                state.fullscreen = 'granted';
-                setStatus(root, 'fullscreen', 'granted');
-            } else if (requireFullscreen) {
-                state.fullscreen = 'required';
-                setStatus(root, 'fullscreen', 'required');
-            } else {
-                state.fullscreen = 'optional';
-                setStatus(root, 'fullscreen', 'optional');
-            }
-        });
-
-        function showAlert(message, type) {
-            if (!alertEl) return;
-            alertEl.hidden = false;
-            alertEl.className = 'cx-alert' + (type ? ' cx-alert--' + type : '');
-            alertEl.textContent = message;
-        }
-
-        function showError(message) {
-            hideLoading();
-            if (errorEl) {
+        function showError(msg) {
+            if (!errorEl) return;
+            if (msg) {
                 errorEl.hidden = false;
-                errorEl.textContent = message;
-            }
-            showAlert(message, 'danger');
-        }
-
-        function hideLoading() {
-            if (loading) {
-                loading.hidden = true;
-                loading.setAttribute('aria-hidden', 'true');
-            }
-            if (progress) progress.style.width = '0%';
-            starting = false;
-            if (startBtn) startBtn.disabled = false;
-        }
-
-        function showLoading(msg) {
-            if (loading) {
-                loading.hidden = false;
-                loading.setAttribute('aria-hidden', 'false');
-            }
-            if (stepEl) stepEl.textContent = msg || 'Preparing your exam...';
-            if (progress) progress.style.width = '15%';
-        }
-
-        // Ensure overlay never sticks on first paint (CSS display can override [hidden]).
-        hideLoading();
-
-        function setProgress(pct, msg) {
-            if (progress) progress.style.width = Math.max(0, Math.min(100, pct)) + '%';
-            if (stepEl && msg) stepEl.textContent = msg;
-        }
-
-        document.getElementById('cx-request-permissions')?.addEventListener('click', async function () {
-            const result = await requestMedia(requireWebcam || requirePhoto, requireMic);
-            stream = result.stream;
-            if (requireWebcam) {
-                state.webcam = result.webcam;
-                setStatus(root, 'webcam', result.webcam);
-            }
-            if (requireMic) {
-                state.microphone = result.microphone;
-                setStatus(root, 'microphone', result.microphone);
-            }
-            if (stream && preview) {
-                preview.hidden = false;
-                preview.srcObject = stream;
-            }
-            if ((requireWebcam && result.webcam !== 'granted') || (requireMic && result.microphone !== 'granted')) {
-                showError('Permission denied. Please allow access in your browser settings and try again.');
+                errorEl.removeAttribute('hidden');
+                errorEl.textContent = msg;
             } else {
-                if (alertEl) alertEl.hidden = true;
-                if (errorEl) errorEl.hidden = true;
+                errorEl.hidden = true;
+                errorEl.setAttribute('hidden', 'hidden');
+                errorEl.textContent = '';
             }
-        });
-
-        document.getElementById('cx-request-fullscreen')?.addEventListener('click', async function () {
-            const ok = await requestFullscreen();
-            state.fullscreen = ok ? 'granted' : (requireFullscreen ? 'denied' : 'optional');
-            setStatus(root, 'fullscreen', state.fullscreen === 'granted' ? 'granted' : (requireFullscreen ? 'denied' : 'optional'));
-            if (!ok && requireFullscreen) {
-                showError('Fullscreen is required. Allow fullscreen and try again.');
-            }
-        });
-
-        document.getElementById('cx-capture-photo')?.addEventListener('click', async function () {
-            if (!stream) {
-                const result = await requestMedia(true, false);
-                stream = result.stream;
-                if (stream && preview) {
-                    preview.hidden = false;
-                    preview.srcObject = stream;
-                }
-            }
-            const canvas = document.getElementById('cx-snapshot-canvas');
-            if (!canvas || !preview || !stream) {
-                showError('Unable to capture photo. Allow webcam access first.');
-                return;
-            }
-            canvas.width = preview.videoWidth || 640;
-            canvas.height = preview.videoHeight || 480;
-            canvas.getContext('2d').drawImage(preview, 0, 0);
-            canvas.toBlob(function (blob) {
-                photoBlob = blob;
-                const img = document.getElementById('cx-photo-preview');
-                if (img && blob) {
-                    img.src = URL.createObjectURL(blob);
-                    img.hidden = false;
-                }
-            }, 'image/jpeg', 0.9);
-        });
-
-        cancelBtn?.addEventListener('click', function () {
-            if (abortController) abortController.abort();
-            hideLoading();
-            showAlert('Start cancelled. You can try again when ready.', 'info');
-        });
-
-        function validateReady() {
-            if (requireWebcam && state.webcam !== 'granted') return 'Webcam permission is required.';
-            if (requireMic && state.microphone !== 'granted') return 'Microphone permission is required.';
-            if (requireFullscreen && !document.fullscreenElement) return 'Fullscreen mode is required for this proctored exam.';
-            if (requirePhoto && !photoBlob) return 'Photo verification is required.';
-            return null;
         }
 
-        async function postStart(payload, isForm) {
-            abortController = new AbortController();
-            const timeout = window.setTimeout(function () { abortController.abort(); }, 45000);
-            const headers = {
-                Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken(),
-                'X-Requested-With': 'XMLHttpRequest',
-            };
-            const options = {
-                method: 'POST',
-                headers: headers,
-                credentials: 'same-origin',
-                signal: abortController.signal,
-                body: null,
-            };
-            if (isForm) {
-                options.body = payload;
-            } else {
-                headers['Content-Type'] = 'application/json';
-                options.body = JSON.stringify(payload);
-            }
+        function readinessMessage() {
+            var missing = [];
+            if ((requireWebcam || requireSelfie) && !state.webcam) missing.push('camera access');
+            if (requireMic && !state.microphone) missing.push('microphone access');
+            if (requireFullscreen && !state.fullscreen) missing.push('fullscreen');
+            if (requireSelfie && !state.selfie) missing.push('identity selfie');
+            if (!missing.length) return 'All required checks are complete. You can start the exam.';
+            return 'Start is disabled until you complete: ' + missing.join(', ') + '.';
+        }
 
+        function updateStartEnabled() {
+            var forceDisabled = startBtn && startBtn.getAttribute('data-force-disabled') === '1';
+            var ready = !forceDisabled && state.webcam && state.microphone && state.fullscreen && state.selfie;
+            if (startBtn) {
+                startBtn.disabled = !ready;
+                startBtn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+                if (!ready) startBtn.title = forceDisabled ? 'You cannot start this exam right now.' : readinessMessage();
+                else startBtn.removeAttribute('title');
+            }
+            if (readyEl) {
+                readyEl.textContent = forceDisabled
+                    ? 'Start is unavailable until eligibility issues are resolved.'
+                    : readinessMessage();
+                readyEl.dataset.state = ready ? 'ready' : 'blocked';
+            }
+            if (captureBtn) {
+                captureBtn.disabled = !state.webcam;
+            }
+        }
+
+        function stopStream(stream) {
+            if (!stream) return;
+            stream.getTracks().forEach(function (track) {
+                try { track.stop(); } catch (e) {}
+            });
+        }
+
+        function stopAllMedia() {
+            stopStream(state.videoStream);
+            stopStream(state.audioStream);
+            state.videoStream = null;
+            state.audioStream = null;
+            if (preview) {
+                preview.srcObject = null;
+                preview.hidden = true;
+                preview.setAttribute('hidden', 'hidden');
+            }
+            if (state.micTimer) {
+                clearInterval(state.micTimer);
+                state.micTimer = null;
+            }
+            if (state.audioCtx) {
+                try { state.audioCtx.close(); } catch (e) {}
+                state.audioCtx = null;
+            }
+        }
+
+        function showPreview(stream) {
+            if (!preview) return;
+            preview.srcObject = stream;
+            preview.muted = true;
+            preview.playsInline = true;
+            preview.hidden = false;
+            preview.removeAttribute('hidden');
+            var playPromise = preview.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(function () {});
+            }
+        }
+
+        async function waitForVideoFrame() {
+            if (!preview) return false;
+            if (preview.readyState >= 2 && preview.videoWidth > 0) return true;
+            return new Promise(function (resolve) {
+                var tries = 0;
+                var timer = setInterval(function () {
+                    tries += 1;
+                    if ((preview.readyState >= 2 && preview.videoWidth > 0) || tries > 40) {
+                        clearInterval(timer);
+                        resolve(preview.videoWidth > 0);
+                    }
+                }, 100);
+            });
+        }
+
+        async function requestCamera() {
+            var stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'user',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                },
+                audio: false,
+            });
+            stopStream(state.videoStream);
+            state.videoStream = stream;
+            showPreview(stream);
+            await waitForVideoFrame();
+            var track = stream.getVideoTracks()[0];
+            state.webcam = !!(track && track.readyState === 'live');
+            setStatus(root, 'webcam', state.webcam ? 'granted' : 'denied');
+            return state.webcam;
+        }
+
+        async function requestMicrophone() {
+            var stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                },
+                video: false,
+            });
+            stopStream(state.audioStream);
+            state.audioStream = stream;
+            var track = stream.getAudioTracks()[0];
+            if (!track) {
+                state.microphone = false;
+                setStatus(root, 'microphone', 'denied');
+                return false;
+            }
+            await verifyMicLevel(stream);
+            return state.microphone;
+        }
+
+        async function verifyMicLevel(stream) {
             try {
-                const response = await fetch(startUrl, options);
-                const contentType = response.headers.get('content-type') || '';
-                let data = null;
-                let rawText = '';
-                if (contentType.indexOf('application/json') !== -1) {
-                    data = await response.json();
-                } else {
-                    rawText = await response.text();
-                }
-                if (!response.ok) {
-                    throw new Error(firstError(data, rawText
-                        ? ('Unable to start exam (' + response.status + ').')
-                        : ('Unable to start exam (' + response.status + ').')));
-                }
-                if (!data || !data.redirect) {
-                    throw new Error(firstError(data, 'Exam start succeeded but no redirect was returned.'));
-                }
-                return data;
-            } finally {
-                window.clearTimeout(timeout);
-            }
-        }
-
-        startBtn?.addEventListener('click', async function () {
-            if (starting) return;
-            if (errorEl) errorEl.hidden = true;
-            if (alertEl) alertEl.hidden = true;
-
-            if (suggestFullscreen && !document.fullscreenElement) {
-                await requestFullscreen();
-            }
-
-            if (requireFullscreen && !document.fullscreenElement) {
-                const ok = await requestFullscreen();
-                if (!ok) {
-                    showError('Fullscreen mode is required for this proctored exam.');
+                var AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) {
+                    state.microphone = true;
+                    setStatus(root, 'microphone', 'granted');
                     return;
                 }
-                state.fullscreen = 'granted';
-                setStatus(root, 'fullscreen', 'granted');
+                state.audioCtx = new AudioCtx();
+                if (state.audioCtx.state === 'suspended') {
+                    await state.audioCtx.resume();
+                }
+                var source = state.audioCtx.createMediaStreamSource(stream);
+                var analyser = state.audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                var data = new Uint8Array(analyser.frequencyBinCount);
+                var heard = false;
+                var tries = 0;
+                if (micLevel) {
+                    micLevel.hidden = false;
+                    micLevel.removeAttribute('hidden');
+                    micLevel.textContent = 'Speak briefly to confirm microphone…';
+                }
+                await new Promise(function (resolve) {
+                    state.micTimer = setInterval(function () {
+                        analyser.getByteFrequencyData(data);
+                        var sum = 0;
+                        for (var i = 0; i < data.length; i += 1) sum += data[i];
+                        var avg = sum / data.length;
+                        tries += 1;
+                        if (avg > 4) heard = true;
+                        if (heard || tries > 30) {
+                            clearInterval(state.micTimer);
+                            state.micTimer = null;
+                            resolve();
+                        }
+                    }, 100);
+                });
+                // Track exists => grant even in a silent room.
+                state.microphone = true;
+                setStatus(root, 'microphone', 'granted');
+                if (micLevel) {
+                    micLevel.textContent = heard
+                        ? 'Microphone ready (audio detected).'
+                        : 'Microphone ready. No speech detected, but the mic is available.';
+                }
+            } catch (e) {
+                state.microphone = !!(stream && stream.getAudioTracks().length);
+                setStatus(root, 'microphone', state.microphone ? 'granted' : 'denied');
+            }
+        }
+
+        async function requestMedia() {
+            if (state.requesting) return;
+            state.requesting = true;
+            showError('');
+            if (permBtn) {
+                permBtn.disabled = true;
+                permBtn.textContent = 'Requesting…';
             }
 
-            const blocked = validateReady();
-            if (blocked) {
-                showError(blocked);
+            try {
+                if (!supportsMedia()) {
+                    throw Object.assign(new Error('Media devices API is unavailable in this browser.'), { name: 'TypeError' });
+                }
+                if (!window.isSecureContext) {
+                    throw Object.assign(new Error('Camera/mic require a secure context.'), { name: 'SecurityError' });
+                }
+
+                var needVideo = requireWebcam || requireSelfie;
+                var messages = [];
+
+                if (needVideo) {
+                    setStatus(root, 'webcam', 'waiting');
+                    try {
+                        await requestCamera();
+                    } catch (err) {
+                        state.webcam = false;
+                        setStatus(root, 'webcam', err && err.name === 'NotFoundError' ? 'missing' : 'denied');
+                        messages.push(mediaErrorMessage(err, 'video'));
+                    }
+                }
+
+                if (requireMic) {
+                    setStatus(root, 'microphone', 'waiting');
+                    try {
+                        await requestMicrophone();
+                    } catch (err) {
+                        state.microphone = false;
+                        setStatus(root, 'microphone', err && err.name === 'NotFoundError' ? 'missing' : 'denied');
+                        messages.push(mediaErrorMessage(err, 'audio'));
+                    }
+                }
+
+                if (messages.length) {
+                    showError(messages.join(' '));
+                } else {
+                    showError('');
+                }
+            } catch (err) {
+                showError(mediaErrorMessage(err, requireMic && !(requireWebcam || requireSelfie) ? 'audio' : 'video'));
+            } finally {
+                state.requesting = false;
+                if (permBtn) {
+                    permBtn.disabled = false;
+                    permBtn.textContent = 'Allow camera / mic';
+                }
+                updateStartEnabled();
+            }
+        }
+
+        async function requestFullscreen() {
+            showError('');
+            try {
+                var el = document.documentElement;
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    state.fullscreen = true;
+                    setStatus(root, 'fullscreen', 'granted');
+                    updateStartEnabled();
+                    return;
+                }
+                if (el.requestFullscreen) {
+                    await el.requestFullscreen();
+                } else if (el.webkitRequestFullscreen) {
+                    await el.webkitRequestFullscreen();
+                } else {
+                    throw new Error('Fullscreen is not supported in this browser.');
+                }
+                state.fullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                setStatus(root, 'fullscreen', state.fullscreen ? 'granted' : 'denied');
+                if (!state.fullscreen) {
+                    showError('Fullscreen did not activate. Try again or use F11, then click Enter fullscreen.');
+                }
+            } catch (e) {
+                state.fullscreen = false;
+                setStatus(root, 'fullscreen', 'denied');
+                showError((e && e.message) || 'Unable to enter fullscreen. Allow fullscreen when prompted and retry.');
+            }
+            updateStartEnabled();
+        }
+
+        document.addEventListener('fullscreenchange', function () {
+            if (!requireFullscreen) return;
+            state.fullscreen = !!document.fullscreenElement;
+            setStatus(root, 'fullscreen', state.fullscreen ? 'granted' : 'required');
+            updateStartEnabled();
+        });
+
+        async function captureSelfie() {
+            showError('');
+            if (!state.webcam || !state.videoStream) {
+                showError('Allow camera access first, then capture your selfie.');
+                return;
+            }
+            if (!preview || !canvas) {
+                showError('Camera preview is unavailable. Allow camera again and retry.');
+                return;
+            }
+            var ready = await waitForVideoFrame();
+            if (!ready) {
+                showError('Camera preview is still loading. Wait a moment and try Capture selfie again.');
                 return;
             }
 
-            starting = true;
-            startBtn.disabled = true;
-            showLoading('Preparing your exam...');
+            canvas.width = preview.videoWidth || 640;
+            canvas.height = preview.videoHeight || 480;
+            var ctx = canvas.getContext('2d');
+            if (!ctx) {
+                showError('Could not capture selfie on this browser.');
+                return;
+            }
+            ctx.drawImage(preview, 0, 0, canvas.width, canvas.height);
 
-            const preferences = {
-                theme: document.getElementById('pref-theme')?.value || 'light',
-                font_size: document.getElementById('pref-font')?.value || 'md',
-                language: document.getElementById('pref-lang')?.value || 'en',
-                palette_position: document.getElementById('pref-palette')?.value || 'right',
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            var blob = await new Promise(function (resolve) {
+                if (canvas.toBlob) {
+                    canvas.toBlob(resolve, 'image/jpeg', 0.92);
+                } else {
+                    resolve(null);
+                }
+            });
+            if (!blob) {
+                showError('Could not capture selfie. Try again.');
+                return;
+            }
+
+            state.photoBlob = blob;
+            state.selfie = true;
+            if (photoPreview) {
+                if (photoPreview.src && photoPreview.src.indexOf('blob:') === 0) {
+                    try { URL.revokeObjectURL(photoPreview.src); } catch (e) {}
+                }
+                photoPreview.src = URL.createObjectURL(blob);
+                photoPreview.hidden = false;
+                photoPreview.removeAttribute('hidden');
+            }
+            setStatus(root, 'selfie', 'captured');
+            if (retakeBtn) {
+                retakeBtn.hidden = false;
+                retakeBtn.removeAttribute('hidden');
+            }
+            if (captureBtn) captureBtn.textContent = 'Selfie captured';
+
+            if (verifyUrl && challengeToken) {
+                var form = new FormData();
+                form.append('_token', csrfToken());
+                form.append('challenge_token', challengeToken);
+                form.append('completed_checks[]', 'selfie');
+                form.append('completed_checks[]', 'webcam');
+                form.append('selfie', blob, 'verification.jpg');
+                try {
+                    var res = await fetch(verifyUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: form,
+                        credentials: 'same-origin',
+                    });
+                    if (!res.ok) {
+                        var payload = await res.json().catch(function () { return {}; });
+                        showError(firstError(payload, 'Selfie captured locally, but server verification failed. You can still retry Start.'));
+                    }
+                } catch (e) {
+                    // Local capture still valid for UI; server re-checks on start.
+                }
+            }
+            updateStartEnabled();
+        }
+
+        function validateReady() {
+            if ((requireWebcam || requireSelfie) && !state.webcam) return 'Camera access is required.';
+            if (requireMic && !state.microphone) return 'Microphone access is required.';
+            if (requireFullscreen && !state.fullscreen) return 'Fullscreen is required.';
+            if (requireSelfie && (!state.selfie || !state.photoBlob)) return 'Capture a live selfie before starting.';
+            return '';
+        }
+
+        async function postStart(body, isForm) {
+            abortController = new AbortController();
+            var timer = setTimeout(function () { abortController.abort(); }, 45000);
+            try {
+                var headers = {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                };
+                if (!isForm) {
+                    headers['Content-Type'] = 'application/json';
+                    headers['X-CSRF-TOKEN'] = csrfToken();
+                }
+                var res = await fetch(startUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: isForm ? body : JSON.stringify(body),
+                    credentials: 'same-origin',
+                    signal: abortController.signal,
+                });
+                var data = await res.json().catch(function () { return {}; });
+                if (!res.ok) throw new Error(firstError(data, 'Unable to start exam.'));
+                return data;
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        function setLoading(on, step, pct) {
+            if (!loading) return;
+            if (on) {
+                loading.hidden = false;
+                loading.removeAttribute('hidden');
+            } else {
+                loading.hidden = true;
+                loading.setAttribute('hidden', 'hidden');
+            }
+            if (loadingStep && step) loadingStep.textContent = step;
+            if (progressBar && typeof pct === 'number') progressBar.style.width = pct + '%';
+        }
+
+        async function startExam() {
+            showError('');
+            var err = validateReady();
+            if (err) {
+                showError(err);
+                updateStartEnabled();
+                return;
+            }
+
+            setLoading(true, 'Validating requirements…', 20);
+            var device = deviceMeta(sessionToken);
+            var checks = {
+                webcam: !!state.webcam,
+                microphone: !!state.microphone,
+                fullscreen: !!state.fullscreen,
+                selfie: !!state.selfie,
             };
-            const device = deviceMeta();
-
-            const steps = [
-                [25, 'Fetching questions...'],
-                [45, 'Generating question order...'],
-                [65, 'Applying exam rules...'],
-                [80, 'Finalizing session...'],
-            ];
-            let stepIndex = 0;
-            const stepTimer = window.setInterval(function () {
-                if (stepIndex >= steps.length) return;
-                setProgress(steps[stepIndex][0], steps[stepIndex][1]);
-                stepIndex += 1;
-            }, 400);
 
             try {
-                let data;
-                if (photoBlob) {
-                    const form = new FormData();
+                setLoading(true, 'Creating attempt…', 55);
+                var data;
+                if (requireSelfie && state.photoBlob) {
+                    var form = new FormData();
                     form.append('_token', csrfToken());
-                    Object.keys(preferences).forEach(function (key) {
-                        form.append('preferences[' + key + ']', preferences[key]);
-                    });
+                    form.append('challenge_token', challengeToken);
                     Object.keys(device).forEach(function (key) {
                         form.append('device[' + key + ']', device[key]);
                     });
-                    form.append('photo', photoBlob, 'verification.jpg');
+                    Object.keys(checks).forEach(function (key) {
+                        form.append('checks[' + key + ']', checks[key] ? '1' : '0');
+                    });
+                    form.append('selfie', state.photoBlob, 'verification.jpg');
                     data = await postStart(form, true);
                 } else {
-                    data = await postStart({ preferences: preferences, device: device }, false);
+                    data = await postStart({
+                        challenge_token: challengeToken,
+                        device: device,
+                        checks: checks,
+                    }, false);
                 }
 
-                window.clearInterval(stepTimer);
-                setProgress(100, 'Opening exam...');
-                if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
-                window.location.assign(data.redirect);
+                setLoading(true, 'Opening exam…', 90);
+                await mountRunnerFromStart(data);
             } catch (e) {
-                window.clearInterval(stepTimer);
-                const message = (e && e.name === 'AbortError')
-                    ? 'Request timed out or was cancelled. Please try again.'
-                    : ((e && e.message) || 'Unable to start exam.');
-                showError(message);
+                setLoading(false);
+                showError(e && e.name === 'AbortError' ? 'Start timed out. Please retry.' : (e.message || 'Unable to start exam.'));
             }
+        }
+
+        async function mountRunnerFromStart(data) {
+            var host = document.getElementById('cx-runner-host');
+            var startedUrl = (data && data.started_url) || root.getAttribute('data-started-url') || '';
+            var html = data && data.runner_html;
+
+            if (!host || !html) {
+                stopAllMedia();
+                if (data && data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                throw new Error('Exam shell could not be loaded. Please refresh and try again.');
+            }
+
+            if (typeof window.__cxDestroyExam === 'function') {
+                try { window.__cxDestroyExam(); } catch (e) {}
+            }
+
+            host.innerHTML = html;
+            host.hidden = false;
+            host.removeAttribute('hidden');
+            host.setAttribute('aria-hidden', 'false');
+
+            var examRoot = host.querySelector('#cx-exam');
+            if (!examRoot) {
+                throw new Error('Exam interface is incomplete. Please refresh and try again.');
+            }
+
+            examRoot.classList.add('cx-exam--overlay', 'is-active');
+            document.body.classList.add('is-exam-running');
+
+            if (startedUrl && window.history && window.history.replaceState) {
+                try {
+                    window.history.replaceState({ examStarted: true }, '', startedUrl);
+                } catch (e) {}
+            }
+
+            // Hand webcam off to the runner after mount so prepare stream can stop cleanly.
+            stopAllMedia();
+
+            if (typeof window.__cxMountExam !== 'function') {
+                throw new Error('Exam scripts are still loading. Please wait a moment and retry.');
+            }
+
+            window.__cxMountExam(examRoot);
+            setLoading(false);
+
+            if (root) {
+                root.setAttribute('aria-hidden', 'true');
+                root.style.pointerEvents = 'none';
+            }
+        }
+
+        if (permBtn) permBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            requestMedia();
         });
+        if (fsBtn) fsBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            requestFullscreen();
+        });
+        if (captureBtn) captureBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            captureSelfie();
+        });
+        if (retakeBtn) retakeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            state.photoBlob = null;
+            state.selfie = false;
+            if (photoPreview) {
+                photoPreview.hidden = true;
+                photoPreview.setAttribute('hidden', 'hidden');
+            }
+            setStatus(root, 'selfie', 'required');
+            if (captureBtn) captureBtn.textContent = 'Capture selfie';
+            retakeBtn.hidden = true;
+            retakeBtn.setAttribute('hidden', 'hidden');
+            updateStartEnabled();
+        });
+        if (startBtn) startBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            startExam();
+        });
+        var cancelBtn = document.getElementById('cx-cancel-start');
+        if (cancelBtn) cancelBtn.addEventListener('click', function () {
+            if (abortController) abortController.abort();
+            setLoading(false);
+        });
+        if (helpBtn && helpPanel) {
+            helpBtn.addEventListener('click', function () {
+                var open = helpPanel.hasAttribute('hidden');
+                if (open) {
+                    helpPanel.removeAttribute('hidden');
+                    helpBtn.setAttribute('aria-expanded', 'true');
+                } else {
+                    helpPanel.setAttribute('hidden', 'hidden');
+                    helpBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        if (root.getAttribute('data-block-context') === '1') {
+            setStatus(root, 'browser_lock', 'info');
+        }
+
+        updateStartEnabled();
     });
 })();

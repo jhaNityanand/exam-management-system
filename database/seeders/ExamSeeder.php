@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Exam;
 use App\Models\ExamCategory;
-use App\Models\ExamProctoringPolicy;
 use App\Models\Organization;
 use App\Models\Question;
 use App\Models\QuestionCategory;
@@ -154,17 +153,7 @@ HTML,
                 'timezone' => 'Asia/Kolkata',
                 'demo_enabled' => true,
                 'result_release_mode' => 'immediate',
-                'proctoring' => [
-                    'require_webcam' => false,
-                    'require_microphone' => false,
-                    'require_fullscreen' => false,
-                    'require_photo_verification' => false,
-                    'detect_tab_switch' => true,
-                    'focus_violation_limit' => 3,
-                    'focus_violation_action' => 'warn',
-                    'auto_submit_on_violation' => false,
-                    'block_copy_paste' => true,
-                ],
+                'proctoring' => [],
                 'schema_markup' => json_encode([
                     '@context' => 'https://schema.org',
                     '@type' => 'Quiz',
@@ -200,14 +189,7 @@ HTML,
                 'shuffle_questions' => true,
                 'shuffle_options' => true,
                 'tags' => ['paid', 'aptitude', 'practice'],
-                'proctoring' => [
-                    'require_webcam' => false,
-                    'require_microphone' => false,
-                    'require_fullscreen' => false,
-                    'detect_tab_switch' => true,
-                    'focus_violation_limit' => 5,
-                    'focus_violation_action' => 'warn',
-                ],
+                'proctoring' => [],
             ],
             [
                 'title' => 'Primary Interview',
@@ -260,17 +242,17 @@ HTML,
                 'language' => 'en',
                 'timezone' => 'Asia/Kolkata',
                 'result_release_mode' => 'manual',
-                'proctoring' => [
-                    'require_webcam' => true,
-                    'require_microphone' => true,
-                    'require_fullscreen' => true,
-                    'require_photo_verification' => true,
-                    'detect_tab_switch' => true,
-                    'focus_violation_limit' => 2,
-                    'focus_violation_action' => 'auto_submit',
-                    'auto_submit_on_violation' => true,
-                    'block_copy_paste' => true,
+                'instruction_rules' => [
+                    'fullscreen_required',
+                    'webcam_monitoring_enabled',
+                    'microphone_required',
+                    'id_verification_required',
+                    'tab_switch_autosubmit',
+                    'disable_copy_paste',
+                    'block_devtools_and_context_menu',
+                    'no_screenshots',
                 ],
+                'proctoring' => [],
             ],
             [
                 'title' => 'PHP Backend Technical Screening',
@@ -842,23 +824,10 @@ HTML,
             'ai_improve' => false,
         ]);
 
-        $proctoring = array_merge([
-            'require_webcam' => $config['exam_mode'] === 'proctored',
-            'require_microphone' => $config['exam_mode'] === 'proctored',
-            'require_fullscreen' => $config['exam_mode'] === 'proctored',
-            'require_photo_verification' => false,
-            'require_identity_verification' => false,
-            'block_copy_paste' => false,
-            'detect_tab_switch' => true,
-            'focus_violation_limit' => 3,
-            'focus_violation_action' => 'warn',
-            'auto_submit_on_violation' => false,
-        ], is_array($config['proctoring'] ?? null) ? $config['proctoring'] : []);
-
-        ExamProctoringPolicy::query()->updateOrCreate(
-            ['exam_id' => $exam->id],
-            $proctoring
-        );
+        $proctoring = app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam);
+        if (is_array($config['proctoring'] ?? null) && $config['proctoring'] !== []) {
+            $proctoring->fill($config['proctoring'])->save();
+        }
 
         $exam->selectedQuestionCategories()->sync($questionCategoryIds);
 
@@ -973,6 +942,8 @@ HTML,
             'id_verification_required',
             'suspicious_activity_flagged',
             'no_screenshots',
+            'microphone_required',
+            'block_devtools_and_context_menu',
         ];
     }
 

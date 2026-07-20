@@ -40,6 +40,7 @@ class QuestionCategorySeeder extends Seeder
                 'slug' => $item['slug'],
                 'description' => $item['description'],
                 'status' => 'active',
+                'is_public' => true,
                 'sort_order' => $sort++,
                 'created_by' => $editor->id,
                 'meta_title' => Str::limit($item['name'].' Question Bank', 255, ''),

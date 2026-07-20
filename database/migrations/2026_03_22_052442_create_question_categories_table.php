@@ -19,7 +19,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->nullable();
             $table->text('description')->nullable();
+            $table->string('icon')->nullable();
+            $table->string('image_path')->nullable();
             $table->string('status')->default('active'); // active | inactive | suspended
+            $table->boolean('is_public')->default(true);
             $table->unsignedInteger('sort_order')->default(0);
 
             $table->string('meta_title')->nullable();

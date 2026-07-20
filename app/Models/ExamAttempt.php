@@ -52,7 +52,9 @@ class ExamAttempt extends Model
         'answers',
         'exam_config_snapshot',
         'preferences_snapshot',
+        'policy_snapshot',
         'device_meta',
+        'session_token',
     ];
 
     protected function casts(): array
@@ -62,6 +64,7 @@ class ExamAttempt extends Model
             'answers' => 'array',
             'exam_config_snapshot' => 'array',
             'preferences_snapshot' => 'array',
+            'policy_snapshot' => 'array',
             'device_meta' => 'array',
             'updated_by_history' => 'array',
             'started_at' => 'datetime',

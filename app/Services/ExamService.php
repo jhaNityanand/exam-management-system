@@ -186,6 +186,7 @@ class ExamService
             $this->syncQuestions($exam, $ids);
             $exam->selectedQuestionCategories()->sync($selectedCats);
             $this->syncGalleryMedia($exam);
+            app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam);
 
             return $exam->fresh(['questions']);
         });
@@ -226,6 +227,7 @@ class ExamService
             }
 
             $this->syncGalleryMedia($exam->fresh());
+            app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam->fresh());
 
             return $exam->fresh(['questions']);
         });

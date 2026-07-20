@@ -26,6 +26,9 @@ return new class extends Migration
             $table->json('exam_format')->nullable();
             $table->string('difficulty_level')->nullable(); // easy | medium | hard
             $table->string('visibility')->default('public'); // public | private | invite_only
+            $table->boolean('demo_enabled')->default(false);
+            $table->string('language', 16)->default('en');
+            $table->string('timezone', 64)->default('UTC');
             $table->string('pricing_option')->default('free'); // free | paid | free_for_imported
             $table->string('exam_currency', 10)->nullable();
             $table->decimal('exam_amount', 12, 2)->nullable();
@@ -44,6 +47,7 @@ return new class extends Migration
             $table->string('schedule_type')->default('any_time'); // any_time | fixed_window
             $table->timestamp('scheduled_start')->nullable();
             $table->timestamp('scheduled_end')->nullable();
+            $table->timestamp('registration_deadline')->nullable();
 
             // Attempts
             $table->string('attempt_limit_type')->default('once'); // once | fixed | unlimited
@@ -53,6 +57,8 @@ return new class extends Migration
             $table->decimal('pass_percentage', 5, 2)->default(50);
             $table->unsignedSmallInteger('total_marks')->nullable();
             $table->unsignedSmallInteger('passing_marks')->nullable();
+            $table->string('result_release_mode', 32)->default('immediate');
+            $table->timestamp('result_release_at')->nullable();
             $table->decimal('negative_mark_per_question', 8, 4)->default(0);
             $table->boolean('enable_negative_marking')->default(false);
             $table->string('negative_marking_type')->nullable(); // 25 | 33.33 | 50 | 100 (percent)
@@ -94,8 +100,9 @@ return new class extends Migration
             $table->string('canonical_url')->nullable();
             $table->string('og_title')->nullable();
             $table->text('og_description')->nullable();
-            // FK added after galleries table exists (see create_galleries_table).
+            // FKs added after galleries table exists (see create_galleries_table).
             $table->foreignId('og_image_id')->nullable();
+            $table->foreignId('banner_image_id')->nullable();
             $table->string('robots')->default('index,follow');
             $table->text('schema_markup')->nullable();
 

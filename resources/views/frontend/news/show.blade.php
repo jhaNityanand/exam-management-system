@@ -15,12 +15,14 @@
         'image' => $article->ogImage->file_url ?? $banner,
         'type' => 'article',
     ];
+    $shareUrl = urlencode(url()->current());
+    $shareText = urlencode($article->title);
 @endphp
 
 @section('content')
-    <article>
+    <article class="et-article">
         <div class="et-page-hero">
-            <div class="et-container" style="max-width:820px;margin-inline:auto">
+            <div class="et-container et-article__wrap">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
                     ['label' => 'Home', 'url' => route('home')],
                     ['label' => 'News', 'url' => route('frontend.news.index')],
@@ -45,31 +47,50 @@
             </div>
         </div>
 
-        <div class="et-container" style="max-width:820px;margin-inline:auto;padding-bottom:3rem">
+        <div class="et-container et-article__wrap et-section">
             @if($banner)
                 <div class="et-article-banner">
-                    <img src="{{ $banner }}" alt="">
+                    <img src="{{ $banner }}" alt="{{ $article->title }}" loading="lazy" width="820" height="420">
                 </div>
             @endif
 
             @php $summary = $article->short_description ?? $article->excerpt; @endphp
             @if($summary)
-                <p style="font-size:1.15rem;color:var(--et-text-muted);margin:0 0 1.25rem">{{ $summary }}</p>
+                <p class="et-article__lead">{{ $summary }}</p>
             @endif
 
+            @include('frontend.partials.article-toc', ['content' => $article->content])
+
             <div class="et-prose">
-                {!! $article->content !!}
+                {!! $processedContent ?? $article->content !!}
             </div>
 
-            @if(($related ?? collect())->isNotEmpty())
-                <section style="margin-top:2.5rem">
+            <div class="et-share">
+                <span>Share</span>
+                <a href="https://twitter.com/intent/tweet?url={{ $shareUrl }}&text={{ $shareText }}" target="_blank" rel="noopener">X</a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl }}" target="_blank" rel="noopener">Facebook</a>
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $shareUrl }}" target="_blank" rel="noopener">LinkedIn</a>
+                <a href="https://wa.me/?text={{ $shareText }}%20{{ $shareUrl }}" target="_blank" rel="noopener">WhatsApp</a>
+            </div>
+
+            @if(($article->tags ?? collect())->isNotEmpty())
+                <div class="et-tag-cloud">
+                    @foreach($article->tags as $tag)
+                        <a href="{{ route('frontend.news.tag', $tag->slug) }}">#{{ $tag->name }}</a>
+                    @endforeach
+                </div>
+            @endif
+
+            @php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
+            @if($relatedItems->isNotEmpty())
+                <aside class="et-related-rail">
                     @include('frontend.components.section-heading', ['title' => 'More news', 'subtitle' => ''])
                     <div class="et-grid et-grid--2">
-                        @foreach($related as $item)
+                        @foreach($relatedItems as $item)
                             @include('frontend.components.news-card', ['news' => $item])
                         @endforeach
                     </div>
-                </section>
+                </aside>
             @endif
         </div>
     </article>

@@ -8,8 +8,10 @@ use App\Models\Blog;
 use App\Models\Exam;
 use App\Models\ExamCategory;
 use App\Models\News;
+use App\Models\Question;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class SearchController extends Controller
@@ -25,6 +27,7 @@ class SearchController extends Controller
         $blogs = collect();
         $news = collect();
         $categories = collect();
+        $questions = collect();
 
         if ($term !== '') {
             $like = '%'.$term.'%';
@@ -80,15 +83,30 @@ class SearchController extends Controller
                 ->orderBy('name')
                 ->limit(20)
                 ->get(['id', 'name', 'slug', 'description']);
+
+            $questions = Question::query()
+                ->publiclyVisible()
+                ->when($orgId, fn ($q) => $q->forOrg($orgId))
+                ->where(function ($q) use ($like) {
+                    $q->where('title', 'like', $like)
+                        ->orWhere('body', 'like', $like)
+                        ->orWhere('slug', 'like', $like)
+                        ->orWhere('reference', 'like', $like);
+                })
+                ->with(['category:id,name,slug'])
+                ->latest('id')
+                ->paginate((int) $request->input('per_page', 10), ['*'], 'question_page')
+                ->withQueryString();
         }
 
         if ($this->wantsFrontendJson($request)) {
             return response()->json([
                 'data' => [
-                    'exams' => $term !== '' ? $exams->items() : [],
-                    'blogs' => $term !== '' ? $blogs->items() : [],
-                    'news' => $term !== '' ? $news->items() : [],
-                    'categories' => $categories,
+                    'exams' => $term !== '' ? $this->mapExams($exams->getCollection()) : [],
+                    'blogs' => $term !== '' ? $this->mapBlogs($blogs->getCollection()) : [],
+                    'news' => $term !== '' ? $this->mapNews($news->getCollection()) : [],
+                    'categories' => $this->mapCategories($categories),
+                    'questions' => $term !== '' ? $this->mapQuestions($questions->getCollection()) : [],
                 ],
                 'meta' => [
                     'q' => $term,
@@ -107,6 +125,11 @@ class SearchController extends Controller
                         'last_page' => $news->lastPage(),
                         'total' => $news->total(),
                     ] : ['total' => 0],
+                    'questions' => $term !== '' ? [
+                        'current_page' => $questions->currentPage(),
+                        'last_page' => $questions->lastPage(),
+                        'total' => $questions->total(),
+                    ] : ['total' => 0],
                 ],
             ]);
         }
@@ -117,6 +140,7 @@ class SearchController extends Controller
             'blogs' => $blogs,
             'news' => $news,
             'categories' => $categories,
+            'questions' => $questions,
         ]);
     }
 
@@ -132,6 +156,7 @@ class SearchController extends Controller
                     'blogs' => [],
                     'news' => [],
                     'categories' => [],
+                    'questions' => [],
                 ],
             ]);
         }
@@ -178,13 +203,106 @@ class SearchController extends Controller
             ->limit(5)
             ->get(['id', 'name', 'slug']);
 
+        $questions = Question::query()
+            ->publiclyVisible()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where(function ($q) use ($like) {
+                $q->where('title', 'like', $like)
+                    ->orWhere('slug', 'like', $like)
+                    ->orWhere('body', 'like', $like);
+            })
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get(['id', 'title', 'slug', 'difficulty', 'category_id']);
+
         return response()->json([
             'data' => [
-                'exams' => $exams,
-                'blogs' => $blogs,
-                'news' => $news,
-                'categories' => $categories,
+                'exams' => $this->mapExams($exams),
+                'blogs' => $this->mapBlogs($blogs),
+                'news' => $this->mapNews($news),
+                'categories' => $this->mapCategories($categories),
+                'questions' => $this->mapQuestions($questions),
             ],
         ]);
+    }
+
+    /**
+     * @param  Collection<int, Exam>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function mapExams(Collection $items): array
+    {
+        return $items->map(fn (Exam $exam) => [
+            'id' => $exam->id,
+            'title' => $exam->title,
+            'slug' => $exam->slug,
+            'url' => route('frontend.exams.show', $exam),
+            'href' => route('frontend.exams.show', $exam),
+            'difficulty_level' => $exam->difficulty_level,
+        ])->values()->all();
+    }
+
+    /**
+     * @param  Collection<int, Blog>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function mapBlogs(Collection $items): array
+    {
+        return $items->map(fn (Blog $blog) => [
+            'id' => $blog->id,
+            'title' => $blog->title,
+            'slug' => $blog->slug,
+            'url' => route('frontend.blogs.show', $blog),
+            'href' => route('frontend.blogs.show', $blog),
+            'excerpt' => $blog->excerpt,
+        ])->values()->all();
+    }
+
+    /**
+     * @param  Collection<int, News>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function mapNews(Collection $items): array
+    {
+        return $items->map(fn (News $item) => [
+            'id' => $item->id,
+            'title' => $item->title,
+            'slug' => $item->slug,
+            'url' => route('frontend.news.show', $item),
+            'href' => route('frontend.news.show', $item),
+            'excerpt' => $item->excerpt,
+        ])->values()->all();
+    }
+
+    /**
+     * @param  Collection<int, ExamCategory>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function mapCategories(Collection $items): array
+    {
+        return $items->map(fn (ExamCategory $category) => [
+            'id' => $category->id,
+            'name' => $category->name,
+            'title' => $category->name,
+            'slug' => $category->slug,
+            'url' => route('frontend.categories.show', $category),
+            'href' => route('frontend.categories.show', $category),
+        ])->values()->all();
+    }
+
+    /**
+     * @param  Collection<int, Question>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function mapQuestions(Collection $items): array
+    {
+        return $items->map(fn (Question $question) => [
+            'id' => $question->id,
+            'title' => $question->publicTitle(),
+            'slug' => $question->slug,
+            'url' => route('frontend.questions.show', $question),
+            'href' => route('frontend.questions.show', $question),
+            'difficulty' => $question->difficulty,
+        ])->values()->all();
     }
 }

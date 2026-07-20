@@ -37,7 +37,11 @@
                 <span class="et-badge et-badge--slate">{{ ucfirst(str_replace('_', ' ', (string) $exam->visibility)) }}</span>
             </div>
             <h1>{{ $exam->title }}</h1>
-            <p class="et-muted" style="margin:0">Slug: <code>{{ $exam->slug }}</code></p>
+            @if($exam->short_description ?? false)
+                <p>{{ $exam->short_description }}</p>
+            @elseif($exam->description)
+                <p>{{ \Illuminate\Support\Str::limit(strip_tags((string) $exam->description), 160) }}</p>
+            @endif
         </div>
     </div>
 
@@ -104,9 +108,6 @@
                     <a href="{{ route('register', ['redirect' => $returnUrl]) }}"
                        class="et-btn et-btn--ghost js-store-return"
                        data-return-url="{{ $returnUrl }}">Register</a>
-                    @if($exam->demo_enabled)
-                        <a href="{{ route('frontend.exams.show', $exam) }}#demo" class="et-btn et-btn--ghost">View Demo</a>
-                    @endif
                     @if(! $isFree)
                         <a href="{{ route('login', ['redirect' => $returnUrl]) }}"
                            class="et-btn et-btn--ghost js-store-return"
@@ -114,7 +115,7 @@
                     @endif
                 @else
                     @if(! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']))
-                        <a href="{{ route('frontend.attempts.show', $evaluation['active_attempt_id']) }}" class="et-btn et-btn--primary">Continue Exam</a>
+                        <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
                     @elseif(empty($evaluation['requires_payment']))
                         <a href="{{ route('frontend.exams.rules', $exam) }}" class="et-btn et-btn--primary">Attempt Exam</a>
                     @endif
@@ -126,10 +127,6 @@
 
                     @if($previousAttempts->isNotEmpty())
                         <a href="#previous-attempts" class="et-btn et-btn--ghost">View Previous Attempts</a>
-                    @endif
-
-                    @if($exam->demo_enabled)
-                        <a href="{{ route('frontend.exams.show', $exam) }}#demo" class="et-btn et-btn--ghost">View Demo</a>
                     @endif
                 @endauth
             </div>

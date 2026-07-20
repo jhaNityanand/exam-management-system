@@ -15,12 +15,14 @@
         'image' => $blog->ogImage->file_url ?? $banner,
         'type' => 'article',
     ];
+    $shareUrl = urlencode(url()->current());
+    $shareText = urlencode($blog->title);
 @endphp
 
 @section('content')
-    <article>
+    <article class="et-article">
         <div class="et-page-hero">
-            <div class="et-container" style="max-width:820px;margin-inline:auto">
+            <div class="et-container et-article__wrap">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
                     ['label' => 'Home', 'url' => route('home')],
                     ['label' => 'Blogs', 'url' => route('frontend.blogs.index')],
@@ -40,41 +42,52 @@
             </div>
         </div>
 
-        <div class="et-container" style="max-width:820px;margin-inline:auto;padding-bottom:3rem">
+        <div class="et-container et-article__wrap et-section">
             @if($banner)
                 <div class="et-article-banner">
-                    <img src="{{ $banner }}" alt="">
+                    <img src="{{ $banner }}" alt="{{ $blog->title }}" loading="lazy" width="820" height="420">
                 </div>
             @endif
 
             @if($blog->excerpt)
-                <p style="font-size:1.15rem;color:var(--et-text-muted);margin:0 0 1.25rem">{{ $blog->excerpt }}</p>
+                <p class="et-article__lead">{{ $blog->excerpt }}</p>
             @endif
 
+            @include('frontend.partials.article-toc', ['content' => $blog->content])
+
             <div class="et-prose">
-                {!! $blog->content !!}
+                {!! $processedContent ?? $blog->content !!}
+            </div>
+
+            <div class="et-share">
+                <span>Share</span>
+                <a href="https://twitter.com/intent/tweet?url={{ $shareUrl }}&text={{ $shareText }}" target="_blank" rel="noopener">X</a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl }}" target="_blank" rel="noopener">Facebook</a>
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $shareUrl }}" target="_blank" rel="noopener">LinkedIn</a>
+                <a href="https://wa.me/?text={{ $shareText }}%20{{ $shareUrl }}" target="_blank" rel="noopener">WhatsApp</a>
             </div>
 
             @if(($blog->tags ?? collect())->isNotEmpty())
-                <div class="et-tag-cloud" style="margin-top:1.75rem">
+                <div class="et-tag-cloud">
                     @foreach($blog->tags as $tag)
                         <a href="{{ route('frontend.blogs.tag', $tag->slug) }}">#{{ $tag->name }}</a>
                     @endforeach
                 </div>
             @endif
 
-            @if(($related ?? collect())->isNotEmpty())
-                <section style="margin-top:2.5rem">
+            @php $relatedItems = $relatedBlogs ?? $related ?? collect(); @endphp
+            @if($relatedItems->isNotEmpty())
+                <aside class="et-related-rail">
                     @include('frontend.components.section-heading', [
                         'title' => 'Related posts',
                         'subtitle' => '',
                     ])
                     <div class="et-grid et-grid--2">
-                        @foreach($related as $rel)
+                        @foreach($relatedItems as $rel)
                             @include('frontend.components.blog-card', ['blog' => $rel])
                         @endforeach
                     </div>
-                </section>
+                </aside>
             @endif
         </div>
     </article>

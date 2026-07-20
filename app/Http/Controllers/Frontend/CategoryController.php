@@ -99,22 +99,7 @@ class CategoryController extends Controller
         $relatedNews = $this->relatedNewsForCategorySlug($orgId, $category->slug);
 
         if ($this->wantsFrontendJson($request)) {
-            return response()->json([
-                'data' => [
-                    'category' => $category,
-                    'exams' => $exams->items(),
-                    'blogs' => $relatedBlogs,
-                    'news' => $relatedNews,
-                ],
-                'meta' => [
-                    'current_page' => $exams->currentPage(),
-                    'last_page' => $exams->lastPage(),
-                    'per_page' => $exams->perPage(),
-                    'total' => $exams->total(),
-                    'from' => $exams->firstItem(),
-                    'to' => $exams->lastItem(),
-                ],
-            ]);
+            return $this->paginatedHtmlJson($exams, 'frontend.components.exam-card', 'exam');
         }
 
         return view('frontend.category.show', [

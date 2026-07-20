@@ -22,19 +22,19 @@
         </div>
     </div>
 
-    <div class="et-container" style="padding:1.5rem 0 3rem">
-        @if(($newsItems ?? $news ?? collect())->isEmpty())
+    <div class="et-container et-section">
+        @if(($news ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No news in this category', 'message' => ''])
         @else
-            <div class="et-grid et-grid--3">
-                @foreach(($newsItems ?? $news) as $item)
+            <div class="et-grid et-grid--3" data-load-more-list>
+                @foreach($news as $item)
                     @include('frontend.components.news-card', ['news' => $item])
                 @endforeach
             </div>
-            @php $paginator = $newsItems ?? $news; @endphp
-            @if(method_exists($paginator, 'links'))
-                <div class="et-pagination">{{ $paginator->withQueryString()->links() }}</div>
-            @endif
+            @include('frontend.partials.load-more', [
+                'paginator' => $news,
+                'endpoint' => route('frontend.news.category', $category->slug).(($qs = request()->getQueryString()) ? '?'.$qs : ''),
+            ])
         @endif
     </div>
 @endsection

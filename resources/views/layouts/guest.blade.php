@@ -14,8 +14,11 @@
         (function () {
             try {
                 var t = localStorage.getItem('examtube-theme');
-                if (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+                if (t === 'system' || !t) {
+                    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                }
                 if (t === 'dark') document.documentElement.classList.add('dark');
+                document.documentElement.dataset.theme = t;
             } catch (e) {}
         })();
     </script>
@@ -24,8 +27,12 @@
     <div class="et-auth">
         <aside class="et-auth__brand-panel" aria-hidden="false">
             <a href="{{ route('home') }}" class="et-auth__logo">
-                <span class="et-auth__logo-mark">{{ strtoupper(substr(site_setting('brand.logo_text', 'Examtube'), 0, 2)) }}</span>
-                <span>{{ site_setting('brand.logo_text', 'Examtube') }}<em>.in</em></span>
+                @if(is_file(public_path('images/brand/examtube-logo.svg')))
+                    <img class="et-logo__img" src="{{ asset('images/brand/examtube-logo.svg') }}" alt="{{ site_setting('brand.site_name', 'Examtube.in') }}" width="150" height="32">
+                @else
+                    <span class="et-auth__logo-mark">{{ strtoupper(substr(site_setting('brand.logo_text', 'Examtube'), 0, 2)) }}</span>
+                    <span>{{ site_setting('brand.logo_text', 'Examtube') }}<em>.in</em></span>
+                @endif
             </a>
             <h1 class="et-auth__headline">{{ site_setting('brand.tagline', 'Practice smarter. Score higher.') }}</h1>
             <p class="et-auth__subcopy">

@@ -25,6 +25,7 @@ class Question extends Model
 
         // Content
         'body',
+        'title',
         'type',
         'allows_multiple',
         'options',
@@ -39,6 +40,10 @@ class Question extends Model
         'marks',
         'difficulty',
         'status',
+        'is_public',
+        'show_explanation_publicly',
+        'view_count',
+        'public_tags',
 
         // SEO / Metadata
         'meta_title',
@@ -60,13 +65,17 @@ class Question extends Model
     protected function casts(): array
     {
         return [
-            'options'            => 'array',
-            'correct_answers'    => 'array',
-            'allows_multiple'    => 'boolean',
+            'options' => 'array',
+            'correct_answers' => 'array',
+            'allows_multiple' => 'boolean',
             'updated_by_history' => 'array',
-            'marks_list'         => 'array',
-            'ai_generated'       => 'boolean',
-            'ai_improve'         => 'boolean',
+            'marks_list' => 'array',
+            'ai_generated' => 'boolean',
+            'ai_improve' => 'boolean',
+            'is_public' => 'boolean',
+            'show_explanation_publicly' => 'boolean',
+            'view_count' => 'integer',
+            'public_tags' => 'array',
         ];
     }
 
@@ -109,5 +118,56 @@ class Question extends Model
     public function scopeByDifficulty($query, string $difficulty)
     {
         return $query->where('difficulty', $difficulty);
+    }
+
+    public function scopePubliclyVisible($query)
+    {
+        return $query->where('status', 'active')->where('is_public', true)->whereNotNull('slug');
+    }
+
+    public function publicTitle(): string
+    {
+        if (filled($this->title)) {
+            return (string) $this->title;
+        }
+
+        $plain = trim(preg_replace('/\s+/', ' ', strip_tags((string) $this->body)));
+
+        return $plain !== '' ? \Illuminate\Support\Str::limit($plain, 120, '') : 'Question #'.$this->id;
+    }
+
+    /**
+     * Candidate/public-safe payload without correct answers.
+     *
+     * @return array<string, mixed>
+     */
+    public function toPublicPayload(): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->publicTitle(),
+            'slug' => $this->slug,
+            'body' => $this->body,
+            'type' => $this->type,
+            'difficulty' => $this->difficulty,
+            'category' => $this->category ? [
+                'id' => $this->category->id,
+                'name' => $this->category->name,
+                'slug' => $this->category->slug,
+            ] : null,
+            'tags' => $this->public_tags ?? [],
+            'explanation' => $this->show_explanation_publicly ? $this->explanation : null,
+            'reference' => $this->reference,
+            'options' => collect($this->options ?? [])->map(function ($option, $index) {
+                if (is_array($option)) {
+                    return [
+                        'key' => (string) ($option['key'] ?? $index),
+                        'text' => $option['text'] ?? $option['label'] ?? '',
+                    ];
+                }
+
+                return ['key' => (string) $index, 'text' => (string) $option];
+            })->values()->all(),
+        ];
     }
 }

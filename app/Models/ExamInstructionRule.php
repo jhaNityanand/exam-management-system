@@ -20,6 +20,7 @@ class ExamInstructionRule extends Model
         'organization_id',
         'title',
         'slug',
+        'rule_key',
         'description',
         'status',
         'sort_order',
@@ -27,6 +28,8 @@ class ExamInstructionRule extends Model
         'category',
         'is_default',
         'is_required',
+        'is_actionable',
+        'requirements',
         'created_by',
         'updated_by',
         'updated_by_history',
@@ -37,7 +40,9 @@ class ExamInstructionRule extends Model
         return [
             'is_default' => 'boolean',
             'is_required' => 'boolean',
+            'is_actionable' => 'boolean',
             'sort_order' => 'integer',
+            'requirements' => 'array',
             'updated_by_history' => 'array',
         ];
     }
@@ -70,13 +75,17 @@ class ExamInstructionRule extends Model
     public function toFormOption(): array
     {
         return [
-            'id' => $this->slug,
+            'id' => $this->rule_key ?: $this->slug,
+            'slug' => $this->slug,
+            'rule_key' => $this->rule_key,
             'label' => $this->title,
             'description' => (string) ($this->description ?? ''),
             'category' => $this->category,
             'icon' => $this->icon,
             'is_default' => (bool) $this->is_default,
             'is_required' => (bool) $this->is_required,
+            'is_actionable' => (bool) $this->is_actionable,
+            'requirements' => $this->requirements ?? [],
         ];
     }
 }

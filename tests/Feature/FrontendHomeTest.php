@@ -58,6 +58,7 @@ test('search suggest returns json payload', function () {
                 'blogs',
                 'news',
                 'categories',
+                'questions',
             ],
         ]);
 });

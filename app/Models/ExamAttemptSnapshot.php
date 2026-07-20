@@ -13,6 +13,8 @@ class ExamAttemptSnapshot extends Model
         'type',
         'path',
         'disk',
+        'verification_status',
+        'challenge_token',
         'meta',
     ];
 
@@ -34,6 +36,11 @@ class ExamAttemptSnapshot extends Model
             return null;
         }
 
-        return Storage::disk($this->disk ?: 'public')->url($this->path);
+        $disk = $this->disk ?: 'local';
+        if ($disk === 'public') {
+            return Storage::disk($disk)->url($this->path);
+        }
+
+        return null;
     }
 }

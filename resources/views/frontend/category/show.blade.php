@@ -10,6 +10,9 @@
         'og_description' => $category->og_description,
         'image' => $category->ogImage?->file_url,
     ];
+    $children = $category->children ?? collect();
+    $relatedBlogs = $relatedBlogs ?? collect();
+    $relatedNews = $relatedNews ?? collect();
 @endphp
 
 @section('content')
@@ -27,7 +30,7 @@
         </div>
     </div>
 
-    <div class="et-container" style="padding:1.75rem 0 3rem;display:grid;gap:2rem">
+    <div class="et-container et-section" style="display:grid;gap:2rem">
         <section>
             @include('frontend.components.section-heading', [
                 'title' => 'Exams',
@@ -38,15 +41,19 @@
             @if(($exams ?? collect())->isEmpty())
                 @include('frontend.partials.empty-state', ['title' => 'No exams in this category', 'message' => ''])
             @else
-                <div class="et-grid et-grid--3">
+                <div class="et-grid et-grid--3" data-load-more-list>
                     @foreach($exams as $exam)
                         @include('frontend.components.exam-card', ['exam' => $exam])
                     @endforeach
                 </div>
+                @include('frontend.partials.load-more', [
+                    'paginator' => $exams,
+                    'endpoint' => route('frontend.categories.show', $category).(($qs = request()->getQueryString()) ? '?'.$qs : ''),
+                ])
             @endif
         </section>
 
-        @if(($children ?? collect())->isNotEmpty())
+        @if($children->isNotEmpty())
             <section>
                 @include('frontend.components.section-heading', ['title' => 'Subcategories', 'subtitle' => ''])
                 <div class="et-grid et-grid--4">
@@ -57,22 +64,22 @@
             </section>
         @endif
 
-        @if(($blogs ?? collect())->isNotEmpty())
+        @if($relatedBlogs->isNotEmpty())
             <section>
                 @include('frontend.components.section-heading', ['title' => 'Related blogs', 'subtitle' => ''])
                 <div class="et-grid et-grid--3">
-                    @foreach($blogs as $blog)
+                    @foreach($relatedBlogs as $blog)
                         @include('frontend.components.blog-card', ['blog' => $blog])
                     @endforeach
                 </div>
             </section>
         @endif
 
-        @if(($newsItems ?? $news ?? collect())->isNotEmpty())
+        @if($relatedNews->isNotEmpty())
             <section>
                 @include('frontend.components.section-heading', ['title' => 'Related news', 'subtitle' => ''])
                 <div class="et-grid et-grid--3">
-                    @foreach(($newsItems ?? $news) as $item)
+                    @foreach($relatedNews as $item)
                         @include('frontend.components.news-card', ['news' => $item])
                     @endforeach
                 </div>

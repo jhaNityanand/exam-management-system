@@ -4,32 +4,38 @@
 
 @php
     $policy = $policy ?? $exam->proctoringPolicy;
-    $hardFullscreen = ($exam->exam_mode === 'proctored') && (bool) ($policy?->require_fullscreen);
     $requireWebcam = (bool) ($policy?->require_webcam);
     $requireMic = (bool) ($policy?->require_microphone);
-    $requirePhoto = (bool) ($policy?->require_photo_verification);
+    $requireFullscreen = (bool) ($policy?->require_fullscreen);
+    $requireSelfie = (bool) ($policy?->require_photo_verification || $policy?->require_identity_verification);
     $canContinue = ! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']);
+    $checks = $checks ?? [];
+    $blockedByEligibility = ! empty($evaluation['reasons']) && empty($evaluation['can_continue']);
 @endphp
 
 @section('content')
 <div class="cx-prepare" id="cx-prepare"
      data-start-url="{{ route('frontend.exams.attempts.start', $exam) }}"
+     data-verify-url="{{ route('frontend.exams.verification', $exam) }}"
+     data-started-url="{{ route('frontend.exams.started', $exam) }}"
+     data-challenge-token="{{ $challenge->token }}"
      data-require-webcam="{{ $requireWebcam ? '1' : '0' }}"
      data-require-mic="{{ $requireMic ? '1' : '0' }}"
-     data-require-fullscreen="{{ $hardFullscreen ? '1' : '0' }}"
-     data-require-photo="{{ $requirePhoto ? '1' : '0' }}"
-     data-suggest-fullscreen="{{ ($policy?->require_fullscreen && ! $hardFullscreen) ? '1' : '0' }}">
+     data-require-fullscreen="{{ $requireFullscreen ? '1' : '0' }}"
+     data-require-selfie="{{ $requireSelfie ? '1' : '0' }}"
+     data-block-context="{{ ($policy?->block_context_menu) ? '1' : '0' }}"
+     data-detect-devtools="{{ ($policy?->detect_devtools) ? '1' : '0' }}">
 
     <div class="cx-prepare__hero">
         <div class="cx-prepare__hero-inner">
-            <p class="cx-eyebrow">Exam preparation</p>
+            <p class="cx-eyebrow">Exam readiness</p>
             <h1>{{ $exam->title }}</h1>
-            <p>Check permissions, set your preferences, then start. Any signed-in user can attempt a public exam.</p>
+            <p>Complete the required checks below. Verification is driven only by enabled exam rules.</p>
             <div class="cx-chip-row">
                 <span class="cx-chip">{{ (int) $exam->duration }} min</span>
                 <span class="cx-chip">{{ (int) $exam->total_questions }} questions</span>
                 <span class="cx-chip">{{ (int) $exam->total_marks }} marks</span>
-                <span class="cx-chip">{{ strtoupper((string) ($exam->language ?: 'en')) }}</span>
+                <span class="cx-chip">{{ count($checks) }} checks</span>
             </div>
         </div>
     </div>
@@ -37,7 +43,7 @@
     <div class="cx-prepare__panel">
         <div id="cx-prepare-alert" class="cx-alert" hidden></div>
 
-        @if(! empty($evaluation['reasons']))
+        @if($blockedByEligibility)
             <div class="cx-alert cx-alert--danger" role="alert">
                 {{ $evaluation['reasons'][0] }}
             </div>
@@ -47,116 +53,89 @@
             </div>
         @endif
 
-        <section class="cx-card">
-            <div class="cx-card__head">
-                <h2>Permissions</h2>
-                <p>Grant only what this exam requires.</p>
+        <section class="cx-card cx-card--ready">
+            <div class="cx-card__head cx-card__head--row">
+                <div>
+                    <h2>Verification checklist</h2>
+                    <p>Only requirements enabled by this exam’s rules are shown.</p>
+                </div>
+                <button type="button" class="cx-help-btn" id="cx-help-toggle" aria-expanded="false" aria-controls="cx-help-panel" title="How to complete verification">
+                    <span class="cx-help-btn__icon" aria-hidden="true">i</span>
+                    <span class="cx-visually-hidden">Instructions</span>
+                </button>
             </div>
-            <ul class="cx-perm-list" id="cx-perm-list">
-                <li data-perm="webcam">
-                    <div>
-                        <strong>Webcam</strong>
-                        <small>{{ $requireWebcam ? 'Required before start' : 'Not required for this exam' }}</small>
-                    </div>
-                    <span class="cx-status">{{ $requireWebcam ? 'Required' : 'Optional' }}</span>
-                </li>
-                <li data-perm="microphone">
-                    <div>
-                        <strong>Microphone</strong>
-                        <small>{{ $requireMic ? 'Required before start' : 'Not required for this exam' }}</small>
-                    </div>
-                    <span class="cx-status">{{ $requireMic ? 'Required' : 'Optional' }}</span>
-                </li>
-                <li data-perm="fullscreen">
-                    <div>
-                        <strong>Fullscreen</strong>
-                        <small>
-                            @if($hardFullscreen)
-                                Required for this proctored exam
-                            @elseif($policy?->require_fullscreen)
-                                Recommended for fewer distractions
-                            @else
-                                Optional
-                            @endif
-                        </small>
-                    </div>
-                    <span class="cx-status">{{ $hardFullscreen ? 'Required' : 'Optional' }}</span>
-                </li>
-                <li data-perm="clipboard">
-                    <div>
-                        <strong>Clipboard restrictions</strong>
-                        <small>Applied automatically once the exam starts</small>
-                    </div>
-                    <span class="cx-status">Info</span>
-                </li>
-            </ul>
+
+            <div class="cx-help-panel" id="cx-help-panel" hidden>
+                <h3>How to complete checks</h3>
+                <ol>
+                    <li>Click <strong>Allow camera / mic</strong>. When the browser prompt appears, choose <strong>Allow</strong>.</li>
+                    <li>If no prompt appears, open the lock/camera icon in the address bar and set Camera/Microphone to Allow, then retry.</li>
+                    <li>If a device is missing, connect a webcam/microphone and retry. Close apps that may already be using them.</li>
+                    @if($requireFullscreen)
+                        <li>Click <strong>Enter fullscreen</strong> and stay in fullscreen until the exam ends.</li>
+                    @endif
+                    @if($requireSelfie)
+                        <li>When the live preview is visible, click <strong>Capture selfie</strong>. Uploads are not accepted.</li>
+                    @endif
+                    <li><strong>Start exam</strong> stays disabled until every required check shows Granted/Captured.</li>
+                </ol>
+            </div>
+
+            @if(empty($checks))
+                <p class="cx-prepare__hint">No special device checks are required for this exam. You can start when ready.</p>
+            @else
+                <ul class="cx-perm-list" id="cx-perm-list">
+                    @foreach($checks as $check)
+                        <li data-perm="{{ $check['key'] }}">
+                            <div>
+                                <strong>{{ $check['label'] }}</strong>
+                                <small>{{ $check['description'] }}</small>
+                            </div>
+                            <span class="cx-status" data-state="{{ !empty($check['informational']) ? 'info' : 'required' }}">
+                                {{ !empty($check['informational']) ? 'Info' : 'Required' }}
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+
             <div class="cx-actions">
-                @if($requireWebcam || $requireMic || $requirePhoto)
+                @if($requireWebcam || $requireMic || $requireSelfie)
                     <button type="button" class="et-btn et-btn--ghost" id="cx-request-permissions">Allow camera / mic</button>
                 @endif
-                <button type="button" class="et-btn et-btn--ghost" id="cx-request-fullscreen">Enter fullscreen</button>
+                @if($requireFullscreen)
+                    <button type="button" class="et-btn et-btn--ghost" id="cx-request-fullscreen">Enter fullscreen</button>
+                @endif
+                @if($requireSelfie)
+                    <button type="button" class="et-btn et-btn--ghost" id="cx-capture-photo" disabled>Capture selfie</button>
+                    <button type="button" class="et-btn et-btn--ghost" id="cx-retake-photo" hidden>Retake selfie</button>
+                @endif
             </div>
-            <video id="cx-preview" autoplay muted playsinline class="cx-preview" hidden></video>
-            <canvas id="cx-snapshot-canvas" hidden></canvas>
-        </section>
 
-        <section class="cx-card">
-            <div class="cx-card__head">
-                <h2>Your preferences</h2>
-                <p>These lock after the exam starts.</p>
+            <div class="cx-prepare__media">
+                <video id="cx-preview" autoplay muted playsinline class="cx-preview" hidden></video>
+                <img id="cx-photo-preview" alt="Captured selfie" class="cx-photo" hidden>
+                <canvas id="cx-snapshot-canvas" hidden></canvas>
             </div>
-            <div class="cx-form-grid">
-                <label>Theme
-                    <select id="pref-theme">
-                        <option value="light" selected>Light</option>
-                        <option value="dark">Dark</option>
-                        <option value="system">System</option>
-                    </select>
-                </label>
-                <label>Font size
-                    <select id="pref-font">
-                        <option value="sm">Small</option>
-                        <option value="md" selected>Medium</option>
-                        <option value="lg">Large</option>
-                    </select>
-                </label>
-                <label>Language
-                    <select id="pref-lang">
-                        <option value="en" @selected(($exam->language ?: 'en') === 'en')>English</option>
-                        <option value="hi" @selected(($exam->language ?: 'en') === 'hi')>Hindi</option>
-                    </select>
-                </label>
-                <label>Question palette
-                    <select id="pref-palette">
-                        <option value="right" selected>Right</option>
-                        <option value="left">Left</option>
-                    </select>
-                </label>
-            </div>
+            <p id="cx-mic-level" class="cx-prepare__hint" hidden>Listening for microphone…</p>
+            <p id="cx-ready-msg" class="cx-ready-msg" data-state="blocked" role="status" aria-live="polite">
+                Start is disabled until required checks are complete.
+            </p>
         </section>
-
-        @if($requirePhoto)
-        <section class="cx-card">
-            <div class="cx-card__head">
-                <h2>Photo verification</h2>
-                <p>Capture a clear photo before starting.</p>
-            </div>
-            <button type="button" class="et-btn et-btn--ghost" id="cx-capture-photo">Capture photo</button>
-            <img id="cx-photo-preview" alt="Captured photo" class="cx-photo" hidden>
-        </section>
-        @endif
 
         <div class="cx-prepare__footer">
             <a href="{{ route('frontend.exams.rules', $exam) }}" class="et-btn et-btn--ghost">Back to rules</a>
             <button type="button"
                     class="et-btn et-btn--primary"
                     id="cx-start-exam"
-                    @disabled(! empty($evaluation['reasons']) && empty($evaluation['can_continue']))>
+                    disabled
+                    aria-disabled="true"
+                    @if($blockedByEligibility) data-force-disabled="1" @endif>
                 {{ $canContinue ? 'Continue exam' : 'Start exam' }}
             </button>
         </div>
-        <p id="cx-prepare-error" class="cx-error" hidden></p>
-        <p class="cx-prepare__hint">Tip: If something fails, the error appears above. You can retry without reloading.</p>
+        <p id="cx-prepare-error" class="cx-error" hidden role="alert"></p>
+        <p class="cx-prepare__hint">Tip: Selfies must be captured live from your webcam. File uploads are not accepted.</p>
     </div>
 
     <div class="cx-loading" id="cx-loading" hidden>
@@ -170,8 +149,11 @@
         </div>
     </div>
 </div>
+
+<div id="cx-runner-host" class="cx-runner-host" hidden aria-hidden="true"></div>
 @endsection
 
 @push('scripts')
-<script src="{{ versioned_asset('js/candidate/prepare-boot.js') }}" defer></script>
+    @vite(['resources/js/candidate/app.js'])
+    <script src="{{ versioned_asset('js/candidate/prepare-boot.js') }}" defer></script>
 @endpush

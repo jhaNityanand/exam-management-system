@@ -63,11 +63,22 @@ class QuestionSeeder extends Seeder
                 $normalized = $this->normalizePayload($payload);
                 $bodyText = strip_tags((string) $normalized['body']);
 
+                $title = Str::limit($bodyText !== '' ? $bodyText : 'Practice question', 120, '');
+
                 Question::query()->create(array_merge($normalized, [
                     'organization_id' => $org->id,
                     'category_id' => $category->id,
                     'created_by' => $editor->id,
                     'status' => 'active',
+                    'title' => $title,
+                    'is_public' => true,
+                    'show_explanation_publicly' => true,
+                    'view_count' => 0,
+                    'public_tags' => array_values(array_filter([
+                        $category->name,
+                        $normalized['difficulty'] ?? null,
+                        $normalized['type'] ?? null,
+                    ])),
                     'meta_title' => Str::limit($bodyText, 60, ''),
                     'meta_description' => Str::limit($bodyText, 160, ''),
                     'meta_keywords' => implode(', ', array_filter([

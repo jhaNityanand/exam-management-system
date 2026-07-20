@@ -1,19 +1,24 @@
 @php
     $brandName = $siteBrand['name'] ?? ($siteSettings['site_name'] ?? ($siteSettings['brand.site_name'] ?? config('app.name', 'Examtube.in')));
     $logoText = $siteBrand['logo_text'] ?? ($siteSettings['logo_text'] ?? ($siteSettings['brand.logo_text'] ?? 'Examtube'));
-    $logoInitial = strtoupper(mb_substr(preg_replace('/\s+/', '', $logoText) ?: 'E', 0, 1));
+    $logoPath = public_path('images/brand/examtube-logo.svg');
+    $hasLogoFile = is_file($logoPath);
 @endphp
-<header class="et-header">
+<header class="et-header" data-sticky-header>
     <div class="et-container et-header__bar">
         <a href="{{ route('home') }}" class="et-logo" aria-label="{{ $brandName }}">
-            <span class="et-logo__mark">{{ $logoInitial }}</span>
-            <span class="et-logo__text">
-                @if(\Illuminate\Support\Str::endsWith(strtolower($logoText), '.in'))
-                    {{ $logoText }}
-                @else
-                    {{ $logoText }}<span>.in</span>
-                @endif
-            </span>
+            @if($hasLogoFile)
+                <img class="et-logo__img" src="{{ asset('images/brand/examtube-logo.svg') }}" alt="{{ $brandName }}" width="160" height="34">
+            @else
+                <span class="et-logo__mark">{{ strtoupper(mb_substr(preg_replace('/\s+/', '', $logoText) ?: 'E', 0, 1)) }}</span>
+                <span class="et-logo__text">
+                    @if(\Illuminate\Support\Str::endsWith(strtolower($logoText), '.in'))
+                        {{ $logoText }}
+                    @else
+                        {{ $logoText }}<span>.in</span>
+                    @endif
+                </span>
+            @endif
         </a>
 
         <nav class="et-nav" aria-label="Primary">
@@ -24,10 +29,13 @@
                     @if(($item->target ?? '_self') === '_blank') target="_blank" rel="noopener" @endif
                 >{{ $item->label }}</a>
             @endforeach
+            @if(Route::has('frontend.questions.index'))
+                <a href="{{ route('frontend.questions.index') }}" class="et-nav__link {{ request()->routeIs('frontend.questions.*') ? 'is-active' : '' }}">Questions</a>
+            @endif
         </nav>
 
         <div class="et-header__actions">
-            <button type="button" class="et-icon-btn" data-search-open aria-label="Open search">
+            <button type="button" class="et-icon-btn" data-search-open aria-label="Open search" aria-expanded="false" aria-controls="et-search-dialog">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
             </button>
 
@@ -37,7 +45,7 @@
 
             @auth
                 <div class="et-profile" data-profile-menu>
-                    <button type="button" class="et-profile__btn" data-profile-toggle aria-haspopup="true">
+                    <button type="button" class="et-profile__btn" data-profile-toggle aria-haspopup="true" aria-expanded="false">
                         <span class="et-profile__avatar">{{ strtoupper(mb_substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
                         <span class="et-visually-hidden">Account menu</span>
                     </button>
@@ -72,6 +80,9 @@
         @foreach(($headerMenu ?? collect()) as $item)
             <a href="{{ $item->href() }}" @if(($item->target ?? '_self') === '_blank') target="_blank" rel="noopener" @endif>{{ $item->label }}</a>
         @endforeach
+        @if(Route::has('frontend.questions.index'))
+            <a href="{{ route('frontend.questions.index') }}">Questions</a>
+        @endif
         @guest
             <div class="et-mobile-nav__auth">
                 <a href="{{ route('login') }}" class="et-btn et-btn--ghost et-btn--sm">Login</a>

@@ -16,7 +16,7 @@ class ExamAnswerService
 
     /**
      * @param  list<array<string, mixed>>  $items
-     * @return array{revision:int, saved:int, answers:list<array<string,mixed>>}
+     * @return array{revision:int, saved:int, requested:int, skipped:list<int>, answers:list<array<string,mixed>>}
      */
     public function saveBatch(ExamAttempt $attempt, array $items, ?int $clientRevision = null): array
     {
@@ -34,11 +34,33 @@ class ExamAnswerService
             ]);
         }
 
-        return DB::transaction(function () use ($attempt, $items) {
+        return DB::transaction(function () use ($attempt, $items, $clientRevision) {
+            /** @var ExamAttempt $locked */
+            $locked = ExamAttempt::query()->whereKey($attempt->id)->lockForUpdate()->firstOrFail();
+
+            if (! in_array($locked->status, ['active', 'in_progress'], true)) {
+                throw ValidationException::withMessages([
+                    'attempt' => 'This attempt is locked and can no longer accept answers.',
+                ]);
+            }
+
+            // Soft revision check: accept equal/older clients, but always bump server revision.
+            if ($clientRevision !== null && $clientRevision > (int) $locked->revision) {
+                // Client is ahead only if local recovery was never synced; still accept writes.
+            }
+
             $saved = [];
-            $questionIds = collect($items)->pluck('exam_attempt_question_id')->filter()->map(fn ($id) => (int) $id)->all();
+            $skipped = [];
+            $questionIds = collect($items)
+                ->pluck('exam_attempt_question_id')
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
             $validQuestionIds = ExamAttemptQuestion::query()
-                ->where('exam_attempt_id', $attempt->id)
+                ->where('exam_attempt_id', $locked->id)
                 ->whereIn('id', $questionIds)
                 ->pluck('id')
                 ->all();
@@ -46,6 +68,9 @@ class ExamAnswerService
             foreach ($items as $item) {
                 $qid = (int) ($item['exam_attempt_question_id'] ?? 0);
                 if (! in_array($qid, $validQuestionIds, true)) {
+                    if ($qid > 0) {
+                        $skipped[] = $qid;
+                    }
                     continue;
                 }
 
@@ -53,7 +78,7 @@ class ExamAnswerService
                 $isAnswered = $this->isAnswered($value);
 
                 $answer = ExamAttemptAnswer::query()->firstOrNew([
-                    'exam_attempt_id' => $attempt->id,
+                    'exam_attempt_id' => $locked->id,
                     'exam_attempt_question_id' => $qid,
                 ]);
 
@@ -76,14 +101,16 @@ class ExamAnswerService
                 ];
             }
 
-            $attempt->revision = ((int) $attempt->revision) + 1;
-            $attempt->last_saved_at = now();
-            $attempt->heartbeat_at = now();
-            $attempt->save();
+            $locked->revision = ((int) $locked->revision) + 1;
+            $locked->last_saved_at = now();
+            $locked->heartbeat_at = now();
+            $locked->save();
 
             return [
-                'revision' => $attempt->revision,
+                'revision' => $locked->revision,
                 'saved' => count($saved),
+                'requested' => count($questionIds),
+                'skipped' => array_values(array_unique($skipped)),
                 'answers' => $saved,
             ];
         });

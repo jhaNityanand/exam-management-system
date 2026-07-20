@@ -38,7 +38,7 @@ class NewsController extends Controller
         $news = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
-            return $this->paginatedJson($news);
+            return $this->paginatedHtmlJson($news, 'frontend.components.news-card', 'news');
         }
 
         $categories = NewsCategory::query()
@@ -58,9 +58,24 @@ class NewsController extends Controller
 
     public function trending(Request $request): View|JsonResponse
     {
-        $request->merge(['trending' => true]);
+        $orgId = $this->organizationId();
 
-        return $this->index($request);
+        $news = News::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('is_trending', true)
+            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
+            ->latest('published_at')
+            ->paginate((int) $request->input('per_page', 12))
+            ->withQueryString();
+
+        if ($this->wantsFrontendJson($request)) {
+            return $this->paginatedHtmlJson($news, 'frontend.components.news-card', 'news');
+        }
+
+        return view('frontend.news.trending', [
+            'news' => $news,
+        ]);
     }
 
     public function show(News $news): View
@@ -117,11 +132,39 @@ class NewsController extends Controller
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
-            return $this->paginatedJson($news);
+            return $this->paginatedHtmlJson($news, 'frontend.components.news-card', 'news');
         }
 
         return view('frontend.news.category', [
             'category' => $category,
+            'news' => $news,
+        ]);
+    }
+
+    public function tag(Request $request, string $slug): View|JsonResponse
+    {
+        $orgId = $this->organizationId();
+
+        $tag = \App\Models\NewsTag::query()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $news = News::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->whereHas('tags', fn ($q) => $q->where('news_tags.id', $tag->id))
+            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
+            ->latest('published_at')
+            ->paginate((int) $request->input('per_page', 12))
+            ->withQueryString();
+
+        if ($this->wantsFrontendJson($request)) {
+            return $this->paginatedHtmlJson($news, 'frontend.components.news-card', 'news');
+        }
+
+        return view('frontend.news.tag', [
+            'tag' => $tag,
             'news' => $news,
         ]);
     }
