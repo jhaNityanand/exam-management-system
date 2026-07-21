@@ -195,7 +195,29 @@ test('candidate can start attempt save answers and submit for grading', function
     expect($attempt->passed)->toBeTrue();
 
     $this->get(route('frontend.attempts.result', $attempt))->assertOk()->assertSee('Pass');
-    $this->get(route('frontend.attempts.review', $attempt))->assertOk()->assertSee('Correct answer');
+    $this->get(route('frontend.attempts.review', $attempt))
+        ->assertOk()
+        ->assertSee('id="rv-page"', false)
+        ->assertSee('Question review');
+    $this->getJson(route('frontend.attempts.review.data', $attempt))
+        ->assertOk()
+        ->assertJsonPath('summary.passed', true)
+        ->assertJsonStructure([
+            'summary' => [
+                'total_questions',
+                'attempted',
+                'correct',
+                'incorrect',
+                'unanswered',
+                'score',
+                'passing_marks',
+                'percentage',
+                'passed',
+            ],
+            'questions' => [
+                ['position', 'status', 'candidate_labels', 'correct_labels', 'options'],
+            ],
+        ]);
 });
 
 test('paid exam requires entitlement before prepare', function () {

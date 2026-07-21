@@ -7,6 +7,7 @@ use App\Models\ExamAttempt;
 use App\Services\CandidateExam\ExamAnswerService;
 use App\Services\CandidateExam\ExamGradingService;
 use App\Services\CandidateExam\ExamProctoringService;
+use App\Services\CandidateExam\ExamReviewPresenter;
 use App\Services\CandidateExam\ExamSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ class CandidateAttemptController extends Controller
         protected ExamAnswerService $answers,
         protected ExamProctoringService $proctoring,
         protected ExamGradingService $grading,
+        protected ExamReviewPresenter $reviewPresenter,
     ) {}
 
     public function show(Request $request, ExamAttempt $attempt): View|RedirectResponse
@@ -154,34 +156,27 @@ class CandidateAttemptController extends Controller
         $this->authorizeAttempt($request, $attempt);
         abort_unless($this->grading->resultsVisible($attempt), 403, 'Results are not available yet.');
 
-        $attempt->loadMissing(['exam', 'attemptAnswers', 'attemptQuestions']);
-        $answers = $attempt->attemptAnswers->keyBy('exam_attempt_question_id');
-
-        $items = $attempt->attemptQuestions->map(function ($question) use ($answers) {
-            $answer = $answers->get($question->id);
-            $snapshot = $question->question_snapshot ?? [];
-
-            return [
-                'position' => $question->position,
-                'marks' => $question->marks,
-                'awarded_marks' => $answer?->awarded_marks,
-                'is_correct' => $answer?->is_correct,
-                'candidate_answer' => $answer?->answer_value,
-                'correct_answer' => $snapshot['correct_answer'] ?? $snapshot['correct_answers'] ?? null,
-                'explanation' => $snapshot['explanation'] ?? null,
-                'question' => [
-                    'body' => $snapshot['body'] ?? '',
-                    'type' => $snapshot['type'] ?? 'mcq',
-                    'options' => $snapshot['options'] ?? [],
-                    'option_order' => $question->option_order,
-                ],
-            ];
-        });
+        $attempt->loadMissing(['exam']);
 
         return view('frontend.candidate.attempts.review', [
             'attempt' => $attempt,
             'exam' => $attempt->exam,
-            'items' => $items,
+            'dataUrl' => route('frontend.attempts.review.data', $attempt),
+        ]);
+    }
+
+    public function reviewData(Request $request, ExamAttempt $attempt): JsonResponse
+    {
+        $this->authorizeAttempt($request, $attempt);
+        abort_unless($this->grading->resultsVisible($attempt), 403, 'Results are not available yet.');
+
+        return response()->json([
+            'ok' => true,
+            'result_url' => route('frontend.attempts.result', $attempt),
+            'exam_url' => $attempt->exam
+                ? route('frontend.exams.show', $attempt->exam)
+                : route('frontend.account.results'),
+            ...$this->reviewPresenter->present($attempt),
         ]);
     }
 

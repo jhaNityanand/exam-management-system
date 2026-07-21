@@ -4,40 +4,62 @@
     $seo = ['title' => 'Review — '.$exam->title];
 @endphp
 
+@push('styles')
+<link rel="stylesheet" href="{{ versioned_asset('css/frontend/attempt-review.css') }}">
+@endpush
+
 @section('content')
-<div class="et-page-hero">
-    <div class="et-container">
-        <h1>Question review</h1>
-        <p>{{ $exam->title }}</p>
-    </div>
-</div>
+<div class="rv-page" id="rv-page"
+     data-url="{{ $dataUrl }}"
+     data-exam-title="{{ $exam->title }}">
+    <div class="et-container rv-shell">
+        <header class="rv-hero">
+            <div class="rv-hero__copy">
+                <p class="rv-eyebrow">Attempt review</p>
+                <h1>Question review</h1>
+                <p class="rv-hero__sub">{{ $exam->title }}</p>
+            </div>
+            <div class="rv-hero__actions">
+                <a href="{{ route('frontend.attempts.result', $attempt) }}" class="et-btn et-btn--ghost">Back to result</a>
+                <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Exam page</a>
+            </div>
+        </header>
 
-<div class="et-container" style="padding:1.5rem 0 3rem;display:grid;gap:1rem">
-    @foreach($items as $item)
-        <div class="et-card" style="padding:1.25rem">
-            <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-                <strong>Q{{ $item['position'] }}</strong>
-                <span>
-                    @if($item['is_correct'] === true) Correct
-                    @elseif($item['is_correct'] === false) Incorrect
-                    @else Pending / Manual
-                    @endif
-                    · Marks: {{ $item['awarded_marks'] ?? 0 }} / {{ $item['marks'] }}
-                </span>
+        <div id="rv-error" class="rv-error" hidden role="alert"></div>
+
+        <section id="rv-summary-skeleton" class="rv-summary rv-summary--skeleton" aria-hidden="true">
+            <div class="rv-skel rv-skel--banner"></div>
+            <div class="rv-summary__grid">
+                @for($i = 0; $i < 8; $i++)
+                    <div class="rv-skel rv-skel--stat"></div>
+                @endfor
             </div>
-            <div class="et-prose" style="margin-top:.75rem">
-                {!! $item['question']['body'] !!}
-            </div>
-            <p><strong>Your answer:</strong> {{ is_array($item['candidate_answer']) ? json_encode($item['candidate_answer']) : ($item['candidate_answer'] ?? '—') }}</p>
-            <p><strong>Correct answer:</strong> {{ is_array($item['correct_answer']) ? json_encode($item['correct_answer']) : ($item['correct_answer'] ?? '—') }}</p>
-            @if(! empty($item['explanation']))
-                <div class="et-prose"><strong>Explanation:</strong> {!! $item['explanation'] !!}</div>
-            @endif
+            <div class="rv-skel rv-skel--bar"></div>
+        </section>
+
+        <section id="rv-summary" class="rv-summary" hidden></section>
+
+        <section class="rv-list-head">
+            <h2>Questions</h2>
+            <p id="rv-list-meta" class="rv-list-meta">Loading review…</p>
+        </section>
+
+        <div id="rv-questions-skeleton" class="rv-list" aria-hidden="true">
+            @for($i = 0; $i < 3; $i++)
+                <article class="rv-card rv-card--skeleton">
+                    <div class="rv-skel rv-skel--line rv-skel--w40"></div>
+                    <div class="rv-skel rv-skel--line rv-skel--w90"></div>
+                    <div class="rv-skel rv-skel--line rv-skel--w70"></div>
+                    <div class="rv-skel rv-skel--block"></div>
+                </article>
+            @endfor
         </div>
-    @endforeach
 
-    <div>
-        <a href="{{ route('frontend.attempts.result', $attempt) }}" class="et-btn et-btn--ghost">Back to result</a>
+        <div id="rv-questions" class="rv-list" hidden></div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ versioned_asset('js/frontend/attempt-review.js') }}" defer></script>
+@endpush

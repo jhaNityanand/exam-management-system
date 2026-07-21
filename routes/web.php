@@ -74,8 +74,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/attempts/{attempt}/submit', [CandidateAttemptController::class, 'submit'])->name('frontend.attempts.submit');
     Route::get('/attempts/{attempt}/result', [CandidateAttemptController::class, 'result'])->name('frontend.attempts.result');
     Route::get('/attempts/{attempt}/review', [CandidateAttemptController::class, 'review'])->name('frontend.attempts.review');
+    Route::get('/attempts/{attempt}/review/data', [CandidateAttemptController::class, 'reviewData'])->name('frontend.attempts.review.data');
 });
-
 Route::get('/blogs', [FrontendBlogController::class, 'index'])->name('frontend.blogs.index');
 Route::get('/blogs/category/{slug}', [FrontendBlogController::class, 'category'])->name('frontend.blogs.category');
 Route::get('/blogs/tag/{slug}', [FrontendBlogController::class, 'tag'])->name('frontend.blogs.tag');
