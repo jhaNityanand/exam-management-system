@@ -142,12 +142,42 @@ class CandidateAttemptController extends Controller
     public function result(Request $request, ExamAttempt $attempt): View
     {
         $this->authorizeAttempt($request, $attempt);
-        $attempt->loadMissing(['exam.category', 'attemptAnswers', 'attemptQuestions']);
+        $attempt->loadMissing(['exam']);
 
         return view('frontend.candidate.attempts.result', [
             'attempt' => $attempt,
             'exam' => $attempt->exam,
             'visible' => $this->grading->resultsVisible($attempt),
+            'dataUrl' => route('frontend.attempts.result.data', $attempt),
+        ]);
+    }
+
+    public function resultData(Request $request, ExamAttempt $attempt): JsonResponse
+    {
+        $this->authorizeAttempt($request, $attempt);
+        $visible = $this->grading->resultsVisible($attempt);
+
+        if (! $visible) {
+            return response()->json([
+                'ok' => true,
+                'visible' => false,
+                'exam_title' => (string) ($attempt->exam?->title ?? 'Exam'),
+                'results_url' => route('frontend.account.results'),
+                'exam_url' => $attempt->exam
+                    ? route('frontend.exams.show', $attempt->exam)
+                    : route('frontend.account.results'),
+            ]);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'visible' => true,
+            'review_url' => route('frontend.attempts.review', $attempt),
+            'exam_url' => $attempt->exam
+                ? route('frontend.exams.show', $attempt->exam)
+                : route('frontend.account.results'),
+            'results_url' => route('frontend.account.results'),
+            'summary' => $this->reviewPresenter->presentSummary($attempt),
         ]);
     }
 

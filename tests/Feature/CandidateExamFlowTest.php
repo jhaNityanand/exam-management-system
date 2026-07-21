@@ -194,7 +194,15 @@ test('candidate can start attempt save answers and submit for grading', function
     expect((float) $attempt->score)->toBe(4.0);
     expect($attempt->passed)->toBeTrue();
 
-    $this->get(route('frontend.attempts.result', $attempt))->assertOk()->assertSee('Pass');
+    $this->get(route('frontend.attempts.result', $attempt))
+        ->assertOk()
+        ->assertSee('id="rs-page"', false)
+        ->assertSee('Exam result');
+    $this->getJson(route('frontend.attempts.result.data', $attempt))
+        ->assertOk()
+        ->assertJsonPath('visible', true)
+        ->assertJsonPath('summary.passed', true)
+        ->assertJsonPath('summary.status_label', 'Pass');
     $this->get(route('frontend.attempts.review', $attempt))
         ->assertOk()
         ->assertSee('id="rv-page"', false)

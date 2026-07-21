@@ -22,6 +22,8 @@ class Profile extends Model
         'updated_by',
         'bio',
         'phone',
+        'date_of_birth',
+        'gender',
         'avatar',
         'address_line1',
         'address_line2',
@@ -31,6 +33,8 @@ class Profile extends Model
         'country',
         'default_organization_id',
         'social_links',
+        'notification_preferences',
+        'privacy_settings',
         'updated_by_history',
     ];
 
@@ -38,7 +42,10 @@ class Profile extends Model
     {
         return [
             'social_links' => 'array',
+            'notification_preferences' => 'array',
+            'privacy_settings' => 'array',
             'updated_by_history' => 'array',
+            'date_of_birth' => 'date',
         ];
     }
 

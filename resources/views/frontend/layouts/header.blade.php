@@ -56,8 +56,17 @@
                         @if(Route::has('frontend.account.exams'))
                             <a href="{{ route('frontend.account.exams') }}">My exams</a>
                         @endif
+                        @if(Route::has('frontend.account.profile'))
+                            <a href="{{ route('frontend.account.profile') }}">Profile</a>
+                        @endif
                         @if(Route::has('frontend.account.settings'))
                             <a href="{{ route('frontend.account.settings') }}">Settings</a>
+                        @endif
+                        @if(Route::has('frontend.account.invoices'))
+                            <a href="{{ route('frontend.account.invoices') }}">Invoices</a>
+                        @endif
+                        @if(Route::has('frontend.account.activity'))
+                            <a href="{{ route('frontend.account.activity') }}">Activity</a>
                         @endif
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

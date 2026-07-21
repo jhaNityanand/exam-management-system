@@ -31,18 +31,38 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        $user->fill($request->safe()->only(['name', 'email']));
+        $user->fill($request->safe()->only(['name', 'username', 'email']));
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
 
+        // Normalize empty username to null for unique index friendliness.
+        if ($user->username === '') {
+            $user->username = null;
+        }
+
         $user->save();
 
         $profileData = $request->safe()->only([
-            'phone', 'bio', 'address_line1', 'address_line2', 'city', 'state_region', 'postal_code', 'country',
+            'phone',
+            'date_of_birth',
+            'gender',
+            'bio',
+            'address_line1',
+            'address_line2',
+            'city',
+            'state_region',
+            'postal_code',
+            'country',
         ]);
 
+        if (array_key_exists('date_of_birth', $profileData) && blank($profileData['date_of_birth'])) {
+            $profileData['date_of_birth'] = null;
+        }
+        if (array_key_exists('gender', $profileData) && blank($profileData['gender'])) {
+            $profileData['gender'] = null;
+        }
         if ($request->boolean('remove_avatar')) {
             $existing = $user->profile?->avatar;
             $this->avatarService->delete($existing);

@@ -42,6 +42,26 @@
             }
             return '';
         },
+        dob(value) {
+            if (window.DobDatePicker && typeof window.DobDatePicker.validate === 'function') {
+                return window.DobDatePicker.validate(value);
+            }
+            const cleaned = value.trim();
+            if (!cleaned) return '';
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+                return 'Enter a valid date in YYYY-MM-DD format.';
+            }
+            const selected = new Date(`${cleaned}T00:00:00`);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (Number.isNaN(selected.getTime())) {
+                return 'Enter a valid date in YYYY-MM-DD format.';
+            }
+            if (selected.getTime() > today.getTime()) {
+                return 'Date of birth cannot be later than today.';
+            }
+            return '';
+        },
         url(value) {
             const cleaned = value.trim();
             if (!cleaned) return '';
@@ -91,6 +111,25 @@
     };
     bio?.addEventListener('input', syncBioCount);
     syncBioCount();
+
+    if (window.DobDatePicker) {
+        window.DobDatePicker.initAll(form).then(() => {
+            const dob = byId('date_of_birth');
+            if (!dob) return;
+            const syncDobValidation = () => {
+                if (dob.dataset.validate === 'dob') {
+                    validateField(dob);
+                }
+            };
+            dob.addEventListener('change', syncDobValidation);
+            dob.addEventListener('blur', syncDobValidation);
+            // Flatpickr altInput should also revalidate.
+            const alt = dob.nextElementSibling;
+            if (alt && (alt.classList.contains('flatpickr-input') || alt.classList.contains('form-control'))) {
+                alt.addEventListener('blur', syncDobValidation);
+            }
+        });
+    }
 
     form.addEventListener('submit', (event) => {
         const fields = [...form.querySelectorAll('[data-validate]')];

@@ -1,0 +1,238 @@
+/* DOB Flatpickr — light + dark (append-to-body safe) */
+
+.flatpickr-calendar {
+  border-radius: 0.85rem !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14) !important;
+  font-family: inherit !important;
+  z-index: 120 !important;
+}
+
+.flatpickr-calendar.arrowTop::before,
+.flatpickr-calendar.arrowTop::after {
+  border-bottom-color: #ffffff !important;
+}
+
+.flatpickr-months,
+.flatpickr-weekdays,
+.flatpickr-time {
+  background: #ffffff !important;
+}
+
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year,
+span.flatpickr-weekday,
+.flatpickr-day,
+.flatpickr-time input,
+.flatpickr-time .flatpickr-am-pm {
+  background: transparent !important;
+  color: #0f172a !important;
+  fill: #0f172a !important;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+  fill: #475569 !important;
+  color: #475569 !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+  fill: #0f766e !important;
+  color: #0f766e !important;
+}
+
+.flatpickr-day:hover,
+.flatpickr-day:focus,
+.flatpickr-day.inRange,
+.flatpickr-day.prevMonthDay:hover,
+.flatpickr-day.nextMonthDay:hover {
+  background: #ccfbf1 !important;
+  border-color: #ccfbf1 !important;
+  color: #115e59 !important;
+}
+
+.flatpickr-day.today {
+  border-color: #0f766e !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+  color: #94a3b8 !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover,
+.flatpickr-current-month input.cur-year:hover {
+  background: #f1f5f9 !important;
+}
+
+/* Dark mode — html.dark and .dark (body append) */
+html.dark .flatpickr-calendar,
+.dark .flatpickr-calendar,
+.flatpickr-calendar.ems-dtp-calendar--dark,
+.flatpickr-calendar.dob-calendar--dark {
+  background: #121a2b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark .flatpickr-calendar.arrowTop::before,
+html.dark .flatpickr-calendar.arrowTop::after,
+.dark .flatpickr-calendar.arrowTop::before,
+.dark .flatpickr-calendar.arrowTop::after,
+.flatpickr-calendar.dob-calendar--dark.arrowTop::before,
+.flatpickr-calendar.dob-calendar--dark.arrowTop::after {
+  border-bottom-color: #121a2b !important;
+}
+
+html.dark .flatpickr-months,
+html.dark .flatpickr-weekdays,
+html.dark .flatpickr-time,
+.dark .flatpickr-months,
+.dark .flatpickr-weekdays,
+.dark .flatpickr-time,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-months,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-weekdays,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-time {
+  background: #121a2b !important;
+}
+
+html.dark .flatpickr-months .flatpickr-month,
+html.dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+html.dark .flatpickr-current-month input.cur-year,
+html.dark span.flatpickr-weekday,
+html.dark .flatpickr-day,
+html.dark .flatpickr-time input,
+html.dark .flatpickr-time .flatpickr-am-pm,
+.dark .flatpickr-months .flatpickr-month,
+.dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+.dark .flatpickr-current-month input.cur-year,
+.dark span.flatpickr-weekday,
+.dark .flatpickr-day,
+.dark .flatpickr-time input,
+.dark .flatpickr-time .flatpickr-am-pm,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-months .flatpickr-month,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-current-month input.cur-year,
+.flatpickr-calendar.dob-calendar--dark span.flatpickr-weekday,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-time input,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-time .flatpickr-am-pm {
+  background: transparent !important;
+  color: #e8eef8 !important;
+  fill: #e8eef8 !important;
+}
+
+html.dark .flatpickr-months .flatpickr-prev-month,
+html.dark .flatpickr-months .flatpickr-next-month,
+.dark .flatpickr-months .flatpickr-prev-month,
+.dark .flatpickr-months .flatpickr-next-month,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-months .flatpickr-prev-month,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-months .flatpickr-next-month {
+  fill: #94a3b8 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .flatpickr-months .flatpickr-prev-month:hover,
+html.dark .flatpickr-months .flatpickr-next-month:hover,
+.dark .flatpickr-months .flatpickr-prev-month:hover,
+.dark .flatpickr-months .flatpickr-next-month:hover,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-months .flatpickr-next-month:hover {
+  fill: #5eead4 !important;
+  color: #5eead4 !important;
+}
+
+html.dark .flatpickr-day:hover,
+html.dark .flatpickr-day:focus,
+.dark .flatpickr-day:hover,
+.dark .flatpickr-day:focus,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day:hover,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day:focus {
+  background: #1e293b !important;
+  border-color: #1e293b !important;
+  color: #5eead4 !important;
+}
+
+html.dark .flatpickr-day.today,
+.dark .flatpickr-day.today,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day.today {
+  border-color: #14b8a6 !important;
+}
+
+html.dark .flatpickr-day.selected,
+html.dark .flatpickr-day.startRange,
+html.dark .flatpickr-day.endRange,
+html.dark .flatpickr-day.selected:hover,
+.dark .flatpickr-day.selected,
+.dark .flatpickr-day.startRange,
+.dark .flatpickr-day.endRange,
+.dark .flatpickr-day.selected:hover,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day.selected,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day.selected:hover {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+}
+
+html.dark .flatpickr-day.flatpickr-disabled,
+html.dark .flatpickr-day.prevMonthDay,
+html.dark .flatpickr-day.nextMonthDay,
+.dark .flatpickr-day.flatpickr-disabled,
+.dark .flatpickr-day.prevMonthDay,
+.dark .flatpickr-day.nextMonthDay,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day.flatpickr-disabled,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day.prevMonthDay,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-day.nextMonthDay {
+  color: #64748b !important;
+}
+
+html.dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+html.dark .flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month,
+.dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+.dark .flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-calendar.dob-calendar--dark .flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+  background: #1a2438 !important;
+  color: #e8eef8 !important;
+}
+
+html.dark .numInputWrapper span.arrowUp:after,
+.dark .numInputWrapper span.arrowUp:after,
+.flatpickr-calendar.dob-calendar--dark .numInputWrapper span.arrowUp:after {
+  border-bottom-color: #94a3b8 !important;
+}
+
+html.dark .numInputWrapper span.arrowDown:after,
+.dark .numInputWrapper span.arrowDown:after,
+.flatpickr-calendar.dob-calendar--dark .numInputWrapper span.arrowDown:after {
+  border-top-color: #94a3b8 !important;
+}
+
+/* Alt input inherits form field colors via page CSS; reinforce for dark */
+html.dark .flatpickr-input,
+html.dark input.flatpickr-input,
+.dark .flatpickr-input,
+.dark input.flatpickr-input {
+  color: inherit;
+}
+
+@media (max-width: 480px) {
+  .flatpickr-calendar {
+    width: min(320px, calc(100vw - 1.5rem)) !important;
+  }
+}

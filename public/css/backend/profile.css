@@ -186,8 +186,23 @@
     font-size: 0.78rem;
 }
 
+.profile-field input.flatpickr-input,
+.profile-field input.form-control {
+    width: 100%;
+}
+
+.flatpickr-calendar {
+    z-index: 90;
+    font-family: inherit;
+}
+
+
 .dark .profile-summary-card__body > p {
     color: #94a3b8;
+}
+
+.dark .profile-summary-username {
+    color: #5eead4 !important;
 }
 
 .profile-summary-card__facts {
@@ -514,8 +529,19 @@
     color: #dbe5f2;
 }
 
-.profile-field label span {
-    color: #f43f5e;
+.profile-field label span,
+.profile-field label .ca-req,
+.profile-label-row label span {
+    color: #dc2626 !important;
+    font-weight: 800;
+}
+
+.dark .profile-field label span,
+.dark .profile-field label .ca-req,
+.dark .profile-label-row label span,
+html.dark .profile-field label span,
+html.dark .profile-field label .ca-req {
+    color: #f87171 !important;
 }
 
 .profile-field input,

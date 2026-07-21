@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/attempts/{attempt}/events', [CandidateAttemptController::class, 'events'])->name('frontend.attempts.events');
     Route::post('/attempts/{attempt}/submit', [CandidateAttemptController::class, 'submit'])->name('frontend.attempts.submit');
     Route::get('/attempts/{attempt}/result', [CandidateAttemptController::class, 'result'])->name('frontend.attempts.result');
+    Route::get('/attempts/{attempt}/result/data', [CandidateAttemptController::class, 'resultData'])->name('frontend.attempts.result.data');
     Route::get('/attempts/{attempt}/review', [CandidateAttemptController::class, 'review'])->name('frontend.attempts.review');
     Route::get('/attempts/{attempt}/review/data', [CandidateAttemptController::class, 'reviewData'])->name('frontend.attempts.review.data');
 });
@@ -100,8 +101,20 @@ Route::middleware('auth')->prefix('account')->name('frontend.account.')->group(f
     Route::get('/', [AccountController::class, 'dashboard'])->name('dashboard');
     Route::get('/exams', [AccountController::class, 'exams'])->name('exams');
     Route::get('/results', [AccountController::class, 'results'])->name('results');
+
+    Route::get('/profile', [AccountController::class, 'profile'])->name('profile');
+    Route::get('/profile/data', [AccountController::class, 'profileData'])->name('profile.data');
+    Route::post('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
+
     Route::get('/settings', [AccountController::class, 'settings'])->name('settings');
+    Route::get('/settings/data', [AccountController::class, 'settingsData'])->name('settings.data');
     Route::put('/settings', [AccountController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings/account', [AccountController::class, 'updateAccountSettings'])->name('settings.account');
+    Route::post('/settings/password', [AccountController::class, 'updatePassword'])->name('settings.password');
+    Route::delete('/settings/account', [AccountController::class, 'destroyAccount'])->name('settings.destroy');
+
+    Route::get('/invoices', [AccountController::class, 'invoices'])->name('invoices');
+    Route::get('/activity', [AccountController::class, 'activity'])->name('activity');
 });
 
 // Auth routes (Laravel Breeze)

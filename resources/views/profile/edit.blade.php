@@ -15,7 +15,9 @@
         ? 'security'
         : ($errors->hasAny(['address_line1', 'address_line2', 'city', 'state_region', 'postal_code', 'country'])
             ? 'address'
-            : ($errors->hasAny(['social_links.*']) ? 'social' : 'general'));
+            : ($errors->hasAny(['social_links.*', 'social_links.website', 'social_links.linkedin', 'social_links.github', 'social_links.twitter', 'social_links.facebook'])
+                ? 'social'
+                : 'general'));
 @endphp
 
 @section('content')
@@ -54,6 +56,9 @@
                 </div>
                 <h2>{{ $user->name }}</h2>
                 <p>{{ $user->email }}</p>
+                @if(filled($user->username))
+                    <p class="profile-summary-username">{{ '@'.$user->username }}</p>
+                @endif
 
                 <div class="profile-summary-card__facts">
                     <div>
@@ -68,6 +73,17 @@
                         <span>Profile</span>
                         <strong>{{ $profile?->bio ? 'Personalized' : 'Getting started' }}</strong>
                     </div>
+                    @if(filled($profile?->gender) || filled($profile?->date_of_birth))
+                        <div>
+                            <span>Personal</span>
+                            <strong>
+                                {{ $profile?->gender ? ucwords(str_replace('_', ' ', $profile->gender)) : '—' }}
+                                @if($profile?->date_of_birth)
+                                    · {{ $profile->date_of_birth->format('d M Y') }}
+                                @endif
+                            </strong>
+                        </div>
+                    @endif
                 </div>
 
                 <p class="profile-summary-card__hint">
@@ -150,7 +166,7 @@
 
                     <div class="profile-field-grid">
                         <div class="profile-field" data-field-host>
-                            <label for="name">Full name <span aria-hidden="true">*</span></label>
+                            <label for="name">Full name <span class="ca-req" aria-hidden="true">*</span></label>
                             <input
                                 type="text"
                                 id="name"
@@ -166,7 +182,22 @@
                         </div>
 
                         <div class="profile-field" data-field-host>
-                            <label for="email">Email address <span aria-hidden="true">*</span></label>
+                            <label for="username">Username</label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                value="{{ old('username', $user->username) }}"
+                                placeholder="e.g. ananya_sharma"
+                                autocomplete="username"
+                                data-section="general"
+                            >
+                            <p class="profile-field-hint">Letters, numbers, dashes, and underscores only.</p>
+                            <p class="profile-field-error" data-error-for="username">@error('username'){{ $message }}@enderror</p>
+                        </div>
+
+                        <div class="profile-field" data-field-host>
+                            <label for="email">Email address <span class="ca-req" aria-hidden="true">*</span></label>
                             <input
                                 type="email"
                                 id="email"
@@ -196,6 +227,41 @@
                                 data-section="general"
                             >
                             <p class="profile-field-error" data-error-for="phone">@error('phone'){{ $message }}@enderror</p>
+                        </div>
+
+                        <div class="profile-field" data-field-host>
+                            <label for="date_of_birth">Date of birth</label>
+                            <input
+                                type="text"
+                                id="date_of_birth"
+                                name="date_of_birth"
+                                value="{{ old('date_of_birth', optional($profile?->date_of_birth)->format('Y-m-d')) }}"
+                                placeholder="Select date of birth"
+                                autocomplete="bday"
+                                inputmode="numeric"
+                                data-dob-picker
+                                data-validate="dob"
+                                data-section="general"
+                                maxlength="10"
+                            >
+                            <p class="profile-field-hint">Future dates are not allowed.</p>
+                            <p class="profile-field-error" data-error-for="date_of_birth">@error('date_of_birth'){{ $message }}@enderror</p>
+                        </div>
+
+                        <div class="profile-field" data-field-host>
+                            <label for="gender">Gender</label>
+                            <select id="gender" name="gender" data-section="general">
+                                <option value="">Select gender</option>
+                                @foreach ([
+                                    'male' => 'Male',
+                                    'female' => 'Female',
+                                    'other' => 'Other',
+                                    'prefer_not_to_say' => 'Prefer not to say',
+                                ] as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('gender', $profile?->gender) === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <p class="profile-field-error" data-error-for="gender">@error('gender'){{ $message }}@enderror</p>
                         </div>
 
                         <div class="profile-field profile-field--wide" data-field-host>
@@ -275,6 +341,7 @@
 
                     <div class="profile-field-grid">
                         @foreach ([
+                            'website' => ['Website', 'https://yourwebsite.com'],
                             'linkedin' => ['LinkedIn', 'https://linkedin.com/in/username'],
                             'github' => ['GitHub', 'https://github.com/username'],
                             'twitter' => ['X / Twitter', 'https://x.com/username'],
@@ -354,8 +421,10 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ versioned_asset('css/backend/profile.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/components/dob-datepicker.css') }}" data-dob-theme="1">
 @endpush
 
 @push('scripts')
+    <script src="{{ versioned_asset('js/components/dob-datepicker.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/profile.js') }}" defer></script>
 @endpush

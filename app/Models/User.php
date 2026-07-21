@@ -17,6 +17,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
         'status',
@@ -101,5 +102,10 @@ class User extends Authenticatable
     public function examAttempts()
     {
         return $this->hasMany(ExamAttempt::class);
+    }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(UserActivityLog::class);
     }
 }

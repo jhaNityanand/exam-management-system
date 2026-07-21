@@ -1,6 +1,11 @@
 .form-required {
-    color: rgb(239 68 68);
+    color: #dc2626 !important;
     font-weight: 700;
+}
+
+.dark .form-required,
+html.dark .form-required {
+    color: #f87171 !important;
 }
 
 .form-field-error {

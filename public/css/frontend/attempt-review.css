@@ -3,6 +3,7 @@
 .rv-page {
   padding: 0 0 2.5rem;
   min-height: 60vh;
+  color: var(--et-text, #0f172a);
 }
 
 .rv-shell {
@@ -45,6 +46,7 @@
   font-size: clamp(1.4rem, 2.6vw, 1.75rem);
   letter-spacing: -.02em;
   line-height: 1.15;
+  color: var(--et-text, #0f172a);
 }
 
 .rv-hero__sub {
@@ -108,6 +110,7 @@
   font-size: clamp(1.35rem, 2.5vw, 1.75rem);
   letter-spacing: -.03em;
   line-height: 1.1;
+  color: var(--et-text, #0f172a);
 }
 
 .rv-summary__score span {
@@ -170,6 +173,7 @@
   font-weight: 800;
   letter-spacing: -.02em;
   line-height: 1.1;
+  color: var(--et-text, #0f172a);
 }
 
 .rv-stat.is-correct .rv-stat__value { color: #059669; }
@@ -221,6 +225,7 @@
 .rv-list-head h2 {
   margin: 0;
   font-size: 1.05rem;
+  color: var(--et-text, #0f172a);
 }
 
 .rv-list-meta {
@@ -428,6 +433,7 @@
 .rv-option__text {
   line-height: 1.35;
   font-size: .92rem;
+  color: var(--et-text, #0f172a);
 }
 
 .rv-option__icon {
@@ -640,18 +646,118 @@ html.dark .rv-card {
   border-color: var(--et-border, #243044);
 }
 
+html.dark .rv-page,
+html.dark .rv-hero h1,
+html.dark .rv-summary__score strong,
+html.dark .rv-stat__value,
+html.dark .rv-list-head h2,
+html.dark .rv-body,
+html.dark .rv-option__text,
+html.dark .rv-correct-text,
+html.dark .rv-explain__content {
+  color: var(--et-text, #e8eef8);
+}
+
+html.dark .rv-hero__sub,
+html.dark .rv-summary__score span,
+html.dark .rv-stat__label,
+html.dark .rv-progress__meta,
+html.dark .rv-list-meta,
+html.dark .rv-empty {
+  color: var(--et-text-muted, #94a3b8);
+}
+
 html.dark .rv-stat,
-html.dark .rv-option {
+html.dark .rv-option:not(.is-correct):not(.is-wrong):not(.is-missed),
+html.dark .rv-answer-row.is-empty {
   background: var(--et-surface-2, #1a2438);
 }
 
+html.dark .rv-option.is-correct,
+html.dark .rv-option.is-missed,
+html.dark .rv-answer-row.is-yours-correct,
+html.dark .rv-answer-row.is-correct {
+  background: color-mix(in srgb, #34d399 14%, #121a2b);
+  border-color: color-mix(in srgb, #34d399 45%, #243044);
+  color: #6ee7b7;
+}
+
+html.dark .rv-option.is-correct .rv-option__text,
+html.dark .rv-option.is-missed .rv-option__text,
+html.dark .rv-answer-row.is-yours-correct,
+html.dark .rv-answer-row.is-correct {
+  color: #bbf7d0;
+}
+
+html.dark .rv-option.is-wrong,
+html.dark .rv-answer-row.is-yours-wrong {
+  background: color-mix(in srgb, #f87171 14%, #121a2b);
+  border-color: color-mix(in srgb, #f87171 45%, #243044);
+  color: #fecaca;
+}
+
+html.dark .rv-option.is-wrong .rv-option__text,
+html.dark .rv-answer-row.is-yours-wrong {
+  color: #fecaca;
+}
+
+html.dark .rv-badge.is-correct,
+html.dark .rv-marks.is-correct {
+  background: color-mix(in srgb, #34d399 22%, #121a2b);
+  color: #86efac;
+}
+
+html.dark .rv-badge.is-incorrect,
+html.dark .rv-marks.is-incorrect {
+  background: color-mix(in srgb, #f87171 22%, #121a2b);
+  color: #fca5a5;
+}
+
+html.dark .rv-badge.is-unanswered,
+html.dark .rv-badge.is-pending,
+html.dark .rv-marks.is-unanswered,
+html.dark .rv-marks.is-pending {
+  background: #1e293b;
+  color: #cbd5e1;
+}
+
+html.dark .rv-stat.is-correct .rv-stat__value { color: #34d399; }
+html.dark .rv-stat.is-incorrect .rv-stat__value { color: #f87171; }
+html.dark .rv-stat.is-muted .rv-stat__value { color: #94a3b8; }
+
 html.dark .rv-field {
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.55);
+  border-color: #334155;
+  color: var(--et-text, #e8eef8);
 }
 
 html.dark .rv-option__fake {
   background: #0f172a;
   border-color: #64748b;
+}
+
+html.dark .rv-option__key {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+html.dark .rv-explain {
+  border-top-color: var(--et-border, #243044);
+}
+
+html.dark .rv-explain__toggle {
+  color: #5eead4;
+}
+
+html.dark .rv-explain__content {
+  background: color-mix(in srgb, var(--et-accent, #14b8a6) 12%, transparent);
+  color: var(--et-text, #e8eef8);
+}
+
+html.dark .rv-error {
+  background: color-mix(in srgb, #ef4444 16%, #121a2b);
+  border-color: #7f1d1d;
+  color: #fecaca;
 }
 
 html.dark .rv-progress__track,

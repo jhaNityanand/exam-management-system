@@ -7,38 +7,116 @@ use Illuminate\Support\Facades\Storage;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
+    $organization = Organization::create([
+        'name' => 'Profile Page Organization',
+        'slug' => 'profile-page-org-'.$user->id,
+        'status' => 'active',
+        'user_id' => $user->id,
+    ]);
+    UserOrganization::create([
+        'user_id' => $user->id,
+        'organization_id' => $organization->id,
+        'role' => 'admin',
+        'status' => 'active',
+    ]);
 
     $response = $this
         ->actingAs($user)
         ->get('/admin/profile');
 
-    $response->assertOk();
+    $response->assertOk()
+        ->assertSee('name="username"', false)
+        ->assertSee('name="date_of_birth"', false)
+        ->assertSee('name="gender"', false);
 });
 
 test('profile information can be updated', function () {
     $user = User::factory()->create();
+    $organization = Organization::create([
+        'name' => 'Profile Update Organization',
+        'slug' => 'profile-update-org-'.$user->id,
+        'status' => 'active',
+        'user_id' => $user->id,
+    ]);
+    UserOrganization::create([
+        'user_id' => $user->id,
+        'organization_id' => $organization->id,
+        'role' => 'admin',
+        'status' => 'active',
+    ]);
     $newEmail = 'profile-test-'.$user->id.'@example.com';
 
     $response = $this
         ->actingAs($user)
         ->patch('/admin/profile', [
             'name' => 'Test User',
+            'username' => 'test_user_'.$user->id,
             'email' => $newEmail,
+            'phone' => '+91 98765 43210',
+            'date_of_birth' => '1995-05-15',
+            'gender' => 'prefer_not_to_say',
+            'bio' => 'Admin profile bio',
         ]);
 
     $response
         ->assertSessionHasNoErrors()
         ->assertRedirect('/admin/profile');
 
-    $user->refresh();
+    $user->refresh()->load('profile');
 
     $this->assertSame('Test User', $user->name);
+    $this->assertSame('test_user_'.$user->id, $user->username);
     $this->assertSame($newEmail, $user->email);
     $this->assertNull($user->email_verified_at);
+    expect($user->profile?->phone)->toBe('+91 98765 43210');
+    expect($user->profile?->gender)->toBe('prefer_not_to_say');
+    expect(optional($user->profile?->date_of_birth)->format('Y-m-d'))->toBe('1995-05-15');
+    expect($user->profile?->bio)->toBe('Admin profile bio');
+});
+
+test('profile rejects future date of birth', function () {
+    $user = User::factory()->create();
+    $organization = Organization::create([
+        'name' => 'Profile Dob Organization',
+        'slug' => 'profile-dob-org-'.$user->id,
+        'status' => 'active',
+        'user_id' => $user->id,
+    ]);
+    UserOrganization::create([
+        'user_id' => $user->id,
+        'organization_id' => $organization->id,
+        'role' => 'admin',
+        'status' => 'active',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->from('/admin/profile')
+        ->patch('/admin/profile', [
+            'name' => $user->name,
+            'email' => $user->email,
+            'date_of_birth' => now()->addDay()->format('Y-m-d'),
+        ]);
+
+    $response
+        ->assertSessionHasErrors('date_of_birth')
+        ->assertRedirect('/admin/profile');
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
     $user = User::factory()->create();
+    $organization = Organization::create([
+        'name' => 'Profile Email Organization',
+        'slug' => 'profile-email-org-'.$user->id,
+        'status' => 'active',
+        'user_id' => $user->id,
+    ]);
+    UserOrganization::create([
+        'user_id' => $user->id,
+        'organization_id' => $organization->id,
+        'role' => 'admin',
+        'status' => 'active',
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -94,6 +172,18 @@ test('profile avatar can be uploaded from cropped image data', function () {
 
 test('user can delete their account', function () {
     $user = User::factory()->create();
+    $organization = Organization::create([
+        'name' => 'Profile Delete Organization',
+        'slug' => 'profile-delete-org-'.$user->id,
+        'status' => 'active',
+        'user_id' => $user->id,
+    ]);
+    UserOrganization::create([
+        'user_id' => $user->id,
+        'organization_id' => $organization->id,
+        'role' => 'admin',
+        'status' => 'active',
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -111,6 +201,18 @@ test('user can delete their account', function () {
 
 test('correct password must be provided to delete account', function () {
     $user = User::factory()->create();
+    $organization = Organization::create([
+        'name' => 'Profile Delete Fail Organization',
+        'slug' => 'profile-delete-fail-org-'.$user->id,
+        'status' => 'active',
+        'user_id' => $user->id,
+    ]);
+    UserOrganization::create([
+        'user_id' => $user->id,
+        'organization_id' => $organization->id,
+        'role' => 'admin',
+        'status' => 'active',
+    ]);
 
     $response = $this
         ->actingAs($user)

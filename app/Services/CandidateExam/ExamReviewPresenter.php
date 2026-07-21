@@ -13,8 +13,6 @@ class ExamReviewPresenter
     {
         $attempt->loadMissing(['exam', 'attemptAnswers', 'attemptQuestions']);
         $answers = $attempt->attemptAnswers->keyBy('exam_attempt_question_id');
-        $config = $attempt->exam_config_snapshot ?: [];
-        $exam = $attempt->exam;
 
         $questions = $attempt->attemptQuestions
             ->sortBy('position')
@@ -57,34 +55,58 @@ class ExamReviewPresenter
             })
             ->all();
 
+        return [
+            'summary' => $this->buildSummary($attempt, $questions),
+            'questions' => $questions,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentSummary(ExamAttempt $attempt): array
+    {
+        $attempt->loadMissing(['exam', 'attemptQuestions']);
+
+        return $this->buildSummary($attempt, $attempt->attemptQuestions->all());
+    }
+
+    /**
+     * @param  list<mixed>  $questions
+     * @return array<string, mixed>
+     */
+    protected function buildSummary(ExamAttempt $attempt, array $questions): array
+    {
+        $config = $attempt->exam_config_snapshot ?: [];
+        $exam = $attempt->exam;
         $totalQuestions = count($questions);
+
         $correct = (int) ($attempt->correct_count ?? collect($questions)->where('status', 'correct')->count());
         $incorrect = (int) ($attempt->wrong_count ?? collect($questions)->where('status', 'incorrect')->count());
-        $unanswered = (int) ($attempt->unanswered_count ?? collect($questions)->where('status', 'unanswered')->count());
+        $unanswered = (int) ($attempt->unanswered_count ?? max(0, $totalQuestions - $correct - $incorrect));
         $attempted = max(0, $totalQuestions - $unanswered);
         $totalMarks = (float) ($config['total_marks'] ?? $exam?->total_marks ?? 0);
         $passingMarks = (float) ($config['passing_marks'] ?? $exam?->passing_marks ?? 0);
         $score = (float) ($attempt->score ?? 0);
         $percentage = (float) ($attempt->percentage ?? 0);
+        $reason = (string) ($attempt->submission_reason ?: $attempt->status);
 
         return [
-            'summary' => [
-                'exam_title' => (string) ($exam?->title ?? 'Exam'),
-                'total_questions' => $totalQuestions,
-                'attempted' => $attempted,
-                'correct' => $correct,
-                'incorrect' => $incorrect,
-                'unanswered' => $unanswered,
-                'score' => $score,
-                'total_marks' => $totalMarks,
-                'passing_marks' => $passingMarks,
-                'percentage' => $percentage,
-                'passed' => (bool) $attempt->passed,
-                'status_label' => $attempt->passed ? 'Pass' : 'Fail',
-                'time_spent_seconds' => (int) ($attempt->time_spent_seconds ?? 0),
-                'submission_reason' => (string) ($attempt->submission_reason ?: $attempt->status),
-            ],
-            'questions' => $questions,
+            'exam_title' => (string) ($exam?->title ?? 'Exam'),
+            'total_questions' => $totalQuestions,
+            'attempted' => $attempted,
+            'correct' => $correct,
+            'incorrect' => $incorrect,
+            'unanswered' => $unanswered,
+            'score' => $score,
+            'total_marks' => $totalMarks,
+            'passing_marks' => $passingMarks,
+            'percentage' => $percentage,
+            'passed' => (bool) $attempt->passed,
+            'status_label' => $attempt->passed ? 'Pass' : 'Fail',
+            'time_spent_seconds' => (int) ($attempt->time_spent_seconds ?? 0),
+            'submission_reason' => $reason,
+            'submission_label' => ucwords(str_replace('_', ' ', $reason)),
         ];
     }
 
