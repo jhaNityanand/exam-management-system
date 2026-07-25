@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Creates the exams table (full schema — no follow-up alter migrations required).
+ * Creates the exams table (exam-level identity, schedule, scoring gateways).
+ * Part-level question config lives on exam_parts (see exam_system_extensions).
  */
 return new class extends Migration
 {
@@ -53,38 +54,16 @@ return new class extends Migration
             $table->string('attempt_limit_type')->default('once'); // once | fixed | unlimited
             $table->unsignedTinyInteger('max_attempts')->default(1);
 
-            // Scoring
+            // Exam-level scoring gateways (part totals roll up into total_*)
             $table->decimal('pass_percentage', 5, 2)->default(50);
-            $table->unsignedSmallInteger('total_marks')->nullable();
+            $table->unsignedSmallInteger('total_marks')->nullable(); // aggregate of parts
             $table->unsignedSmallInteger('passing_marks')->nullable();
+            $table->unsignedSmallInteger('total_questions')->nullable(); // aggregate of parts
             $table->string('result_release_mode', 32)->default('immediate');
             $table->timestamp('result_release_at')->nullable();
             $table->decimal('negative_mark_per_question', 8, 4)->default(0);
             $table->boolean('enable_negative_marking')->default(false);
             $table->string('negative_marking_type')->nullable(); // 25 | 33.33 | 50 | 100 (percent)
-            $table->boolean('fix_marks_each_question')->default(false);
-
-            // Question Configuration
-            $table->unsignedSmallInteger('total_questions')->nullable();
-            $table->boolean('use_question_pool')->default(false);
-            $table->unsignedSmallInteger('maximum_questions')->nullable();
-            $table->boolean('fixed_questions')->default(false); // true = exact selected question set for all candidates
-            $table->boolean('fixed_paper_set')->default(false);
-            $table->unsignedTinyInteger('paper_sets')->default(1);
-            $table->boolean('fix_category_questions')->default(false);
-            $table->boolean('fix_category_marks')->default(false);
-            $table->string('distribution_type')->nullable(); // mixed | category_wise | equal | weighted | manual
-            $table->json('selected_categories')->nullable();
-            $table->json('extra_questions_categories')->nullable();
-            $table->json('extra_questions_allocations')->nullable();
-            $table->json('extra_marks_allocations')->nullable();
-            $table->json('question_marks_filter')->nullable();
-            $table->json('category_question_rules')->nullable();
-
-            // Shuffle
-            $table->boolean('shuffle_questions')->default(false);
-            $table->boolean('shuffle_categories')->default(false);
-            $table->boolean('shuffle_options')->default(false);
 
             // Candidate Access
             $table->json('imported_candidates')->nullable();

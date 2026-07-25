@@ -69,6 +69,10 @@
             ? $exam->exam_format
             : (json_decode($exam->exam_format ?? '[]', true) ?: []);
 
+        $exam->loadMissing(['parts' => function ($query) {
+            $query->orderBy('sort_order')->with('questions:id');
+        }]);
+
         $examConfig = [
             'id' => $exam->id,
             'title' => $exam->title,
@@ -82,7 +86,7 @@
             'exam_category_id' => $exam->category_id,
             'tags' => $exam->tags ?? [],
 
-            // Timer & duration
+            // Timer
             'enable_exam_timer' => (bool) $exam->enable_exam_timer,
             'exam_duration_minutes' => $exam->duration,
             'auto_submit_on_timer_end' => (bool) $exam->auto_submit_on_timer_end,
@@ -94,33 +98,40 @@
             'attempt_limit_type' => $exam->attempt_limit_type,
             'attempt_limit_count' => $exam->max_attempts,
 
-            // Exam configuration
-            'total_questions' => $exam->total_questions,
-            'total_marks' => $exam->total_marks,
+            // Exam-level scoring gateways
             'passing_marks' => $exam->passing_marks,
-            'use_question_pool' => (bool) $exam->use_question_pool,
-            'maximum_questions' => $exam->maximum_questions,
-            'fixed_questions' => (bool) $exam->fixed_questions,
-            'fixed_paper_set' => (bool) $exam->fixed_paper_set,
-            'paper_sets' => $exam->paper_sets,
-            'fix_category_questions' => (bool) $exam->fix_category_questions,
-            'fix_category_marks' => (bool) $exam->fix_category_marks,
-            'distribution_type' => $exam->distribution_type,
-            'selected_categories' => $exam->selected_categories ?? [],
-            'extra_questions_categories' => $exam->extra_questions_categories ?? [],
-            'extra_questions_allocations' => $exam->extra_questions_allocations ?? [],
-            'extra_marks_allocations' => $exam->extra_marks_allocations ?? [],
-            'question_ids' => $exam->questions->pluck('id')->values()->all(),
-
-            // Question rules & filters
-            'fix_marks_each_question' => (bool) $exam->fix_marks_each_question,
-            'question_marks_filter' => $exam->question_marks_filter ?? [],
             'enable_negative_marking' => (bool) $exam->enable_negative_marking,
             'negative_marking_type' => $exam->negative_marking_type,
             'negative_mark_per_question' => $exam->negative_mark_per_question,
-            'shuffle_questions' => (bool) $exam->shuffle_questions,
-            'shuffle_categories' => (bool) $exam->shuffle_categories,
-            'shuffle_options' => (bool) $exam->shuffle_options,
+
+            // Exam parts — each part carries its own configuration, rules, and question bank.
+            'parts' => $exam->parts->map(function (\App\Models\ExamPart $part) {
+                return [
+                    'id' => $part->id,
+                    'name' => $part->name,
+                    'is_default' => (bool) $part->is_default,
+                    'total_questions' => $part->total_questions,
+                    'total_marks' => $part->total_marks,
+                    'use_question_pool' => (bool) $part->use_question_pool,
+                    'maximum_questions' => $part->maximum_questions,
+                    'fixed_questions' => (bool) $part->fixed_questions,
+                    'fixed_paper_set' => (bool) $part->fixed_paper_set,
+                    'paper_sets' => $part->paper_sets,
+                    'fix_category_questions' => (bool) $part->fix_category_questions,
+                    'fix_category_marks' => (bool) $part->fix_category_marks,
+                    'distribution_type' => $part->distribution_type,
+                    'fix_marks_each_question' => (bool) $part->fix_marks_each_question,
+                    'selected_categories' => $part->selected_categories ?? [],
+                    'extra_questions_categories' => $part->extra_questions_categories ?? [],
+                    'extra_questions_allocations' => $part->extra_questions_allocations ?? [],
+                    'extra_marks_allocations' => $part->extra_marks_allocations ?? [],
+                    'question_marks_filter' => $part->question_marks_filter ?? [],
+                    'shuffle_questions' => (bool) $part->shuffle_questions,
+                    'shuffle_categories' => (bool) $part->shuffle_categories,
+                    'shuffle_options' => (bool) $part->shuffle_options,
+                    'question_ids' => $part->questions->pluck('id')->values()->all(),
+                ];
+            })->values()->all(),
 
             // Pricing & discounts
             'pricing_option' => $exam->pricing_option,
@@ -179,6 +190,7 @@
             if (!window.EmsTomSelectHierarchy) {
                 window.EmsTomSelectBlur?.attach(categorySelect);
             }
+            categorySelect?.on?.('change', () => window.examCreateUpdateSidebar?.());
             window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
             window.EmsSlugField?.bind({
                 module: 'exam',

@@ -776,25 +776,7 @@ HTML,
             'enable_negative_marking' => $negativeType !== null,
             'negative_marking_type' => $negativeType,
             'negative_mark_per_question' => $negativePerQuestion,
-            'fix_marks_each_question' => (bool) $config['fix_marks_each_question'],
             'total_questions' => $totalQuestions,
-            'use_question_pool' => $mode === 'pool',
-            'maximum_questions' => $poolSize,
-            'fixed_questions' => $mode === 'fixed',
-            'fixed_paper_set' => (bool) $config['fixed_paper_set'],
-            'paper_sets' => (bool) $config['fixed_paper_set'] ? (int) $config['paper_sets'] : 1,
-            'fix_category_questions' => (bool) $config['fix_category_questions'],
-            'fix_category_marks' => (bool) $config['fix_category_marks'],
-            'distribution_type' => $config['distribution_type'],
-            'selected_categories' => $questionCategoryIds,
-            'extra_questions_categories' => (bool) $config['fix_category_questions'] ? $questionCategoryIds : [],
-            'extra_questions_allocations' => $extraQuestionAllocations,
-            'extra_marks_allocations' => $extraMarksAllocations,
-            'question_marks_filter' => $config['question_marks_filter'],
-            'category_question_rules' => [],
-            'shuffle_questions' => (bool) $config['shuffle_questions'],
-            'shuffle_categories' => (bool) $config['shuffle_categories'],
-            'shuffle_options' => (bool) $config['shuffle_options'],
             'imported_candidates' => $config['imported_candidates'],
             'manual_candidate_emails' => $config['manual_candidate_emails'],
             'free_imported_candidates' => $config['free_imported_candidates'],
@@ -829,7 +811,33 @@ HTML,
             $proctoring->fill($config['proctoring'])->save();
         }
 
-        $exam->selectedQuestionCategories()->sync($questionCategoryIds);
+        $part = $exam->parts()->create([
+            'name' => 'Default Part',
+            'sort_order' => 0,
+            'is_default' => true,
+            'total_questions' => $totalQuestions,
+            'total_marks' => (int) $scenario['total_marks'],
+            'use_question_pool' => $mode === 'pool',
+            'maximum_questions' => $poolSize,
+            'fixed_questions' => $mode === 'fixed',
+            'fixed_paper_set' => (bool) $config['fixed_paper_set'],
+            'paper_sets' => (bool) $config['fixed_paper_set'] ? (int) $config['paper_sets'] : 1,
+            'fix_category_questions' => (bool) $config['fix_category_questions'],
+            'fix_category_marks' => (bool) $config['fix_category_marks'],
+            'distribution_type' => $config['distribution_type'],
+            'fix_marks_each_question' => (bool) $config['fix_marks_each_question'],
+            'selected_categories' => $questionCategoryIds,
+            'extra_questions_categories' => (bool) $config['fix_category_questions'] ? $questionCategoryIds : [],
+            'extra_questions_allocations' => $extraQuestionAllocations,
+            'extra_marks_allocations' => $extraMarksAllocations,
+            'question_marks_filter' => $config['question_marks_filter'],
+            'category_question_rules' => [],
+            'shuffle_questions' => (bool) $config['shuffle_questions'],
+            'shuffle_categories' => (bool) $config['shuffle_categories'],
+            'shuffle_options' => (bool) $config['shuffle_options'],
+        ]);
+
+        $part->selectedQuestionCategories()->sync($questionCategoryIds);
 
         $questionSync = [];
         foreach ($questionIds as $index => $questionId) {
@@ -840,9 +848,9 @@ HTML,
                 'updated_by' => $adminId,
             ];
         }
-        $exam->questions()->sync($questionSync);
+        $part->questions()->sync($questionSync);
 
-        $this->assertExamContract($exam, $mode, count($questionIds), $position);
+        $this->assertExamContract($exam->fresh(['parts.questions']), $mode, count($questionIds), $position);
     }
 
     /**
@@ -964,33 +972,37 @@ HTML,
 
     private function assertExamContract(Exam $exam, string $mode, int $persistedCount, int $position): void
     {
+        $part = $exam->parts->first();
+        if (! $part) {
+            throw new RuntimeException("ExamSeeder: missing default part at scenario {$position}.");
+        }
         if ($exam->passing_marks > $exam->total_marks) {
             throw new RuntimeException("ExamSeeder: passing marks exceed total marks at scenario {$position}.");
         }
-        if (empty($exam->selected_categories) || empty($exam->question_marks_filter)) {
+        if (empty($part->selected_categories) || empty($part->question_marks_filter)) {
             throw new RuntimeException("ExamSeeder: categories/marks missing at scenario {$position}.");
         }
-        if ($mode === 'fixed' && $persistedCount !== (int) $exam->total_questions) {
+        if ($mode === 'fixed' && $persistedCount !== (int) $part->total_questions) {
             throw new RuntimeException("ExamSeeder: fixed question count mismatch at scenario {$position}.");
         }
         if ($mode === 'pool' && (
-            $persistedCount < (int) $exam->total_questions
-            || $persistedCount > (int) $exam->maximum_questions
+            $persistedCount < (int) $part->total_questions
+            || $persistedCount > (int) $part->maximum_questions
         )) {
             throw new RuntimeException("ExamSeeder: question pool count mismatch at scenario {$position}.");
         }
         if ($mode === 'dynamic' && $persistedCount !== 0) {
             throw new RuntimeException("ExamSeeder: dynamic scenario {$position} persisted question ids.");
         }
-        if ($exam->fix_category_questions) {
-            $allocated = collect($exam->extra_questions_allocations)->sum();
-            if ($allocated !== (int) $exam->total_questions) {
+        if ($part->fix_category_questions) {
+            $allocated = collect($part->extra_questions_allocations)->sum();
+            if ($allocated !== (int) $part->total_questions) {
                 throw new RuntimeException("ExamSeeder: question allocation mismatch at scenario {$position}.");
             }
         }
-        if ($exam->fix_category_marks) {
-            $allocated = collect($exam->extra_marks_allocations)->sum();
-            if ($allocated !== (int) $exam->total_marks) {
+        if ($part->fix_category_marks) {
+            $allocated = collect($part->extra_marks_allocations)->sum();
+            if ($allocated !== (int) $part->total_marks) {
                 throw new RuntimeException("ExamSeeder: marks allocation mismatch at scenario {$position}.");
             }
         }

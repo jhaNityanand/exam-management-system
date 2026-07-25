@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\AttemptQuestionShortageException;
 use App\Models\Exam;
+use App\Models\ExamPart;
 use App\Models\Question;
 use Illuminate\Support\Collection;
 
@@ -11,12 +12,12 @@ class AttemptQuestionSelector
 {
     public function __construct(protected QuestionBankService $questionBank) {}
 
-    public function resolveMode(Exam $exam): string
+    public function resolveMode(ExamPart $part): string
     {
-        if ($exam->use_question_pool) {
+        if ($part->use_question_pool) {
             return 'pool';
         }
-        if ($exam->fixed_questions) {
+        if ($part->fixed_questions) {
             return 'fixed';
         }
 
@@ -24,35 +25,63 @@ class AttemptQuestionSelector
     }
 
     /**
+     * Select questions for every part and return a flat ordered list.
+     *
      * @return list<Question>
      *
      * @throws AttemptQuestionShortageException
      */
     public function select(Exam $exam): array
     {
-        return match ($this->resolveMode($exam)) {
-            'fixed' => $this->selectFixed($exam),
-            'pool' => $this->selectPool($exam),
-            default => $this->selectDynamic($exam),
+        $exam->loadMissing('parts.questions', 'parts.selectedQuestionCategories');
+        $parts = $exam->parts->sortBy('sort_order')->values();
+
+        if ($parts->isEmpty()) {
+            throw new AttemptQuestionShortageException(
+                'Exam has no parts configured.',
+                [['type' => 'parts_empty']]
+            );
+        }
+
+        $selected = [];
+        foreach ($parts as $part) {
+            $selected = array_merge($selected, $this->selectForPart($exam, $part));
+        }
+
+        return $selected;
+    }
+
+    /**
+     * @return list<Question>
+     *
+     * @throws AttemptQuestionShortageException
+     */
+    public function selectForPart(Exam $exam, ExamPart $part): array
+    {
+        return match ($this->resolveMode($part)) {
+            'fixed' => $this->selectFixed($part),
+            'pool' => $this->selectPool($part),
+            default => $this->selectDynamic($exam, $part),
         };
     }
 
     /**
      * @return list<Question>
      */
-    protected function selectFixed(Exam $exam): array
+    protected function selectFixed(ExamPart $part): array
     {
-        $questions = $exam->questions()
+        $questions = $part->questions()
             ->wherePivot('status', 'active')
             ->orderByPivot('sort_order')
             ->get();
 
-        $required = max(1, (int) $exam->total_questions);
+        $required = max(1, (int) $part->total_questions);
         if ($questions->count() < $required) {
             throw new AttemptQuestionShortageException(
-                'Fixed exam is missing required questions.',
+                'Fixed part is missing required questions.',
                 [[
                     'type' => 'fixed',
+                    'part_id' => $part->id,
                     'required' => $required,
                     'available' => $questions->count(),
                     'missing' => $required - $questions->count(),
@@ -66,19 +95,20 @@ class AttemptQuestionSelector
     /**
      * @return list<Question>
      */
-    protected function selectPool(Exam $exam): array
+    protected function selectPool(ExamPart $part): array
     {
-        $pool = $exam->questions()
+        $pool = $part->questions()
             ->wherePivot('status', 'active')
             ->orderByPivot('sort_order')
             ->get();
 
-        $required = max(1, (int) $exam->total_questions);
+        $required = max(1, (int) $part->total_questions);
         if ($pool->count() < $required) {
             throw new AttemptQuestionShortageException(
                 'Question pool is smaller than total questions.',
                 [[
                     'type' => 'pool',
+                    'part_id' => $part->id,
                     'required' => $required,
                     'available' => $pool->count(),
                     'missing' => $required - $pool->count(),
@@ -92,22 +122,22 @@ class AttemptQuestionSelector
     /**
      * @return list<Question>
      */
-    protected function selectDynamic(Exam $exam): array
+    protected function selectDynamic(Exam $exam, ExamPart $part): array
     {
-        $filters = $this->baseFilters($exam);
+        $filters = $this->baseFilters($exam, $part);
         $candidates = $this->questionBank
             ->filteredQuery((int) $exam->organization_id, $filters)
             ->with('category:id,name,parent_id')
             ->get();
 
-        $required = max(1, (int) $exam->total_questions);
+        $required = max(1, (int) $part->total_questions);
 
-        if ($exam->fix_category_questions) {
-            return $this->selectByCategoryCounts($exam, $candidates, $required);
+        if ($part->fix_category_questions) {
+            return $this->selectByCategoryCounts($exam, $part, $candidates, $required);
         }
 
-        if ($exam->fix_category_marks) {
-            return $this->selectByCategoryMarks($exam, $candidates, $required);
+        if ($part->fix_category_marks) {
+            return $this->selectByCategoryMarks($exam, $part, $candidates, $required);
         }
 
         if ($candidates->count() < $required) {
@@ -115,6 +145,7 @@ class AttemptQuestionSelector
                 'Not enough matching questions for dynamic assignment.',
                 [[
                     'type' => 'dynamic',
+                    'part_id' => $part->id,
                     'required' => $required,
                     'available' => $candidates->count(),
                     'missing' => $required - $candidates->count(),
@@ -129,10 +160,10 @@ class AttemptQuestionSelector
      * @param  Collection<int, Question>  $candidates
      * @return list<Question>
      */
-    protected function selectByCategoryCounts(Exam $exam, Collection $candidates, int $required): array
+    protected function selectByCategoryCounts(Exam $exam, ExamPart $part, Collection $candidates, int $required): array
     {
-        $allocations = $this->normalizeAllocations($exam->extra_questions_allocations ?? []);
-        $categoryIds = $this->selectedCategoryIds($exam);
+        $allocations = $this->normalizeAllocations($part->extra_questions_allocations ?? []);
+        $categoryIds = $this->selectedCategoryIds($part);
         if ($allocations === [] && $categoryIds !== []) {
             $allocations = $this->evenSplit($required, $categoryIds);
         }
@@ -157,6 +188,7 @@ class AttemptQuestionSelector
             if ($pool->count() < $count) {
                 $report[] = [
                     'type' => 'category_count',
+                    'part_id' => $part->id,
                     'category_id' => (int) $categoryId,
                     'required' => $count,
                     'available' => $pool->count(),
@@ -180,6 +212,7 @@ class AttemptQuestionSelector
                 'Category allocations do not reach total questions.',
                 [[
                     'type' => 'category_count_total',
+                    'part_id' => $part->id,
                     'required' => $required,
                     'available' => $picked->count(),
                     'missing' => $required - $picked->count(),
@@ -194,9 +227,9 @@ class AttemptQuestionSelector
      * @param  Collection<int, Question>  $candidates
      * @return list<Question>
      */
-    protected function selectByCategoryMarks(Exam $exam, Collection $candidates, int $required): array
+    protected function selectByCategoryMarks(Exam $exam, ExamPart $part, Collection $candidates, int $required): array
     {
-        $allocations = $this->normalizeAllocations($exam->extra_marks_allocations ?? []);
+        $allocations = $this->normalizeAllocations($part->extra_marks_allocations ?? []);
         $picked = collect();
         $report = [];
 
@@ -218,6 +251,7 @@ class AttemptQuestionSelector
             if ($subset === null) {
                 $report[] = [
                     'type' => 'category_marks',
+                    'part_id' => $part->id,
                     'category_id' => (int) $categoryId,
                     'required_marks' => $marksTarget,
                     'available' => $pool->count(),
@@ -238,16 +272,16 @@ class AttemptQuestionSelector
         if ($picked->count() < 1) {
             throw new AttemptQuestionShortageException(
                 'No questions selected for fixed category marks.',
-                [['type' => 'category_marks_empty']]
+                [['type' => 'category_marks_empty', 'part_id' => $part->id]]
             );
         }
 
-        // Prefer exact marks selection; if it exceeds total_questions, fail.
         if ($picked->count() > $required) {
             throw new AttemptQuestionShortageException(
                 'Fixed category marks selection exceeds total questions.',
                 [[
                     'type' => 'category_marks_count',
+                    'part_id' => $part->id,
                     'required' => $required,
                     'available' => $picked->count(),
                 ]]
@@ -265,6 +299,7 @@ class AttemptQuestionSelector
                     'Not enough questions to fill remaining seats after marks allocation.',
                     [[
                         'type' => 'category_marks_fill',
+                        'part_id' => $part->id,
                         'required' => $remaining,
                         'available' => $leftover->count(),
                     ]]
@@ -288,7 +323,6 @@ class AttemptQuestionSelector
             return null;
         }
 
-        // DP subset-sum with reconstruction, bounded for practical bank sizes.
         $limit = min($n, 40);
         $items = $items->take($limit)->values();
         $dp = [0 => []];
@@ -318,11 +352,11 @@ class AttemptQuestionSelector
     /**
      * @return array<string, mixed>
      */
-    protected function baseFilters(Exam $exam): array
+    protected function baseFilters(Exam $exam, ExamPart $part): array
     {
         $filters = [
-            'categories' => $this->selectedCategoryIds($exam),
-            'marks' => array_values(array_filter(array_map('intval', $exam->question_marks_filter ?? []))),
+            'categories' => $this->selectedCategoryIds($part),
+            'marks' => array_values(array_filter(array_map('intval', $part->question_marks_filter ?? []))),
             'formats' => array_values(array_filter(array_map('strval', $exam->exam_format ?? []))),
         ];
 
@@ -336,14 +370,14 @@ class AttemptQuestionSelector
     /**
      * @return list<int>
      */
-    protected function selectedCategoryIds(Exam $exam): array
+    protected function selectedCategoryIds(ExamPart $part): array
     {
-        $ids = array_values(array_filter(array_map('intval', $exam->selected_categories ?? [])));
+        $ids = array_values(array_filter(array_map('intval', $part->selected_categories ?? [])));
         if ($ids !== []) {
             return $ids;
         }
 
-        return $exam->selectedQuestionCategories()
+        return $part->selectedQuestionCategories()
             ->pluck('question_categories.id')
             ->map(fn ($id) => (int) $id)
             ->all();

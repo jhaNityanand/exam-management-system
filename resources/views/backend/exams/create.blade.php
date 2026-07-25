@@ -93,6 +93,7 @@
             if (!window.EmsTomSelectHierarchy) {
                 window.EmsTomSelectBlur?.attach(categorySelect);
             }
+            categorySelect?.on?.('change', () => window.examCreateUpdateSidebar?.());
             window.EmsTomSelectBlur?.blurNativeSelects(document.querySelector('form') || document);
             window.EmsSlugField?.bind({
                 module: 'exam',

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\ExamPart;
 use App\Support\UniqueOrgSlug;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -16,18 +17,19 @@ class ExamService
     public function getByOrganization(int $orgId, int $perPage = 20): LengthAwarePaginator
     {
         return Exam::where('organization_id', $orgId)
-            ->with(['category', 'createdBy'])
-            ->withCount('questions')
+            ->with(['category', 'createdBy', 'parts'])
             ->latest()
             ->paginate($perPage);
     }
 
     /**
-     * Normalise form-request data into model-ready column names.
+     * Normalise exam-level form-request data into model-ready column names.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
     public function prepareData(array $data): array
     {
-        // Map wizard field aliases → model columns
         if (isset($data['exam_duration_minutes'])) {
             $data['duration'] = (int) $data['exam_duration_minutes'];
             unset($data['exam_duration_minutes']);
@@ -53,7 +55,6 @@ class ExamService
             $data['max_attempts'] = 1;
         }
 
-        // Map exam_category_id (the create form uses this name) → category_id
         if (array_key_exists('exam_category_id', $data)) {
             $data['category_id'] = $data['exam_category_id'] ?: null;
             unset($data['exam_category_id']);
@@ -61,21 +62,14 @@ class ExamService
 
         foreach ([
             'exam_format',
-            'selected_categories',
-            'predefined_instruction_rules',
             'tags',
-            'question_marks_filter',
             'imported_candidates',
             'manual_candidate_emails',
             'free_imported_candidates',
             'free_manual_candidate_emails',
-            'extra_questions_categories',
-            'extra_questions_allocations',
-            'extra_marks_allocations',
-            'category_question_rules',
             'selected_discounts',
             'custom_discounts',
-            'question_ids',
+            'predefined_instruction_rules',
         ] as $jsonField) {
             if (! array_key_exists($jsonField, $data)) {
                 continue;
@@ -90,52 +84,7 @@ class ExamService
             }
         }
 
-        if (isset($data['total_marks'], $data['passing_marks']) && ! array_key_exists('pass_percentage', $data)) {
-            $totalMarks = max(0, (int) $data['total_marks']);
-            $passingMarks = max(0, (int) $data['passing_marks']);
-            $data['pass_percentage'] = $totalMarks > 0
-                ? round(($passingMarks / $totalMarks) * 100, 2)
-                : 0;
-        }
-
-        if (array_key_exists('use_question_pool', $data)) {
-            $data['use_question_pool'] = (bool) $data['use_question_pool'];
-            if ($data['use_question_pool']) {
-                $data['fixed_questions'] = false;
-                $data['maximum_questions'] = max(
-                    (int) ($data['total_questions'] ?? 0) + 1,
-                    (int) ($data['maximum_questions'] ?? 0)
-                );
-            } else {
-                $data['maximum_questions'] = null;
-            }
-        }
-
-        if (array_key_exists('fixed_questions', $data)) {
-            $data['fixed_questions'] = (bool) $data['fixed_questions'];
-        }
-        $data['fixed_paper_set'] = (bool) ($data['fixed_paper_set'] ?? false);
-        $data['shuffle_questions'] = (bool) ($data['shuffle_questions'] ?? false);
-        $data['shuffle_categories'] = (bool) ($data['shuffle_categories'] ?? false);
-        $data['fix_category_questions'] = (bool) ($data['fix_category_questions'] ?? false);
-        $data['fix_category_marks'] = (bool) ($data['fix_category_marks'] ?? false);
         $data['enable_negative_marking'] = (bool) ($data['enable_negative_marking'] ?? false);
-
-        if (! $data['fix_category_questions']) {
-            $data['extra_questions_allocations'] = [];
-            $data['extra_questions_categories'] = [];
-        }
-
-        if (! $data['fix_category_marks']) {
-            $data['extra_marks_allocations'] = [];
-        }
-
-        if (! $data['fixed_paper_set']) {
-            $data['paper_sets'] = 1;
-        } else {
-            $data['paper_sets'] = max(1, (int) ($data['paper_sets'] ?? 1));
-        }
-
         if ($data['enable_negative_marking']) {
             $type = $data['negative_marking_type'] ?? null;
             $allowedTypes = ['25', '33.33', '50', '100'];
@@ -153,12 +102,12 @@ class ExamService
         $data['ai_generated'] = (bool) ($data['ai_generated'] ?? false);
         $data['ai_improve'] = (bool) ($data['ai_improve'] ?? false);
 
-        // Strip helper / UI-only keys
         unset(
             $data['_token'],
             $data['_method'],
             $data['free_candidate_excel_file'],
-            $data['candidate_excel_file']
+            $data['candidate_excel_file'],
+            $data['parts'],
         );
 
         return app(GalleryService::class)->sanitizeHtmlFields($data, [
@@ -167,45 +116,107 @@ class ExamService
         ]);
     }
 
+    /**
+     * @param  array<string, mixed>  $partData
+     * @return array<string, mixed>
+     */
+    public function preparePartData(array $partData, int $sortOrder): array
+    {
+        foreach ([
+            'selected_categories',
+            'extra_questions_categories',
+            'extra_questions_allocations',
+            'extra_marks_allocations',
+            'category_question_rules',
+            'question_marks_filter',
+            'question_ids',
+        ] as $jsonField) {
+            if (! array_key_exists($jsonField, $partData)) {
+                continue;
+            }
+            if (is_string($partData[$jsonField])) {
+                $decoded = json_decode($partData[$jsonField], true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $partData[$jsonField] = $decoded;
+                }
+            }
+        }
+
+        $partData['sort_order'] = $sortOrder;
+        $partData['is_default'] = (bool) ($partData['is_default'] ?? ($sortOrder === 0));
+        $partData['name'] = trim((string) ($partData['name'] ?? '')) ?: ($sortOrder === 0 ? 'Default Part' : 'Part');
+        $partData['total_questions'] = max(1, (int) ($partData['total_questions'] ?? 1));
+        $partData['total_marks'] = max(1, (int) ($partData['total_marks'] ?? 1));
+        unset($partData['duration']);
+
+        $partData['use_question_pool'] = (bool) ($partData['use_question_pool'] ?? false);
+        $partData['fixed_questions'] = (bool) ($partData['fixed_questions'] ?? false);
+        $partData['fixed_paper_set'] = (bool) ($partData['fixed_paper_set'] ?? false);
+        $partData['shuffle_questions'] = (bool) ($partData['shuffle_questions'] ?? false);
+        $partData['shuffle_categories'] = (bool) ($partData['shuffle_categories'] ?? false);
+        $partData['shuffle_options'] = (bool) ($partData['shuffle_options'] ?? false);
+        $partData['fix_category_questions'] = (bool) ($partData['fix_category_questions'] ?? false);
+        $partData['fix_category_marks'] = (bool) ($partData['fix_category_marks'] ?? false);
+        $partData['fix_marks_each_question'] = (bool) ($partData['fix_marks_each_question'] ?? false);
+
+        if ($partData['use_question_pool']) {
+            $partData['fixed_questions'] = false;
+            $partData['maximum_questions'] = max(
+                (int) $partData['total_questions'] + 1,
+                (int) ($partData['maximum_questions'] ?? 0)
+            );
+        } else {
+            $partData['maximum_questions'] = null;
+        }
+
+        if (! $partData['fix_category_questions']) {
+            $partData['extra_questions_allocations'] = [];
+            $partData['extra_questions_categories'] = [];
+        }
+
+        if (! $partData['fix_category_marks']) {
+            $partData['extra_marks_allocations'] = [];
+        }
+
+        if (! $partData['fixed_paper_set']) {
+            $partData['paper_sets'] = 1;
+        } else {
+            $partData['paper_sets'] = max(1, (int) ($partData['paper_sets'] ?? 1));
+        }
+
+        $partData['selected_categories'] = $this->normalizeCategoryIds($partData['selected_categories'] ?? []);
+
+        return $partData;
+    }
+
     public function create(array $data): Exam
     {
         return DB::transaction(function () use ($data) {
+            $partsInput = $this->extractPartsInput($data);
             $data = $this->prepareData($data);
-
-            $ids = $this->resolvePersistedQuestionIds($data);
-            unset($data['question_ids']);
-
-            $selectedCats = $this->normalizeCategoryIds($data['selected_categories'] ?? []);
-            $data['selected_categories'] = $selectedCats;
 
             $data['created_by'] = Auth::id();
             $data['status'] = $data['status'] ?? 'draft';
             $this->applyUniqueSlug($data, (int) $data['organization_id'], null, (string) ($data['title'] ?? ''));
 
             $exam = Exam::create($data);
-            $this->syncQuestions($exam, $ids);
-            $exam->selectedQuestionCategories()->sync($selectedCats);
+            $this->syncParts($exam, $partsInput);
+            $this->refreshExamAggregates($exam);
             $this->syncGalleryMedia($exam);
             app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam);
 
-            return $exam->fresh(['questions']);
+            return $exam->fresh(['parts.questions']);
         });
     }
 
     public function update(Exam $exam, array $data): Exam
     {
         return DB::transaction(function () use ($exam, $data) {
+            $partsInput = array_key_exists('parts', $data) || array_key_exists('parts', request()->all())
+                ? $this->extractPartsInput($data)
+                : null;
+
             $data = $this->prepareData($data);
-
-            $hasQuestionIds = array_key_exists('question_ids', $data);
-            $ids = $hasQuestionIds ? $this->resolvePersistedQuestionIds($data) : null;
-            unset($data['question_ids']);
-
-            $selectedCats = null;
-            if (array_key_exists('selected_categories', $data)) {
-                $selectedCats = $this->normalizeCategoryIds($data['selected_categories'] ?? []);
-                $data['selected_categories'] = $selectedCats;
-            }
 
             if (array_key_exists('slug', $data) || array_key_exists('title', $data) || empty($exam->slug)) {
                 $this->applyUniqueSlug(
@@ -218,24 +229,103 @@ class ExamService
 
             $exam->update($data);
 
-            if ($hasQuestionIds) {
-                $this->syncQuestions($exam, $ids ?? []);
+            if (is_array($partsInput)) {
+                $this->syncParts($exam, $partsInput);
             }
 
-            if (is_array($selectedCats)) {
-                $exam->selectedQuestionCategories()->sync($selectedCats);
-            }
-
+            $this->refreshExamAggregates($exam->fresh());
             $this->syncGalleryMedia($exam->fresh());
             app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam->fresh());
 
-            return $exam->fresh(['questions']);
+            return $exam->fresh(['parts.questions']);
         });
     }
 
     /**
-     * Fixed / Pool modes persist IDs. Dynamic mode (both off) clears exam_question.
+     * @param  array<string, mixed>  $data
+     * @return list<array<string, mixed>>
+     */
+    protected function extractPartsInput(array $data): array
+    {
+        $parts = $data['parts'] ?? request()->input('parts', []);
+        if (is_string($parts)) {
+            $decoded = json_decode($parts, true);
+            $parts = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
+        }
+        if (! is_array($parts) || $parts === []) {
+            return [[
+                'name' => 'Default Part',
+                'is_default' => true,
+                'total_questions' => 50,
+                'total_marks' => 100,
+                'selected_categories' => [],
+                'question_marks_filter' => [1],
+            ]];
+        }
+
+        return array_values($parts);
+    }
+
+    /**
+     * Replace exam parts with the submitted set (dev-phase: full sync, no soft merge).
      *
+     * @param  list<array<string, mixed>>  $partsInput
+     */
+    public function syncParts(Exam $exam, array $partsInput): void
+    {
+        $keptIds = [];
+
+        foreach (array_values($partsInput) as $index => $rawPart) {
+            if (! is_array($rawPart)) {
+                continue;
+            }
+
+            $prepared = $this->preparePartData($rawPart, $index);
+            $questionIds = $this->resolvePersistedQuestionIds($prepared);
+            unset($prepared['question_ids'], $prepared['id'], $prepared['temp_key']);
+
+            $partId = isset($rawPart['id']) && is_numeric($rawPart['id']) ? (int) $rawPart['id'] : null;
+            $part = $partId
+                ? $exam->parts()->whereKey($partId)->first()
+                : null;
+
+            if ($part) {
+                $part->update($prepared);
+            } else {
+                $part = $exam->parts()->create($prepared);
+            }
+
+            $keptIds[] = $part->id;
+            $this->syncPartQuestions($part, $questionIds);
+            $part->selectedQuestionCategories()->sync($prepared['selected_categories'] ?? []);
+        }
+
+        $exam->parts()
+            ->whereNotIn('id', $keptIds)
+            ->each(function (ExamPart $part) {
+                $part->questions()->detach();
+                $part->selectedQuestionCategories()->detach();
+                $part->delete();
+            });
+    }
+
+    public function refreshExamAggregates(Exam $exam): void
+    {
+        $exam->load('parts');
+        $totalQuestions = (int) $exam->parts->sum('total_questions');
+        $totalMarks = (int) $exam->parts->sum('total_marks');
+        $passingMarks = (int) ($exam->passing_marks ?? 0);
+
+        $exam->forceFill([
+            'total_questions' => $totalQuestions,
+            'total_marks' => $totalMarks,
+            'pass_percentage' => $totalMarks > 0
+                ? round(($passingMarks / $totalMarks) * 100, 2)
+                : 0,
+        ])->save();
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return list<int>
      */
@@ -272,7 +362,7 @@ class ExamService
         ), static fn ($id) => $id !== '' && $id !== null && $id !== 0));
     }
 
-    public function syncQuestions(Exam $exam, array $questionIds): void
+    public function syncPartQuestions(ExamPart $part, array $questionIds): void
     {
         $sync = [];
         foreach (array_values($questionIds) as $i => $id) {
@@ -284,7 +374,7 @@ class ExamService
                 ];
             }
         }
-        $exam->questions()->sync($sync);
+        $part->questions()->sync($sync);
     }
 
     public function publish(Exam $exam): Exam

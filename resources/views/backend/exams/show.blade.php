@@ -32,18 +32,16 @@
     ];
     $badgeCls = $statusColors[$exam->status] ?? 'bg-slate-100 text-slate-700';
 
-    $linkedMarks = $exam->questions->sum(fn ($q) => (float) ($q->pivot->marks_override ?? $q->marks));
+    $linkedMarks = $questions->sum(fn ($q) => (float) ($q->pivot->marks_override ?? $q->marks));
+    $hasAnyFixedQuestions = $exam->parts->contains(fn ($part) => (bool) $part->fixed_questions);
     $importedCandidates = is_array($exam->imported_candidates) ? $exam->imported_candidates : [];
     $manualEmails = is_array($exam->manual_candidate_emails) ? $exam->manual_candidate_emails : [];
     $freeImported = is_array($exam->free_imported_candidates) ? $exam->free_imported_candidates : [];
     $freeManual = is_array($exam->free_manual_candidate_emails) ? $exam->free_manual_candidate_emails : [];
     $tags = is_array($exam->tags) ? $exam->tags : [];
-    $marksFilter = is_array($exam->question_marks_filter) ? $exam->question_marks_filter : [];
     $selectedDiscounts = is_array($exam->selected_discounts) ? $exam->selected_discounts : [];
     $customDiscounts = is_array($exam->custom_discounts) ? $exam->custom_discounts : [];
     $instructionRules = is_array($exam->predefined_instruction_rules) ? $exam->predefined_instruction_rules : [];
-    $extraQuestionAllocations = is_array($exam->extra_questions_allocations) ? $exam->extra_questions_allocations : [];
-    $extraMarksAllocations = is_array($exam->extra_marks_allocations) ? $exam->extra_marks_allocations : [];
 @endphp
 
 @section('content')
@@ -111,7 +109,7 @@
             ['label' => 'Pass Marks', 'value' => (int) $exam->passing_marks.' / '.(int) $exam->total_marks],
             ['label' => 'Pass %', 'value' => rtrim(rtrim(number_format((float) $exam->pass_percentage, 2, '.', ''), '0'), '.').'%'],
             ['label' => 'Attempts', 'value' => ($exam->attempt_limit_type === 'unlimited' || (int) $exam->max_attempts === 0) ? 'Unlimited' : ((int) $exam->max_attempts)],
-            ['label' => 'Linked Qs', 'value' => $exam->questions->count()],
+            ['label' => 'Linked Qs', 'value' => $questions->count()],
             ['label' => 'Linked Marks', 'value' => rtrim(rtrim(number_format($linkedMarks, 2, '.', ''), '0'), '.')],
         ] as $metric)
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
@@ -282,15 +280,15 @@
                 </div>
             </section>
 
-            {{-- 6. Configuration --}}
+            {{-- 5. Configuration --}}
             <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
                 <header class="border-b border-slate-100 dark:border-slate-800 pb-3">
                     <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">5. Exam Configuration</h2>
                 </header>
 
-                <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     <div>
-                        <dt class="text-slate-500 dark:text-slate-400">Total Questions Ask</dt>
+                        <dt class="text-slate-500 dark:text-slate-400">Total Questions</dt>
                         <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ (int) $exam->total_questions }}</dd>
                     </div>
                     <div>
@@ -302,78 +300,120 @@
                         <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ (int) $exam->passing_marks }}</dd>
                     </div>
                     <div>
-                        <dt class="text-slate-500 dark:text-slate-400">Question Pool</dt>
-                        <dd class="mt-1"><span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass((bool) $exam->use_question_pool) }}">{{ $exam->use_question_pool ? 'On' : 'Off' }}</span></dd>
-                    </div>
-                    <div>
-                        <dt class="text-slate-500 dark:text-slate-400">Maximum Questions in Pool</dt>
-                        <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ $exam->use_question_pool ? ((int) $exam->maximum_questions ?: '—') : '—' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-slate-500 dark:text-slate-400">Paper Sets</dt>
-                        <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ $exam->fixed_paper_set ? ((int) $exam->paper_sets ?: 1) : '—' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-slate-500 dark:text-slate-400">Distribution Type</dt>
-                        <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ $labels['distribution'][$exam->distribution_type] ?? ($exam->distribution_type ? ucfirst(str_replace('_', ' ', $exam->distribution_type)) : '—') }}</dd>
+                        <dt class="text-slate-500 dark:text-slate-400">Total Duration</dt>
+                        <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ $exam->enable_exam_timer ? ((int) $exam->duration).' min' : '—' }}</dd>
                     </div>
                 </dl>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    @foreach ([
-                        ['Fixed Questions', (bool) $exam->fixed_questions],
-                        ['Fixed Paper Set', (bool) $exam->fixed_paper_set],
-                        ['Form Category Questions', (bool) $exam->form_category_questions],
-                        ['Form Category Marks', (bool) $exam->form_category_marks],
-                        ['Shuffle Questions', (bool) $exam->shuffle_questions],
-                        ['Shuffle Categories', (bool) $exam->shuffle_categories],
-                        ['Shuffle Options', (bool) $exam->shuffle_options],
-                    ] as [$label, $on])
-                        <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 dark:border-slate-800 px-4 py-3 text-sm">
-                            <span class="text-slate-600 dark:text-slate-300">{{ $label }}</span>
-                            <span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass($on) }}">{{ $on ? 'On' : 'Off' }}</span>
-                        </div>
-                    @endforeach
-                </div>
-
                 <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Selected Question Categories</h3>
-                    <div class="flex flex-wrap gap-1.5">
-                        @forelse ($selectedCategoryNames as $name)
-                            <span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300">{{ $name }}</span>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Exam Parts ({{ $exam->parts->count() }})</h3>
+                    <div class="space-y-4">
+                        @forelse ($exam->parts as $part)
+                            @php
+                                $partCategoryNames = $part->selectedQuestionCategories->pluck('name')->filter()->values();
+                                $partQuestionAllocations = is_array($part->extra_questions_allocations) ? $part->extra_questions_allocations : [];
+                                $partMarksAllocations = is_array($part->extra_marks_allocations) ? $part->extra_marks_allocations : [];
+                            @endphp
+                            <div class="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/30 p-4 space-y-4">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-slate-900 dark:text-white">{{ $part->name ?: 'Part #'.$part->sort_order }}</h4>
+                                        @if ($part->is_default)
+                                            <span class="inline-flex mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">Default</span>
+                                        @endif
+                                    </div>
+                                    <dl class="grid grid-cols-2 gap-3 text-xs text-right">
+                                        <div>
+                                            <dt class="text-slate-400">Questions</dt>
+                                            <dd class="font-semibold text-slate-900 dark:text-white">{{ (int) $part->total_questions }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-slate-400">Marks</dt>
+                                            <dd class="font-semibold text-slate-900 dark:text-white">{{ (int) $part->total_marks }}</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+
+                                <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                                    <div>
+                                        <dt class="text-slate-500 dark:text-slate-400">Question Pool</dt>
+                                        <dd class="mt-1"><span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass((bool) $part->use_question_pool) }}">{{ $part->use_question_pool ? 'On' : 'Off' }}</span></dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-slate-500 dark:text-slate-400">Maximum Questions in Pool</dt>
+                                        <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ $part->use_question_pool ? ((int) $part->maximum_questions ?: '—') : '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-slate-500 dark:text-slate-400">Paper Sets</dt>
+                                        <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ $part->fixed_paper_set ? ((int) $part->paper_sets ?: 1) : '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-slate-500 dark:text-slate-400">Distribution Type</dt>
+                                        <dd class="mt-1 font-semibold text-slate-900 dark:text-white">{{ $labels['distribution'][$part->distribution_type] ?? ($part->distribution_type ? ucfirst(str_replace('_', ' ', $part->distribution_type)) : '—') }}</dd>
+                                    </div>
+                                </dl>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    @foreach ([
+                                        ['Fixed Questions', (bool) $part->fixed_questions],
+                                        ['Fixed Paper Set', (bool) $part->fixed_paper_set],
+                                        ['Fix Category Questions', (bool) $part->fix_category_questions],
+                                        ['Fix Category Marks', (bool) $part->fix_category_marks],
+                                        ['Shuffle Questions', (bool) $part->shuffle_questions],
+                                        ['Shuffle Categories', (bool) $part->shuffle_categories],
+                                        ['Shuffle Options', (bool) $part->shuffle_options],
+                                    ] as [$label, $on])
+                                        <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 px-3 py-2 text-sm">
+                                            <span class="text-slate-600 dark:text-slate-300">{{ $label }}</span>
+                                            <span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass($on) }}">{{ $on ? 'On' : 'Off' }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Selected Categories</p>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @forelse ($partCategoryNames as $name)
+                                            <span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300">{{ $name }}</span>
+                                        @empty
+                                            <span class="text-sm text-slate-400 italic">No categories selected</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                @if (count($partQuestionAllocations))
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Category Question Allocations</p>
+                                        <ul class="space-y-1.5 text-sm">
+                                            @foreach ($partQuestionAllocations as $key => $count)
+                                                <li class="flex justify-between gap-3 rounded-lg bg-white/70 dark:bg-slate-900/40 px-3 py-2">
+                                                    <span class="text-slate-600 dark:text-slate-300">{{ is_numeric($key) ? 'Category #'.$key : $key }}</span>
+                                                    <span class="font-semibold text-slate-900 dark:text-white">{{ $count }}</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+
+                                @if (count($partMarksAllocations))
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Category Marks Allocations</p>
+                                        <ul class="space-y-1.5 text-sm">
+                                            @foreach ($partMarksAllocations as $key => $count)
+                                                <li class="flex justify-between gap-3 rounded-lg bg-white/70 dark:bg-slate-900/40 px-3 py-2">
+                                                    <span class="text-slate-600 dark:text-slate-300">{{ is_numeric($key) ? 'Category #'.$key : $key }}</span>
+                                                    <span class="font-semibold text-slate-900 dark:text-white">{{ $count }} pts</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+                            </div>
                         @empty
-                            <span class="text-sm text-slate-400 italic">No categories selected</span>
+                            <p class="text-sm text-slate-400 italic">No exam parts configured.</p>
                         @endforelse
                     </div>
                 </div>
-
-                @if (count($extraQuestionAllocations))
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Category Question Allocations</h3>
-                        <ul class="space-y-1.5 text-sm">
-                            @foreach ($extraQuestionAllocations as $key => $count)
-                                <li class="flex justify-between gap-3 rounded-lg bg-slate-50 dark:bg-slate-950/30 px-3 py-2">
-                                    <span class="text-slate-600 dark:text-slate-300">{{ is_numeric($key) ? 'Category #'.$key : $key }}</span>
-                                    <span class="font-semibold text-slate-900 dark:text-white">{{ $count }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                @if (count($extraMarksAllocations))
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Category Marks Allocations</h3>
-                        <ul class="space-y-1.5 text-sm">
-                            @foreach ($extraMarksAllocations as $key => $count)
-                                <li class="flex justify-between gap-3 rounded-lg bg-slate-50 dark:bg-slate-950/30 px-3 py-2">
-                                    <span class="text-slate-600 dark:text-slate-300">{{ is_numeric($key) ? 'Category #'.$key : $key }}</span>
-                                    <span class="font-semibold text-slate-900 dark:text-white">{{ $count }} pts</span>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
             </section>
 
             {{-- 7. Question Rules --}}
@@ -384,27 +424,10 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 dark:border-slate-800 px-4 py-3">
-                        <span class="text-slate-600 dark:text-slate-300">Form Marks Each Question</span>
-                        <span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass((bool) $exam->form_marks_each_question) }}">{{ $exam->form_marks_each_question ? 'On' : 'Off' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 dark:border-slate-800 px-4 py-3">
                         <span class="text-slate-600 dark:text-slate-300">Negative Marking</span>
                         <span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass((bool) $exam->enable_negative_marking) }}">{{ $exam->enable_negative_marking ? 'On' : 'Off' }}</span>
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <p class="text-slate-500 dark:text-slate-400 mb-2">Question Marks Filter</p>
-                        <div class="flex flex-wrap gap-1.5">
-                            @forelse ($marksFilter as $mark)
-                                <span class="inline-flex rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">{{ $mark }} pts</span>
-                            @empty
-                                <span class="text-slate-400 italic">None</span>
-                            @endforelse
-                        </div>
-                    </div>
-                    <div>
+                    <div class="rounded-xl border border-slate-100 dark:border-slate-800 px-4 py-3">
                         <p class="text-slate-500 dark:text-slate-400 mb-1">Negative Penalty</p>
                         @if ($exam->enable_negative_marking)
                             <p class="font-semibold text-rose-600 dark:text-rose-400">
@@ -419,6 +442,36 @@
                         @endif
                     </div>
                 </div>
+
+                @if ($exam->parts->isNotEmpty())
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Per-Part Marking Rules</h3>
+                        <div class="space-y-3">
+                            @foreach ($exam->parts as $part)
+                                @php
+                                    $partMarksFilter = is_array($part->question_marks_filter) ? $part->question_marks_filter : [];
+                                @endphp
+                                <div class="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/30 p-4 space-y-3 text-sm">
+                                    <p class="font-semibold text-slate-900 dark:text-white">{{ $part->name ?: 'Part #'.$part->sort_order }}</p>
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-slate-600 dark:text-slate-300">Fix Marks Each Question</span>
+                                        <span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass((bool) $part->fix_marks_each_question) }}">{{ $part->fix_marks_each_question ? 'On' : 'Off' }}</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-500 dark:text-slate-400 mb-2">Question Marks Filter</p>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            @forelse ($partMarksFilter as $mark)
+                                                <span class="inline-flex rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">{{ $mark }} pts</span>
+                                            @empty
+                                                <span class="text-slate-400 italic">None</span>
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </section>
 
             {{-- 8. Pricing --}}
@@ -564,14 +617,14 @@
             <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                 <div class="px-6 py-4 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-3">
                     <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        9. Question Bank ({{ $exam->questions->count() }})
+                        9. Question Bank ({{ $questions->count() }})
                     </h2>
                     <span class="text-xs bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold px-2.5 py-1 rounded-full border border-indigo-100 dark:border-indigo-500/20">
                         {{ rtrim(rtrim(number_format($linkedMarks, 2, '.', ''), '0'), '.') }} Total Marks
                     </span>
                 </div>
                 <div class="divide-y divide-slate-100 dark:divide-slate-800 max-h-[520px] overflow-y-auto">
-                    @forelse ($exam->questions as $q)
+                    @forelse ($questions as $q)
                         <div class="px-6 py-4 flex items-start gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition">
                             <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-950 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 shrink-0">
                                 #{{ $q->id }}
@@ -603,7 +656,7 @@
                     @empty
                         <div class="px-6 py-10 text-center text-slate-500 dark:text-slate-500 italic text-sm">
                             No questions linked to this exam workspace.
-                            @if (! $exam->fixed_questions)
+                            @if (! $hasAnyFixedQuestions)
                                 <span class="block mt-1 not-italic text-slate-400">Dynamic selection may assign questions per candidate at attempt time.</span>
                             @endif
                         </div>

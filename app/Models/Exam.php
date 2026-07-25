@@ -8,6 +8,7 @@ use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Exam extends Model
@@ -38,7 +39,7 @@ class Exam extends Model
         'selected_discounts',
         'custom_discounts',
 
-        // Timer & Duration
+        // Timer & Duration (duration = sum of parts)
         'duration',
         'enable_exam_timer',
         'auto_submit_on_timer_end',
@@ -53,38 +54,16 @@ class Exam extends Model
         'attempt_limit_type',
         'max_attempts',
 
-        // Scoring
+        // Scoring (totals = sum of parts; passing/negative stay exam-level)
         'pass_percentage',
         'total_marks',
         'passing_marks',
+        'total_questions',
         'result_release_mode',
         'result_release_at',
         'negative_mark_per_question',
         'enable_negative_marking',
         'negative_marking_type',
-        'fix_marks_each_question',
-
-        // Question Configuration
-        'total_questions',
-        'use_question_pool',
-        'maximum_questions',
-        'fixed_questions',
-        'fixed_paper_set',
-        'paper_sets',
-        'fix_category_questions',
-        'fix_category_marks',
-        'distribution_type',
-        'selected_categories',
-        'extra_questions_categories',
-        'extra_questions_allocations',
-        'extra_marks_allocations',
-        'question_marks_filter',
-        'category_question_rules',
-
-        // Shuffle
-        'shuffle_questions',
-        'shuffle_categories',
-        'shuffle_options',
 
         // Candidate Access
         'imported_candidates',
@@ -115,58 +94,37 @@ class Exam extends Model
     protected function casts(): array
     {
         return [
-            // Booleans
-            'enable_exam_timer'          => 'boolean',
-            'auto_submit_on_timer_end'   => 'boolean',
-            'use_question_pool'          => 'boolean',
-            'fixed_questions'            => 'boolean',
-            'fixed_paper_set'            => 'boolean',
-            'shuffle_questions'          => 'boolean',
-            'shuffle_categories'         => 'boolean',
-            'shuffle_options'            => 'boolean',
-            'enable_negative_marking'    => 'boolean',
-            'fix_marks_each_question'    => 'boolean',
-            'fix_category_questions'     => 'boolean',
-            'fix_category_marks'         => 'boolean',
-            'ai_generated'               => 'boolean',
-            'ai_improve'                 => 'boolean',
-            'demo_enabled'               => 'boolean',
+            'enable_exam_timer' => 'boolean',
+            'auto_submit_on_timer_end' => 'boolean',
+            'enable_negative_marking' => 'boolean',
+            'ai_generated' => 'boolean',
+            'ai_improve' => 'boolean',
+            'demo_enabled' => 'boolean',
 
-            // Dates
-            'scheduled_start'            => 'datetime',
-            'scheduled_end'              => 'datetime',
-            'registration_deadline'      => 'datetime',
-            'result_release_at'          => 'datetime',
+            'scheduled_start' => 'datetime',
+            'scheduled_end' => 'datetime',
+            'registration_deadline' => 'datetime',
+            'result_release_at' => 'datetime',
 
-            // Numbers
-            'exam_amount'                => 'decimal:2',
+            'exam_amount' => 'decimal:2',
 
-            // JSON
-            'tags'                       => 'array',
-            'exam_format'                => 'array',
-            'selected_categories'        => 'array',
-            'extra_questions_categories' => 'array',
-            'extra_questions_allocations'=> 'array',
-            'extra_marks_allocations'    => 'array',
-            'question_marks_filter'      => 'array',
-            'category_question_rules'    => 'array',
-            'imported_candidates'             => 'array',
-            'manual_candidate_emails'         => 'array',
-            'free_imported_candidates'        => 'array',
-            'free_manual_candidate_emails'    => 'array',
-            'selected_discounts'              => 'array',
-            'custom_discounts'                => 'array',
-            'predefined_instruction_rules'    => 'array',
-            'updated_by_history'              => 'array',
+            'tags' => 'array',
+            'exam_format' => 'array',
+            'imported_candidates' => 'array',
+            'manual_candidate_emails' => 'array',
+            'free_imported_candidates' => 'array',
+            'free_manual_candidate_emails' => 'array',
+            'selected_discounts' => 'array',
+            'custom_discounts' => 'array',
+            'predefined_instruction_rules' => 'array',
+            'updated_by_history' => 'array',
         ];
     }
 
-    public function selectedQuestionCategories()
+    public function parts(): HasMany
     {
-        return $this->belongsToMany(QuestionCategory::class, 'exam_question_category', 'exam_id', 'question_category_id');
+        return $this->hasMany(ExamPart::class)->orderBy('sort_order');
     }
-
-    // ── Relationships ─────────────────────────────────────────────────────────
 
     public function organization()
     {
@@ -208,6 +166,28 @@ class Exam extends Model
         return $this->hasMany(ExamAttempt::class);
     }
 
+    /**
+     * Flat question IDs attached via any part pivot (pool/fixed modes).
+     *
+     * @return list<int>
+     */
+    public function attachedQuestionIds(): array
+    {
+        $this->loadMissing('parts.questions:id');
+
+        return $this->parts
+            ->flatMap(fn (ExamPart $part) => $part->questions->pluck('id'))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function attachedQuestionsCount(): int
+    {
+        return count($this->attachedQuestionIds());
+    }
+
     public function bannerUrl(): ?string
     {
         return $this->bannerImage?->file_url ?? $this->ogImage?->file_url;
@@ -222,15 +202,6 @@ class Exam extends Model
     {
         return $query->published()->where('visibility', 'public');
     }
-
-    public function questions()
-    {
-        return $this->belongsToMany(Question::class, 'exam_question')
-            ->withPivot(['sort_order', 'marks_override', 'status'])
-            ->withTimestamps();
-    }
-
-    // ── Scopes ────────────────────────────────────────────────────────────────
 
     public function scopePublished($query)
     {

@@ -31,7 +31,7 @@
     $sectionClass = trim('category-builder__metadata '.($sectionClass ?? ''));
 @endphp
 
-<div id="metadata-section" class="{{ $sectionClass }}">
+<div id="metadata-section" class="{{ $sectionClass }}" style="margin-top: 1rem !important;">
     <div class="qcat-meta-header" id="meta-accordion-toggle" role="button" aria-expanded="false" tabindex="0">
         <div class="qcat-meta-header-left">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="qcat-meta-icon" aria-hidden="true">

@@ -73,15 +73,15 @@ class ExamController extends Controller
         abort_if($exam->organization_id !== $this->currentOrgId(), 403, 'Unauthorized access to this exam.');
 
         $exam->load([
-            'questions.category:id,name',
+            'parts.questions.category:id,name',
+            'parts.selectedQuestionCategories:id,name',
             'category:id,name',
             'createdBy:id,name',
             'ogImage',
-            'selectedQuestionCategories:id,name',
         ]);
 
         $stats = $this->examService->getAttemptStats($exam);
-        $questions = $exam->questions;
+        $questions = $exam->parts->flatMap(fn ($part) => $part->questions);
 
         $difficultyDistribution = $questions
             ->groupBy(fn ($q) => $q->difficulty ?: 'unknown')
@@ -127,24 +127,34 @@ class ExamController extends Controller
             'instructionRules' => $labelMap($formOptions['instructionRules'] ?? []),
         ];
 
-        $selectedCategoryNames = $exam->selectedQuestionCategories
-            ->pluck('name')
+        $selectedCategoryNames = $exam->parts
+            ->flatMap(fn ($part) => $part->selectedQuestionCategories->pluck('name'))
             ->filter()
+            ->unique()
             ->values()
             ->all();
 
-        if ($selectedCategoryNames === [] && is_array($exam->selected_categories) && $exam->selected_categories !== []) {
-            $selectedCategoryNames = \App\Models\QuestionCategory::query()
-                ->forOrg($orgId)
-                ->whereIn('id', $exam->selected_categories)
-                ->orderBy('name')
-                ->pluck('name')
+        if ($selectedCategoryNames === []) {
+            $allCatIds = $exam->parts
+                ->flatMap(fn ($part) => $part->selected_categories ?? [])
+                ->filter()
+                ->unique()
+                ->values()
                 ->all();
+            if ($allCatIds !== []) {
+                $selectedCategoryNames = \App\Models\QuestionCategory::query()
+                    ->forOrg($orgId)
+                    ->whereIn('id', $allCatIds)
+                    ->orderBy('name')
+                    ->pluck('name')
+                    ->all();
+            }
         }
 
         return view('backend.exams.show', compact(
             'exam',
             'stats',
+            'questions',
             'difficultyDistribution',
             'typeDistribution',
             'marksDistribution',
@@ -166,10 +176,7 @@ class ExamController extends Controller
         $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
         $formOptions = ExamFormOptions::all($orgId);
 
-        // The edit form only needs the currently linked question ids for
-        // hydration (window.examFormConfig); the full question bank is loaded
-        // on demand client-side, so there is no need for the 500-row list.
-        $exam->load('questions:id');
+        $exam->load(['parts.questions:id']);
 
         return view('backend.exams.edit', compact('exam', 'categories', 'formOptions'));
     }

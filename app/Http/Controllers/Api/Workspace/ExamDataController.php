@@ -55,8 +55,7 @@ class ExamDataController extends Controller
             $query->onlyTrashed();
         }
         $query->forOrg($orgId)
-            ->with(['category', 'createdBy'])
-            ->withCount('questions');
+            ->with(['category', 'createdBy', 'parts:id,exam_id,name']);
 
         $this->applySearch($query, $request);
         $this->applySpecialFilters($query, $specialFilters);
@@ -92,6 +91,12 @@ class ExamDataController extends Controller
         $avgDuration = (clone $baseStatsQuery)->avg('duration') ?? 0;
 
         $paginator = $query->paginate(DatatableQuery::perPage($request));
+        $paginator->getCollection()->transform(function (Exam $exam) {
+            $exam->setAttribute('questions_count', (int) ($exam->total_questions ?? 0));
+            $exam->setAttribute('parts_count', $exam->parts->count());
+
+            return $exam;
+        });
 
         return response()->json([
             'data' => $paginator->items(),
@@ -114,8 +119,13 @@ class ExamDataController extends Controller
     private function normalizeSort(Request $request): void
     {
         $sort = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $request->query('sort', 'updated_at'));
-        if (! in_array($sort, self::ALLOWED_SORTS, true)) {
+        if ($sort === 'questions_count') {
+            $sort = 'total_questions';
+        }
+        if (! in_array($sort, self::ALLOWED_SORTS, true) && $sort !== 'total_questions') {
             $request->query->set('sort', 'updated_at');
+        } else {
+            $request->query->set('sort', $sort);
         }
     }
 

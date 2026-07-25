@@ -106,9 +106,9 @@ class Question extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function exams()
+    public function examParts()
     {
-        return $this->belongsToMany(Exam::class, 'exam_question')
+        return $this->belongsToMany(ExamPart::class, 'exam_part_question')
             ->withPivot(['sort_order', 'marks_override', 'status'])
             ->withTimestamps();
     }

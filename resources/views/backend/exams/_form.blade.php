@@ -229,7 +229,7 @@
                 </div>
             </section>
 
-            <section class="exam-section" id="schedule-section">
+            <section class="exam-section" id="schedule-section" data-collapsed-default="true">
                 <div class="exam-section__head">
                     <h2>4. Schedule &amp; Attempt Management</h2>
                     <p>Control when the exam is available and how many attempts each candidate can make.</p>
@@ -272,7 +272,7 @@
                     <div>
                         <label class="exam-label">Attempt Limit Per Candidate</label>
                         <div id="attempt-limit-options" class="option-card-grid option-card-grid--compact"></div>
-                        <input type="hidden" name="attempt_limit_type" id="attempt_limit_type" value="{{ $val('attempt_limit_type', 'once', 'attempt_limit_type') }}">
+                        <input type="hidden" name="attempt_limit_type" id="attempt_limit_type" value="{{ $val('attempt_limit_type', 'unlimited', 'attempt_limit_type') }}">
                     </div>
 
                     <div id="fixed-attempt-limit-wrap" hidden>
@@ -311,230 +311,41 @@
                 </div>
             </section>
 
-            <section class="exam-section" id="exam-configuration-section">
-                <div class="exam-section__head">
-                    <h2>6. Exam Configuration</h2>
-                    <p>Configure question volume, category requirements, marks, and set generation rules.</p>
+            <section class="exam-section" id="exam-parts-section">
+                <div class="exam-section__head exam-section__head--with-action">
+                    <div class="exam-section__head-copy">
+                        <h2>6. Exam Parts</h2>
+                        <p>Each part has its own configuration, filters, categories, and question bank. Totals roll up into the exam summary.</p>
+                    </div>
+                    <button type="button" id="add-exam-part" class="panel-button-secondary">+ Add Part</button>
                 </div>
-                <div class="exam-section__body space-y-5">
-                    <div class="exam-grid exam-grid--3">
-                        <div>
-                            <label for="total_questions" class="exam-label">Total Questions Ask <span class="form-required">*</span></label>
-                            <input id="total_questions" name="total_questions" type="number" class="panel-input" min="1" step="1" value="{{ $val('total_questions', 50, 'total_questions') }}" placeholder="Enter total questions">
-                        </div>
-                        <div class="config-toggle-card">
-                            <label class="exam-label">Question Pool</label>
-                            <label class="switch-control">
-                                <input id="use_question_pool" name="use_question_pool" type="checkbox" value="1" @checked($checkedVal('use_question_pool', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Select each candidate's questions from a larger pool</span>
-                            </label>
-                            <p class="exam-help">Candidates receive the Total Questions Ask count, randomly selected from the configured maximum.</p>
-                        </div>
-                        <div id="maximum-questions-wrap" hidden>
-                            <label for="maximum_questions" class="exam-label">Maximum Questions in Pool <span class="form-required">*</span></label>
-                            <input id="maximum_questions" name="maximum_questions" type="number" class="panel-input" min="2" step="1" value="{{ $val('maximum_questions', null, 'maximum_questions') }}" placeholder="Must exceed total questions">
-                            <p id="maximum-questions-helper" class="exam-help"></p>
-                        </div>
-                        <div>
-                            <label for="total_marks" class="exam-label">Total Marks <span class="form-required">*</span></label>
-                            <input id="total_marks" name="total_marks" type="number" class="panel-input" min="1" step="1" value="{{ $val('total_marks', 100, 'total_marks') }}" placeholder="Enter total marks">
-                        </div>
-                        <div>
-                            <label for="passing_marks" class="exam-label">Passing Marks <span class="form-required">*</span></label>
-                            <input id="passing_marks" name="passing_marks" type="number" class="panel-input" min="0" step="1" value="{{ $val('passing_marks', 40, 'passing_marks') }}" placeholder="Enter passing marks">
-                        </div>
-                        <div class="config-toggle-card" id="fixed-questions-wrap">
-                            <label class="exam-label">Fixed Questions</label>
-                            <label class="switch-control">
-                                <input id="fixed_questions" name="fixed_questions" type="checkbox" value="1" @checked($checkedVal('fixed_questions', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Use the same selected questions for every candidate</span>
-                            </label>
-                            <p class="exam-help">Enable to lock an exact selected question set for all candidates. Disable (with Question Pool off) to assign questions dynamically per candidate from your filters and allocations.</p>
-                        </div>
-                        <div class="config-toggle-card">
-                            <label class="exam-label">Fixed Paper Set</label>
-                            <label class="switch-control">
-                                <input id="fixed_paper_set" name="fixed_paper_set" type="checkbox" value="1" @checked($checkedVal('fixed_paper_set', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Generate multiple fixed paper sets</span>
-                            </label>
-                        </div>
-                        <div id="paper-sets-wrap" hidden>
-                            <label for="paper_sets" class="exam-label">Paper Set <span class="form-required">*</span></label>
-                            <input id="paper_sets" name="paper_sets" type="number" class="panel-input" min="1" step="1" value="{{ $val('paper_sets', 1, 'paper_sets') }}" placeholder="Number of paper sets">
-                            <p id="paper-sets-helper" class="exam-help"></p>
-                        </div>
-                        <div class="config-toggle-card">
-                            <label class="exam-label">Fix Each Category Question Count</label>
-                            <label class="switch-control">
-                                <input id="fix_category_questions" name="fix_category_questions" type="checkbox" value="1" @checked($checkedVal('fix_category_questions', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Enable exact per-category question allocation</span>
-                            </label>
-                        </div>
-                        <div class="config-toggle-card">
-                            <label class="exam-label">Fix Each Category Marks</label>
-                            <label class="switch-control">
-                                <input id="fix_category_marks" name="fix_category_marks" type="checkbox" value="1" @checked($checkedVal('fix_category_marks', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Distribute total marks across selected categories</span>
-                            </label>
-                        </div>
-                        <div class="config-toggle-card">
-                            <label class="exam-label">Shuffle Questions</label>
-                            <label class="switch-control">
-                                <input id="shuffle_questions" name="shuffle_questions" type="checkbox" value="1" @checked($checkedVal('shuffle_questions', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Randomize question order for each candidate</span>
-                            </label>
-                        </div>
-                        <div class="config-toggle-card">
-                            <label class="exam-label">Shuffle Categories</label>
-                            <label class="switch-control">
-                                <input id="shuffle_categories" name="shuffle_categories" type="checkbox" value="1" @checked($checkedVal('shuffle_categories', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Randomize category order for each candidate</span>
-                            </label>
-                        </div>
-                        <div class="config-toggle-card" id="shuffle-options-wrap" hidden>
-                            <label class="exam-label">Shuffle Options</label>
-                            <label class="switch-control">
-                                <input id="shuffle_options" name="shuffle_options" type="checkbox" value="1" @checked($checkedVal('shuffle_options', false))>
-                                <span class="switch-control__track"></span>
-                                <span class="switch-control__label">Randomize answer option order for each candidate</span>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="exam-label">Question Distribution Type</label>
-                            <div id="distribution-type-group" class="pill-group"></div>
-                            <input type="hidden" name="distribution_type" id="distribution_type" value="{{ $val('distribution_type', '', 'distribution_type') }}">
-                        </div>
-                    </div>
-
-                    <div id="category-selector-wrap">
-                        <div class="exam-section__mini-head">
-                            <h3>Select Categories</h3>
-                            <p>Select one or more categories. The category count is calculated automatically.</p>
-                        </div>
-                        <select
-                            id="selected_categories_select"
-                            class="panel-input"
-                            multiple
-                            data-select-mode="multiple"
-                            data-option-style="hierarchy"
-                            data-placeholder="Select categories"
-                            data-max-items="100"
-                        ></select>
-                        <input type="hidden" name="selected_categories" id="selected_categories" value="{{ $jsonVal('selected_categories', [], 'selected_categories') }}">
-                        <p id="category-selection-feedback" class="exam-help"></p>
-                    </div>
-
-                    <div id="category-selection-complete" class="config-preview-card" hidden>
-                        <p class="exam-help"><strong id="category-selection-complete-text"></strong></p>
-                    </div>
-
-                    <div id="fixed-category-distribution" class="config-preview-card" hidden>
-                        <h4>Fixed Category Question Allocation</h4>
-                        <p class="exam-help" id="fixed-distribution-helper"></p>
-
-                        <div id="extra-questions-allocations-wrap" class="category-allocation-panel mt-3" hidden>
-                            <p class="exam-label mb-2">
-                                Questions per Category
-                                <span class="category-allocation-panel__meta">(Allocated: <span id="allocated-count">0</span> / <span id="remaining-count">0</span>)</span>
-                            </p>
-                            <div id="extra-questions-allocation-list" class="exam-grid exam-grid--3"></div>
-                            <input type="hidden" name="extra_questions_categories" id="extra_questions_categories" value="{{ $jsonVal('extra_questions_categories', [], 'extra_questions_categories') }}">
-                            <input
-                                type="hidden"
-                                name="extra_questions_allocations"
-                                id="extra_questions_allocations"
-                                value="{{ $jsonVal('extra_questions_allocations', [], 'extra_questions_allocations') }}"
-                            >
-                        </div>
-
-                        {{-- Kept for JS refs / legacy Tom Select init; not shown --}}
-                        <div id="extra-questions-wrap" hidden>
-                            <label for="extra_questions_category" id="extra-questions-label" class="exam-label">Category for Extra Questions</label>
-                            <select
-                                id="extra_questions_category"
-                                class="panel-input"
-                                multiple
-                                data-select-mode="multiple"
-                                data-option-style="hierarchy"
-                                data-placeholder="Select categories for extra questions"
-                                data-max-items="1"
-                            ></select>
-                            <p id="extra-questions-help" class="exam-help"></p>
-                        </div>
-                    </div>
-
-                    <div id="fixed-category-marks-distribution" class="config-preview-card" hidden>
-                        <h4>Fixed Category Marks Allocation</h4>
-                        <p class="exam-help" id="fixed-category-marks-helper"></p>
-                        <div id="extra-marks-allocations-wrap" class="category-allocation-panel mt-3">
-                            <p class="exam-label mb-2">
-                                Marks per Category
-                                <span class="category-allocation-panel__meta">(Allocated: <span id="marks-allocated-count">0</span> / <span id="marks-remaining-count">0</span>)</span>
-                            </p>
-                            <div id="extra-marks-allocation-list" class="exam-grid exam-grid--3"></div>
-                        </div>
-                        <input
-                            type="hidden"
-                            name="extra_marks_allocations"
-                            id="extra_marks_allocations"
-                            value="{{ $jsonVal('extra_marks_allocations', [], 'extra_marks_allocations') }}"
-                        >
-                    </div>
-
-                    <div class="config-preview-grid">
-                        <article class="config-preview-card">
-                            <h4>Live Calculation Preview</h4>
-                            <ul id="config-preview-list" class="preview-list"></ul>
-                        </article>
-                        <article class="config-preview-card">
-                            <h4>Validation Summary</h4>
-                            <ul id="config-validation-list" class="preview-list"></ul>
-                        </article>
-                    </div>
+                <div class="exam-section__body space-y-4">
+                    <div id="exam-parts-list" class="exam-parts-list" aria-live="polite"></div>
+                    @include('backend.exams._part')
                 </div>
             </section>
 
-            <section class="exam-section" id="question-rules-section">
+            <section class="exam-section" id="exam-scoring-section">
                 <div class="exam-section__head">
-                    <h2>7. Question Rules and Filters</h2>
-                    <p>Limit question import to selected marks only.</p>
+                    <h2>7. Passing Marks &amp; Negative Marking</h2>
+                    <p>Exam-level scoring gateways applied across all parts.</p>
                 </div>
                 <div class="exam-section__body space-y-4">
-                    <div>
-                        <label class="exam-label">Question Marks Type</label>
-                        <label class="switch-control">
-                            <input id="fix_marks_each_question" name="fix_marks_each_question" type="checkbox" value="1" @checked($checkedVal('fix_marks_each_question', false))>
-                            <span class="switch-control__track"></span>
-                            <span class="switch-control__label">Fix Marks Each Question (All questions will have the same marks)</span>
-                        </label>
-                    </div>
-
-                    <div>
-                        <label class="exam-label">Question Marks Filter</label>
-                        <div id="question-marks-filter" class="pill-group"></div>
-                        <input type="hidden" name="question_marks_filter" id="question_marks_filter" value="{{ $jsonVal('question_marks_filter', [], 'question_marks_filter') }}">
-                        <p class="exam-help">Only questions that match selected marks are available in the question bank.</p>
-                        <p class="exam-help"><strong id="selected-marks-count">0</strong> marks filters selected.</p>
-                    </div>
-
-                    <div class="exam-grid exam-grid--3 negative-marking-row">
+                    <div class="exam-grid exam-grid--3">
+                        <div>
+                            <label for="passing_marks" class="exam-label">Passing Marks <span class="form-required">*</span></label>
+                            <input id="passing_marks" name="passing_marks" type="number" class="panel-input" min="0" step="1" value="{{ $val('passing_marks', 30, 'passing_marks') }}" placeholder="Enter passing marks">
+                            <p class="exam-help">Must be less than or equal to total marks across all parts (<span id="passing-marks-ceiling">0</span>).</p>
+                        </div>
                         <div>
                             <label class="exam-label">Negative Marking</label>
                             <label class="switch-control">
-                                <input id="enable_negative_marking" name="enable_negative_marking" type="checkbox" value="1" @checked($checkedVal('enable_negative_marking', false))>
+                                <input id="enable_negative_marking" name="enable_negative_marking" type="checkbox" value="1" @checked($checkedVal('enable_negative_marking', true))>
                                 <span class="switch-control__track"></span>
                                 <span class="switch-control__label">Enable Negative Marking</span>
                             </label>
                         </div>
-
-                        <div id="negative-marking-config" hidden>
+                        <div id="negative-marking-config" @if(! $checkedVal('enable_negative_marking', true)) hidden @endif>
                             <label for="negative_marking_type" class="exam-label">Penalty Marks</label>
                             @php $negativeMarkingType = (string) $val('negative_marking_type', '25', 'negative_marking_type'); @endphp
                             <select id="negative_marking_type" name="negative_marking_type" class="panel-input">
@@ -544,34 +355,10 @@
                                 <option value="100" @selected($negativeMarkingType === '100')>100% (Full question marks)</option>
                             </select>
                         </div>
-
-                        <div aria-hidden="true"></div>
-                    </div>
-
-                    <div id="marks-calculation-management" class="marks-management-card" hidden>
-                        <h4 class="marks-management-card__title">Marks Calculation Management</h4>
-                        <p class="exam-help marks-management-card__help">
-                            When fixed marks are enabled, Total Marks must equal Total Questions x Selected Marks Per Question.
-                        </p>
-
-                        <div id="marks-calculation-summary" class="marks-management-card__summary" aria-live="polite"></div>
-
-                        <p id="marks-calculation-warning" class="marks-management-card__warning" role="status" aria-live="polite"></p>
-                        <p id="marks-calculation-suggestion" class="marks-management-card__suggestion" aria-live="polite"></p>
-
-                        <div id="marks-calculation-actions" class="marks-management-card__actions" hidden>
-                            <button type="button" id="marks-fix-total-marks" class="panel-button-secondary">
-                                Update Total Marks
-                            </button>
-                            <button type="button" id="marks-fix-total-questions" class="panel-button-secondary">
-                                Update Total Questions
-                            </button>
-                        </div>
                     </div>
                 </div>
             </section>
-
-            <section class="exam-section" id="pricing-section">
+            <section class="exam-section" id="pricing-section" data-collapsed-default="true">
                 <div class="exam-section__head">
                     <h2>8. Pricing and Discount Rules</h2>
                     <p>Choose pricing strategy and attach predefined discount rules.</p>
@@ -580,7 +367,7 @@
                     <div>
                         <label class="exam-label">Pricing Option</label>
                         <div id="pricing-options" class="option-card-grid"></div>
-                        <input type="hidden" name="pricing_option" id="pricing_option" value="{{ $val('pricing_option', '', 'pricing_option') }}">
+                        <input type="hidden" name="pricing_option" id="pricing_option" value="{{ $val('pricing_option', 'free', 'pricing_option') }}">
                         <p id="pricing-imported-note" class="exam-help" hidden>Imported candidates will get free access. Candidate import tools are now available.</p>
                     </div>
 
@@ -673,60 +460,9 @@
                 </div>
             </section>
 
-            <section class="exam-section" id="question-bank-section">
-                <div class="exam-section__head exam-section__head--with-action">
-                    <div class="exam-section__head-copy">
-                        <h2>9. Question Bank Management</h2>
-                        <p>Track availability by category, fill shortfalls, and keep question creation always accessible.</p>
-                    </div>
-                    <button
-                        type="button"
-                        id="refresh-question-bank"
-                        class="question-bank-refresh-btn"
-                        title="Refresh question bank"
-                        aria-label="Refresh question bank"
-                    >
-                        <span class="question-bank-refresh-btn__icon" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
-                                <polyline points="21 3 21 9 15 9"/>
-                            </svg>
-                        </span>
-                        <span class="question-bank-refresh-btn__label">Refresh</span>
-                    </button>
-                </div>
-                <div class="exam-section__body space-y-4" id="question-bank-container" data-question-bank>
-                    <div class="question-bank-toolbar">
-                        <div class="question-bank-toolbar__left">
-                            <label for="question-search" class="question-search-label">Search Questions</label>
-                            <input id="question-search" type="search" class="panel-input question-bank-toolbar__search-input" placeholder="Search by keyword" data-question-search-input>
-                        </div>
-                        <div class="question-bank-toolbar__right">
-                            <div class="global-selection-stats" id="global-selection-stats">
-                                Total Selected: <span id="global-selected-count">0</span> / <span id="global-allowed-count">0</span>
-                                <span class="global-selection-range" id="global-selection-range" hidden></span>
-                            </div>
-                            <div class="global-action-buttons">
-                                <button type="button" id="global-random-select" class="panel-button-secondary">Random Select</button>
-                                <button type="button" id="open-add-question-modal" class="panel-button-secondary">Add Question</button>
-                                <input type="hidden" name="question_ids" id="question_ids" value="{{ $jsonVal('question_ids', [], 'question_ids') }}">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="question-bank-load-meta" class="exam-help" data-question-bank-load-meta></div>
-                    <div class="question-bank-load-more-wrap" id="question-bank-load-more-wrap" hidden>
-                        <button type="button" id="question-bank-load-more" class="panel-button-secondary">Load more questions</button>
-                    </div>
-                    <div id="question-bank-shortages" class="question-bank-shortages" hidden></div>
-                    <div id="question-bank-feedback" class="exam-help" data-question-bank-feedback></div>
-                    <div id="question-category-cards" class="question-category-cards" data-question-category-cards></div>
-                </div>
-            </section>
-
-            <section class="exam-section" id="instructions-rules-section">
+            <section class="exam-section" id="instructions-rules-section" data-collapsed-default="true">
                 <div class="exam-section__head">
-                    <h2>Exam Instructions &amp; Rules Management</h2>
+                    <h2>9. Exam Instructions &amp; Rules Management</h2>
                     <p>Enable or disable predefined rules that candidates must follow during the exam.</p>
                 </div>
                 <div class="exam-section__body space-y-4">
@@ -746,7 +482,7 @@
 
             <section class="exam-section" id="instructions-section">
                 <div class="exam-section__head">
-                    <h2>Instructions for Candidates</h2>
+                    <h2>10. Instructions for Candidates</h2>
                     <p>Provide clear, structured guidance shown before exam start.</p>
                 </div>
                 <div class="exam-section__body space-y-4">
@@ -778,27 +514,55 @@
             </section>
         </main>
 
-        <aside class="exam-create-aside">
-            <section class="summary-box">
-                <h3>Workflow Progress</h3>
-                <ul id="workflow-status-list" class="preview-list"></ul>
+        <aside class="exam-create-aside" id="exam-create-aside" aria-label="Exam create progress and summary">
+            <section class="summary-box exam-aside-readiness" id="exam-aside-readiness">
+                <div class="exam-aside-readiness__head">
+                    <h3>Create Progress</h3>
+                    <span class="exam-aside-readiness__badge" id="sidebar-readiness-badge">Checking…</span>
+                </div>
+                <div class="exam-aside-progress" aria-hidden="true">
+                    <div class="exam-aside-progress__track">
+                        <div class="exam-aside-progress__fill" id="sidebar-progress-fill"></div>
+                    </div>
+                    <p class="exam-aside-progress__label" id="sidebar-progress-label">0 / 0 checks ready</p>
+                </div>
+                <ul class="exam-aside-legend" aria-label="Status legend">
+                    <li><span class="exam-aside-dot exam-aside-dot--ok"></span> Ready</li>
+                    <li><span class="exam-aside-dot exam-aside-dot--warn"></span> Optional</li>
+                    <li><span class="exam-aside-dot exam-aside-dot--error"></span> Required</li>
+                </ul>
             </section>
 
-            <section class="summary-box">
-                <h3>Live Snapshot</h3>
-                <dl class="summary-stats" id="live-snapshot">
-                    <div><dt>Visibility</dt><dd id="snapshot-visibility">-</dd></div>
-                    <div><dt>Exam Mode</dt><dd id="snapshot-mode">-</dd></div>
-                    <div><dt>Categories</dt><dd id="snapshot-categories">0</dd></div>
-                    <div><dt>Marks Filters</dt><dd id="snapshot-marks">0</dd></div>
-                    <div><dt>Timer</dt><dd id="snapshot-timer">-</dd></div>
-                    <div><dt>Exam Format</dt><dd id="snapshot-exam-format">-</dd></div>
-                    <div><dt>Schedule</dt><dd id="snapshot-schedule">-</dd></div>
-                    <div><dt>Attempts</dt><dd id="snapshot-attempts">-</dd></div>
-                    <div><dt>Candidate Emails</dt><dd id="snapshot-candidates">0</dd></div>
-                    <div><dt>Discount Rules</dt><dd id="snapshot-discounts">0</dd></div>
-                    <div><dt>Enabled Rules</dt><dd id="snapshot-instruction-rules">0</dd></div>
+            <section class="summary-box exam-aside-validation">
+                <h3>Validation Checklist</h3>
+                <p class="exam-help exam-aside-summary__help">Required fields turn green when valid. Missing required items stay red.</p>
+                <ul id="sidebar-validation-list" class="exam-aside-check-list"></ul>
+            </section>
+
+            <section class="summary-box exam-aside-summary" id="exam-final-summary-section">
+                <h3>Exam Summary</h3>
+                <p class="exam-help exam-aside-summary__help">Live roll-up of every part. Updates as you edit.</p>
+                <dl class="exam-final-summary-stats" id="exam-final-summary-stats">
+                    <div><dt>Total Parts</dt><dd id="summary-total-parts">0</dd></div>
+                    <div><dt>Total Questions</dt><dd id="summary-total-questions">0</dd></div>
+                    <div><dt>Total Marks</dt><dd id="summary-total-marks">0</dd></div>
+                    <div><dt>Total Duration</dt><dd id="summary-total-duration">0 min</dd></div>
+                    <div><dt>Passing Marks</dt><dd id="summary-passing-marks">0</dd></div>
+                    <div><dt>Negative Marking</dt><dd id="summary-negative-marks">Off</dd></div>
                 </dl>
+
+                <article class="config-preview-card exam-aside-summary-card">
+                    <h4>Question Distribution</h4>
+                    <ul id="summary-question-distribution" class="preview-list"></ul>
+                </article>
+                <article class="config-preview-card exam-aside-summary-card">
+                    <h4>Category Summary</h4>
+                    <ul id="summary-category-list" class="preview-list"></ul>
+                </article>
+                <article class="config-preview-card exam-aside-summary-card">
+                    <h4>Overall Exam Overview</h4>
+                    <ul id="summary-overview-list" class="preview-list"></ul>
+                </article>
             </section>
         </aside>
     </div>

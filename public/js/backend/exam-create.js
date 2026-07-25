@@ -1,3 +1,24 @@
+/**
+ * Exam Create/Edit wizard — multi-part architecture.
+ *
+ * Exam-level concerns (basic info, candidates, timer toggles, schedule,
+ * format, pricing, instructions, SEO, passing marks, negative marking) stay
+ * global. Configuration / rules / question bank live inside per-part cards
+ * cloned from `#exam-part-template`. All part DOM lookups are scoped inside
+ * the part's root element (`[data-exam-part]`) so multiple parts never
+ * cross-contaminate each other's fields.
+ *
+ * Public surface kept for `question-bank-init.js` and other legacy callers:
+ *   window.examCreateState        — live state object
+ *   window.examCreateUpdateAll    — re-run every exam-level + part render
+ *   window.syncQuestionBankFromServer(categoryId?) — refresh expanded parts
+ *   window.loadCategoryQuestions(categoryId, opts) — refresh one category
+ */
+
+// ────────────────────────────────────────────────────────────────────────
+// Generic utilities
+// ────────────────────────────────────────────────────────────────────────
+
 class ChipInput {
     constructor(container, options = {}) {
         this.container = container;
@@ -201,6 +222,17 @@ const ATTEMPT_LIMIT_OPTIONS = [
 
 const SCHEDULE_DATE_TIME_FORMAT = 'Y-m-d H:i';
 const SCHEDULE_ALT_DATE_TIME_FORMAT = 'M j, Y h:i K';
+const PART_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const PART_REACTIVE_FIELDS = new Set([
+    'total_questions', 'total_marks',
+    'use_question_pool', 'maximum_questions',
+    'fixed_questions', 'fixed_paper_set', 'paper_sets',
+    'fix_category_questions', 'fix_category_marks',
+    'shuffle_questions', 'shuffle_categories', 'shuffle_options',
+    'fix_marks_each_question',
+]);
+
+// ── Category hierarchy helpers (shared across all parts) ─────────────────
 
 function flattenCategoryTree(nodes, level = 0, parentId = null, path = []) {
     const source = Array.isArray(nodes) ? nodes : [];
@@ -318,6 +350,55 @@ function buildCategoryOptionMarkup(category, categories, selected = false) {
     `;
 }
 
+// ── Allocation math helpers (pure — shared by question + marks allocation) ─
+
+function getCategoryAllocationBounds(total, selectedCount) {
+    const safeCount = Math.max(0, selectedCount);
+    const safeTotal = Math.max(0, total);
+    if (!safeCount) {
+        return { base: 0, remainder: 0, minPerCategory: 0, maxPerCategory: safeTotal };
+    }
+
+    const base = Math.floor(safeTotal / safeCount);
+    const remainder = safeTotal % safeCount;
+    return {
+        base,
+        remainder,
+        minPerCategory: base,
+        // Leave enough for every other category to keep the minimum.
+        maxPerCategory: safeTotal - (base * (safeCount - 1)),
+    };
+}
+
+function allocationsMeetMinimum(allocations, categoryIds, minimum) {
+    return categoryIds.every((categoryId) => (
+        Math.max(0, toInt(allocations[String(categoryId)], 0)) >= minimum
+    ));
+}
+
+function buildEvenCategoryCounts(selectedIds, total) {
+    const counts = {};
+    const selectedCount = selectedIds.length;
+    if (!selectedCount) {
+        return counts;
+    }
+
+    const { base, remainder } = getCategoryAllocationBounds(total, selectedCount);
+    selectedIds.forEach((categoryId, index) => {
+        counts[String(categoryId)] = base + (index < remainder ? 1 : 0);
+    });
+    return counts;
+}
+
+function shuffleArray(items) {
+    const copy = [...items];
+    for (let index = copy.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+    }
+    return copy;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const refs = {
         page: document.getElementById('exam-create-page'),
@@ -333,8 +414,8 @@ document.addEventListener('DOMContentLoaded', () => {
         visibility: document.getElementById('exam_visibility'),
         enableExamTimer: document.getElementById('enable_exam_timer'),
         examDurationMinutes: document.getElementById('exam_duration_minutes'),
-        autoSubmitOnTimerEnd: document.getElementById('auto_submit_on_timer_end'),
         timerDurationWrap: document.getElementById('timer-duration-wrap'),
+        autoSubmitOnTimerEnd: document.getElementById('auto_submit_on_timer_end'),
         timerAutoSubmitWrap: document.getElementById('timer-autosubmit-wrap'),
         timerConfigSummary: document.getElementById('timer-config-summary'),
         examFormatOptions: document.getElementById('exam-format-options'),
@@ -375,73 +456,11 @@ document.addEventListener('DOMContentLoaded', () => {
         freeImportedCandidatesHidden: document.getElementById('free_imported_candidates'),
         freeImportedCandidatePreview: document.getElementById('free-imported-candidate-preview'),
 
-        totalQuestions: document.getElementById('total_questions'),
-        totalMarks: document.getElementById('total_marks'),
         passingMarks: document.getElementById('passing_marks'),
-        useQuestionPool: document.getElementById('use_question_pool'),
-        maximumQuestionsWrap: document.getElementById('maximum-questions-wrap'),
-        maximumQuestions: document.getElementById('maximum_questions'),
-        maximumQuestionsHelper: document.getElementById('maximum-questions-helper'),
-        fixedQuestionsWrap: document.getElementById('fixed-questions-wrap'),
-        fixedQuestions: document.getElementById('fixed_questions'),
-        fixedPaperSet: document.getElementById('fixed_paper_set'),
-        paperSetsWrap: document.getElementById('paper-sets-wrap'),
-        paperSets: document.getElementById('paper_sets'),
-        fixCategoryQuestions: document.getElementById('fix_category_questions'),
-        fixCategoryMarks: document.getElementById('fix_category_marks'),
-        shuffleQuestions: document.getElementById('shuffle_questions'),
-        shuffleCategories: document.getElementById('shuffle_categories'),
-        shuffleOptionsWrap: document.getElementById('shuffle-options-wrap'),
-        shuffleOptions: document.getElementById('shuffle_options'),
-        paperSetsHelper: document.getElementById('paper-sets-helper'),
-
-        distributionTypeGroup: document.getElementById('distribution-type-group'),
-        distributionTypeHidden: document.getElementById('distribution_type'),
-        categorySelectorWrap: document.getElementById('category-selector-wrap'),
-        categorySelectionComplete: document.getElementById('category-selection-complete'),
-        categorySelectionCompleteText: document.getElementById('category-selection-complete-text'),
-        selectedCategoriesSelect: document.getElementById('selected_categories_select'),
-        selectedCategoriesHidden: document.getElementById('selected_categories'),
-        categoryFeedback: document.getElementById('category-selection-feedback'),
-        fixedDistributionCard: document.getElementById('fixed-category-distribution'),
-        fixedDistributionHelper: document.getElementById('fixed-distribution-helper'),
-        fixedDistributionList: document.getElementById('fixed-category-distribution-list'),
-        extraQuestionsWrap: document.getElementById('extra-questions-wrap'),
-        extraQuestionsLabel: document.getElementById('extra-questions-label'),
-        extraQuestionsHelp: document.getElementById('extra-questions-help'),
-        extraQuestionsCategory: document.getElementById('extra_questions_category'),
-        extraQuestionsCategoriesHidden: document.getElementById('extra_questions_categories'),
-        extraQuestionsAllocationsWrap: document.getElementById('extra-questions-allocations-wrap'),
-        extraQuestionsAllocationList: document.getElementById('extra-questions-allocation-list'),
-        extraQuestionsAllocationsHidden: document.getElementById('extra_questions_allocations'),
-        allocatedCount: document.getElementById('allocated-count'),
-        remainingCount: document.getElementById('remaining-count'),
-        fixedCategoryMarksCard: document.getElementById('fixed-category-marks-distribution'),
-        fixedCategoryMarksHelper: document.getElementById('fixed-category-marks-helper'),
-        fixedCategoryMarksList: document.getElementById('fixed-category-marks-list'),
-        extraMarksAllocationsWrap: document.getElementById('extra-marks-allocations-wrap'),
-        extraMarksAllocationList: document.getElementById('extra-marks-allocation-list'),
-        extraMarksAllocationsHidden: document.getElementById('extra_marks_allocations'),
-        marksAllocatedCount: document.getElementById('marks-allocated-count'),
-        marksRemainingCount: document.getElementById('marks-remaining-count'),
-
-        configPreviewList: document.getElementById('config-preview-list'),
-        configValidationList: document.getElementById('config-validation-list'),
-
-        marksFilter: document.getElementById('question-marks-filter'),
-        marksHidden: document.getElementById('question_marks_filter'),
-        marksCount: document.getElementById('selected-marks-count'),
-        fixMarksEachQuestion: document.getElementById('fix_marks_each_question'),
-        marksCalculationManagement: document.getElementById('marks-calculation-management'),
-        marksCalculationSummary: document.getElementById('marks-calculation-summary'),
-        marksCalculationWarning: document.getElementById('marks-calculation-warning'),
-        marksCalculationSuggestion: document.getElementById('marks-calculation-suggestion'),
-        marksCalculationActions: document.getElementById('marks-calculation-actions'),
-        marksFixTotalMarksBtn: document.getElementById('marks-fix-total-marks'),
-        marksFixTotalQuestionsBtn: document.getElementById('marks-fix-total-questions'),
         enableNegativeMarking: document.getElementById('enable_negative_marking'),
         negativeMarkingConfig: document.getElementById('negative-marking-config'),
         negativeMarkingType: document.getElementById('negative_marking_type'),
+        passingMarksCeiling: document.getElementById('passing-marks-ceiling'),
 
         pricingSection: document.getElementById('pricing-section'),
         pricingOptions: document.getElementById('pricing-options'),
@@ -458,20 +477,9 @@ document.addEventListener('DOMContentLoaded', () => {
         customDiscountsContainer: document.getElementById('custom-discounts-container'),
         customDiscountsHidden: document.getElementById('custom_discounts'),
 
-        questionSearch: document.getElementById('question-search'),
-        questionBankFeedback: document.getElementById('question-bank-feedback'),
-        questionBankLoadMeta: document.getElementById('question-bank-load-meta'),
-        questionBankLoadMoreWrap: document.getElementById('question-bank-load-more-wrap'),
-        questionBankLoadMoreBtn: document.getElementById('question-bank-load-more'),
-        questionBankShortages: document.getElementById('question-bank-shortages'),
-        questionCategoryCards: document.getElementById('question-category-cards'),
-        openAddQuestionModal: document.getElementById('open-add-question-modal'),
-        globalSelectionStats: document.getElementById('global-selection-stats'),
-        globalSelectedCount: document.getElementById('global-selected-count'),
-        globalAllowedCount: document.getElementById('global-allowed-count'),
-        globalSelectionRange: document.getElementById('global-selection-range'),
-        globalRandomSelectBtn: document.getElementById('global-random-select'),
-        questionIdsHidden: document.getElementById('question_ids'),
+        addExamPartBtn: document.getElementById('add-exam-part'),
+        partsList: document.getElementById('exam-parts-list'),
+        partTemplate: document.getElementById('exam-part-template'),
 
         instructionTemplate: document.getElementById('instruction_template'),
         applyInstructionTemplate: document.getElementById('apply-instruction-template'),
@@ -481,30 +489,14 @@ document.addEventListener('DOMContentLoaded', () => {
         instructionRulesHidden: document.getElementById('predefined_instruction_rules'),
         instructionRulesCount: document.getElementById('selected-instruction-rules-count'),
 
-        workflowStatusList: document.getElementById('workflow-status-list'),
-
-        snapshotVisibility: document.getElementById('snapshot-visibility'),
-        snapshotMode: document.getElementById('snapshot-mode'),
-        snapshotCategories: document.getElementById('snapshot-categories'),
-        snapshotMarks: document.getElementById('snapshot-marks'),
-        snapshotTimer: document.getElementById('snapshot-timer'),
-        snapshotExamFormat: document.getElementById('snapshot-exam-format'),
-        snapshotSchedule: document.getElementById('snapshot-schedule'),
-        snapshotAttempts: document.getElementById('snapshot-attempts'),
-        snapshotCandidates: document.getElementById('snapshot-candidates'),
-        snapshotDiscounts: document.getElementById('snapshot-discounts'),
-        snapshotInstructionRules: document.getElementById('snapshot-instruction-rules'),
-
-        modal: document.getElementById('add-question-modal'),
-        modalCloseButtons: [...document.querySelectorAll('[data-modal-close]')],
-        addQuestionForm: document.getElementById('add-question-form'),
-        newQuestionCategory: document.getElementById('new_question_category'),
-        newQuestionText: document.getElementById('new_question_text'),
-        newQuestionMarks: document.getElementById('new_question_marks'),
-        newQuestionDifficulty: document.getElementById('new_question_difficulty'),
+        examCategory: document.getElementById('exam_category_id'),
+        sidebarValidationList: document.getElementById('sidebar-validation-list'),
+        sidebarReadinessBadge: document.getElementById('sidebar-readiness-badge'),
+        sidebarProgressFill: document.getElementById('sidebar-progress-fill'),
+        sidebarProgressLabel: document.getElementById('sidebar-progress-label'),
     };
 
-    if (!refs.page || !refs.form) {
+    if (!refs.page || !refs.form || !refs.partsList || !refs.partTemplate) {
         return;
     }
 
@@ -517,34 +509,28 @@ document.addEventListener('DOMContentLoaded', () => {
             categories: [],
             discountRules: [],
             questionMarks: [],
-            questionBank: [],
             pricingOptions: [],
             distributionTypes: [],
             instructionTemplates: [],
             instructionRules: [],
             currencies: [],
+            examFormats: [],
         },
-        questionBank: [],
-        questionBankMeta: { total: 0, next_cursor: null, has_more: false, per_page: 50 },
-        categoryCounts: {},
-        categoryLoadState: {},
-        selectedQuestionCache: {},
-        questionBankRequestSeq: 0,
-        questionBankAbortController: null,
-        countsAbortController: null,
-        categoryAvailability: {},
-        selectedCategories: new Set(),
-        selectedMarks: new Set(),
+        categoryHierarchyIndex: { childrenByParent: new Map() },
+
+        parts: new Map(), // partKey -> partState
+        partKeySeq: 0,
+        lastAddQuestionPartKey: null,
+
         selectedDiscounts: new Set(),
         discountPercentages: {},
         customDiscounts: [],
         selectedPricing: 'free',
-        selectedDistributionType: '',
-        selectedVisibility: '',
-        selectedMode: '',
+        selectedVisibility: 'public',
+        selectedMode: 'standard',
         selectedExamFormat: new Set(['mcq']),
         selectedScheduleType: 'any_time',
-        selectedAttemptLimitType: 'once',
+        selectedAttemptLimitType: 'unlimited',
         activeCandidateTab: 'import',
         importedCandidates: [],
         manualEmails: [],
@@ -552,41 +538,16 @@ document.addEventListener('DOMContentLoaded', () => {
         freeImportedCandidates: [],
         freeManualEmails: [],
         tags: [],
-        expandedCards: new Set(),
-        categoryTree: [],
-        lastFetchedCategories: '',
-        lastFetchedMarks: '',
-        lastFetchedFormats: '',
-        extraQuestionsCategoryIds: [],
-        extraQuestionsAllocations: {},
-        categoryQuestionCountsKey: '',
-        extraMarksAllocations: {},
-        categoryMarksCountsKey: '',
-        extraQuestionsOptionsKey: '',
-        extraQuestionsSelectBound: false,
-        mainCategorySelectBound: false,
-        categoryHierarchyIndex: { childrenByParent: new Map() },
-        isSyncingCategories: false,
-        isSyncingExtraQuestions: false,
-        suppressCategorySelectEvents: false,
-        suppressExtraSelectEvents: false,
+        selectedInstructionRules: new Set(),
+
         richEditors: new Map(),
         richEditorsInitializing: false,
         richEditorsReady: false,
         eventsBound: false,
-        schedulePickers: {
-            start: null,
-            end: null,
-        },
-        selectedQuestions: new Set(),
-        selectedInstructionRules: new Set(),
+        schedulePickers: { start: null, end: null },
 
-        // ── Edit-mode hydration state ──────────────────────────────────────
         isEditMode: false,
         examConfig: null,
-        hydratedSelectedCategories: null,
-        hydratedQuestionIds: null,
-        hasHydratedSelectedQuestions: false,
     };
 
     const tagInput = new ChipInput(refs.tagsChip, {
@@ -594,6 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onChange: (values) => {
             state.tags = values;
             refs.tagsHidden.value = JSON.stringify(values);
+            updateWorkflowAndSnapshot();
         },
     });
 
@@ -637,10 +599,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initialize().catch((error) => {
         console.error(error);
-        // Keep the form usable even if bootstrap partially fails.
         hideLoader();
         try {
             renderInitialControls();
+            mountInitialParts();
             bindEvents();
             initRichTextEditors().catch(() => {});
             safeUpdateAll();
@@ -658,7 +620,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showLoader();
 
-        // Mount description / instructions editors immediately so fields are never blank.
         const editorsReady = initRichTextEditors().catch((error) => {
             console.warn(error);
         });
@@ -667,7 +628,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const endpoints = window.examCreateConfig?.bootstrapEndpoints
                 || { categories: window.examCreateConfig?.endpoints?.categories };
             const staticOptions = window.examCreateConfig?.options || {};
-            // Only fetch live category tree on bootstrap. Question bank loads on demand.
             const remoteData = Object.keys(endpoints).length
                 ? await loadJsonMapWithTimeout(endpoints, 15000)
                 : {};
@@ -684,35 +644,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 categories: flatCategories,
                 discountRules: Array.isArray(configData.discountRules) ? configData.discountRules : [],
                 questionMarks: Array.isArray(configData.questionMarks) ? configData.questionMarks : [],
-                questionBank: Array.isArray(configData.questionBank) ? configData.questionBank : [],
                 pricingOptions: Array.isArray(configData.pricingOptions) ? configData.pricingOptions : [],
                 distributionTypes: Array.isArray(configData.distributionTypes) ? configData.distributionTypes : [],
                 instructionTemplates: Array.isArray(configData.instructionTemplates) ? configData.instructionTemplates : [],
                 instructionRules: Array.isArray(configData.instructionRules) ? configData.instructionRules : [],
                 currencies: Array.isArray(configData.currencies) ? configData.currencies : [],
             };
-            state.categoryTree = categoryTree;
             state.categoryHierarchyIndex = buildCategoryHierarchyIndex(state.config.categories);
 
-            state.config.discountRules.forEach(rule => {
+            state.config.discountRules.forEach((rule) => {
                 state.discountPercentages[rule.id] = rule.default_percentage || 0;
             });
-
-            state.questionBank = state.config.questionBank.slice();
-            state.categoryAvailability = state.config.categories.reduce((carry, category) => {
-                carry[category.id] = toInt(category.availableQuestions, 0);
-                return carry;
-            }, {});
 
             hydrateFromExamConfig();
             renderInitialControls();
             applyExamConfigToSelects();
-            initEnhancedSelects();
             initScheduleDateTimePickers();
-            renderCategorySelector();
+            mountInitialParts();
             bindEvents();
-            bindMainCategorySelect();
-            bindExtraQuestionsCategorySelect();
 
             window.clearTimeout(emergencyHide);
             emergencyHide = null;
@@ -723,7 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error(error);
             hideLoader();
-            // Soft-fail: keep static options usable and still mount editors.
             try {
                 if (!state.config.difficultyLevels?.length) {
                     const staticOptions = window.examCreateConfig?.options || {};
@@ -742,11 +690,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         instructionRules: staticOptions.instructionRules || [],
                         currencies: staticOptions.currencies || [],
                         categories: state.config.categories || [],
-                        questionBank: [],
                     };
                     hydrateFromExamConfig();
                     renderInitialControls();
                     applyExamConfigToSelects();
+                    mountInitialParts();
                     bindEvents();
                 }
                 await editorsReady;
@@ -773,15 +721,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Reads window.examFormConfig (edit mode) and seeds `state` with the
-     * exam's saved values *before* renderInitialControls() runs, so the
-     * normal "only default when empty" render logic picks up the hydrated
-     * values instead of the create-wizard defaults. Must run once per page
-     * load, before any other render/init call.
-     */
+    // ── Edit-mode hydration ────────────────────────────────────────────
+
     function hydrateFromExamConfig() {
-        const cfg = window.examFormConfig || window.examCreateConfig?.exam || null;
+        const cfg = window.examFormConfig || null;
         if (!cfg || typeof cfg !== 'object') {
             state.isEditMode = false;
             state.examConfig = null;
@@ -790,25 +733,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.isEditMode = true;
         state.examConfig = cfg;
-
-        if (Array.isArray(cfg.selected_categories) && cfg.selected_categories.length) {
-            state.hydratedSelectedCategories = cfg.selected_categories.map(String);
-        }
-
-        if (Array.isArray(cfg.question_ids)) {
-            state.hydratedQuestionIds = cfg.question_ids
-                .map((id) => toInt(id, 0))
-                .filter((id) => id > 0);
-            state.selectedQuestions = new Set(state.hydratedQuestionIds);
-        }
-
-        if (Array.isArray(cfg.question_marks_filter) && cfg.question_marks_filter.length) {
-            state.selectedMarks = new Set(cfg.question_marks_filter.map((mark) => Number(mark)));
-        }
-
-        if (cfg.distribution_type) {
-            state.selectedDistributionType = String(cfg.distribution_type);
-        }
 
         if (cfg.pricing_option) {
             state.selectedPricing = String(cfg.pricing_option);
@@ -838,33 +762,11 @@ document.addEventListener('DOMContentLoaded', () => {
             state.freeImportedCandidates = cfg.free_imported_candidates;
         }
 
-        if (Array.isArray(cfg.extra_questions_categories) && cfg.extra_questions_categories.length) {
-            state.extraQuestionsCategoryIds = cfg.extra_questions_categories.map(String);
-        }
-
-        if (cfg.extra_questions_allocations && typeof cfg.extra_questions_allocations === 'object') {
-            Object.entries(cfg.extra_questions_allocations).forEach(([categoryId, count]) => {
-                state.extraQuestionsAllocations[String(categoryId)] = Math.max(0, toInt(count, 0));
-            });
-        }
-
-        if (cfg.extra_marks_allocations && typeof cfg.extra_marks_allocations === 'object') {
-            Object.entries(cfg.extra_marks_allocations).forEach(([categoryId, marks]) => {
-                state.extraMarksAllocations[String(categoryId)] = Math.max(0, toInt(marks, 0));
-            });
-        }
-
         if (Array.isArray(cfg.predefined_instruction_rules) && cfg.predefined_instruction_rules.length) {
             state.selectedInstructionRules = new Set(cfg.predefined_instruction_rules);
         }
     }
 
-    /**
-     * Applies hydrated select values that the create-wizard would otherwise
-     * force to its own defaults (difficulty/status/mode/visibility/currency
-     * are populated dynamically via JS and have no server-rendered <option
-     * selected> markup to fall back on).
-     */
     function applyExamConfigToSelects() {
         if (!state.isEditMode || !state.examConfig) {
             return;
@@ -877,6 +779,16 @@ document.addEventListener('DOMContentLoaded', () => {
         setSelectValueIfAvailable(refs.mode, cfg.exam_mode);
         setSelectValueIfAvailable(refs.visibility, cfg.visibility);
         setSelectValueIfAvailable(refs.examCurrency, cfg.exam_currency);
+
+        if (refs.enableExamTimer && cfg.enable_exam_timer !== undefined) {
+            refs.enableExamTimer.checked = Boolean(cfg.enable_exam_timer);
+        }
+        if (refs.autoSubmitOnTimerEnd && cfg.auto_submit_on_timer_end !== undefined) {
+            refs.autoSubmitOnTimerEnd.checked = Boolean(cfg.auto_submit_on_timer_end);
+        }
+        if (refs.examDurationMinutes && cfg.exam_duration_minutes !== undefined && cfg.exam_duration_minutes !== null) {
+            refs.examDurationMinutes.value = String(toInt(cfg.exam_duration_minutes, 60));
+        }
 
         state.selectedMode = refs.mode ? refs.mode.value : state.selectedMode;
         state.selectedVisibility = refs.visibility ? refs.visibility.value : state.selectedVisibility;
@@ -902,43 +814,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
-    /**
-     * Called once, after the first server-side question bank sync completes
-     * in edit mode, so previously linked questions that weren't part of the
-     * freshly-fetched page still show up as selected/cached for display.
-     */
-    function hydrateSelectedQuestions() {
-        state.hasHydratedSelectedQuestions = true;
-        if (!Array.isArray(state.hydratedQuestionIds) || !state.hydratedQuestionIds.length) {
-            return;
-        }
-
-        state.hydratedQuestionIds.forEach((questionId) => {
-            state.selectedQuestions.add(questionId);
-            const question = getQuestionById(questionId);
-            if (question) {
-                rememberSelectedQuestion(question);
-            }
-        });
-
-        if (refs.questionIdsHidden) {
-            refs.questionIdsHidden.value = JSON.stringify([...state.selectedQuestions]);
-        }
-
-        safeUpdateAll();
-    }
-
     function initEnhancedSelects() {
         if (!window.EmsSelect || typeof window.EmsSelect.initAll !== 'function') {
             return;
         }
-
-        // Category selects are mounted via replaceOptions after options HTML is ready.
-        window.EmsSelect.initAll(
-            document,
-            'select.panel-input:not(#selected_categories_select):not(#extra_questions_category)'
-        );
+        window.EmsSelect.initAll(document, 'select.panel-input:not([data-field="selected_categories_select"])');
     }
+
+    // ── Schedule date-time helpers ─────────────────────────────────────
 
     function normalizeScheduleDateTimeValue(rawValue) {
         const cleaned = cleanText(rawValue);
@@ -1001,6 +884,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return normalizeScheduleDateTimeValue(cleaned);
     }
 
+    function parseDateTimeValue(value) {
+        const parsed = parseDateTimeObject(value);
+        return parsed ? parsed.getTime() : null;
+    }
+
     function syncScheduleEndPickerMinDate() {
         const endPicker = state.schedulePickers.end;
         if (!endPicker || typeof endPicker.set !== 'function') {
@@ -1044,28 +932,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.schedulePickers.start = window.EmsFormUtils.initDateTimePicker(refs.scheduleStartAt, {
             ...pickerOptions,
-            onChange: () => {
-                syncScheduleEndPickerMinDate();
-                safeUpdateAll();
-            },
-            onClose: () => {
-                syncScheduleEndPickerMinDate();
-                safeUpdateAll();
-            },
+            onChange: () => { syncScheduleEndPickerMinDate(); safeUpdateAll(); },
+            onClose: () => { syncScheduleEndPickerMinDate(); safeUpdateAll(); },
         });
 
         state.schedulePickers.end = window.EmsFormUtils.initDateTimePicker(refs.scheduleEndAt, {
             ...pickerOptions,
-            onChange: () => {
-                safeUpdateAll();
-            },
-            onClose: () => {
-                safeUpdateAll();
-            },
+            onChange: () => { safeUpdateAll(); },
+            onClose: () => { safeUpdateAll(); },
         });
 
         syncScheduleEndPickerMinDate();
     }
+
+    // ── Initial exam-level control rendering ──────────────────────────
 
     function renderInitialControls() {
         populateSelect(refs.difficulty, state.config.difficultyLevels, 'Select difficulty');
@@ -1075,20 +955,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!state.isEditMode) {
             setSelectDefault(refs.difficulty, 'medium');
-            setSelectDefault(refs.status, 'draft');
+            setSelectDefault(refs.status, 'active');
             setSelectDefault(refs.mode, 'standard');
             setSelectDefault(refs.visibility, 'public');
         }
-        // In edit mode, applyExamConfigToSelects() (called right after this
-        // function) sets these selects from the hydrated exam values instead.
 
-        state.selectedMode = refs.mode.value;
-        state.selectedVisibility = refs.visibility.value;
+        state.selectedMode = refs.mode.value || 'standard';
+        state.selectedVisibility = refs.visibility.value || 'public';
 
-        initializeCategorySelection();
-        renderDistributionTypes();
-        populateCategorySelectElement();
-        renderQuestionMarks();
         renderPricingOptions();
         renderDiscountRules();
 
@@ -1102,54 +976,40 @@ document.addEventListener('DOMContentLoaded', () => {
         if (refs.examFormatHidden && refs.examFormatHidden.value) {
             try {
                 const parsed = JSON.parse(refs.examFormatHidden.value);
-                if (Array.isArray(parsed)) {
+                if (Array.isArray(parsed) && parsed.length) {
                     initialFormats = parsed;
-                } else if (typeof parsed === 'string') {
+                } else if (typeof parsed === 'string' && parsed) {
                     initialFormats = [parsed];
                 }
             } catch (e) {
-                initialFormats = refs.examFormatHidden.value.split(',').map(s => s.trim()).filter(Boolean);
+                const split = refs.examFormatHidden.value.split(',').map((s) => s.trim()).filter(Boolean);
+                if (split.length) initialFormats = split;
             }
         }
-        state.selectedExamFormat = new Set(initialFormats.map(f => normalizeExamFormat(f)));
+        state.selectedExamFormat = new Set(initialFormats.map((f) => normalizeExamFormat(f)));
         renderExamFormatOptions();
         state.selectedScheduleType = normalizeScheduleType(refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time');
-        state.selectedAttemptLimitType = normalizeAttemptLimitType(refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once');
+        state.selectedAttemptLimitType = normalizeAttemptLimitType(refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'unlimited');
         renderScheduleTypeOptions();
         renderAttemptLimitOptions();
         updateScheduleConfigState();
         updateTimerConfigState();
 
+        if (refs.enableNegativeMarking && refs.negativeMarkingConfig) {
+            refs.negativeMarkingConfig.hidden = !refs.enableNegativeMarking.checked;
+        }
+
         renderInstructionTemplates();
         const parsedRules = jsonSafeParse(refs.instructionRulesHidden ? refs.instructionRulesHidden.value : '[]');
-        const seedRules = Array.isArray(parsedRules) && parsedRules.length
-            ? parsedRules
-            : defaultInstructionRuleIds();
-        const defaultInstructionRules = normalizeInstructionRuleSelection(seedRules);
-        state.selectedInstructionRules = new Set(defaultInstructionRules);
+        const seedRules = Array.isArray(parsedRules) && parsedRules.length ? parsedRules : defaultInstructionRuleIds();
+        state.selectedInstructionRules = new Set(normalizeInstructionRuleSelection(seedRules));
         renderInstructionRules();
-        if (refs.modal || refs.newQuestionCategory) {
-            renderModalSelects();
-        }
+
         refs.manualEmailFeedback.textContent = 'Type email and press Enter to add.';
 
         const defaultTags = jsonSafeParse(refs.tagsHidden.value);
         if (Array.isArray(defaultTags) && defaultTags.length) {
             tagInput.setValues(defaultTags);
-        }
-
-        const defaultExtraMarks = jsonSafeParse(refs.extraMarksAllocationsHidden?.value || '{}');
-        if (defaultExtraMarks && typeof defaultExtraMarks === 'object' && !Array.isArray(defaultExtraMarks)) {
-            Object.entries(defaultExtraMarks).forEach(([categoryId, marks]) => {
-                state.extraMarksAllocations[String(categoryId)] = Math.max(0, toInt(marks, 0));
-            });
-        }
-
-        const defaultExtraQuestions = jsonSafeParse(refs.extraQuestionsAllocationsHidden?.value || '{}');
-        if (defaultExtraQuestions && typeof defaultExtraQuestions === 'object' && !Array.isArray(defaultExtraQuestions)) {
-            Object.entries(defaultExtraQuestions).forEach(([categoryId, count]) => {
-                state.extraQuestionsAllocations[String(categoryId)] = Math.max(0, toInt(count, 0));
-            });
         }
 
         const defaultEmails = jsonSafeParse(refs.manualEmailsHidden.value);
@@ -1162,15 +1022,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(defaultFreeEmails) && defaultFreeEmails.length) {
             freeEmailInput.setValues(defaultFreeEmails);
         }
+
+        initEnhancedSelects();
     }
 
     function populateSelect(select, items, placeholder) {
         if (!select) return;
-
         const html = [`<option value="">${escapeHtml(placeholder)}</option>`]
             .concat(items.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`))
             .join('');
-
         select.innerHTML = html;
     }
 
@@ -1186,559 +1046,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ── Category helpers (shared, read-only lookups) ──────────────────
+
     function getAssignableCategories() {
         return state.config.categories;
     }
 
-    function initializeCategorySelection() {
-        const categories = getAssignableCategories();
-        const validIds = new Set(categories.map((category) => category.id));
-
-        if (state.isEditMode && Array.isArray(state.hydratedSelectedCategories) && state.hydratedSelectedCategories.length) {
-            const hydratedValid = state.hydratedSelectedCategories.filter((id) => validIds.has(id));
-            if (hydratedValid.length) {
-                state.selectedCategories = new Set(hydratedValid);
-                refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
-                state.extraQuestionsCategoryIds = state.extraQuestionsCategoryIds.length
-                    ? state.extraQuestionsCategoryIds
-                    : [hydratedValid[0]];
-                return;
-            }
-        }
-
-        const preferred = Math.min(3, categories.length);
-
-        state.selectedCategories = new Set(categories.slice(0, preferred).map((category) => category.id));
-        refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
-
-        state.extraQuestionsCategoryIds = categories[0]?.id ? [categories[0].id] : [];
+    function getCategoryById(categoryId) {
+        return state.config.categories.find((category) => category.id === String(categoryId)) || null;
     }
 
-    function renderDistributionTypes() {
-        if (!refs.distributionTypeGroup) {
-            return;
+    function getCategoryLabelById(categoryId) {
+        const category = getCategoryById(categoryId);
+        if (!category) {
+            return String(categoryId);
         }
-
-        if (!state.selectedDistributionType && state.config.distributionTypes.length) {
-            state.selectedDistributionType = state.config.distributionTypes[0].id;
+        const parent = getCategoryParent(category, state.config.categories);
+        if (!parent) {
+            return category.name;
         }
-
-        refs.distributionTypeGroup.innerHTML = state.config.distributionTypes
-            .map((type) => {
-                const active = type.id === state.selectedDistributionType ? 'is-active' : '';
-                return `<button type="button" class="pill ${active}" data-distribution-id="${escapeHtml(type.id)}">${escapeHtml(type.label)}</button>`;
-            })
-            .join('');
-
-        if (refs.distributionTypeHidden) {
-            refs.distributionTypeHidden.value = state.selectedDistributionType || '';
-        }
+        return `${parent.name} / ${category.name}`;
     }
 
-    function applyMainCategorySelectionRules(rawIds) {
-        const validIds = new Set(getAssignableCategories().map((category) => category.id));
-        const filtered = [...rawIds].filter((id) => validIds.has(id));
-        return [...pruneDescendantSelections(filtered, state.categoryHierarchyIndex)];
-    }
-
-    function buildCategorySelectOptionsHtml(selectedSet) {
-        const categories = getAssignableCategories();
-        const visibleCategories = categories.filter((category) => isCategoryVisibleInDropdown(
-            category.id,
-            selectedSet,
-            state.config.categories
-        ));
-
-        return visibleCategories
-            .map((category) => buildCategoryOptionMarkup(
-                category,
-                state.config.categories,
-                selectedSet.has(category.id)
-            ))
-            .join('');
-    }
-
-    function updateCategorySelectorFeedback() {
-        const selectedCount = state.selectedCategories.size;
-
-        refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
-        refs.categoryFeedback.textContent = `${selectedCount} categor${selectedCount === 1 ? 'y' : 'ies'} selected.`;
-
-        const isSelectionComplete = selectedCount > 0;
-        if (refs.categorySelectorWrap) {
-            refs.categorySelectorWrap.hidden = false;
-        }
-        if (refs.categorySelectionComplete) {
-            refs.categorySelectionComplete.hidden = !isSelectionComplete;
-        }
-        if (refs.categorySelectionCompleteText) {
-            refs.categorySelectionCompleteText.textContent = isSelectionComplete
-                ? `${selectedCount} categories selected. Category selection is complete.`
-                : '';
-        }
-    }
-
-    function populateCategorySelectElement() {
-        const normalized = applyMainCategorySelectionRules([...state.selectedCategories]);
-        state.selectedCategories = new Set(normalized);
-        refs.selectedCategoriesSelect.dataset.maxItems = String(Math.max(1, getAssignableCategories().length));
-        refs.selectedCategoriesSelect.innerHTML = buildCategorySelectOptionsHtml(state.selectedCategories);
-        updateCategorySelectorFeedback();
-    }
-
-    function bindMainCategorySelect() {
-        if (state.mainCategorySelectBound || !window.EmsSelect || typeof window.EmsSelect.onChange !== 'function') {
-            return;
-        }
-
-        window.EmsSelect.onChange('selected_categories_select', () => {
-            if (state.isSyncingCategories || state.suppressCategorySelectEvents) {
-                return;
-            }
-
-            const rawValue = window.EmsSelect.getValue('selected_categories_select');
-            const selectedValues = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
-            const normalized = applyMainCategorySelectionRules(selectedValues);
-
-            state.selectedCategories = new Set(normalized);
-            state.extraQuestionsOptionsKey = '';
-            state.categoryQuestionCountsKey = '';
-            state.categoryMarksCountsKey = '';
-            renderCategorySelector();
-            safeUpdateAll();
-        });
-
-        state.mainCategorySelectBound = true;
-    }
-
-    function renderCategorySelector() {
-        if (state.isSyncingCategories) {
-            return;
-        }
-
-        state.isSyncingCategories = true;
-        state.suppressCategorySelectEvents = true;
-
-        try {
-            const normalized = applyMainCategorySelectionRules([...state.selectedCategories]);
-            state.selectedCategories = new Set(normalized);
-            const html = buildCategorySelectOptionsHtml(state.selectedCategories);
-            const values = [...state.selectedCategories];
-            const maxItems = Math.max(1, getAssignableCategories().length);
-
-            const isSelectionComplete = state.selectedCategories.size > 0;
-
-            refs.selectedCategoriesSelect.dataset.maxItems = String(maxItems);
-
-            if (window.EmsSelect && typeof window.EmsSelect.replaceOptions === 'function') {
-                const prevInstance = window.EmsSelect.get('selected_categories_select');
-                const wasOpen = prevInstance ? prevInstance.isOpen : false;
-
-                window.EmsSelect.replaceOptions('selected_categories_select', html, values, maxItems);
-
-                const newInstance = window.EmsSelect.get('selected_categories_select');
-                if (newInstance && wasOpen && !isSelectionComplete) {
-                    newInstance.open();
-                }
-            } else {
-                refs.selectedCategoriesSelect.innerHTML = html;
-            }
-
-            updateCategorySelectorFeedback();
-        } finally {
-            state.suppressCategorySelectEvents = false;
-            state.isSyncingCategories = false;
-        }
-    }
-
-    function renderQuestionMarks() {
-        if (!state.selectedMarks.size) {
-            [1].forEach((mark) => state.selectedMarks.add(mark));
-        }
-
-        if (refs.fixMarksEachQuestion && refs.fixMarksEachQuestion.checked && state.selectedMarks.size > 1) {
-            const firstMark = Array.from(state.selectedMarks)[0];
-            state.selectedMarks.clear();
-            if (firstMark) {
-                state.selectedMarks.add(firstMark);
-            }
-        }
-
-        refs.marksFilter.innerHTML = state.config.questionMarks
-            .map((item) => {
-                const mark = Number(item.value);
-                const active = state.selectedMarks.has(mark) ? 'is-active' : '';
-                return `<button type="button" class="pill ${active}" data-mark-value="${mark}">${escapeHtml(item.label)}</button>`;
-            })
-            .join('');
-
-        refs.marksHidden.value = JSON.stringify([...state.selectedMarks]);
-        refs.marksCount.textContent = String(state.selectedMarks.size);
-    }
-
-    function computeMarksCalculationState() {
-        const fixEnabled = Boolean(refs.fixMarksEachQuestion && refs.fixMarksEachQuestion.checked);
-        const totalQuestions = Math.max(0, toInt(refs.totalQuestions.value, 0));
-        const totalMarks = Math.max(0, toInt(refs.totalMarks.value, 0));
-        const selectedMark = state.selectedMarks.size === 1 ? Number(Array.from(state.selectedMarks)[0]) : 0;
-        const hasSelectedMark = Number.isFinite(selectedMark) && selectedMark > 0;
-        const expectedTotalMarks = hasSelectedMark ? totalQuestions * selectedMark : 0;
-        const rawQuestionCountFromMarks = hasSelectedMark ? (totalMarks / selectedMark) : 0;
-        const hasExactQuestionCount = hasSelectedMark
-            && rawQuestionCountFromMarks > 0
-            && Number.isInteger(rawQuestionCountFromMarks);
-        const suggestedQuestionCount = hasSelectedMark
-            ? Math.max(1, hasExactQuestionCount ? rawQuestionCountFromMarks : Math.round(rawQuestionCountFromMarks || 1))
-            : 0;
-        const suggestedTotalMarks = hasSelectedMark ? suggestedQuestionCount * selectedMark : 0;
-        const isValid = !fixEnabled || (
-            hasSelectedMark
-            && totalQuestions > 0
-            && totalMarks > 0
-            && totalMarks === expectedTotalMarks
-        );
-
-        return {
-            fixEnabled,
-            totalQuestions,
-            totalMarks,
-            selectedMark,
-            hasSelectedMark,
-            expectedTotalMarks,
-            hasExactQuestionCount,
-            suggestedQuestionCount,
-            suggestedTotalMarks,
-            isValid,
-        };
-    }
-
-    function renderMarksCalculationManagement() {
-        if (
-            !refs.marksCalculationManagement
-            || !refs.marksCalculationSummary
-            || !refs.marksCalculationWarning
-            || !refs.marksCalculationSuggestion
-            || !refs.marksCalculationActions
-        ) {
-            return;
-        }
-
-        const calculation = computeMarksCalculationState();
-        if (!calculation.fixEnabled) {
-            refs.marksCalculationManagement.hidden = true;
-            refs.marksCalculationManagement.classList.remove('is-valid', 'is-warning');
-            refs.marksCalculationSummary.textContent = '';
-            refs.marksCalculationWarning.textContent = '';
-            refs.marksCalculationWarning.hidden = true;
-            refs.marksCalculationSuggestion.textContent = '';
-            refs.marksCalculationSuggestion.hidden = true;
-            refs.marksCalculationActions.hidden = true;
-            return;
-        }
-
-        refs.marksCalculationManagement.hidden = false;
-        refs.marksCalculationManagement.classList.remove('is-valid', 'is-warning');
-
-        if (!calculation.hasSelectedMark) {
-            refs.marksCalculationSummary.textContent = 'Select one question mark value to validate fixed marks calculation.';
-            refs.marksCalculationWarning.textContent = 'Fixed marks mode requires one selected mark value.';
-            refs.marksCalculationWarning.hidden = false;
-            refs.marksCalculationSuggestion.textContent = 'Choose a mark from Question Marks Filter, then use suggested auto-fix actions if needed.';
-            refs.marksCalculationSuggestion.hidden = false;
-            refs.marksCalculationActions.hidden = true;
-            refs.marksCalculationManagement.classList.add('is-warning');
-            return;
-        }
-
-        refs.marksCalculationSummary.textContent = `Current formula: ${calculation.totalQuestions} questions x ${calculation.selectedMark} mark(s) = ${calculation.expectedTotalMarks} expected total marks. Current Total Marks: ${calculation.totalMarks}.`;
-
-        if (calculation.isValid) {
-            refs.marksCalculationWarning.textContent = '';
-            refs.marksCalculationWarning.hidden = true;
-            refs.marksCalculationSuggestion.textContent = 'Marks configuration is valid and ready.';
-            refs.marksCalculationSuggestion.hidden = false;
-            refs.marksCalculationActions.hidden = true;
-            refs.marksCalculationManagement.classList.add('is-valid');
-            return;
-        }
-
-        refs.marksCalculationWarning.textContent = 'The selected marks configuration does not match the total questions and total marks. Please adjust the values.';
-        refs.marksCalculationWarning.hidden = false;
-
-        if (calculation.hasExactQuestionCount) {
-            refs.marksCalculationSuggestion.textContent = `Suggested fix: set Total Marks to ${calculation.expectedTotalMarks}, or set Total Questions to ${calculation.suggestedQuestionCount}.`;
-        } else {
-            refs.marksCalculationSuggestion.textContent = `Suggested fix: set Total Marks to ${calculation.expectedTotalMarks}, or set Total Questions to ${calculation.suggestedQuestionCount} (nearest whole number, then Total Marks will sync to ${calculation.suggestedTotalMarks}).`;
-        }
-        refs.marksCalculationSuggestion.hidden = false;
-        refs.marksCalculationActions.hidden = false;
-        refs.marksCalculationManagement.classList.add('is-warning');
-
-        if (refs.marksFixTotalMarksBtn) {
-            refs.marksFixTotalMarksBtn.textContent = `Update Total Marks (${calculation.expectedTotalMarks})`;
-            refs.marksFixTotalMarksBtn.disabled = false;
-        }
-        if (refs.marksFixTotalQuestionsBtn) {
-            refs.marksFixTotalQuestionsBtn.textContent = `Update Total Questions (${calculation.suggestedQuestionCount})`;
-            refs.marksFixTotalQuestionsBtn.disabled = false;
-        }
-    }
-
-    function applyMarksCalculationFix(fixType) {
-        const calculation = computeMarksCalculationState();
-        if (!calculation.fixEnabled || !calculation.hasSelectedMark) {
-            return;
-        }
-
-        if (fixType === 'total_marks') {
-            refs.totalMarks.value = String(calculation.expectedTotalMarks);
-        }
-
-        if (fixType === 'total_questions') {
-            refs.totalQuestions.value = String(calculation.suggestedQuestionCount);
-            if (!calculation.hasExactQuestionCount) {
-                refs.totalMarks.value = String(calculation.suggestedTotalMarks);
-            }
-        }
-
-        updateAll();
-    }
-
-    function renderPricingOptions() {
-        refs.pricingOptions.innerHTML = state.config.pricingOptions
-            .map((option) => {
-                const selected = state.selectedPricing === option.id ? 'is-selected' : '';
-                return `
-                    <article class="option-card ${selected}" data-pricing-option="${escapeHtml(option.id)}">
-                        <h4>${escapeHtml(option.label)}</h4>
-                        <p>${escapeHtml(option.description)}</p>
-                    </article>
-                `;
-            })
-            .join('');
-
-        const allOptions = state.config.pricingOptions.map((option) => option.id);
-
-        if (!allOptions.includes(state.selectedPricing)) {
-            state.selectedPricing = allOptions.includes('free') ? 'free' : (allOptions[0] || '');
-        }
-
-        refs.pricingOptionHidden.value = state.selectedPricing;
-        highlightPricingOptions();
-
-        if (refs.examCurrency && refs.examCurrency.options.length === 0) {
-            populateSelect(refs.examCurrency, state.config.currencies, 'Select currency');
-            setSelectDefault(refs.examCurrency, 'USD');
-        }
-    }
-
-    function highlightPricingOptions() {
-        refs.pricingOptions.querySelectorAll('[data-pricing-option]').forEach((card) => {
-            card.classList.toggle('is-selected', card.dataset.pricingOption === state.selectedPricing);
-        });
-        refs.pricingOptionHidden.value = state.selectedPricing;
-
-        const showPricingDetails = state.selectedPricing === 'paid' || state.selectedPricing === 'free_for_imported';
-        if (refs.pricingDetailsWrap) refs.pricingDetailsWrap.hidden = !showPricingDetails;
-        if (refs.discountRulesWrap) refs.discountRulesWrap.hidden = !showPricingDetails;
-        if (refs.discountSummaryWrap) refs.discountSummaryWrap.hidden = !showPricingDetails;
-    }
-
-    function renderDiscountRules() {
-        refs.discountRules.innerHTML = state.config.discountRules
-            .map((rule) => {
-                const selected = state.selectedDiscounts.has(rule.id) ? 'is-selected' : '';
-                const percentage = state.discountPercentages[rule.id] || rule.default_percentage || 0;
-
-                return `
-                    <article class="option-card ${selected}" data-discount-id="${escapeHtml(rule.id)}">
-                        <h4>${escapeHtml(rule.label)}</h4>
-                        <p>${escapeHtml(rule.summary)}</p>
-                        <div class="mt-2 discount-pct-wrap" ${selected ? '' : 'hidden'}>
-                            <label class="exam-label discount-pct-label">Discount Percentage (%)</label>
-                            <input type="number" class="panel-input discount-percentage-input" data-rule-id="${escapeHtml(rule.id)}" value="${percentage}" min="0" max="100">
-                            <p class="exam-help is-invalid mt-1 text-xs" id="err-predefined-${rule.id}" hidden></p>
-                        </div>
-                    </article>
-                `;
-            })
-            .join('');
-
-        refs.discountHidden.value = JSON.stringify(
-            [...state.selectedDiscounts].map(id => ({ id, percentage: state.discountPercentages[id] }))
-        );
-        bindDiscountInputs();
-    }
-
-    function bindDiscountInputs() {
-        refs.discountRules.querySelectorAll('.discount-percentage-input').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const ruleId = e.target.dataset.ruleId;
-                const errEl = document.getElementById(`err-predefined-${ruleId}`);
-                const rawVal = e.target.value;
-                const val = rawVal === '' ? NaN : parseInt(rawVal, 10);
-
-                let isInvalid = false;
-                let errMsg = '';
-
-                if (isNaN(val)) {
-                    isInvalid = true;
-                    errMsg = 'Percentage value is required.';
-                } else if (val < 0) {
-                    isInvalid = true;
-                    errMsg = 'Discount percentage cannot be less than 0%.';
-                } else if (val > 100) {
-                    isInvalid = true;
-                    errMsg = 'Discount percentage cannot exceed 100%.';
-                }
-
-                state.discountPercentages[ruleId] = isNaN(val) ? 0 : val;
-
-                if (errEl) {
-                    if (isInvalid) {
-                        errEl.textContent = errMsg;
-                        errEl.hidden = false;
-                    } else {
-                        errEl.hidden = true;
-                    }
-                }
-
-                refs.discountHidden.value = JSON.stringify(
-                    [...state.selectedDiscounts].map(id => ({ id, percentage: state.discountPercentages[id] }))
-                );
-                renderDiscountSummary();
-                updateWorkflowAndSnapshot();
-            });
-        });
-    }
-
-    /* ── Custom Discount Management ── */
-    function renderCustomDiscounts() {
-        if (!refs.customDiscountsContainer) return;
-
-        if (state.customDiscounts.length === 0) {
-            refs.customDiscountsContainer.innerHTML = `
-                <div class="custom-discount-empty">
-                    No custom discount offers added yet. Click "+ Add Custom Offer" to create one.
-                </div>
-            `;
-            refs.customDiscountsHidden.value = '[]';
-            return;
-        }
-
-        refs.customDiscountsContainer.innerHTML = state.customDiscounts
-            .map((item, index) => {
-                const name = escapeHtml(item.name || '');
-                const desc = escapeHtml(item.description || '');
-                const pct = isNaN(item.percentage) || item.percentage === null ? '' : item.percentage;
-
-                return `
-                    <div class="custom-discount-row" data-row-index="${index}">
-                        <button type="button" class="remove-custom-discount-btn" data-row-index="${index}" title="Remove Offer">
-                            <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.15rem; height: 1.15rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-
-                        <div class="custom-discount-grid">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Offer Name <span class="text-red-500">*</span></label>
-                                <input type="text" class="panel-input custom-discount-name" data-row-index="${index}" placeholder="e.g. Summer Sale" value="${name}">
-                                <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-name-${index}" hidden></p>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Description</label>
-                                <input type="text" class="panel-input custom-discount-desc" data-row-index="${index}" placeholder="e.g. Valid for standard exams" value="${desc}">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Discount Percentage (%) <span class="text-red-500">*</span></label>
-                                <input type="number" class="panel-input custom-discount-pct" data-row-index="${index}" placeholder="e.g. 15" value="${pct}" min="0" max="100">
-                                <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-pct-${index}" hidden></p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            })
-            .join('');
-
-        refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
-        bindCustomDiscountRowEvents();
-        updateWorkflowAndSnapshot();
-    }
-
-    function bindCustomDiscountRowEvents() {
-        if (!refs.customDiscountsContainer) return;
-
-        // Trash buttons
-        refs.customDiscountsContainer.querySelectorAll('.remove-custom-discount-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const btnActual = e.currentTarget;
-                const index = parseInt(btnActual.dataset.rowIndex, 10);
-                state.customDiscounts.splice(index, 1);
-                renderCustomDiscounts();
-            });
-        });
-
-        // Name inputs
-        refs.customDiscountsContainer.querySelectorAll('.custom-discount-name').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const index = parseInt(e.target.dataset.rowIndex, 10);
-                const val = e.target.value;
-                state.customDiscounts[index].name = val;
-
-                // Validate name
-                const errEl = document.getElementById(`err-custom-name-${index}`);
-                if (errEl) {
-                    if (!val.trim()) {
-                        errEl.textContent = 'Offer name is required.';
-                        errEl.hidden = false;
-                    } else {
-                        errEl.hidden = true;
-                    }
-                }
-                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
-                updateWorkflowAndSnapshot();
-            });
-        });
-
-        // Desc inputs
-        refs.customDiscountsContainer.querySelectorAll('.custom-discount-desc').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const index = parseInt(e.target.dataset.rowIndex, 10);
-                state.customDiscounts[index].description = e.target.value;
-                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
-            });
-        });
-
-        // Percentage inputs
-        refs.customDiscountsContainer.querySelectorAll('.custom-discount-pct').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const index = parseInt(e.target.dataset.rowIndex, 10);
-                const rawVal = e.target.value;
-                const val = rawVal === '' ? NaN : parseInt(rawVal, 10);
-                state.customDiscounts[index].percentage = val;
-
-                // Validate percentage
-                const errEl = document.getElementById(`err-custom-pct-${index}`);
-                if (errEl) {
-                    if (isNaN(val)) {
-                        errEl.textContent = 'Discount percentage is required.';
-                        errEl.hidden = false;
-                    } else if (val < 0) {
-                        errEl.textContent = 'Discount percentage cannot be less than 0%.';
-                        errEl.hidden = false;
-                    } else if (val > 100) {
-                        errEl.textContent = 'Discount percentage cannot exceed 100%.';
-                        errEl.hidden = false;
-                    } else {
-                        errEl.hidden = true;
-                    }
-                }
-                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
-                updateWorkflowAndSnapshot();
-            });
-        });
-    }
+    // ── Exam format / schedule / attempt-limit helpers ────────────────
 
     function normalizeExamFormat(rawValue) {
         const normalized = cleanText(String(rawValue || '')).toLowerCase();
@@ -1787,7 +1117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const activeOptions = getExamFormatOptions();
-
         refs.examFormatOptions.innerHTML = activeOptions
             .map((option) => {
                 const selected = state.selectedExamFormat.has(option.id) ? 'is-selected' : '';
@@ -1880,7 +1209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (refs.scheduleConfigSummary) {
             refs.scheduleConfigSummary.textContent = `${scheduleSummary} ${attemptSummary}`;
         }
-
         if (refs.scheduleTypeHidden) {
             refs.scheduleTypeHidden.value = state.selectedScheduleType;
         }
@@ -1895,8 +1223,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const timerEnabled = refs.enableExamTimer.checked;
-        const duration = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
         const autoSubmitEnabled = Boolean(refs.autoSubmitOnTimerEnd && refs.autoSubmitOnTimerEnd.checked);
+        const duration = toInt(refs.examDurationMinutes?.value, 0);
 
         if (refs.timerDurationWrap) {
             refs.timerDurationWrap.hidden = !timerEnabled;
@@ -1916,24 +1244,227 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function parseDateTimeValue(value) {
-        const parsed = parseDateTimeObject(value);
-        return parsed ? parsed.getTime() : null;
-    }
+    // ── Pricing / discounts (exam-level, unchanged from single-part era) ─
 
-    function renderInstructionTemplates() {
-        const templates = Array.isArray(state.config.instructionTemplates)
-            ? state.config.instructionTemplates
-            : [];
-
-        refs.instructionTemplate.innerHTML = [`<option value="">Choose template</option>`]
-            .concat(
-                templates.map(
-                    (template) => `<option value="${escapeHtml(template.id)}">${escapeHtml(template.label)}</option>`
-                )
-            )
+    function renderPricingOptions() {
+        refs.pricingOptions.innerHTML = state.config.pricingOptions
+            .map((option) => {
+                const selected = state.selectedPricing === option.id ? 'is-selected' : '';
+                return `
+                    <article class="option-card ${selected}" data-pricing-option="${escapeHtml(option.id)}">
+                        <h4>${escapeHtml(option.label)}</h4>
+                        <p>${escapeHtml(option.description)}</p>
+                    </article>
+                `;
+            })
             .join('');
 
+        const allOptions = state.config.pricingOptions.map((option) => option.id);
+        if (!allOptions.includes(state.selectedPricing)) {
+            state.selectedPricing = allOptions.includes('free') ? 'free' : (allOptions[0] || '');
+        }
+
+        refs.pricingOptionHidden.value = state.selectedPricing;
+        highlightPricingOptions();
+
+        if (refs.examCurrency && refs.examCurrency.options.length === 0) {
+            populateSelect(refs.examCurrency, state.config.currencies, 'Select currency');
+            setSelectDefault(refs.examCurrency, 'USD');
+        }
+    }
+
+    function highlightPricingOptions() {
+        refs.pricingOptions.querySelectorAll('[data-pricing-option]').forEach((card) => {
+            card.classList.toggle('is-selected', card.dataset.pricingOption === state.selectedPricing);
+        });
+        refs.pricingOptionHidden.value = state.selectedPricing;
+
+        const showPricingDetails = state.selectedPricing === 'paid' || state.selectedPricing === 'free_for_imported';
+        if (refs.pricingDetailsWrap) refs.pricingDetailsWrap.hidden = !showPricingDetails;
+        if (refs.discountRulesWrap) refs.discountRulesWrap.hidden = !showPricingDetails;
+        if (refs.discountSummaryWrap) refs.discountSummaryWrap.hidden = !showPricingDetails;
+    }
+
+    function renderDiscountRules() {
+        refs.discountRules.innerHTML = state.config.discountRules
+            .map((rule) => {
+                const selected = state.selectedDiscounts.has(rule.id) ? 'is-selected' : '';
+                const percentage = state.discountPercentages[rule.id] || rule.default_percentage || 0;
+                return `
+                    <article class="option-card ${selected}" data-discount-id="${escapeHtml(rule.id)}">
+                        <h4>${escapeHtml(rule.label)}</h4>
+                        <p>${escapeHtml(rule.summary)}</p>
+                        <div class="mt-2 discount-pct-wrap" ${selected ? '' : 'hidden'}>
+                            <label class="exam-label discount-pct-label">Discount Percentage (%)</label>
+                            <input type="number" class="panel-input discount-percentage-input" data-rule-id="${escapeHtml(rule.id)}" value="${percentage}" min="0" max="100">
+                            <p class="exam-help is-invalid mt-1 text-xs" id="err-predefined-${rule.id}" hidden></p>
+                        </div>
+                    </article>
+                `;
+            })
+            .join('');
+
+        refs.discountHidden.value = JSON.stringify(
+            [...state.selectedDiscounts].map((id) => ({ id, percentage: state.discountPercentages[id] }))
+        );
+        bindDiscountInputs();
+    }
+
+    function bindDiscountInputs() {
+        refs.discountRules.querySelectorAll('.discount-percentage-input').forEach((input) => {
+            input.addEventListener('input', (e) => {
+                const ruleId = e.target.dataset.ruleId;
+                const errEl = document.getElementById(`err-predefined-${ruleId}`);
+                const rawVal = e.target.value;
+                const val = rawVal === '' ? NaN : parseInt(rawVal, 10);
+
+                let isInvalid = false;
+                let errMsg = '';
+                if (isNaN(val)) { isInvalid = true; errMsg = 'Percentage value is required.'; }
+                else if (val < 0) { isInvalid = true; errMsg = 'Discount percentage cannot be less than 0%.'; }
+                else if (val > 100) { isInvalid = true; errMsg = 'Discount percentage cannot exceed 100%.'; }
+
+                state.discountPercentages[ruleId] = isNaN(val) ? 0 : val;
+
+                if (errEl) {
+                    errEl.hidden = !isInvalid;
+                    if (isInvalid) errEl.textContent = errMsg;
+                }
+
+                refs.discountHidden.value = JSON.stringify(
+                    [...state.selectedDiscounts].map((id) => ({ id, percentage: state.discountPercentages[id] }))
+                );
+                renderDiscountSummary();
+                updateWorkflowAndSnapshot();
+            });
+        });
+    }
+
+    function renderCustomDiscounts() {
+        if (!refs.customDiscountsContainer) return;
+
+        if (state.customDiscounts.length === 0) {
+            refs.customDiscountsContainer.innerHTML = `
+                <div class="custom-discount-empty">
+                    No custom discount offers added yet. Click "+ Add Custom Offer" to create one.
+                </div>
+            `;
+            refs.customDiscountsHidden.value = '[]';
+            return;
+        }
+
+        refs.customDiscountsContainer.innerHTML = state.customDiscounts
+            .map((item, index) => {
+                const name = escapeHtml(item.name || '');
+                const desc = escapeHtml(item.description || '');
+                const pct = isNaN(item.percentage) || item.percentage === null ? '' : item.percentage;
+                return `
+                    <div class="custom-discount-row" data-row-index="${index}">
+                        <button type="button" class="remove-custom-discount-btn" data-row-index="${index}" title="Remove Offer">
+                            <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.15rem; height: 1.15rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <div class="custom-discount-grid">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Offer Name <span class="text-red-500">*</span></label>
+                                <input type="text" class="panel-input custom-discount-name" data-row-index="${index}" placeholder="e.g. Summer Sale" value="${name}">
+                                <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-name-${index}" hidden></p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Description</label>
+                                <input type="text" class="panel-input custom-discount-desc" data-row-index="${index}" placeholder="e.g. Valid for standard exams" value="${desc}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Discount Percentage (%) <span class="text-red-500">*</span></label>
+                                <input type="number" class="panel-input custom-discount-pct" data-row-index="${index}" placeholder="e.g. 15" value="${pct}" min="0" max="100">
+                                <p class="exam-help is-invalid mt-1 text-xs" id="err-custom-pct-${index}" hidden></p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+
+        refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+        bindCustomDiscountRowEvents();
+        updateWorkflowAndSnapshot();
+    }
+
+    function bindCustomDiscountRowEvents() {
+        if (!refs.customDiscountsContainer) return;
+
+        refs.customDiscountsContainer.querySelectorAll('.remove-custom-discount-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.currentTarget.dataset.rowIndex, 10);
+                state.customDiscounts.splice(index, 1);
+                renderCustomDiscounts();
+            });
+        });
+
+        refs.customDiscountsContainer.querySelectorAll('.custom-discount-name').forEach((input) => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.rowIndex, 10);
+                const val = e.target.value;
+                state.customDiscounts[index].name = val;
+                const errEl = document.getElementById(`err-custom-name-${index}`);
+                if (errEl) {
+                    errEl.hidden = Boolean(val.trim());
+                    if (!val.trim()) errEl.textContent = 'Offer name is required.';
+                }
+                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+                updateWorkflowAndSnapshot();
+            });
+        });
+
+        refs.customDiscountsContainer.querySelectorAll('.custom-discount-desc').forEach((input) => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.rowIndex, 10);
+                state.customDiscounts[index].description = e.target.value;
+                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+            });
+        });
+
+        refs.customDiscountsContainer.querySelectorAll('.custom-discount-pct').forEach((input) => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.rowIndex, 10);
+                const rawVal = e.target.value;
+                const val = rawVal === '' ? NaN : parseInt(rawVal, 10);
+                state.customDiscounts[index].percentage = val;
+                const errEl = document.getElementById(`err-custom-pct-${index}`);
+                if (errEl) {
+                    if (isNaN(val)) { errEl.textContent = 'Discount percentage is required.'; errEl.hidden = false; }
+                    else if (val < 0) { errEl.textContent = 'Discount percentage cannot be less than 0%.'; errEl.hidden = false; }
+                    else if (val > 100) { errEl.textContent = 'Discount percentage cannot exceed 100%.'; errEl.hidden = false; }
+                    else { errEl.hidden = true; }
+                }
+                refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts);
+                updateWorkflowAndSnapshot();
+            });
+        });
+    }
+
+    function renderDiscountSummary() {
+        if (!state.selectedDiscounts.size) {
+            refs.discountSummary.innerHTML = '<li>No discount rules selected.</li>';
+            return;
+        }
+        const selected = state.config.discountRules.filter((rule) => state.selectedDiscounts.has(rule.id));
+        refs.discountSummary.innerHTML = selected
+            .map((rule) => {
+                const pct = state.discountPercentages[rule.id] || rule.default_percentage || 0;
+                return `<li><strong>${pct}%</strong> ${escapeHtml(rule.label)} — ${escapeHtml(rule.summary)}</li>`;
+            })
+            .join('');
+    }
+
+    // ── Instruction templates / rules (exam-level) ────────────────────
+
+    function renderInstructionTemplates() {
+        const templates = Array.isArray(state.config.instructionTemplates) ? state.config.instructionTemplates : [];
+        refs.instructionTemplate.innerHTML = [`<option value="">Choose template</option>`]
+            .concat(templates.map((template) => `<option value="${escapeHtml(template.id)}">${escapeHtml(template.label)}</option>`))
+            .join('');
         const defaultTemplate = templates.find((template) => template.is_default);
         if (defaultTemplate) {
             refs.instructionTemplate.value = defaultTemplate.id;
@@ -1947,37 +1478,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function normalizeInstructionRuleSelection(rawValues) {
         const validIds = new Set(getInstructionRulesConfig().map((rule) => rule.id));
         const source = Array.isArray(rawValues) ? rawValues : [];
-        return [...new Set(source
-            .map((value) => cleanText(String(value || '')))
-            .filter((value) => validIds.has(value)))];
+        return [...new Set(source.map((value) => cleanText(String(value || ''))).filter((value) => validIds.has(value)))];
     }
 
     function defaultInstructionRuleIds() {
-        return getInstructionRulesConfig()
-            .filter((rule) => rule.is_default || rule.is_required)
-            .map((rule) => rule.id);
+        return getInstructionRulesConfig().filter((rule) => rule.is_default || rule.is_required).map((rule) => rule.id);
     }
 
     function syncInstructionRulesHidden() {
-        if (!refs.instructionRulesHidden) {
-            return;
-        }
+        if (!refs.instructionRulesHidden) return;
         refs.instructionRulesHidden.value = JSON.stringify([...state.selectedInstructionRules]);
     }
 
     function renderInstructionRules() {
-        if (!refs.instructionRulesList) {
-            return;
-        }
+        if (!refs.instructionRulesList) return;
 
         const rules = getInstructionRulesConfig();
         if (!rules.length) {
-            refs.instructionRulesList.innerHTML = `
-                <p class="exam-help">No instruction rules are configured for this organization yet.</p>
-            `;
-            if (refs.instructionRulesCount) {
-                refs.instructionRulesCount.textContent = '0';
-            }
+            refs.instructionRulesList.innerHTML = `<p class="exam-help">No instruction rules are configured for this organization yet.</p>`;
+            if (refs.instructionRulesCount) refs.instructionRulesCount.textContent = '0';
             syncInstructionRulesHidden();
             return;
         }
@@ -2000,565 +1519,11 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .join('');
 
-        if (refs.instructionRulesCount) {
-            refs.instructionRulesCount.textContent = String(state.selectedInstructionRules.size);
-        }
+        if (refs.instructionRulesCount) refs.instructionRulesCount.textContent = String(state.selectedInstructionRules.size);
         syncInstructionRulesHidden();
     }
 
-    function renderModalSelects() {
-        if (!refs.modal && !refs.newQuestionCategory && !refs.newQuestionMarks && !refs.newQuestionDifficulty) {
-            return;
-        }
-
-        const categories = getAssignableCategories();
-
-        if (refs.newQuestionCategory) {
-            refs.newQuestionCategory.innerHTML = categories
-                .map((category) => buildCategoryOptionMarkup(category, state.config.categories))
-                .join('');
-        }
-
-        if (refs.newQuestionMarks) {
-            refs.newQuestionMarks.innerHTML = state.config.questionMarks
-                .map((mark) => `<option value="${Number(mark.value)}">${escapeHtml(mark.label)}</option>`)
-                .join('');
-        }
-
-        if (refs.newQuestionDifficulty) {
-            refs.newQuestionDifficulty.innerHTML = state.config.difficultyLevels
-                .map((level) => `<option value="${escapeHtml(level.id)}">${escapeHtml(level.label)}</option>`)
-                .join('');
-        }
-    }
-
-    function bindEvents() {
-        if (state.eventsBound) {
-            return;
-        }
-
-        try {
-            bindEventsInternal();
-            state.eventsBound = true;
-        } catch (error) {
-            state.eventsBound = false;
-            throw error;
-        }
-    }
-
-    function bindEventsInternal() {
-        refs.mode.addEventListener('change', () => {
-            state.selectedMode = refs.mode.value;
-            updateAll();
-        });
-
-        refs.visibility.addEventListener('change', () => {
-            state.selectedVisibility = refs.visibility.value;
-            renderPricingOptions();
-            updateAll();
-        });
-
-        if (refs.enableExamTimer) {
-            refs.enableExamTimer.addEventListener('change', () => {
-                updateTimerConfigState();
-                updateAll();
-            });
-        }
-
-        if (refs.examDurationMinutes) {
-            refs.examDurationMinutes.addEventListener('input', () => {
-                updateTimerConfigState();
-                updateAll();
-            });
-            refs.examDurationMinutes.addEventListener('change', () => {
-                updateTimerConfigState();
-                updateAll();
-            });
-        }
-
-        if (refs.autoSubmitOnTimerEnd) {
-            refs.autoSubmitOnTimerEnd.addEventListener('change', () => {
-                updateTimerConfigState();
-                updateAll();
-            });
-        }
-
-        if (refs.examFormatOptions) {
-            refs.examFormatOptions.addEventListener('click', (event) => {
-                const card = event.target.closest('[data-format-id]');
-                if (!card) return;
-                const formatId = card.dataset.formatId;
-                if (state.selectedExamFormat.has(formatId)) {
-                    if (state.selectedExamFormat.size > 1) {
-                        state.selectedExamFormat.delete(formatId);
-                    }
-                } else {
-                    state.selectedExamFormat.add(formatId);
-                }
-                renderExamFormatOptions();
-                updateAll();
-            });
-        }
-
-        if (refs.scheduleTypeOptions) {
-            refs.scheduleTypeOptions.addEventListener('click', (event) => {
-                const card = event.target.closest('[data-schedule-type-id]');
-                if (!card) return;
-                state.selectedScheduleType = normalizeScheduleType(card.dataset.scheduleTypeId);
-                renderScheduleTypeOptions();
-                updateAll();
-            });
-        }
-
-        if (refs.attemptLimitOptions) {
-            refs.attemptLimitOptions.addEventListener('click', (event) => {
-                const card = event.target.closest('[data-attempt-type-id]');
-                if (!card) return;
-                state.selectedAttemptLimitType = normalizeAttemptLimitType(card.dataset.attemptTypeId);
-                renderAttemptLimitOptions();
-                updateAll();
-            });
-        }
-
-        [refs.scheduleStartAt, refs.scheduleEndAt, refs.attemptLimitCount].forEach((field) => {
-            if (!field) return;
-            field.addEventListener('input', updateAll);
-            field.addEventListener('change', updateAll);
-        });
-
-        bindExtraQuestionsCategorySelect();
-
-        [
-            refs.totalQuestions,
-            refs.totalMarks,
-            refs.passingMarks,
-            refs.useQuestionPool,
-            refs.maximumQuestions,
-            refs.fixedQuestions,
-            refs.fixedPaperSet,
-            refs.paperSets,
-            refs.fixCategoryQuestions,
-            refs.fixCategoryMarks,
-            refs.shuffleQuestions,
-            refs.shuffleCategories,
-            refs.shuffleOptions,
-        ].forEach((field) => {
-            if (!field) return;
-            field.addEventListener('input', updateAll);
-            field.addEventListener('change', updateAll);
-        });
-
-        if (refs.extraMarksAllocationList) {
-            refs.extraMarksAllocationList.addEventListener('input', (event) => {
-                const input = event.target.closest('.category-marks-count-input');
-                if (!input) {
-                    return;
-                }
-                const cid = String(input.dataset.categoryId || '');
-                const fieldMin = Math.max(0, toInt(input.getAttribute('min'), 0));
-                const fieldMax = Math.max(
-                    fieldMin,
-                    toInt(input.getAttribute('max'), toInt(refs.totalMarks?.value, 0))
-                );
-                let nextValue = toInt(input.value, fieldMin);
-                if (Number.isNaN(nextValue) || nextValue < fieldMin) {
-                    nextValue = fieldMin;
-                }
-                if (nextValue > fieldMax) {
-                    nextValue = fieldMax;
-                }
-                input.value = String(nextValue);
-                state.extraMarksAllocations[cid] = nextValue;
-                syncExtraMarksAllocations();
-                updateAll();
-            });
-        }
-
-        if (refs.distributionTypeGroup) {
-            refs.distributionTypeGroup.addEventListener('click', (event) => {
-                const button = event.target.closest('[data-distribution-id]');
-                if (!button) return;
-                state.selectedDistributionType = button.dataset.distributionId;
-                renderDistributionTypes();
-                updateAll();
-            });
-        }
-
-        bindMainCategorySelect();
-
-        refs.marksFilter.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-mark-value]');
-            if (!button) return;
-
-            const mark = Number(button.dataset.markValue);
-
-            if (refs.fixMarksEachQuestion && !refs.fixMarksEachQuestion.checked) {
-                // Not fixed, allow multiple marks
-                if (state.selectedMarks.has(mark)) {
-                    state.selectedMarks.delete(mark);
-                } else {
-                    state.selectedMarks.add(mark);
-                }
-            } else {
-                // Fixed, allow only one mark
-                state.selectedMarks.clear();
-                state.selectedMarks.add(mark);
-            }
-
-            renderQuestionMarks();
-            updateAll();
-        });
-
-        if (refs.fixMarksEachQuestion) {
-            refs.fixMarksEachQuestion.addEventListener('change', () => {
-                if (refs.fixMarksEachQuestion.checked && state.selectedMarks.size > 1) {
-                    const firstMark = Array.from(state.selectedMarks)[0];
-                    state.selectedMarks.clear();
-                    if (firstMark) state.selectedMarks.add(firstMark);
-                }
-                renderQuestionMarks();
-                updateAll();
-            });
-        }
-
-        if (refs.marksFixTotalMarksBtn) {
-            refs.marksFixTotalMarksBtn.addEventListener('click', () => {
-                applyMarksCalculationFix('total_marks');
-            });
-        }
-
-        if (refs.marksFixTotalQuestionsBtn) {
-            refs.marksFixTotalQuestionsBtn.addEventListener('click', () => {
-                applyMarksCalculationFix('total_questions');
-            });
-        }
-
-        if (refs.enableNegativeMarking) {
-            refs.enableNegativeMarking.addEventListener('change', () => {
-                refs.negativeMarkingConfig.hidden = !refs.enableNegativeMarking.checked;
-            });
-        }
-
-        refs.pricingOptions.addEventListener('click', (event) => {
-            const card = event.target.closest('[data-pricing-option]');
-            if (!card || card.classList.contains('is-hidden')) return;
-            state.selectedPricing = card.dataset.pricingOption;
-            highlightPricingOptions();
-            updateAll();
-        });
-
-        refs.discountRules.addEventListener('click', (event) => {
-            if (event.target.closest('input') || event.target.closest('.discount-pct-wrap')) return;
-
-            const card = event.target.closest('[data-discount-id]');
-            if (!card) return;
-            const id = card.dataset.discountId;
-            if (state.selectedDiscounts.has(id)) {
-                state.selectedDiscounts.delete(id);
-            } else {
-                state.selectedDiscounts.add(id);
-            }
-            renderDiscountRules();
-            updateAll();
-        });
-
-        refs.questionSearch.addEventListener('input', () => {
-            scheduleQuestionBankSync(400);
-            updateQuestionBankCards();
-        });
-        refs.questionBankLoadMoreBtn?.addEventListener('click', () => {
-            // Per-category load-more buttons handle pagination.
-        });
-
-        refs.questionCategoryCards.addEventListener('click', (event) => {
-            const expandButton = event.target.closest('[data-action="toggle-expand"]');
-            const addButton = event.target.closest('[data-action="add-question"]');
-            const addMissingButton = event.target.closest('[data-action="add-missing-question"]');
-            const loadCategoryBtn = event.target.closest('[data-action="load-category-questions"]');
-            const loadMoreCategoryBtn = event.target.closest('[data-action="load-more-category-questions"]');
-
-            if (loadCategoryBtn) {
-                const categoryId = String(loadCategoryBtn.dataset.categoryId || '');
-                if (!categoryId) return;
-                state.expandedCards.add(categoryId);
-                loadCategoryQuestions(categoryId, { append: false });
-                return;
-            }
-
-            if (loadMoreCategoryBtn) {
-                const categoryId = String(loadMoreCategoryBtn.dataset.categoryId || '');
-                if (!categoryId) return;
-                loadCategoryQuestions(categoryId, { append: true });
-                return;
-            }
-
-            if (expandButton) {
-                const categoryId = String(expandButton.dataset.categoryId || '');
-                if (state.expandedCards.has(categoryId)) {
-                    state.expandedCards.delete(categoryId);
-                    updateQuestionBankCards();
-                } else {
-                    state.expandedCards.add(categoryId);
-                    updateQuestionBankCards();
-                    const loadState = state.categoryLoadState[categoryId];
-                    if (!loadState || loadState.status === 'idle') {
-                        loadCategoryQuestions(categoryId, { append: false });
-                    }
-                }
-                return;
-            }
-
-            if (addMissingButton) {
-                openAddQuestionModal(addMissingButton.dataset.categoryId || '', {
-                    marks: addMissingButton.dataset.marks || '',
-                });
-                return;
-            }
-
-            if (addButton) {
-                openAddQuestionModal(addButton.dataset.categoryId || '');
-                return;
-            }
-
-            const randomSelectBtn = event.target.closest('[data-action="random-select-category"]');
-            if (randomSelectBtn) {
-                const categoryId = randomSelectBtn.dataset.categoryId;
-                randomSelectCategory(categoryId);
-                return;
-            }
-        });
-
-        window.addEventListener('message', (event) => {
-            if (event.origin !== window.location.origin) {
-                return;
-            }
-            const payload = event.data;
-            if (!payload || payload.type !== 'exam-create-question-created') {
-                return;
-            }
-
-            const questionId = Number(payload.question?.id || 0);
-            syncQuestionBankFromServer().then(() => {
-                if (questionId > 0 && isManualQuestionSelectionEnabled()) {
-                    const limits = getQuestionSelectionLimits();
-                    if (state.selectedQuestions.size < limits.max) {
-                        state.selectedQuestions.add(questionId);
-                    }
-                    updateQuestionBankCards();
-                    updateWorkflowAndSnapshot();
-                }
-                window.EmsToast?.success('Question created and question bank refreshed.');
-            });
-        });
-
-        if (refs.globalRandomSelectBtn) {
-            refs.globalRandomSelectBtn.addEventListener('click', () => {
-                randomSelectGlobal();
-            });
-        }
-
-        refs.questionCategoryCards.addEventListener('change', (event) => {
-            const questionCheckbox = event.target.closest('.question-checkbox');
-            if (questionCheckbox) {
-                const questionId = Number(questionCheckbox.dataset.questionId);
-                if (questionCheckbox.checked) {
-                    state.selectedQuestions.add(questionId);
-                    const question = getQuestionById(questionId);
-                    if (question) {
-                        rememberSelectedQuestion(question);
-                    }
-                } else {
-                    state.selectedQuestions.delete(questionId);
-                    delete state.selectedQuestionCache[String(questionId)];
-                }
-                updateQuestionBankCards();
-                updateWorkflowAndSnapshot();
-                return;
-            }
-
-            const checkbox = event.target.closest('[data-role="category-toggle"]');
-            if (!checkbox) return;
-
-            const categoryId = checkbox.dataset.categoryId;
-
-            if (checkbox.checked) {
-                const nextSelection = applyMainCategorySelectionRules([...state.selectedCategories, categoryId]);
-                state.selectedCategories = new Set(nextSelection);
-            } else {
-                state.selectedCategories.delete(categoryId);
-            }
-
-            state.extraQuestionsOptionsKey = '';
-            state.categoryQuestionCountsKey = '';
-            state.categoryMarksCountsKey = '';
-            renderCategorySelector();
-            updateAll();
-        });
-
-        refs.candidateTabButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                state.activeCandidateTab = button.dataset.candidateTab;
-                renderCandidateTabs();
-            });
-        });
-
-        refs.dropZone.addEventListener('dragover', (event) => {
-            event.preventDefault();
-            refs.dropZone.classList.add('is-active');
-        });
-
-        refs.dropZone.addEventListener('dragleave', () => {
-            refs.dropZone.classList.remove('is-active');
-        });
-
-        refs.dropZone.addEventListener('drop', async (event) => {
-            event.preventDefault();
-            refs.dropZone.classList.remove('is-active');
-            const file = event.dataTransfer?.files?.[0];
-            if (file) {
-                refs.candidateFile.files = event.dataTransfer.files;
-                await handleCandidateFile(file);
-            }
-        });
-
-        refs.candidateFile.addEventListener('change', async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            await handleCandidateFile(file);
-        });
-
-        refs.freeCandidateTabButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                state.activeFreeCandidateTab = button.dataset.freeCandidateTab;
-                renderFreeCandidateTabs();
-            });
-        });
-
-        if (refs.freeDropZone) {
-            refs.freeDropZone.addEventListener('dragover', (event) => {
-                event.preventDefault();
-                refs.freeDropZone.classList.add('is-active');
-            });
-
-            refs.freeDropZone.addEventListener('dragleave', () => {
-                refs.freeDropZone.classList.remove('is-active');
-            });
-
-            refs.freeDropZone.addEventListener('drop', async (event) => {
-                event.preventDefault();
-                refs.freeDropZone.classList.remove('is-active');
-                const file = event.dataTransfer?.files?.[0];
-                if (file) {
-                    refs.freeCandidateFile.files = event.dataTransfer.files;
-                    await handleFreeCandidateFile(file);
-                }
-            });
-        }
-
-        if (refs.freeCandidateFile) {
-            refs.freeCandidateFile.addEventListener('change', async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                await handleFreeCandidateFile(file);
-            });
-        }
-
-        if (refs.openAddQuestionModal) {
-            refs.openAddQuestionModal.addEventListener('click', () => openAddQuestionModal(''));
-        }
-
-        refs.modalCloseButtons.forEach((button) => button.addEventListener('click', closeAddQuestionModal));
-
-        if (refs.addQuestionForm) {
-            refs.addQuestionForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                addQuestionFromModal();
-            });
-        }
-
-        if (refs.customDiscountsBtn) {
-            refs.customDiscountsBtn.addEventListener('click', () => {
-                state.customDiscounts.push({
-                    name: '',
-                    description: '',
-                    percentage: 10
-                });
-                renderCustomDiscounts();
-            });
-        }
-
-        refs.applyInstructionTemplate.addEventListener('click', applyInstructionTemplate);
-
-        if (refs.instructionRulesList) {
-            refs.instructionRulesList.addEventListener('change', (event) => {
-                const checkbox = event.target.closest('input[data-rule-id]');
-                if (!checkbox) {
-                    return;
-                }
-
-                const ruleId = cleanText(checkbox.dataset.ruleId || '');
-                if (!ruleId) {
-                    return;
-                }
-
-                const card = checkbox.closest('.instruction-rule-card');
-                const isRequired = checkbox.dataset.required === '1';
-
-                if (checkbox.checked) {
-                    state.selectedInstructionRules.add(ruleId);
-                    card?.classList.add('is-active');
-                } else if (isRequired) {
-                    checkbox.checked = true;
-                    state.selectedInstructionRules.add(ruleId);
-                    card?.classList.add('is-active');
-                } else {
-                    state.selectedInstructionRules.delete(ruleId);
-                    card?.classList.remove('is-active');
-                }
-
-                if (refs.instructionRulesCount) {
-                    refs.instructionRulesCount.textContent = String(state.selectedInstructionRules.size);
-                }
-                syncInstructionRulesHidden();
-                updateWorkflowAndSnapshot();
-            });
-        }
-
-        refs.form.addEventListener('submit', (event) => {
-            syncRichTextFields();
-            const errors = collectSubmissionErrors();
-            if (errors.length) {
-                event.preventDefault();
-                showFormErrors(errors);
-                refs.errorBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return;
-            }
-            clearFormErrors();
-        });
-
-        [
-            refs.title,
-            refs.description,
-            refs.difficulty,
-            refs.status,
-            refs.mode,
-            refs.visibility,
-            refs.enableExamTimer,
-            refs.examDurationMinutes,
-            refs.autoSubmitOnTimerEnd,
-            refs.scheduleStartAt,
-            refs.scheduleEndAt,
-            refs.attemptLimitCount,
-            refs.totalQuestions,
-            refs.totalMarks,
-            refs.passingMarks,
-            refs.paperSets,
-        ].forEach((field) => {
-            if (!field) return;
-            field.addEventListener('input', updateWorkflowAndSnapshot);
-            field.addEventListener('change', updateWorkflowAndSnapshot);
-        });
-    }
+    // ── Candidate access (exam-level, unchanged) ──────────────────────
 
     function renderCandidateTabs() {
         refs.candidateTabButtons.forEach((button) => {
@@ -2566,7 +1531,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.toggle('is-active', active);
             button.setAttribute('aria-selected', String(active));
         });
-
         refs.candidatePanels.forEach((panel) => {
             const active = panel.dataset.candidatePanel === state.activeCandidateTab;
             panel.hidden = !active;
@@ -2580,7 +1544,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.toggle('is-active', active);
             button.setAttribute('aria-selected', String(active));
         });
-
         refs.freeCandidatePanels.forEach((panel) => {
             const active = panel.dataset.freeCandidatePanel === state.activeFreeCandidateTab;
             panel.hidden = !active;
@@ -2635,14 +1598,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const workbook = window.XLSX.read(await file.arrayBuffer(), { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        if (!firstSheet) {
-            return [];
-        }
+        if (!firstSheet) return [];
 
         const rows = window.XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-        if (rows.length <= 1) {
-            return [];
-        }
+        if (rows.length <= 1) return [];
 
         const headers = rows[0].map((value) => cleanText(value).toLowerCase());
         const nameIndex = headers.indexOf('name');
@@ -2665,21 +1624,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const items = lines.slice(1).map((line) => {
             const [namePart, emailPart] = line.split(',');
-            return {
-                name: cleanText(namePart || 'Candidate'),
-                email: cleanText(emailPart || '').toLowerCase(),
-            };
+            return { name: cleanText(namePart || 'Candidate'), email: cleanText(emailPart || '').toLowerCase() };
         });
 
         const deduped = [];
         const seen = new Set();
-
         items.forEach((item) => {
             if (!item.email || seen.has(item.email)) return;
             seen.add(item.email);
             deduped.push(item);
         });
-
         return deduped;
     }
 
@@ -2689,17 +1643,11 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.importedCandidatePreview.textContent = '';
             return;
         }
-
-        const topItems = state.importedCandidates
-            .slice(0, 5)
+        const topItems = state.importedCandidates.slice(0, 5)
             .map((candidate) => `${escapeHtml(candidate.name)} (${escapeHtml(candidate.email)})`)
             .join('<br>');
-
         refs.importedCandidatePreview.hidden = false;
-        refs.importedCandidatePreview.innerHTML = `
-            <strong>${state.importedCandidates.length}</strong> candidates loaded from <strong>${escapeHtml(fileName)}</strong>.<br>
-            ${topItems}
-        `;
+        refs.importedCandidatePreview.innerHTML = `<strong>${state.importedCandidates.length}</strong> candidates loaded from <strong>${escapeHtml(fileName)}</strong>.<br>${topItems}`;
     }
 
     function renderFreeImportedCandidatePreview(fileName) {
@@ -2708,46 +1656,105 @@ document.addEventListener('DOMContentLoaded', () => {
             refs.freeImportedCandidatePreview.textContent = '';
             return;
         }
-
-        const topItems = state.freeImportedCandidates
-            .slice(0, 5)
+        const topItems = state.freeImportedCandidates.slice(0, 5)
             .map((candidate) => `${escapeHtml(candidate.name)} (${escapeHtml(candidate.email)})`)
             .join('<br>');
-
         refs.freeImportedCandidatePreview.hidden = false;
-        refs.freeImportedCandidatePreview.innerHTML = `
-            <strong>${state.freeImportedCandidates.length}</strong> candidates loaded from <strong>${escapeHtml(fileName)}</strong>.<br>
-            ${topItems}
-        `;
+        refs.freeImportedCandidatePreview.innerHTML = `<strong>${state.freeImportedCandidates.length}</strong> candidates loaded from <strong>${escapeHtml(fileName)}</strong>.<br>${topItems}`;
     }
+
+    // ── Section numbering / conditional visibility ────────────────────
 
     function updateSectionNumbers() {
         const sections = [
             { id: 'exam-basic-information', defaultTitle: 'Exam Basic Information' },
             { id: 'candidate-access-section', defaultTitle: 'Candidate Access Management' },
             { id: 'timer-section', defaultTitle: 'Timer & Duration Management' },
-            { id: 'exam-format-section', defaultTitle: 'Exam Format Management' },
             { id: 'schedule-section', defaultTitle: 'Schedule & Attempt Management' },
-            { id: 'exam-configuration-section', defaultTitle: 'Exam Configuration' },
-            { id: 'question-rules-section', defaultTitle: 'Question Rules and Filters' },
+            { id: 'exam-format-section', defaultTitle: 'Exam Format Management' },
+            { id: 'exam-parts-section', defaultTitle: 'Exam Parts' },
+            { id: 'exam-scoring-section', defaultTitle: 'Passing Marks & Negative Marking' },
             { id: 'pricing-section', defaultTitle: 'Pricing and Discount Rules' },
-            { id: 'question-bank-section', defaultTitle: 'Question Bank Management' },
             { id: 'instructions-rules-section', defaultTitle: 'Exam Instructions & Rules Management' },
-            { id: 'instructions-section', defaultTitle: 'Instructions for Candidates' }
+            { id: 'instructions-section', defaultTitle: 'Instructions for Candidates' },
         ];
 
         let visibleCount = 0;
-        sections.forEach(sec => {
+        sections.forEach((sec) => {
             const el = document.getElementById(sec.id);
-            if (el) {
-                if (!el.hidden) {
-                    visibleCount++;
-                    const h2 = el.querySelector('.exam-section__head h2');
-                    if (h2) {
-                        h2.textContent = `${visibleCount}. ${sec.defaultTitle}`;
-                    }
+            if (el && !el.hidden) {
+                visibleCount++;
+                const h2 = el.querySelector('.exam-section__head h2');
+                if (h2) h2.textContent = `${visibleCount}. ${sec.defaultTitle}`;
+            }
+        });
+    }
+
+    function setSectionCollapsed(section, collapsed) {
+        if (!section) return;
+        const body = section.querySelector(':scope > .exam-section__body');
+        const toggle = section.querySelector('[data-section-toggle]');
+        section.classList.toggle('is-collapsed', Boolean(collapsed));
+        if (body) body.hidden = Boolean(collapsed);
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            const label = collapsed ? 'Expand section' : 'Collapse section';
+            toggle.setAttribute('aria-label', label);
+            toggle.title = label;
+        }
+    }
+
+    function initSectionCollapse() {
+        const sections = [...document.querySelectorAll('.exam-create-main > .exam-section')];
+        sections.forEach((section) => {
+            if (section.dataset.collapseReady === '1') return;
+
+            const head = section.querySelector(':scope > .exam-section__head');
+            const body = section.querySelector(':scope > .exam-section__body');
+            if (!head || !body) return;
+
+            head.classList.add('exam-section__head--collapsible');
+
+            let copy = head.querySelector('.exam-section__head-copy');
+            if (!copy) {
+                copy = document.createElement('div');
+                copy.className = 'exam-section__head-copy';
+                const actionSelector = '#add-exam-part, button.panel-button-secondary, [data-section-action]';
+                const actionEl = head.querySelector(actionSelector);
+                [...head.childNodes].forEach((node) => {
+                    if (node === actionEl) return;
+                    if (node.nodeType === 1 && node.matches && node.matches(actionSelector)) return;
+                    copy.appendChild(node);
+                });
+                if (actionEl) {
+                    head.insertBefore(copy, actionEl);
+                    head.classList.add('exam-section__head--with-action');
+                } else {
+                    head.appendChild(copy);
                 }
             }
+
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'exam-section__toggle';
+            toggle.setAttribute('data-section-toggle', '');
+            toggle.innerHTML = '<span class="exam-section__chevron" aria-hidden="true"></span>';
+            head.insertBefore(toggle, head.firstChild);
+
+            if (!body.id) body.id = `${section.id || 'exam-section'}-body`;
+            toggle.setAttribute('aria-controls', body.id);
+
+            const onToggle = (event) => {
+                if (event.target.closest('a, input, select, textarea, label, button:not([data-section-toggle])')) return;
+                event.preventDefault();
+                setSectionCollapsed(section, !section.classList.contains('is-collapsed'));
+            };
+
+            toggle.addEventListener('click', onToggle);
+            copy.addEventListener('click', onToggle);
+
+            setSectionCollapsed(section, section.getAttribute('data-collapsed-default') === 'true');
+            section.dataset.collapseReady = '1';
         });
     }
 
@@ -2756,113 +1763,1045 @@ document.addEventListener('DOMContentLoaded', () => {
         const importedFree = state.selectedPricing === 'free_for_imported';
 
         refs.candidateSection.hidden = !hasRestrictedAccess;
+        refs.negativeMarkingConfig.hidden = !refs.enableNegativeMarking.checked;
+        refs.freeCandidatesWrap.hidden = !importedFree;
+        refs.pricingImportedNote.hidden = !importedFree;
+        renderCandidateTabs();
+        renderFreeCandidateTabs();
+        refs.pricingSection.hidden = state.selectedMode === 'practice';
 
-        const usesQuestionPool = Boolean(refs.useQuestionPool?.checked);
-        const totalQuestions = Math.max(1, toInt(refs.totalQuestions?.value, 1));
-        refs.maximumQuestionsWrap.hidden = !usesQuestionPool;
-        refs.maximumQuestions.disabled = !usesQuestionPool;
-        refs.fixedQuestionsWrap.hidden = usesQuestionPool;
-        refs.fixedQuestions.disabled = usesQuestionPool;
-        refs.maximumQuestions.min = String(totalQuestions + 1);
-        refs.maximumQuestionsHelper.textContent = `Enter at least ${totalQuestions + 1}. Each candidate will receive ${totalQuestions} question(s).`;
-        if (usesQuestionPool) {
-            refs.fixedQuestions.checked = false;
+        updateSectionNumbers();
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // PART LIFECYCLE
+    // ────────────────────────────────────────────────────────────────
+
+    function generatePartKey() {
+        state.partKeySeq += 1;
+        return `part-${Date.now().toString(36)}-${state.partKeySeq}`;
+    }
+
+    function nextPartLetterName() {
+        const count = state.parts.size;
+        const letterIndex = Math.min(PART_LETTERS.length - 1, Math.max(1, count));
+        return `Part ${PART_LETTERS[letterIndex]}`;
+    }
+
+    function nextPartLetterNameForIndex(index) {
+        const letterIndex = Math.min(PART_LETTERS.length - 1, Math.max(1, index));
+        return `Part ${PART_LETTERS[letterIndex]}`;
+    }
+
+    function partField(root, field) {
+        return root ? root.querySelector(`[data-field="${field}"]`) : null;
+    }
+
+    function setFieldValue(root, field, value) {
+        const el = partField(root, field);
+        if (el) el.value = value === null || value === undefined ? '' : value;
+    }
+
+    function setCheckbox(root, field, checked) {
+        const el = partField(root, field);
+        if (el) el.checked = Boolean(checked);
+    }
+
+    function defaultPartSeed(overrides = {}) {
+        return {
+            total_questions: 30,
+            total_marks: 50,
+            use_question_pool: true,
+            maximum_questions: 50,
+            fixed_questions: false,
+            fixed_paper_set: false,
+            paper_sets: 1,
+            fix_category_questions: false,
+            fix_category_marks: false,
+            fix_marks_each_question: false,
+            shuffle_questions: true,
+            shuffle_categories: true,
+            shuffle_options: true,
+            distributionType: 'mixed',
+            selectedCategories: [],
+            selectedMarks: [],
+            extraQuestionsAllocations: {},
+            extraMarksAllocations: {},
+            questionIds: [],
+            ...overrides,
+        };
+    }
+
+    function createPartState(overrides = {}) {
+        const seed = defaultPartSeed(overrides);
+        const partKey = overrides.partKey || generatePartKey();
+        const questionIds = Array.isArray(seed.questionIds)
+            ? seed.questionIds.map((id) => toInt(id, 0)).filter((id) => id > 0)
+            : [];
+        const selectedMarksSeed = Array.isArray(seed.selectedMarks)
+            ? seed.selectedMarks.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+            : [];
+
+        const selectedCategories = new Set((seed.selectedCategories || []).map(String));
+
+        return {
+            partKey,
+            id: seed.id ?? null,
+            isDefault: Boolean(seed.isDefault),
+            name: seed.name || (seed.isDefault ? 'Default Part' : nextPartLetterName()),
+            expanded: seed.expanded !== undefined ? seed.expanded : Boolean(seed.isDefault),
+            root: null,
+            catSelectId: `part-cat-select-${partKey}`,
+            categorySelectBound: false,
+            isSyncingCategories: false,
+            suppressCategorySelectEvents: false,
+            selectedCategories,
+            selectedMarks: new Set(selectedMarksSeed),
+            selectedDistributionType: seed.distributionType || 'mixed',
+            extraQuestionsCategoryIds: [...selectedCategories],
+            extraQuestionsAllocations: { ...(seed.extraQuestionsAllocations || {}) },
+            extraMarksAllocations: { ...(seed.extraMarksAllocations || {}) },
+            categoryQuestionCountsKey: '',
+            categoryMarksCountsKey: '',
+            questionBank: [],
+            questionBankMeta: { total: 0 },
+            categoryCounts: {},
+            categoryLoadState: {},
+            expandedCards: new Set(),
+            countsAbortController: null,
+            selectedQuestions: new Set(questionIds),
+            selectedQuestionCache: {},
+            hydratedQuestionIds: questionIds.length ? questionIds : null,
+            hasHydratedSelectedQuestions: !questionIds.length,
+            lastFetchedKey: '',
+            syncTimer: null,
+            seed,
+        };
+    }
+
+    function buildPartHtml(partState, index) {
+        let html = refs.partTemplate.innerHTML;
+        const replacements = {
+            __INDEX__: String(index),
+            __PART_KEY__: escapeHtml(partState.partKey),
+            __PART_NAME__: escapeHtml(partState.name || ''),
+            __IS_DEFAULT__: partState.isDefault ? '1' : '0',
+        };
+        Object.entries(replacements).forEach(([token, value]) => {
+            html = html.split(token).join(value);
+        });
+        return html.trim();
+    }
+
+    function applyPartSeedToDom(partState) {
+        const root = partState.root;
+        const seed = defaultPartSeed(partState.seed || {});
+        setFieldValue(root, 'id', seed.id ?? '');
+        setFieldValue(root, 'total_questions', toInt(seed.total_questions, 30));
+        setFieldValue(root, 'total_marks', toInt(seed.total_marks, 50));
+        setCheckbox(root, 'use_question_pool', seed.use_question_pool !== false);
+        setFieldValue(root, 'maximum_questions', seed.maximum_questions ?? 50);
+        setCheckbox(root, 'fixed_questions', Boolean(seed.fixed_questions));
+        setCheckbox(root, 'fixed_paper_set', Boolean(seed.fixed_paper_set));
+        setFieldValue(root, 'paper_sets', toInt(seed.paper_sets, 1));
+        setCheckbox(root, 'fix_category_questions', Boolean(seed.fix_category_questions));
+        setCheckbox(root, 'fix_category_marks', Boolean(seed.fix_category_marks));
+        setCheckbox(root, 'shuffle_questions', seed.shuffle_questions !== false);
+        setCheckbox(root, 'shuffle_categories', seed.shuffle_categories !== false);
+        setCheckbox(root, 'shuffle_options', seed.shuffle_options !== false);
+        setCheckbox(root, 'fix_marks_each_question', Boolean(seed.fix_marks_each_question));
+    }
+
+    function mountPart(partState, { insertAfter = null } = {}) {
+        const index = refs.partsList.children.length;
+        const html = buildPartHtml(partState, index);
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = html;
+        const root = wrapper.firstElementChild;
+
+        if (insertAfter && insertAfter.parentNode === refs.partsList) {
+            insertAfter.after(root);
         } else {
-            refs.maximumQuestions.value = '';
+            refs.partsList.appendChild(root);
         }
 
-        if (!isManualQuestionSelectionEnabled()) {
-            state.selectedQuestions.clear();
-        }
-        updateQuestionSelectionControlsVisibility();
+        partState.root = root;
+        applyPartSeedToDom(partState);
+        bindPartEvents(partState);
+        initPartCategorySelect(partState);
+        setPartExpanded(partState, partState.expanded);
+        updatePartUi(partState);
+        return root;
+    }
 
-        const hasFixedPaperSets = Boolean(refs.fixedPaperSet?.checked);
-        refs.paperSetsWrap.hidden = !hasFixedPaperSets;
-        refs.paperSets.disabled = !hasFixedPaperSets;
-        if (!hasFixedPaperSets) {
-            refs.paperSets.value = '1';
+    function reindexParts() {
+        const partRoots = [...refs.partsList.children].filter((el) => el.matches('[data-exam-part]'));
+        partRoots.forEach((root, index) => {
+            root.dataset.partIndex = String(index);
+            root.querySelectorAll('[name^="parts["]').forEach((el) => {
+                el.name = el.name.replace(/^parts\[\d+\]/, `parts[${index}]`);
+            });
+
+            const partState = state.parts.get(root.dataset.partKey);
+            const badge = root.querySelector('[data-part-badge]');
+            if (badge) {
+                badge.textContent = partState?.isDefault ? 'Default Part' : `Part ${index + 1}`;
+            }
+            const deleteBtn = root.querySelector('[data-part-delete]');
+            if (deleteBtn) {
+                deleteBtn.hidden = Boolean(partState?.isDefault);
+            }
+        });
+    }
+
+    function getOrderedParts() {
+        return [...refs.partsList.children]
+            .filter((el) => el.matches('[data-exam-part]'))
+            .map((el) => state.parts.get(el.dataset.partKey))
+            .filter(Boolean);
+    }
+
+    function getPartByKey(key) {
+        return key ? state.parts.get(key) || null : null;
+    }
+
+    function getFirstPart() {
+        return getOrderedParts()[0] || null;
+    }
+
+    function setPartExpanded(partState, expanded) {
+        partState.expanded = expanded;
+        const root = partState.root;
+        if (!root) return;
+        root.classList.toggle('is-expanded', expanded);
+        const toggleBtn = root.querySelector('[data-part-action="toggle"]');
+        toggleBtn?.setAttribute('aria-expanded', String(expanded));
+        const body = root.querySelector('[data-part-body]');
+        if (body) body.hidden = !expanded;
+    }
+
+    function togglePartExpanded(partState) {
+        setPartExpanded(partState, !partState.expanded);
+    }
+
+    function serializePartToSeed(partState) {
+        const root = partState.root;
+        return {
+            total_questions: toInt(partField(root, 'total_questions')?.value, 50),
+            total_marks: toInt(partField(root, 'total_marks')?.value, 100),
+            use_question_pool: Boolean(partField(root, 'use_question_pool')?.checked),
+            maximum_questions: partField(root, 'maximum_questions')?.value || '',
+            fixed_questions: Boolean(partField(root, 'fixed_questions')?.checked),
+            fixed_paper_set: Boolean(partField(root, 'fixed_paper_set')?.checked),
+            paper_sets: toInt(partField(root, 'paper_sets')?.value, 1),
+            fix_category_questions: Boolean(partField(root, 'fix_category_questions')?.checked),
+            fix_category_marks: Boolean(partField(root, 'fix_category_marks')?.checked),
+            fix_marks_each_question: Boolean(partField(root, 'fix_marks_each_question')?.checked),
+            shuffle_questions: Boolean(partField(root, 'shuffle_questions')?.checked),
+            shuffle_categories: Boolean(partField(root, 'shuffle_categories')?.checked),
+            shuffle_options: Boolean(partField(root, 'shuffle_options')?.checked),
+            distributionType: partState.selectedDistributionType,
+            selectedCategories: [...partState.selectedCategories],
+            selectedMarks: [...partState.selectedMarks],
+            extraQuestionsAllocations: { ...partState.extraQuestionsAllocations },
+            extraMarksAllocations: { ...partState.extraMarksAllocations },
+            questionIds: [...partState.selectedQuestions],
+        };
+    }
+
+    function addPartButtonHandler() {
+        const partState = createPartState({ isDefault: false, expanded: true });
+        state.parts.set(partState.partKey, partState);
+        mountPart(partState);
+        reindexParts();
+        updateExamSummary();
+        updateWorkflowAndSnapshot();
+        partState.root.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function duplicatePart(partState) {
+        const currentName = cleanText(partField(partState.root, 'name')?.value || partState.name || 'Part');
+        const seed = serializePartToSeed(partState);
+        seed.isDefault = false;
+        seed.id = null;
+        seed.name = `${currentName} Copy`;
+        seed.expanded = true;
+
+        const newPart = createPartState(seed);
+        state.parts.set(newPart.partKey, newPart);
+        mountPart(newPart, { insertAfter: partState.root });
+        reindexParts();
+        updateExamSummary();
+        updateWorkflowAndSnapshot();
+        newPart.root.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function deletePart(partState) {
+        if (partState.isDefault) return;
+        const name = cleanText(partField(partState.root, 'name')?.value || partState.name || 'this part');
+        if (!window.confirm(`Delete "${name}"? This cannot be undone once the exam is saved.`)) {
+            return;
+        }
+        window.clearTimeout(partState.syncTimer);
+        partState.countsAbortController?.abort();
+        partState.root.remove();
+        state.parts.delete(partState.partKey);
+        reindexParts();
+        updateExamSummary();
+        updateWorkflowAndSnapshot();
+    }
+
+    function mountInitialParts() {
+        const cfgParts = state.isEditMode && Array.isArray(state.examConfig?.parts) ? state.examConfig.parts : [];
+
+        if (cfgParts.length) {
+            cfgParts.forEach((partCfg, idx) => {
+                const isDefault = Boolean(partCfg.is_default) || (idx === 0 && !cfgParts.some((p) => p.is_default));
+                const overrides = {
+                    id: partCfg.id ?? null,
+                    isDefault,
+                    name: partCfg.name || (isDefault ? 'Default Part' : nextPartLetterNameForIndex(idx)),
+                    expanded: idx === 0,
+                    total_questions: toInt(partCfg.total_questions, 50),
+                    total_marks: toInt(partCfg.total_marks, 100),
+                    use_question_pool: Boolean(partCfg.use_question_pool),
+                    maximum_questions: partCfg.maximum_questions ?? '',
+                    fixed_questions: Boolean(partCfg.fixed_questions),
+                    fixed_paper_set: Boolean(partCfg.fixed_paper_set),
+                    paper_sets: toInt(partCfg.paper_sets, 1),
+                    fix_category_questions: Boolean(partCfg.fix_category_questions),
+                    fix_category_marks: Boolean(partCfg.fix_category_marks),
+                    fix_marks_each_question: Boolean(partCfg.fix_marks_each_question),
+                    shuffle_questions: Boolean(partCfg.shuffle_questions),
+                    shuffle_categories: Boolean(partCfg.shuffle_categories),
+                    shuffle_options: Boolean(partCfg.shuffle_options),
+                    distributionType: partCfg.distribution_type || 'mixed',
+                    selectedCategories: Array.isArray(partCfg.selected_categories) ? partCfg.selected_categories.map(String) : [],
+                    selectedMarks: Array.isArray(partCfg.question_marks_filter)
+                        ? partCfg.question_marks_filter.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+                        : [],
+                    extraQuestionsAllocations: (partCfg.extra_questions_allocations && typeof partCfg.extra_questions_allocations === 'object')
+                        ? { ...partCfg.extra_questions_allocations }
+                        : {},
+                    extraMarksAllocations: (partCfg.extra_marks_allocations && typeof partCfg.extra_marks_allocations === 'object')
+                        ? { ...partCfg.extra_marks_allocations }
+                        : {},
+                    questionIds: Array.isArray(partCfg.question_ids) ? partCfg.question_ids : [],
+                };
+                const partState = createPartState(overrides);
+                state.parts.set(partState.partKey, partState);
+                mountPart(partState);
+            });
+        } else {
+            const defaultPart = createPartState({ isDefault: true, expanded: true, name: 'Default Part' });
+            state.parts.set(defaultPart.partKey, defaultPart);
+            mountPart(defaultPart);
+        }
+
+        reindexParts();
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // PART CONFIGURATION RENDERING
+    // ────────────────────────────────────────────────────────────────
+
+    function applyPartCategorySelectionRules(rawIds) {
+        const validIds = new Set(getAssignableCategories().map((category) => category.id));
+        const filtered = [...rawIds].filter((id) => validIds.has(id));
+        return [...pruneDescendantSelections(filtered, state.categoryHierarchyIndex)];
+    }
+
+    function buildPartCategorySelectOptionsHtml(selectedSet) {
+        const categories = getAssignableCategories();
+        const visibleCategories = categories.filter((category) => isCategoryVisibleInDropdown(
+            category.id, selectedSet, state.config.categories
+        ));
+        return visibleCategories
+            .map((category) => buildCategoryOptionMarkup(category, state.config.categories, selectedSet.has(category.id)))
+            .join('');
+    }
+
+    function syncPartCategoryFeedback(partState) {
+        const hidden = partField(partState.root, 'selected_categories');
+        if (hidden) hidden.value = JSON.stringify([...partState.selectedCategories]);
+        const help = partState.root.querySelector('[data-field-help="category_selection"]');
+        if (help) {
+            const n = partState.selectedCategories.size;
+            help.textContent = n
+                ? `${n} categor${n === 1 ? 'y' : 'ies'} selected.`
+                : 'Select one or more categories for this part.';
+        }
+    }
+
+    function initPartCategorySelect(partState) {
+        const root = partState.root;
+        const select = partField(root, 'selected_categories_select');
+        if (!select) return;
+
+        select.id = partState.catSelectId;
+        select.dataset.maxItems = String(Math.max(1, getAssignableCategories().length));
+        select.innerHTML = buildPartCategorySelectOptionsHtml(partState.selectedCategories);
+
+        if (window.EmsSelect && typeof window.EmsSelect.initAll === 'function') {
+            window.EmsSelect.initAll(root, '[data-field="selected_categories_select"]');
+        }
+
+        bindPartCategorySelect(partState);
+        syncPartCategoryFeedback(partState);
+    }
+
+    function bindPartCategorySelect(partState) {
+        if (partState.categorySelectBound || !window.EmsSelect || typeof window.EmsSelect.onChange !== 'function') {
+            return;
+        }
+
+        window.EmsSelect.onChange(partState.catSelectId, () => {
+            if (partState.isSyncingCategories || partState.suppressCategorySelectEvents) return;
+
+            const rawValue = window.EmsSelect.getValue(partState.catSelectId);
+            const selectedValues = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
+            const normalized = applyPartCategorySelectionRules(selectedValues);
+
+            partState.selectedCategories = new Set(normalized);
+            partState.categoryQuestionCountsKey = '';
+            partState.categoryMarksCountsKey = '';
+            partState.lastFetchedKey = '';
+            renderPartCategorySelector(partState);
+            updatePartUi(partState);
+            updateExamSummary();
+            updateWorkflowAndSnapshot();
+        });
+
+        partState.categorySelectBound = true;
+    }
+
+    function renderPartCategorySelector(partState) {
+        if (partState.isSyncingCategories) return;
+        partState.isSyncingCategories = true;
+        partState.suppressCategorySelectEvents = true;
+
+        try {
+            const normalized = applyPartCategorySelectionRules([...partState.selectedCategories]);
+            partState.selectedCategories = new Set(normalized);
+            const html = buildPartCategorySelectOptionsHtml(partState.selectedCategories);
+            const values = [...partState.selectedCategories];
+            const maxItems = Math.max(1, getAssignableCategories().length);
+
+            const select = partField(partState.root, 'selected_categories_select');
+            if (select) select.dataset.maxItems = String(maxItems);
+
+            if (window.EmsSelect && typeof window.EmsSelect.replaceOptions === 'function') {
+                window.EmsSelect.replaceOptions(partState.catSelectId, html, values, maxItems);
+                bindPartCategorySelect(partState);
+            } else if (select) {
+                select.innerHTML = html;
+            }
+
+            syncPartCategoryFeedback(partState);
+        } finally {
+            partState.suppressCategorySelectEvents = false;
+            partState.isSyncingCategories = false;
+        }
+    }
+
+    function renderPartDistributionTypes(partState) {
+        const root = partState.root;
+        const group = root.querySelector('[data-field-ui="distribution_type"]');
+        const hidden = partField(root, 'distribution_type');
+        if (!group || !hidden) return;
+
+        if (!partState.selectedDistributionType) {
+            partState.selectedDistributionType = 'mixed';
+        }
+
+        group.innerHTML = state.config.distributionTypes
+            .map((type) => {
+                const active = type.id === partState.selectedDistributionType ? 'is-active' : '';
+                return `<button type="button" class="pill ${active}" data-distribution-id="${escapeHtml(type.id)}">${escapeHtml(type.label)}</button>`;
+            })
+            .join('');
+
+        hidden.value = partState.selectedDistributionType || 'mixed';
+    }
+
+    function renderPartQuestionMarks(partState) {
+        const root = partState.root;
+        const pillGroup = root.querySelector('[data-field-ui="question_marks_filter"]');
+        const hidden = partField(root, 'question_marks_filter');
+        const countEl = root.querySelector('[data-field-ui="selected_marks_count"]');
+
+        const fixEach = Boolean(partField(root, 'fix_marks_each_question')?.checked);
+        if (fixEach && partState.selectedMarks.size > 1) {
+            const first = [...partState.selectedMarks][0];
+            partState.selectedMarks = new Set([first]);
+        }
+
+        if (pillGroup) {
+            pillGroup.innerHTML = state.config.questionMarks
+                .map((item) => {
+                    const mark = Number(item.value);
+                    const active = partState.selectedMarks.has(mark) ? 'is-active' : '';
+                    return `<button type="button" class="pill ${active}" data-mark-value="${mark}">${escapeHtml(item.label)}</button>`;
+                })
+                .join('');
+        }
+        if (hidden) hidden.value = JSON.stringify([...partState.selectedMarks]);
+        if (countEl) countEl.textContent = String(partState.selectedMarks.size);
+    }
+
+    // ── Marks calculation (fixed marks per question) ──────────────────
+
+    function computeMarksCalculationForPart(partState) {
+        const root = partState.root;
+        const fixEnabled = Boolean(partField(root, 'fix_marks_each_question')?.checked);
+        const totalQuestions = Math.max(0, toInt(partField(root, 'total_questions')?.value, 0));
+        const totalMarks = Math.max(0, toInt(partField(root, 'total_marks')?.value, 0));
+        const selectedMark = partState.selectedMarks.size === 1 ? Number([...partState.selectedMarks][0]) : 0;
+        const hasSelectedMark = Number.isFinite(selectedMark) && selectedMark > 0;
+        const expectedTotalMarks = hasSelectedMark ? totalQuestions * selectedMark : 0;
+        const rawQuestionCountFromMarks = hasSelectedMark ? (totalMarks / selectedMark) : 0;
+        const hasExactQuestionCount = hasSelectedMark && rawQuestionCountFromMarks > 0 && Number.isInteger(rawQuestionCountFromMarks);
+        const suggestedQuestionCount = hasSelectedMark
+            ? Math.max(1, hasExactQuestionCount ? rawQuestionCountFromMarks : Math.round(rawQuestionCountFromMarks || 1))
+            : 0;
+        const suggestedTotalMarks = hasSelectedMark ? suggestedQuestionCount * selectedMark : 0;
+        const isValid = !fixEnabled || (hasSelectedMark && totalQuestions > 0 && totalMarks > 0 && totalMarks === expectedTotalMarks);
+
+        return {
+            fixEnabled, totalQuestions, totalMarks, selectedMark, hasSelectedMark,
+            expectedTotalMarks, hasExactQuestionCount, suggestedQuestionCount, suggestedTotalMarks, isValid,
+        };
+    }
+
+    function renderPartMarksCalculation(partState) {
+        const root = partState.root;
+        const wrap = root.querySelector('[data-field-wrap="marks_calculation_management"]');
+        const summaryEl = root.querySelector('[data-field-ui="marks_calculation_summary"]');
+        const warningEl = root.querySelector('[data-field-ui="marks_calculation_warning"]');
+        const suggestionEl = root.querySelector('[data-field-ui="marks_calculation_suggestion"]');
+        const actionsEl = root.querySelector('[data-field-wrap="marks_calculation_actions"]');
+        if (!wrap || !summaryEl || !warningEl || !suggestionEl || !actionsEl) return;
+
+        const calc = computeMarksCalculationForPart(partState);
+
+        if (!calc.fixEnabled) {
+            wrap.hidden = true;
+            wrap.classList.remove('is-valid', 'is-warning');
+            summaryEl.textContent = '';
+            warningEl.textContent = ''; warningEl.hidden = true;
+            suggestionEl.textContent = ''; suggestionEl.hidden = true;
+            actionsEl.hidden = true;
+            return;
+        }
+
+        wrap.hidden = false;
+        wrap.classList.remove('is-valid', 'is-warning');
+
+        if (!calc.hasSelectedMark) {
+            summaryEl.textContent = 'Select one question mark value to validate fixed marks calculation.';
+            warningEl.textContent = 'Fixed marks mode requires one selected mark value.'; warningEl.hidden = false;
+            suggestionEl.textContent = 'Choose a mark from Question Marks Filter, then use suggested auto-fix actions if needed.'; suggestionEl.hidden = false;
+            actionsEl.hidden = true;
+            wrap.classList.add('is-warning');
+            return;
+        }
+
+        summaryEl.textContent = `Current formula: ${calc.totalQuestions} questions x ${calc.selectedMark} mark(s) = ${calc.expectedTotalMarks} expected total marks. Current Total Marks: ${calc.totalMarks}.`;
+
+        if (calc.isValid) {
+            warningEl.textContent = ''; warningEl.hidden = true;
+            suggestionEl.textContent = 'Marks configuration is valid and ready.'; suggestionEl.hidden = false;
+            actionsEl.hidden = true;
+            wrap.classList.add('is-valid');
+            return;
+        }
+
+        warningEl.textContent = 'The selected marks configuration does not match the total questions and total marks. Please adjust the values.';
+        warningEl.hidden = false;
+
+        if (calc.hasExactQuestionCount) {
+            suggestionEl.textContent = `Suggested fix: set Total Marks to ${calc.expectedTotalMarks}, or set Total Questions to ${calc.suggestedQuestionCount}.`;
+        } else {
+            suggestionEl.textContent = `Suggested fix: set Total Marks to ${calc.expectedTotalMarks}, or set Total Questions to ${calc.suggestedQuestionCount} (nearest whole number, then Total Marks will sync to ${calc.suggestedTotalMarks}).`;
+        }
+        suggestionEl.hidden = false;
+        actionsEl.hidden = false;
+        wrap.classList.add('is-warning');
+
+        const fixMarksBtn = root.querySelector('[data-part-action="fix_total_marks"]');
+        const fixQuestionsBtn = root.querySelector('[data-part-action="fix_total_questions"]');
+        if (fixMarksBtn) { fixMarksBtn.textContent = `Update Total Marks (${calc.expectedTotalMarks})`; fixMarksBtn.disabled = false; }
+        if (fixQuestionsBtn) { fixQuestionsBtn.textContent = `Update Total Questions (${calc.suggestedQuestionCount})`; fixQuestionsBtn.disabled = false; }
+    }
+
+    function applyMarksCalculationFixForPart(partState, fixType) {
+        const calc = computeMarksCalculationForPart(partState);
+        if (!calc.fixEnabled || !calc.hasSelectedMark) return;
+        const root = partState.root;
+
+        if (fixType === 'total_marks') {
+            setFieldValue(root, 'total_marks', String(calc.expectedTotalMarks));
+        }
+        if (fixType === 'total_questions') {
+            setFieldValue(root, 'total_questions', String(calc.suggestedQuestionCount));
+            if (!calc.hasExactQuestionCount) {
+                setFieldValue(root, 'total_marks', String(calc.suggestedTotalMarks));
+            }
+        }
+
+        updatePartUi(partState);
+        updateExamSummary();
+        updateWorkflowAndSnapshot();
+    }
+
+    // ── Fixed category question / marks allocation ────────────────────
+
+    function syncPartExtraQuestionsAllocationsHidden(partState) {
+        const hidden = partField(partState.root, 'extra_questions_allocations');
+        if (hidden) hidden.value = JSON.stringify(partState.extraQuestionsAllocations);
+        const catHidden = partField(partState.root, 'extra_questions_categories');
+        if (catHidden) catHidden.value = JSON.stringify(partState.extraQuestionsCategoryIds);
+    }
+
+    function syncPartExtraMarksAllocationsHidden(partState) {
+        const hidden = partField(partState.root, 'extra_marks_allocations');
+        if (hidden) hidden.value = JSON.stringify(partState.extraMarksAllocations);
+    }
+
+    function ensureCategoryQuestionCountsForPart(partState, selectedIds, totalQuestions) {
+        const normalizedIds = selectedIds.map(String);
+        const { minPerCategory } = getCategoryAllocationBounds(totalQuestions, normalizedIds.length);
+        const structureKey = `${totalQuestions}|${[...normalizedIds].sort().join(',')}`;
+
+        if (partState.categoryQuestionCountsKey === structureKey) {
+            let needsRebuild = false;
+            normalizedIds.forEach((cid) => {
+                if (typeof partState.extraQuestionsAllocations[cid] === 'undefined') { needsRebuild = true; return; }
+                if (toInt(partState.extraQuestionsAllocations[cid], 0) < minPerCategory) needsRebuild = true;
+            });
+            Object.keys(partState.extraQuestionsAllocations).forEach((cid) => {
+                if (!normalizedIds.includes(cid)) { delete partState.extraQuestionsAllocations[cid]; needsRebuild = true; }
+            });
+            if (needsRebuild) {
+                partState.extraQuestionsAllocations = buildEvenCategoryCounts(normalizedIds, totalQuestions);
+                syncPartExtraQuestionsAllocationsHidden(partState);
+            }
+            return;
+        }
+
+        const existingIds = Object.keys(partState.extraQuestionsAllocations);
+        const sameCategorySet = normalizedIds.length > 0
+            && normalizedIds.length === existingIds.length
+            && normalizedIds.every((cid) => Object.prototype.hasOwnProperty.call(partState.extraQuestionsAllocations, cid));
+        const existingSum = existingIds.reduce((sum, cid) => sum + Math.max(0, toInt(partState.extraQuestionsAllocations[cid], 0)), 0);
+
+        if (sameCategorySet && existingSum === totalQuestions && allocationsMeetMinimum(partState.extraQuestionsAllocations, normalizedIds, minPerCategory)) {
+            partState.categoryQuestionCountsKey = structureKey;
+            partState.extraQuestionsCategoryIds = normalizedIds.slice();
+            syncPartExtraQuestionsAllocationsHidden(partState);
+            return;
+        }
+
+        partState.extraQuestionsAllocations = buildEvenCategoryCounts(normalizedIds, totalQuestions);
+        partState.categoryQuestionCountsKey = structureKey;
+        partState.extraQuestionsCategoryIds = normalizedIds.slice();
+        syncPartExtraQuestionsAllocationsHidden(partState);
+    }
+
+    function computeFixedCategoryDistributionForPart(partState) {
+        const root = partState.root;
+        const totalQuestions = Math.max(1, toInt(partField(root, 'total_questions')?.value, 1));
+        const selectedIds = [...partState.selectedCategories];
+        const selectedCount = selectedIds.length;
+
+        if (!selectedCount) {
+            partState.extraQuestionsAllocations = {};
+            partState.extraQuestionsCategoryIds = [];
+            partState.categoryQuestionCountsKey = '';
+            syncPartExtraQuestionsAllocationsHidden(partState);
+            return { totalQuestions, selectedCount: 0, base: 0, remainder: 0, minPerCategory: 0, maxPerCategory: 0, rows: [], totalAllocated: 0, isComplete: false };
+        }
+
+        ensureCategoryQuestionCountsForPart(partState, selectedIds, totalQuestions);
+
+        const bounds = getCategoryAllocationBounds(totalQuestions, selectedCount);
+        const rows = selectedIds.map((cid) => ({
+            categoryId: cid,
+            count: Math.max(bounds.minPerCategory, toInt(partState.extraQuestionsAllocations[String(cid)], bounds.minPerCategory)),
+        }));
+        const totalAllocated = rows.reduce((sum, r) => sum + r.count, 0);
+        const meetsMinimum = rows.every((r) => r.count >= bounds.minPerCategory);
+
+        partState.extraQuestionsCategoryIds = selectedIds.map(String);
+        syncPartExtraQuestionsAllocationsHidden(partState);
+
+        return {
+            totalQuestions, selectedCount, base: bounds.base, remainder: bounds.remainder,
+            minPerCategory: bounds.minPerCategory, maxPerCategory: bounds.maxPerCategory,
+            rows, totalAllocated, isComplete: totalAllocated === totalQuestions && meetsMinimum,
+        };
+    }
+
+    function ensureCategoryMarksCountsForPart(partState, selectedIds, totalMarks) {
+        const normalizedIds = selectedIds.map(String);
+        const { minPerCategory } = getCategoryAllocationBounds(totalMarks, normalizedIds.length);
+        const structureKey = `${totalMarks}|${[...normalizedIds].sort().join(',')}`;
+
+        if (partState.categoryMarksCountsKey === structureKey) {
+            let needsRebuild = false;
+            normalizedIds.forEach((cid) => {
+                if (typeof partState.extraMarksAllocations[cid] === 'undefined') { needsRebuild = true; return; }
+                if (toInt(partState.extraMarksAllocations[cid], 0) < minPerCategory) needsRebuild = true;
+            });
+            Object.keys(partState.extraMarksAllocations).forEach((cid) => {
+                if (!normalizedIds.includes(cid)) { delete partState.extraMarksAllocations[cid]; needsRebuild = true; }
+            });
+            if (needsRebuild) {
+                partState.extraMarksAllocations = buildEvenCategoryCounts(normalizedIds, totalMarks);
+                syncPartExtraMarksAllocationsHidden(partState);
+            }
+            return;
+        }
+
+        const existingIds = Object.keys(partState.extraMarksAllocations);
+        const sameCategorySet = normalizedIds.length > 0
+            && normalizedIds.length === existingIds.length
+            && normalizedIds.every((cid) => Object.prototype.hasOwnProperty.call(partState.extraMarksAllocations, cid));
+        const existingSum = existingIds.reduce((sum, cid) => sum + Math.max(0, toInt(partState.extraMarksAllocations[cid], 0)), 0);
+
+        if (sameCategorySet && existingSum === totalMarks && allocationsMeetMinimum(partState.extraMarksAllocations, normalizedIds, minPerCategory)) {
+            partState.categoryMarksCountsKey = structureKey;
+            syncPartExtraMarksAllocationsHidden(partState);
+            return;
+        }
+
+        partState.extraMarksAllocations = buildEvenCategoryCounts(normalizedIds, totalMarks);
+        partState.categoryMarksCountsKey = structureKey;
+        syncPartExtraMarksAllocationsHidden(partState);
+    }
+
+    function computeFixedCategoryMarksDistributionForPart(partState) {
+        const root = partState.root;
+        const totalMarks = Math.max(1, toInt(partField(root, 'total_marks')?.value, 1));
+        const selectedIds = [...partState.selectedCategories];
+        const selectedCount = selectedIds.length;
+
+        if (!selectedCount) {
+            partState.extraMarksAllocations = {};
+            partState.categoryMarksCountsKey = '';
+            syncPartExtraMarksAllocationsHidden(partState);
+            return { totalMarks, selectedCount: 0, base: 0, remainder: 0, minPerCategory: 0, maxPerCategory: 0, totalAllocated: 0, rows: [], isComplete: false };
+        }
+
+        ensureCategoryMarksCountsForPart(partState, selectedIds, totalMarks);
+
+        const bounds = getCategoryAllocationBounds(totalMarks, selectedCount);
+        const rows = selectedIds.map((cid) => {
+            const marks = Math.max(bounds.minPerCategory, toInt(partState.extraMarksAllocations[String(cid)], bounds.minPerCategory));
+            return { categoryId: cid, marks, extraMarks: Math.max(0, marks - bounds.base) };
+        });
+        const totalAllocated = rows.reduce((sum, r) => sum + r.marks, 0);
+        const meetsMinimum = rows.every((r) => r.marks >= bounds.minPerCategory);
+
+        syncPartExtraMarksAllocationsHidden(partState);
+
+        return {
+            totalMarks, selectedCount, base: bounds.base, remainder: bounds.remainder,
+            minPerCategory: bounds.minPerCategory, maxPerCategory: bounds.maxPerCategory,
+            totalAllocated, rows, isComplete: totalAllocated === totalMarks && meetsMinimum,
+        };
+    }
+
+    function renderPartFixedCategoryDistribution(partState) {
+        const root = partState.root;
+        const outerWrap = root.querySelector('[data-field-wrap="fixed_category_distribution"]');
+        const innerWrap = root.querySelector('[data-field-wrap="extra_questions_allocations"]');
+        const listEl = root.querySelector('[data-field-ui="extra_questions_allocation_list"]');
+        const helpEl = root.querySelector('[data-field-help="fixed_distribution"]');
+        const allocatedEl = root.querySelector('[data-field-ui="allocated_count"]');
+        const remainingEl = root.querySelector('[data-field-ui="remaining_count"]');
+        if (!outerWrap) return;
+
+        const enabled = Boolean(partField(root, 'fix_category_questions')?.checked);
+        if (!enabled || partState.selectedCategories.size === 0) {
+            outerWrap.hidden = true;
+            if (innerWrap) innerWrap.hidden = true;
+            if (listEl) { listEl.innerHTML = ''; listEl.dataset.structureKey = ''; }
+            partState.categoryQuestionCountsKey = '';
+            return;
+        }
+
+        const distribution = computeFixedCategoryDistributionForPart(partState);
+        outerWrap.hidden = false;
+        if (innerWrap) innerWrap.hidden = false;
+
+        let helperText = `Set how many questions each category contributes. Totals must equal ${distribution.totalQuestions}.`;
+        helperText += ` Equally distributed with a minimum of ${distribution.minPerCategory} question(s) per category`;
+        if (distribution.remainder > 0) helperText += ' (leftover +1 from the first category onward)';
+        helperText += '.';
+        if (helpEl) helpEl.textContent = helperText;
+
+        if (allocatedEl) allocatedEl.textContent = String(distribution.totalAllocated);
+        if (remainingEl) remainingEl.textContent = String(distribution.totalQuestions);
+
+        if (!listEl) return;
+
+        const minAllowed = distribution.minPerCategory;
+        const maxAllowed = distribution.maxPerCategory;
+        const structureKey = `${distribution.rows.map((r) => String(r.categoryId)).join(',')}|${minAllowed}|${maxAllowed}`;
+
+        if (listEl.dataset.structureKey !== structureKey) {
+            listEl.innerHTML = distribution.rows.map((row) => {
+                const name = escapeHtml(getCategoryLabelById(row.categoryId));
+                const count = Math.max(minAllowed, toInt(partState.extraQuestionsAllocations[String(row.categoryId)], minAllowed));
+                return `
+                    <div>
+                        <label class="exam-label">${name}</label>
+                        <input type="number" class="panel-input category-question-count-input" data-category-id="${escapeHtml(String(row.categoryId))}" value="${count}" min="${minAllowed}" max="${maxAllowed}" step="1">
+                    </div>
+                `;
+            }).join('');
+            listEl.dataset.structureKey = structureKey;
+        } else {
+            listEl.querySelectorAll('.category-question-count-input').forEach((input) => {
+                input.setAttribute('min', String(minAllowed));
+                input.setAttribute('max', String(maxAllowed));
+                if (document.activeElement === input) return;
+                const cid = String(input.dataset.categoryId || '');
+                const val = Math.max(minAllowed, toInt(partState.extraQuestionsAllocations[cid], minAllowed));
+                if (String(input.value) !== String(val)) input.value = String(val);
+            });
+        }
+
+        syncPartExtraQuestionsAllocationsHidden(partState);
+    }
+
+    function renderPartFixedCategoryMarksDistribution(partState) {
+        const root = partState.root;
+        const wrap = root.querySelector('[data-field-wrap="fixed_category_marks_distribution"]');
+        const listEl = root.querySelector('[data-field-ui="extra_marks_allocation_list"]');
+        const helpEl = root.querySelector('[data-field-help="fixed_category_marks"]');
+        const allocatedEl = root.querySelector('[data-field-ui="marks_allocated_count"]');
+        const remainingEl = root.querySelector('[data-field-ui="marks_remaining_count"]');
+        if (!wrap) return;
+
+        const enabled = Boolean(partField(root, 'fix_category_marks')?.checked);
+        const distribution = computeFixedCategoryMarksDistributionForPart(partState);
+
+        if (!enabled || distribution.selectedCount === 0) {
+            wrap.hidden = true;
+            if (listEl) { listEl.innerHTML = ''; listEl.dataset.structureKey = ''; }
+            partState.categoryMarksCountsKey = '';
+            return;
+        }
+
+        wrap.hidden = false;
+
+        let helperText = `Set how many marks each category contributes. Totals must equal ${distribution.totalMarks}.`;
+        helperText += ` Equally distributed with a minimum of ${distribution.minPerCategory} mark(s) per category`;
+        if (distribution.remainder > 0) helperText += ' (leftover +1 from the first category onward)';
+        helperText += '.';
+        if (helpEl) helpEl.textContent = helperText;
+
+        if (allocatedEl) allocatedEl.textContent = String(distribution.totalAllocated);
+        if (remainingEl) remainingEl.textContent = String(distribution.totalMarks);
+
+        if (!listEl) return;
+
+        const minAllowed = distribution.minPerCategory;
+        const maxAllowed = distribution.maxPerCategory;
+        const structureKey = `${distribution.rows.map((r) => String(r.categoryId)).join(',')}|${minAllowed}|${maxAllowed}`;
+
+        if (listEl.dataset.structureKey !== structureKey) {
+            listEl.innerHTML = distribution.rows.map((row) => {
+                const name = escapeHtml(getCategoryLabelById(row.categoryId));
+                const marks = Math.max(minAllowed, toInt(partState.extraMarksAllocations[String(row.categoryId)], minAllowed));
+                return `
+                    <div>
+                        <label class="exam-label">${name}</label>
+                        <input type="number" class="panel-input category-marks-count-input" data-category-id="${escapeHtml(String(row.categoryId))}" value="${marks}" min="${minAllowed}" max="${maxAllowed}" step="1">
+                    </div>
+                `;
+            }).join('');
+            listEl.dataset.structureKey = structureKey;
+        } else {
+            listEl.querySelectorAll('.category-marks-count-input').forEach((input) => {
+                input.setAttribute('min', String(minAllowed));
+                input.setAttribute('max', String(maxAllowed));
+                if (document.activeElement === input) return;
+                const cid = String(input.dataset.categoryId || '');
+                const val = Math.max(minAllowed, toInt(partState.extraMarksAllocations[cid], minAllowed));
+                if (String(input.value) !== String(val)) input.value = String(val);
+            });
+        }
+
+        syncPartExtraMarksAllocationsHidden(partState);
+    }
+
+    function handlePartAllocationInput(partState, event) {
+        const qInput = event.target.closest('.category-question-count-input');
+        if (qInput) {
+            const cid = String(qInput.dataset.categoryId || '');
+            const fieldMin = Math.max(0, toInt(qInput.getAttribute('min'), 0));
+            const fieldMax = Math.max(fieldMin, toInt(qInput.getAttribute('max'), fieldMin));
+            let val = toInt(qInput.value, fieldMin);
+            if (Number.isNaN(val) || val < fieldMin) val = fieldMin;
+            if (val > fieldMax) val = fieldMax;
+            qInput.value = String(val);
+            partState.extraQuestionsAllocations[cid] = val;
+            syncPartExtraQuestionsAllocationsHidden(partState);
+            updatePartUi(partState);
+            updateExamSummary();
+            return true;
+        }
+
+        const mInput = event.target.closest('.category-marks-count-input');
+        if (mInput) {
+            const cid = String(mInput.dataset.categoryId || '');
+            const fieldMin = Math.max(0, toInt(mInput.getAttribute('min'), 0));
+            const fieldMax = Math.max(fieldMin, toInt(mInput.getAttribute('max'), fieldMin));
+            let val = toInt(mInput.value, fieldMin);
+            if (Number.isNaN(val) || val < fieldMin) val = fieldMin;
+            if (val > fieldMax) val = fieldMax;
+            mInput.value = String(val);
+            partState.extraMarksAllocations[cid] = val;
+            syncPartExtraMarksAllocationsHidden(partState);
+            updatePartUi(partState);
+            updateExamSummary();
+            return true;
+        }
+
+        return false;
+    }
+
+    // ── Conditional field wraps (pool / fixed questions / paper sets) ─
+
+    function setWrapHidden(root, fieldKey, hidden) {
+        const wrap = root.querySelector(`[data-field-wrap="${fieldKey}"]`);
+        if (wrap) wrap.hidden = hidden;
+    }
+
+    function updatePartConditionalWraps(partState) {
+        const root = partState.root;
+        const usePool = Boolean(partField(root, 'use_question_pool')?.checked);
+        const fixedQEl = partField(root, 'fixed_questions');
+        const fixedPaperSet = Boolean(partField(root, 'fixed_paper_set')?.checked);
+        const totalQuestions = Math.max(1, toInt(partField(root, 'total_questions')?.value, 1));
+
+        setWrapHidden(root, 'maximum_questions', !usePool);
+        const maxQEl = partField(root, 'maximum_questions');
+        if (maxQEl) {
+            maxQEl.min = String(totalQuestions + 1);
+            if (usePool) {
+                const currentMax = toInt(maxQEl.value, 0);
+                if (currentMax <= totalQuestions) {
+                    maxQEl.value = String(Math.max(totalQuestions + 1, 50));
+                }
+            } else {
+                maxQEl.value = '';
+            }
+        }
+        const helpEl = root.querySelector('[data-field-help="maximum_questions"]');
+        if (helpEl) helpEl.textContent = `Enter at least ${totalQuestions + 1}. Each candidate will receive ${totalQuestions} question(s).`;
+
+        // Question Pool and Fixed Questions are mutually exclusive — hide Fixed Questions while pool is on.
+        setWrapHidden(root, 'fixed_questions', usePool);
+        if (usePool && fixedQEl) {
+            fixedQEl.checked = false;
+            fixedQEl.disabled = true;
+        } else if (fixedQEl) {
+            fixedQEl.disabled = false;
+        }
+
+        setWrapHidden(root, 'paper_sets', !fixedPaperSet);
+        const paperSetsEl = partField(root, 'paper_sets');
+        if (paperSetsEl) {
+            paperSetsEl.min = '1';
+            paperSetsEl.max = String(totalQuestions);
+            if (!fixedPaperSet) paperSetsEl.value = '1';
         }
 
         const supportsOptionShuffle = state.selectedExamFormat instanceof Set
             && (state.selectedExamFormat.has('mcq') || state.selectedExamFormat.has('multi_select'));
-        refs.shuffleOptionsWrap.hidden = !supportsOptionShuffle;
-        refs.shuffleOptions.disabled = !supportsOptionShuffle;
-        if (!supportsOptionShuffle) {
-            refs.shuffleOptions.checked = false;
+        setWrapHidden(root, 'shuffle_options', !supportsOptionShuffle);
+        const shuffleOptionsEl = partField(root, 'shuffle_options');
+        if (shuffleOptionsEl) {
+            shuffleOptionsEl.disabled = !supportsOptionShuffle;
+            if (!supportsOptionShuffle) shuffleOptionsEl.checked = false;
         }
-
-        refs.negativeMarkingConfig.hidden = !refs.enableNegativeMarking.checked;
-
-        // Show/hide Free Candidate List section depending on selected pricing option
-        refs.freeCandidatesWrap.hidden = !importedFree;
-
-        refs.pricingImportedNote.hidden = !importedFree;
-        renderCandidateTabs();
-        renderFreeCandidateTabs();
-
-        refs.pricingSection.hidden = state.selectedMode === 'practice';
-
-        // Update the visible sections dynamic numbering
-        updateSectionNumbers();
     }
 
-    function isQuestionPoolEnabled() {
-        return Boolean(refs.useQuestionPool?.checked);
+    function updatePartMetaSummary(partState) {
+        const root = partState.root;
+        const el = root.querySelector('[data-field-ui="part_meta_summary"]');
+        if (!el) return;
+
+        const totalQuestions = toInt(partField(root, 'total_questions')?.value, 0);
+        const totalMarks = toInt(partField(root, 'total_marks')?.value, 0);
+        const categories = partState.selectedCategories.size;
+        el.textContent = `${totalQuestions} question(s) • ${totalMarks} mark(s) • ${categories} categor${categories === 1 ? 'y' : 'ies'} • ${partState.selectedQuestions.size} selected`;
     }
 
-    function isManualQuestionSelectionEnabled() {
-        return isQuestionPoolEnabled() || Boolean(refs.fixedQuestions?.checked);
-    }
+    function maybeScheduleQuestionBankSync(partState) {
+        const root = partState.root;
+        const categoriesKey = [...partState.selectedCategories].sort().join(',');
+        const marksKey = [...partState.selectedMarks].sort().join(',');
+        const formatsKey = [...state.selectedExamFormat].sort().join(',');
+        const signature = `${categoriesKey}|${marksKey}|${formatsKey}`;
 
-    function getQuestionSelectionLimits() {
-        const totalQuestions = Math.max(1, toInt(refs.totalQuestions?.value, 1));
-
-        if (isQuestionPoolEnabled()) {
-            const maximumQuestions = Math.max(
-                totalQuestions + 1,
-                toInt(refs.maximumQuestions?.value, totalQuestions + 1)
-            );
-            return {
-                viewOnly: false,
-                min: totalQuestions,
-                max: maximumQuestions,
-                exact: null,
-                target: maximumQuestions,
-            };
+        if (partState.lastFetchedKey !== signature) {
+            partState.lastFetchedKey = signature;
+            scheduleQuestionBankSyncForPart(partState, 200);
         }
-
-        if (Boolean(refs.fixedQuestions?.checked)) {
-            return {
-                viewOnly: false,
-                min: totalQuestions,
-                max: totalQuestions,
-                exact: totalQuestions,
-                target: totalQuestions,
-            };
-        }
-
-        return {
-            viewOnly: true,
-            min: 0,
-            max: 0,
-            exact: null,
-            target: 0,
-        };
     }
 
-    function getQuestionSelectionTarget() {
-        return getQuestionSelectionLimits().target;
+    function updatePartUi(partState) {
+        if (!partState.root) return;
+        updatePartConditionalWraps(partState);
+        renderPartDistributionTypes(partState);
+        renderPartQuestionMarks(partState);
+        renderPartCategorySelector(partState);
+        renderPartMarksCalculation(partState);
+        renderPartFixedCategoryDistribution(partState);
+        renderPartFixedCategoryMarksDistribution(partState);
+        maybeScheduleQuestionBankSync(partState);
+        renderQuestionBankCardsForPart(partState);
+        updatePartMetaSummary(partState);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // PART QUESTION BANK
+    // ────────────────────────────────────────────────────────────────
+
+    function getQuestionSelectionLimitsForPart(partState) {
+        const root = partState.root;
+        const totalQuestions = Math.max(1, toInt(partField(root, 'total_questions')?.value, 1));
+        const usePool = Boolean(partField(root, 'use_question_pool')?.checked);
+        const fixedQuestions = Boolean(partField(root, 'fixed_questions')?.checked);
+
+        if (usePool) {
+            const maximumQuestions = Math.max(totalQuestions + 1, toInt(partField(root, 'maximum_questions')?.value, totalQuestions + 1));
+            return { viewOnly: false, min: totalQuestions, max: maximumQuestions, exact: null, target: maximumQuestions };
+        }
+        if (fixedQuestions) {
+            return { viewOnly: false, min: totalQuestions, max: totalQuestions, exact: totalQuestions, target: totalQuestions };
+        }
+        return { viewOnly: true, min: 0, max: 0, exact: null, target: 0 };
+    }
+
+    function isQuestionPoolEnabledForPart(partState) {
+        return Boolean(partField(partState.root, 'use_question_pool')?.checked);
+    }
+
+    function isManualQuestionSelectionEnabledForPart(partState) {
+        return isQuestionPoolEnabledForPart(partState) || Boolean(partField(partState.root, 'fixed_questions')?.checked);
     }
 
     function questionMatchesSelectedCategory(question, categoryId) {
         const questionCategoryId = String(question?.categoryId || '');
         const selectedCategoryId = String(categoryId || '');
-        if (!questionCategoryId || !selectedCategoryId) {
-            return false;
-        }
-        if (questionCategoryId === selectedCategoryId) {
-            return true;
-        }
+        if (!questionCategoryId || !selectedCategoryId) return false;
+        if (questionCategoryId === selectedCategoryId) return true;
         const descendants = getAllDescendantIds(selectedCategoryId, state.categoryHierarchyIndex);
         return descendants.includes(questionCategoryId);
     }
@@ -2870,1516 +2809,464 @@ document.addEventListener('DOMContentLoaded', () => {
     function resolveQuestionDisplayCategory(question, selectedCategoryIds) {
         const selectedCategorySet = new Set(selectedCategoryIds.map(String));
         const questionCategoryId = String(question?.categoryId || '');
-        if (selectedCategorySet.has(questionCategoryId)) {
-            return questionCategoryId;
-        }
+        if (selectedCategorySet.has(questionCategoryId)) return questionCategoryId;
         for (const selectedId of selectedCategoryIds) {
-            if (questionMatchesSelectedCategory(question, selectedId)) {
-                return String(selectedId);
-            }
+            if (questionMatchesSelectedCategory(question, selectedId)) return String(selectedId);
         }
         return null;
     }
 
-    function computeQuestionShortages() {
-        const shortages = [];
-        const selectedMarks = [...state.selectedMarks].map(Number).filter((mark) => mark > 0);
-        const selectedCategories = [...state.selectedCategories];
-        const limits = getQuestionSelectionLimits();
-        const requiredTotal = limits.viewOnly
-            ? Math.max(1, toInt(refs.totalQuestions?.value, 1))
-            : limits.max;
-        const countedTotal = Object.values(state.categoryCounts || {}).reduce(
-            (sum, value) => sum + Number(value || 0),
-            0
-        );
-        const availableTotal = countedTotal > 0
-            ? countedTotal
-            : (Number(state.questionBankMeta?.total ?? 0) > 0
-                ? Number(state.questionBankMeta.total)
-                : state.questionBank.filter((question) => {
-                    return selectedCategories.some((categoryId) => questionMatchesSelectedCategory(question, categoryId))
-                        && (!selectedMarks.length || selectedMarks.includes(Number(question.marks)));
-                }).length);
-
-        if (availableTotal < requiredTotal) {
-            shortages.push({
-                categoryId: null,
-                marks: null,
-                required: requiredTotal,
-                available: availableTotal,
-                missing: requiredTotal - availableTotal,
-            });
-        }
-
-        return shortages;
-    }
-
-    function renderQuestionShortages(shortages) {
-        if (!refs.questionBankShortages) {
-            return;
-        }
-
-        if (!shortages.length) {
-            refs.questionBankShortages.hidden = true;
-            refs.questionBankShortages.innerHTML = '';
-            return;
-        }
-
-        refs.questionBankShortages.hidden = false;
-        refs.questionBankShortages.innerHTML = `
-            <div class="question-bank-shortages__title">Question shortages detected</div>
-            <ul>
-                ${shortages.map((item) => {
-                    if (!item.categoryId) {
-                        return `<li>Need ${item.missing} more matching question(s) overall (available ${item.available} / required ${item.required}).</li>`;
-                    }
-                    const categoryName = escapeHtml(getCategoryLabelById(item.categoryId));
-                    return `<li>Need ${item.missing} more ${item.marks}-mark question(s) in <strong>${categoryName}</strong> (available ${item.available} / required ${item.required}).</li>`;
-                }).join('')}
-            </ul>
-        `;
-    }
-
-    function rememberSelectedQuestion(question) {
-        if (!question || question.id === undefined || question.id === null) {
-            return;
-        }
-        state.selectedQuestionCache[String(question.id)] = question;
-    }
-
-    function getQuestionById(questionId) {
+    function getQuestionByIdForPart(partState, questionId) {
         const key = String(questionId);
-        return state.questionBank.find((item) => String(item.id) === key)
-            || state.selectedQuestionCache[key]
+        return partState.questionBank.find((item) => String(item.id) === key)
+            || partState.selectedQuestionCache[key]
             || null;
     }
 
-    function pruneSelectedQuestionsToVisibleBank() {
-        if (!isManualQuestionSelectionEnabled()) {
-            state.selectedQuestions.clear();
-            state.selectedQuestionCache = {};
+    function rememberSelectedQuestionForPart(partState, question) {
+        if (!question || question.id === undefined || question.id === null) return;
+        partState.selectedQuestionCache[String(question.id)] = question;
+    }
+
+    function pruneSelectedQuestionsToVisibleBankForPart(partState) {
+        if (!isManualQuestionSelectionEnabledForPart(partState)) {
+            partState.selectedQuestions.clear();
+            partState.selectedQuestionCache = {};
             return;
         }
-
-        // Keep selections even when their rows are not on the currently loaded page.
-        // Only enforce the max selection count.
-        const limits = getQuestionSelectionLimits();
-        if (limits.max > 0 && state.selectedQuestions.size > limits.max) {
-            const kept = [...state.selectedQuestions].slice(0, limits.max);
-            state.selectedQuestions = new Set(kept);
+        const limits = getQuestionSelectionLimitsForPart(partState);
+        if (limits.max > 0 && partState.selectedQuestions.size > limits.max) {
+            partState.selectedQuestions = new Set([...partState.selectedQuestions].slice(0, limits.max));
         }
-
-        Object.keys(state.selectedQuestionCache).forEach((id) => {
-            if (!state.selectedQuestions.has(Number(id)) && !state.selectedQuestions.has(id)) {
-                delete state.selectedQuestionCache[id];
+        Object.keys(partState.selectedQuestionCache).forEach((id) => {
+            if (!partState.selectedQuestions.has(Number(id)) && !partState.selectedQuestions.has(id)) {
+                delete partState.selectedQuestionCache[id];
             }
         });
     }
 
-    function updateQuestionSelectionControlsVisibility() {
-        const limits = getQuestionSelectionLimits();
+    function updateQuestionSelectionControlsVisibilityForPart(partState) {
+        const root = partState.root;
+        const limits = getQuestionSelectionLimitsForPart(partState);
         const selectionEnabled = !limits.viewOnly;
 
-        if (refs.globalSelectionStats) {
-            refs.globalSelectionStats.hidden = !selectionEnabled;
-        }
-        if (refs.globalRandomSelectBtn) {
-            refs.globalRandomSelectBtn.hidden = !selectionEnabled;
-        }
-        if (refs.globalSelectionRange) {
-            if (selectionEnabled && isQuestionPoolEnabled()) {
-                refs.globalSelectionRange.hidden = false;
-                refs.globalSelectionRange.textContent = `(select ${limits.min}–${limits.max})`;
+        const randomBtn = root.querySelector('[data-part-action="random_select"]');
+        if (randomBtn) randomBtn.hidden = !selectionEnabled;
+
+        const rangeEl = root.querySelector('[data-field-ui="global_selection_range"]');
+        if (rangeEl) {
+            if (selectionEnabled && isQuestionPoolEnabledForPart(partState)) {
+                rangeEl.hidden = false;
+                rangeEl.textContent = `(select ${limits.min}–${limits.max})`;
             } else {
-                refs.globalSelectionRange.hidden = true;
-                refs.globalSelectionRange.textContent = '';
+                rangeEl.hidden = true;
+                rangeEl.textContent = '';
             }
         }
     }
 
-    function computeCategoryTarget() {
-        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
-        const totalCategories = Math.max(1, state.selectedCategories.size);
-        return Math.ceil(totalQuestions / totalCategories);
-    }
+    function computeQuestionShortagesForPart(partState) {
+        const root = partState.root;
+        const shortages = [];
+        const selectedCategories = [...partState.selectedCategories];
+        if (!selectedCategories.length) return shortages;
 
-    function getCategoryById(categoryId) {
-        return state.config.categories.find((category) => category.id === categoryId) || null;
-    }
+        const limits = getQuestionSelectionLimitsForPart(partState);
+        const requiredTotal = limits.viewOnly ? Math.max(1, toInt(partField(root, 'total_questions')?.value, 1)) : limits.max;
+        const countedTotal = Object.values(partState.categoryCounts || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+        const availableTotal = countedTotal > 0 ? countedTotal : Number(partState.questionBankMeta?.total ?? 0);
 
-    function getCategoryLabelById(categoryId) {
-        const category = getCategoryById(categoryId);
-        if (!category) {
-            return categoryId;
+        if (availableTotal < requiredTotal) {
+            shortages.push({ required: requiredTotal, available: availableTotal, missing: requiredTotal - availableTotal });
         }
-        const parent = getCategoryParent(category, state.config.categories);
-        if (!parent) {
-            return category.name;
-        }
-        return `${parent.name} / ${category.name}`;
+        return shortages;
     }
 
-    function getCategoryDisplayHtml(categoryId) {
-        const category = getCategoryById(categoryId);
-        if (!category) {
-            return escapeHtml(categoryId);
-        }
-        return `<span class="category-display-name">${escapeHtml(category.name)}</span>`;
-    }
+    function renderQuestionShortagesForPart(partState) {
+        const el = partState.root.querySelector('[data-field-ui="question_bank_shortages"]');
+        if (!el) return;
 
-    function syncExtraQuestionsHidden() {
-        if (refs.extraQuestionsCategoriesHidden) {
-            refs.extraQuestionsCategoriesHidden.value = JSON.stringify(state.extraQuestionsCategoryIds);
-        }
-    }
-
-    function syncExtraQuestionsAllocations() {
-        if (refs.extraQuestionsAllocationsHidden) {
-            refs.extraQuestionsAllocationsHidden.value = JSON.stringify(state.extraQuestionsAllocations);
-        }
-    }
-
-    function getCategoryAllocationBounds(total, selectedCount) {
-        const safeCount = Math.max(0, selectedCount);
-        const safeTotal = Math.max(0, total);
-        if (!safeCount) {
-            return {
-                base: 0,
-                remainder: 0,
-                minPerCategory: 0,
-                maxPerCategory: safeTotal,
-            };
-        }
-
-        const base = Math.floor(safeTotal / safeCount);
-        const remainder = safeTotal % safeCount;
-        return {
-            base,
-            remainder,
-            minPerCategory: base,
-            // Leave enough for every other category to keep the minimum.
-            maxPerCategory: safeTotal - (base * (safeCount - 1)),
-        };
-    }
-
-    function allocationsMeetMinimum(allocations, categoryIds, minimum) {
-        return categoryIds.every((categoryId) => (
-            Math.max(0, toInt(allocations[String(categoryId)], 0)) >= minimum
-        ));
-    }
-
-    function buildEvenCategoryQuestionCounts(selectedIds, totalQuestions) {
-        const counts = {};
-        const selectedCount = selectedIds.length;
-        if (!selectedCount) {
-            return counts;
-        }
-
-        const { base, remainder } = getCategoryAllocationBounds(totalQuestions, selectedCount);
-        selectedIds.forEach((categoryId, index) => {
-            counts[String(categoryId)] = base + (index < remainder ? 1 : 0);
-        });
-        return counts;
-    }
-
-    function ensureCategoryQuestionCounts(selectedIds, totalQuestions) {
-        const normalizedIds = selectedIds.map(String);
-        const { minPerCategory } = getCategoryAllocationBounds(totalQuestions, normalizedIds.length);
-        const structureKey = `${totalQuestions}|${[...normalizedIds].sort().join(',')}`;
-        if (state.categoryQuestionCountsKey === structureKey) {
-            let needsRebuild = false;
-            normalizedIds.forEach((categoryId) => {
-                if (typeof state.extraQuestionsAllocations[categoryId] === 'undefined') {
-                    needsRebuild = true;
-                    return;
-                }
-                if (toInt(state.extraQuestionsAllocations[categoryId], 0) < minPerCategory) {
-                    needsRebuild = true;
-                }
-            });
-            Object.keys(state.extraQuestionsAllocations).forEach((categoryId) => {
-                if (!normalizedIds.includes(categoryId)) {
-                    delete state.extraQuestionsAllocations[categoryId];
-                    needsRebuild = true;
-                }
-            });
-            if (needsRebuild) {
-                state.extraQuestionsAllocations = buildEvenCategoryQuestionCounts(normalizedIds, totalQuestions);
-                syncExtraQuestionsHidden();
-                syncExtraQuestionsAllocations();
-            }
+        const shortages = computeQuestionShortagesForPart(partState);
+        if (!shortages.length) {
+            el.hidden = true;
+            el.innerHTML = '';
             return;
         }
 
-        const existingIds = Object.keys(state.extraQuestionsAllocations);
-        const sameCategorySet = normalizedIds.length > 0
-            && normalizedIds.length === existingIds.length
-            && normalizedIds.every((categoryId) => Object.prototype.hasOwnProperty.call(
-                state.extraQuestionsAllocations,
-                categoryId
-            ));
-        const existingSum = existingIds.reduce(
-            (sum, categoryId) => sum + Math.max(0, toInt(state.extraQuestionsAllocations[categoryId], 0)),
-            0
+        el.hidden = false;
+        el.innerHTML = `
+            <div class="question-bank-shortages__title">Question shortages detected</div>
+            <ul>${shortages.map((item) => `<li>Need ${item.missing} more matching question(s) overall (available ${item.available} / required ${item.required}).</li>`).join('')}</ul>
+        `;
+    }
+
+    function syncPartQuestionIdsHidden(partState) {
+        const hidden = partField(partState.root, 'question_ids');
+        if (!hidden) return;
+        const limits = getQuestionSelectionLimitsForPart(partState);
+        hidden.value = JSON.stringify(
+            limits.viewOnly ? [] : [...partState.selectedQuestions].map((id) => Number(id)).filter((id) => id > 0)
         );
-
-        // Keep hydrated/edited totals when they match total and respect the per-category minimum.
-        if (
-            sameCategorySet
-            && existingSum === totalQuestions
-            && allocationsMeetMinimum(state.extraQuestionsAllocations, normalizedIds, minPerCategory)
-        ) {
-            state.categoryQuestionCountsKey = structureKey;
-            state.extraQuestionsCategoryIds = normalizedIds.slice();
-            syncExtraQuestionsHidden();
-            syncExtraQuestionsAllocations();
-            return;
-        }
-
-        state.extraQuestionsAllocations = buildEvenCategoryQuestionCounts(normalizedIds, totalQuestions);
-        state.categoryQuestionCountsKey = structureKey;
-        state.extraQuestionsCategoryIds = normalizedIds.slice();
-        syncExtraQuestionsHidden();
-        syncExtraQuestionsAllocations();
     }
 
-    function computeFixedCategoryDistribution() {
-        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
-        const selectedIds = [...state.selectedCategories];
-        const selectedCount = selectedIds.length;
-
-        if (!selectedCount) {
-            state.extraQuestionsAllocations = {};
-            state.extraQuestionsCategoryIds = [];
-            state.categoryQuestionCountsKey = '';
-            syncExtraQuestionsHidden();
-            syncExtraQuestionsAllocations();
-            return {
-                totalQuestions,
-                selectedCount: 0,
-                base: 0,
-                remainder: 0,
-                minPerCategory: 0,
-                maxPerCategory: 0,
-                extraCategoryIds: [],
-                rows: [],
-                totalAllocated: 0,
-                isComplete: false,
-            };
-        }
-
-        ensureCategoryQuestionCounts(selectedIds, totalQuestions);
-
-        const bounds = getCategoryAllocationBounds(totalQuestions, selectedCount);
-        const rows = selectedIds.map((categoryId) => ({
-            categoryId,
-            count: Math.max(
-                bounds.minPerCategory,
-                toInt(state.extraQuestionsAllocations[String(categoryId)], bounds.minPerCategory)
-            ),
-        }));
-        const totalAllocated = rows.reduce((sum, row) => sum + row.count, 0);
-        const extraCategoryIds = rows
-            .filter((row) => row.count > bounds.base)
-            .map((row) => row.categoryId);
-        const meetsMinimum = rows.every((row) => row.count >= bounds.minPerCategory);
-
-        state.extraQuestionsCategoryIds = selectedIds.map(String);
-        syncExtraQuestionsHidden();
-        syncExtraQuestionsAllocations();
-
-        return {
-            totalQuestions,
-            selectedCount,
-            base: bounds.base,
-            remainder: bounds.remainder,
-            minPerCategory: bounds.minPerCategory,
-            maxPerCategory: bounds.maxPerCategory,
-            extraCategoryIds,
-            rows,
-            totalAllocated,
-            isComplete: totalAllocated === totalQuestions && meetsMinimum,
-        };
-    }
-
-    function syncExtraMarksAllocations() {
-        if (refs.extraMarksAllocationsHidden) {
-            refs.extraMarksAllocationsHidden.value = JSON.stringify(state.extraMarksAllocations);
-        }
-    }
-
-    function buildEvenCategoryMarksCounts(selectedIds, totalMarks) {
-        const counts = {};
-        const selectedCount = selectedIds.length;
-        if (!selectedCount) {
-            return counts;
-        }
-
-        const { base, remainder } = getCategoryAllocationBounds(totalMarks, selectedCount);
-        selectedIds.forEach((categoryId, index) => {
-            counts[String(categoryId)] = base + (index < remainder ? 1 : 0);
-        });
-        return counts;
-    }
-
-    function ensureCategoryMarksCounts(selectedIds, totalMarks) {
-        const normalizedIds = selectedIds.map(String);
-        const { base, remainder, minPerCategory } = getCategoryAllocationBounds(totalMarks, normalizedIds.length);
-        const structureKey = `${totalMarks}|${[...normalizedIds].sort().join(',')}`;
-        if (state.categoryMarksCountsKey === structureKey) {
-            let needsRebuild = false;
-            normalizedIds.forEach((categoryId) => {
-                if (typeof state.extraMarksAllocations[categoryId] === 'undefined') {
-                    needsRebuild = true;
-                    return;
-                }
-                if (toInt(state.extraMarksAllocations[categoryId], 0) < minPerCategory) {
-                    needsRebuild = true;
-                }
-            });
-            Object.keys(state.extraMarksAllocations).forEach((categoryId) => {
-                if (!normalizedIds.includes(categoryId)) {
-                    delete state.extraMarksAllocations[categoryId];
-                    needsRebuild = true;
-                }
-            });
-            if (needsRebuild) {
-                state.extraMarksAllocations = buildEvenCategoryMarksCounts(normalizedIds, totalMarks);
-                syncExtraMarksAllocations();
-            }
-            return;
-        }
-
-        const existingIds = Object.keys(state.extraMarksAllocations);
-        const sameCategorySet = normalizedIds.length > 0
-            && normalizedIds.length === existingIds.length
-            && normalizedIds.every((categoryId) => Object.prototype.hasOwnProperty.call(
-                state.extraMarksAllocations,
-                categoryId
-            ));
-        const existingSum = existingIds.reduce(
-            (sum, categoryId) => sum + Math.max(0, toInt(state.extraMarksAllocations[categoryId], 0)),
-            0
-        );
-
-        // Keep hydrated/edited totals when they match total and respect the per-category minimum.
-        if (
-            sameCategorySet
-            && existingSum === totalMarks
-            && allocationsMeetMinimum(state.extraMarksAllocations, normalizedIds, minPerCategory)
-        ) {
-            state.categoryMarksCountsKey = structureKey;
-            syncExtraMarksAllocations();
-            return;
-        }
-
-        // Migrate legacy "extra only" payloads (sum === remainder) into full totals.
-        if (sameCategorySet && remainder > 0 && existingSum === remainder) {
-            const totals = {};
-            normalizedIds.forEach((categoryId) => {
-                totals[categoryId] = base + Math.max(0, toInt(state.extraMarksAllocations[categoryId], 0));
-            });
-            state.extraMarksAllocations = totals;
-            state.categoryMarksCountsKey = structureKey;
-            syncExtraMarksAllocations();
-            return;
-        }
-
-        state.extraMarksAllocations = buildEvenCategoryMarksCounts(normalizedIds, totalMarks);
-        state.categoryMarksCountsKey = structureKey;
-        syncExtraMarksAllocations();
-    }
-
-    function computeFixedCategoryMarksDistribution() {
-        const totalMarks = Math.max(1, toInt(refs.totalMarks?.value, 1));
-        const selectedIds = [...state.selectedCategories];
-        const selectedCount = selectedIds.length;
-
-        if (!selectedCount) {
-            state.extraMarksAllocations = {};
-            state.categoryMarksCountsKey = '';
-            syncExtraMarksAllocations();
-            return {
-                totalMarks,
-                selectedCount: 0,
-                base: 0,
-                remainder: 0,
-                minPerCategory: 0,
-                maxPerCategory: 0,
-                totalAllocated: 0,
-                rows: [],
-                isComplete: false,
-            };
-        }
-
-        ensureCategoryMarksCounts(selectedIds, totalMarks);
-
-        const bounds = getCategoryAllocationBounds(totalMarks, selectedCount);
-        const rows = selectedIds.map((categoryId) => {
-            const marks = Math.max(
-                bounds.minPerCategory,
-                toInt(state.extraMarksAllocations[String(categoryId)], bounds.minPerCategory)
-            );
-            return {
-                categoryId,
-                marks,
-                extraMarks: Math.max(0, marks - bounds.base),
-            };
-        });
-        const totalAllocated = rows.reduce((sum, row) => sum + row.marks, 0);
-        const meetsMinimum = rows.every((row) => row.marks >= bounds.minPerCategory);
-
-        syncExtraMarksAllocations();
-
-        return {
-            totalMarks,
-            selectedCount,
-            base: bounds.base,
-            remainder: bounds.remainder,
-            minPerCategory: bounds.minPerCategory,
-            maxPerCategory: bounds.maxPerCategory,
-            totalAllocated,
-            rows,
-            isComplete: totalAllocated === totalMarks && meetsMinimum,
-        };
-    }
-
-    function renderFixedCategoryMarksDistribution() {
-        if (!refs.fixedCategoryMarksCard) {
-            return;
-        }
-
-        const enabled = Boolean(refs.fixCategoryMarks?.checked);
-        const distribution = computeFixedCategoryMarksDistribution();
-
-        if (!enabled || distribution.selectedCount === 0) {
-            refs.fixedCategoryMarksCard.hidden = true;
-            if (refs.extraMarksAllocationList) {
-                refs.extraMarksAllocationList.innerHTML = '';
-                refs.extraMarksAllocationList.dataset.structureKey = '';
-            }
-            state.categoryMarksCountsKey = '';
-            return;
-        }
-
-        refs.fixedCategoryMarksCard.hidden = false;
-
-        let helperText = `Set how many marks each category contributes. Totals must equal ${distribution.totalMarks}.`;
-        helperText += ` Equally distributed with a minimum of ${distribution.minPerCategory} mark(s) per category`;
-        if (distribution.remainder > 0) {
-            helperText += ` (leftover +1 from the first category onward)`;
-        }
-        helperText += '.';
-        if (refs.fixedCategoryMarksHelper) {
-            refs.fixedCategoryMarksHelper.textContent = helperText;
-        }
-
-        if (refs.extraMarksAllocationsWrap) {
-            refs.extraMarksAllocationsWrap.classList.toggle(
-                'is-invalid',
-                !distribution.isComplete
-            );
-        }
-        if (refs.marksAllocatedCount) {
-            refs.marksAllocatedCount.textContent = String(distribution.totalAllocated);
-        }
-        if (refs.marksRemainingCount) {
-            refs.marksRemainingCount.textContent = String(distribution.totalMarks);
-        }
-
-        if (!refs.extraMarksAllocationList) {
-            return;
-        }
-
-        const minAllowed = distribution.minPerCategory;
-        const maxAllowed = distribution.maxPerCategory;
-        const structureKey = `${distribution.rows.map((row) => String(row.categoryId)).join(',')}|${minAllowed}|${maxAllowed}`;
-        const allocationsHtml = distribution.rows.map((row) => {
-            const categoryName = escapeHtml(getCategoryLabelById(row.categoryId));
-            const marks = Math.max(
-                minAllowed,
-                toInt(state.extraMarksAllocations[String(row.categoryId)], minAllowed)
-            );
-            return `
-                <div>
-                    <label class="exam-label">${categoryName}</label>
-                    <input
-                        type="number"
-                        class="panel-input category-marks-count-input"
-                        data-category-id="${escapeHtml(String(row.categoryId))}"
-                        value="${marks}"
-                        min="${minAllowed}"
-                        max="${maxAllowed}"
-                        step="1"
-                    >
-                </div>
-            `;
-        }).join('');
-
-        if (refs.extraMarksAllocationList.dataset.structureKey !== structureKey) {
-            refs.extraMarksAllocationList.innerHTML = allocationsHtml;
-            refs.extraMarksAllocationList.dataset.structureKey = structureKey;
-        } else {
-            refs.extraMarksAllocationList.querySelectorAll('.category-marks-count-input').forEach((input) => {
-                input.setAttribute('min', String(minAllowed));
-                input.setAttribute('max', String(maxAllowed));
-                if (document.activeElement === input) {
-                    return;
-                }
-                const cid = String(input.dataset.categoryId || '');
-                const val = Math.max(
-                    minAllowed,
-                    toInt(state.extraMarksAllocations[cid], minAllowed)
-                );
-                if (String(input.value) !== String(val)) {
-                    input.value = String(val);
-                }
-            });
-        }
-
-        syncExtraMarksAllocations();
-    }
-
-    function getExtraQuestionsOptionsKey(selectedIds, remainder) {
-        return `${remainder}|${selectedIds.slice().sort().join(',')}`;
-    }
-
-    function applyExtraCategorySelectionRules(rawIds, maxExtra, allowedIds) {
-        const allowed = new Set(allowedIds);
-        const filtered = [...rawIds].filter((id) => allowed.has(id));
-        const pruned = [...pruneDescendantSelections(filtered, state.categoryHierarchyIndex)];
-        return pruned.slice(0, Math.max(1, maxExtra));
-    }
-
-    function bindExtraQuestionsCategorySelect() {
-        if (state.extraQuestionsSelectBound || !window.EmsSelect || typeof window.EmsSelect.onChange !== 'function') {
-            return;
-        }
-
-        window.EmsSelect.onChange('extra_questions_category', () => {
-            if (state.isSyncingExtraQuestions || state.suppressExtraSelectEvents) {
-                return;
-            }
-
-            const selectedIds = [...state.selectedCategories];
-            const remainder = selectedIds.length
-                ? Math.max(0, toInt(refs.totalQuestions.value, 1) % selectedIds.length)
-                : 0;
-            const maxExtra = Math.max(1, remainder);
-            const rawValue = window.EmsSelect.getValue('extra_questions_category');
-            const selectedValues = Array.isArray(rawValue) ? rawValue : (rawValue ? [rawValue] : []);
-            const normalized = applyExtraCategorySelectionRules(selectedValues, maxExtra, selectedIds);
-
-            state.extraQuestionsCategoryIds = normalized;
-            syncExtraQuestionsHidden();
-
-            state.isSyncingExtraQuestions = true;
-            try {
-                refreshExtraQuestionsDropdownOptions(maxExtra);
-            } finally {
-                state.isSyncingExtraQuestions = false;
-            }
-
-            const distribution = computeFixedCategoryDistribution();
-            renderExtraQuestionsAllocations(distribution);
-            renderFixedDistributionListOnly();
-            updateConfigPreview();
-            updateWorkflowAndSnapshot();
-            updateQuestionBankCards();
-        });
-
-        state.extraQuestionsSelectBound = true;
-    }
-
-    function buildExtraQuestionsOptionsHtml() {
-        const selectedIds = [...state.selectedCategories];
-        const visibleIds = selectedIds.filter((categoryId) => isCategoryVisibleInDropdown(
-            categoryId,
-            state.extraQuestionsCategoryIds,
-            state.config.categories
-        ));
-
-        return visibleIds
-            .map((categoryId) => {
-                const category = getCategoryById(categoryId);
-                return category
-                    ? buildCategoryOptionMarkup(
-                        category,
-                        state.config.categories,
-                        state.extraQuestionsCategoryIds.includes(categoryId)
-                    )
-                    : '';
-            })
-            .join('');
-    }
-
-    function refreshExtraQuestionsDropdownOptions(maxExtra) {
-        const html = buildExtraQuestionsOptionsHtml();
-        const values = state.extraQuestionsCategoryIds.slice();
-        const limit = Math.max(1, maxExtra);
-
-        refs.extraQuestionsCategory.dataset.maxItems = String(limit);
-
-        if (window.EmsSelect && typeof window.EmsSelect.replaceOptions === 'function') {
-            const prevInstance = window.EmsSelect.get('extra_questions_category');
-            const wasOpen = prevInstance ? prevInstance.isOpen : false;
-
-            window.EmsSelect.replaceOptions('extra_questions_category', html, values, limit);
-
-            const newInstance = window.EmsSelect.get('extra_questions_category');
-            const isComplete = limit > 0 && values.length >= limit;
-            if (newInstance && wasOpen && !isComplete) {
-                newInstance.open();
-            }
-        } else {
-            refs.extraQuestionsCategory.innerHTML = html;
-        }
-    }
-
-    function renderExtraQuestionsCategorySelect(distribution, options = {}) {
-        const selectedIds = [...state.selectedCategories];
-        const optionsKey = getExtraQuestionsOptionsKey(selectedIds, distribution.remainder);
-        const maxExtra = Math.max(1, distribution.remainder);
-        const forceRefresh = options.forceOptionsRefresh === true;
-
-        if (refs.extraQuestionsLabel) {
-            refs.extraQuestionsLabel.textContent = distribution.remainder > 1
-                ? `Categories for Extra Questions (${distribution.remainder} max)`
-                : 'Category for Extra Questions';
-        }
-        if (refs.extraQuestionsHelp) {
-            refs.extraQuestionsHelp.textContent = distribution.remainder > 1
-                ? `Select up to ${distribution.remainder} categories. Allocate the extra questions manually if fewer than ${distribution.remainder} categories are chosen.`
-                : 'The remainder question will be assigned to this category.';
-        }
-
-        state.extraQuestionsCategoryIds = applyExtraCategorySelectionRules(
-            state.extraQuestionsCategoryIds,
-            maxExtra,
-            selectedIds
-        );
-
-        state.isSyncingExtraQuestions = true;
-
-        try {
-            if (forceRefresh || state.extraQuestionsOptionsKey !== optionsKey) {
-                state.extraQuestionsOptionsKey = optionsKey;
-                normalizeExtraQuestionCategoryIds(selectedIds, distribution.remainder);
-            }
-
-            state.extraQuestionsCategoryIds = applyExtraCategorySelectionRules(
-                state.extraQuestionsCategoryIds,
-                maxExtra,
-                selectedIds
-            );
-
-            refreshExtraQuestionsDropdownOptions(maxExtra);
-            syncExtraQuestionsHidden();
-        } finally {
-            state.isSyncingExtraQuestions = false;
-        }
-    }
-
-    function renderFixedDistributionListOnly() {
-        // Summary list removed — inputs are the source of truth.
-    }
-
-    function renderExtraQuestionsAllocations(distribution) {
-        if (!refs.extraQuestionsAllocationsWrap || !refs.extraQuestionsAllocationList) {
-            return;
-        }
-
-        if (!refs.fixCategoryQuestions?.checked || distribution.selectedCount === 0) {
-            refs.extraQuestionsAllocationsWrap.hidden = true;
-            refs.extraQuestionsAllocationList.innerHTML = '';
-            refs.extraQuestionsAllocationList.dataset.structureKey = '';
-            return;
-        }
-
-        refs.extraQuestionsAllocationsWrap.hidden = false;
-        refs.extraQuestionsAllocationsWrap.classList.toggle(
-            'is-invalid',
-            !distribution.isComplete
-        );
-
-        if (refs.allocatedCount) {
-            refs.allocatedCount.textContent = String(distribution.totalAllocated);
-        }
-        if (refs.remainingCount) {
-            refs.remainingCount.textContent = String(distribution.totalQuestions);
-        }
-
-        const minAllowed = distribution.minPerCategory;
-        const maxAllowed = distribution.maxPerCategory;
-        const structureKey = `${distribution.rows.map((row) => row.categoryId).join(',')}|${minAllowed}|${maxAllowed}`;
-        const allocationsHtml = distribution.rows.map((row) => {
-            const categoryName = escapeHtml(getCategoryLabelById(row.categoryId));
-            const count = Math.max(
-                minAllowed,
-                toInt(state.extraQuestionsAllocations[String(row.categoryId)], minAllowed)
-            );
-            return `
-                <div>
-                    <label class="exam-label">${categoryName}</label>
-                    <input
-                        type="number"
-                        class="panel-input category-question-count-input"
-                        data-category-id="${escapeHtml(String(row.categoryId))}"
-                        value="${count}"
-                        min="${minAllowed}"
-                        max="${maxAllowed}"
-                        step="1"
-                    >
-                </div>
-            `;
-        }).join('');
-
-        if (refs.extraQuestionsAllocationList.dataset.structureKey !== structureKey) {
-            refs.extraQuestionsAllocationList.innerHTML = allocationsHtml;
-            refs.extraQuestionsAllocationList.dataset.structureKey = structureKey;
-
-            refs.extraQuestionsAllocationList.querySelectorAll('.category-question-count-input').forEach((input) => {
-                input.addEventListener('input', (event) => {
-                    const cid = String(event.target.dataset.categoryId || '');
-                    const fieldMin = Math.max(0, toInt(event.target.getAttribute('min'), minAllowed));
-                    const fieldMax = Math.max(fieldMin, toInt(event.target.getAttribute('max'), maxAllowed));
-                    let nextValue = toInt(event.target.value, fieldMin);
-                    if (Number.isNaN(nextValue) || nextValue < fieldMin) {
-                        nextValue = fieldMin;
-                    }
-                    if (nextValue > fieldMax) {
-                        nextValue = fieldMax;
-                    }
-                    event.target.value = String(nextValue);
-                    state.extraQuestionsAllocations[cid] = nextValue;
-                    syncExtraQuestionsAllocations();
-                    updateAll();
-                });
-            });
-        } else {
-            refs.extraQuestionsAllocationList.querySelectorAll('.category-question-count-input').forEach((input) => {
-                input.setAttribute('min', String(minAllowed));
-                input.setAttribute('max', String(maxAllowed));
-                if (document.activeElement === input) {
-                    return;
-                }
-                const cid = String(input.dataset.categoryId || '');
-                const val = Math.max(
-                    minAllowed,
-                    toInt(state.extraQuestionsAllocations[cid], minAllowed)
-                );
-                if (String(input.value) !== String(val)) {
-                    input.value = String(val);
-                }
-            });
-        }
-
-        syncExtraQuestionsAllocations();
-    }
-
-    function renderFixedCategoryDistribution() {
-        if (!refs.fixCategoryQuestions.checked || state.selectedCategories.size === 0) {
-            refs.fixedDistributionCard.hidden = true;
-            if (refs.fixedDistributionList) {
-                refs.fixedDistributionList.innerHTML = '';
-            }
-            if (refs.extraQuestionsWrap) {
-                refs.extraQuestionsWrap.hidden = true;
-            }
-            if (refs.extraQuestionsAllocationsWrap) {
-                refs.extraQuestionsAllocationsWrap.hidden = true;
-            }
-            state.extraQuestionsOptionsKey = '';
-            state.categoryQuestionCountsKey = '';
-            return;
-        }
-
-        const distribution = computeFixedCategoryDistribution();
-        refs.fixedDistributionCard.hidden = false;
-
-        let helperText = `Set how many questions each category contributes. Totals must equal ${distribution.totalQuestions}.`;
-        helperText += ` Equally distributed with a minimum of ${distribution.minPerCategory} question(s) per category`;
-        if (distribution.remainder > 0) {
-            helperText += ` (leftover +1 from the first category onward)`;
-        }
-        helperText += '.';
-        refs.fixedDistributionHelper.textContent = helperText;
-
-        if (refs.extraQuestionsWrap) {
-            refs.extraQuestionsWrap.hidden = true;
-        }
-
-        renderExtraQuestionsAllocations(distribution);
-    }
-
-    function updateConfigPreview() {
-        const totalQuestions = Math.max(1, toInt(refs.totalQuestions.value, 1));
-        const usesQuestionPool = isQuestionPoolEnabled();
-        const maximumQuestions = toInt(refs.maximumQuestions?.value, 0);
-        const selectedCount = state.selectedCategories.size;
-        const paperSets = Math.max(1, toInt(refs.paperSets.value, 1));
-        const hasFixedPaperSets = Boolean(refs.fixedPaperSet?.checked);
-        const totalMarks = Math.max(0, toInt(refs.totalMarks.value, 0));
-        const passingMarks = Math.max(0, toInt(refs.passingMarks.value, 0));
-        const fixedPerCategory = refs.fixCategoryQuestions.checked;
-        const fixedMarksPerCategory = Boolean(refs.fixCategoryMarks?.checked);
-        const perCategoryTarget = computeCategoryTarget();
-        const distribution = state.config.distributionTypes.find((item) => item.id === state.selectedDistributionType);
-        const marksCalculation = computeMarksCalculationState();
-        const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
-        const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
-        const formatLabel = getSelectedExamFormatLabels().join(', ') || '-';
-        const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
-        const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
-        const scheduleTypeLabel = getScheduleTypeById(scheduleType)?.label || '-';
-        const attemptLimitLabel = getAttemptLimitTypeById(attemptLimitType)?.label || '-';
-        const scheduleStartAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
-        const scheduleEndAt = cleanText(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
-        const scheduleStartTs = parseDateTimeValue(scheduleStartAt);
-        const scheduleEndTs = parseDateTimeValue(scheduleEndAt);
-        const fixedAttemptCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
-
-        refs.paperSets.min = '1';
-        refs.paperSets.max = String(totalQuestions);
-        refs.paperSetsHelper.textContent = `Allowed range: 1 to ${totalQuestions} set(s).`;
-
-        const fixedDistribution = computeFixedCategoryDistribution();
-        const fixedInfo = fixedPerCategory
-            ? (
-                fixedDistribution.selectedCount > 0
-                    ? `Fixed allocation: ${fixedDistribution.base} each${fixedDistribution.remainder ? ` + ${fixedDistribution.remainder} extra distributed among ${fixedDistribution.extraCategoryIds.map((id) => getCategoryLabelById(id)).join(', ')}` : ''}`
-                    : 'Fixed allocation enabled. Select categories to calculate distribution.'
-            )
-            : 'Fixed allocation disabled';
-        const categoryMarksDistribution = computeFixedCategoryMarksDistribution();
-        const categoryMarksInfo = fixedMarksPerCategory
-            ? (
-                categoryMarksDistribution.selectedCount > 0
-                    ? `Category marks: ${categoryMarksDistribution.totalAllocated} / ${categoryMarksDistribution.totalMarks} allocated`
-                    : 'Category marks enabled. Select categories to calculate distribution.'
-            )
-            : 'Fixed category marks disabled';
-        const marksInfo = !marksCalculation.fixEnabled
-            ? 'Flexible marks per question'
-            : (
-                !marksCalculation.hasSelectedMark
-                    ? 'Fixed marks enabled. Select exactly one mark value.'
-                    : (
-                        marksCalculation.isValid
-                            ? `Fixed marks valid (${marksCalculation.totalQuestions} x ${marksCalculation.selectedMark} = ${marksCalculation.totalMarks}).`
-                            : `Fixed marks mismatch (${marksCalculation.totalQuestions} x ${marksCalculation.selectedMark} should be ${marksCalculation.expectedTotalMarks}).`
-                    )
-            );
-
-        refs.configPreviewList.innerHTML = [
-            `<li>Total questions planned: <strong>${totalQuestions}</strong></li>`,
-            `<li>Question pool: <strong>${usesQuestionPool ? `${maximumQuestions || '-'} maximum` : 'Disabled'}</strong></li>`,
-            `<li>Distribution mode: <strong>${escapeHtml(distribution?.label || '-')}</strong></li>`,
-            `<li>Exam format: <strong>${escapeHtml(formatLabel)}</strong></li>`,
-            `<li>Timer: <strong>${timerEnabled ? `${durationMinutes} minute(s)` : 'Disabled'}</strong></li>`,
-            `<li>Schedule type: <strong>${escapeHtml(scheduleTypeLabel)}</strong></li>`,
-            `<li>Attempt limit: <strong>${escapeHtml(attemptLimitType === 'fixed_count' ? `${attemptLimitLabel} (${fixedAttemptCount})` : attemptLimitLabel)}</strong></li>`,
-            `<li>Paper sets: <strong>${hasFixedPaperSets ? paperSets : 'Disabled'}</strong></li>`,
-            `<li>Categories selected: <strong>${selectedCount}</strong></li>`,
-            `<li>Passing threshold: <strong>${passingMarks}</strong> of ${totalMarks} marks</li>`,
-            `<li>${escapeHtml(marksInfo)}</li>`,
-            `<li>${escapeHtml(fixedInfo)}</li>`,
-            `<li>${escapeHtml(categoryMarksInfo)}</li>`,
-        ].join('');
-
-        const validations = [];
-        validations.push(
-            !usesQuestionPool || maximumQuestions > totalQuestions
-                ? '<li class="status-ok">Question-pool size is valid.</li>'
-                : '<li class="status-error">Maximum questions must exceed total questions.</li>'
-        );
-        validations.push(
-            selectedCount > 0
-                ? '<li class="status-ok">At least one question category is selected.</li>'
-                : '<li class="status-warning">Select at least one question category.</li>'
-        );
-        validations.push(
-            !hasFixedPaperSets || (paperSets >= 1 && paperSets <= totalQuestions)
-                ? '<li class="status-ok">Paper sets are within allowed limits.</li>'
-                : '<li class="status-error">Paper sets must be between 1 and total questions.</li>'
-        );
-        validations.push(
-            passingMarks <= totalMarks
-                ? '<li class="status-ok">Passing marks do not exceed total marks.</li>'
-                : '<li class="status-error">Passing marks cannot exceed total marks.</li>'
-        );
-        validations.push(
-            timerEnabled && durationMinutes < 1
-                ? '<li class="status-error">Set a valid exam duration when timer is enabled.</li>'
-                : '<li class="status-ok">Timer configuration is valid.</li>'
-        );
-        validations.push(
-            state.selectedExamFormat
-                ? '<li class="status-ok">Exam format is selected.</li>'
-                : '<li class="status-error">Select one exam format.</li>'
-        );
-        if (scheduleType === 'fixed_window') {
-            if (!scheduleStartAt || !scheduleEndAt) {
-                validations.push('<li class="status-warning">Set both schedule start and end date-time for fixed window access.</li>');
-            } else if (scheduleStartTs === null || scheduleEndTs === null) {
-                validations.push('<li class="status-error">Schedule date-time values are invalid.</li>');
-            } else if (scheduleEndTs <= scheduleStartTs) {
-                validations.push('<li class="status-error">Schedule end date-time must be after start date-time.</li>');
-            } else {
-                validations.push('<li class="status-ok">Schedule window is valid.</li>');
-            }
-        } else {
-            validations.push('<li class="status-ok">Any-time schedule access is enabled.</li>');
-        }
-        if (attemptLimitType === 'fixed_count') {
-            validations.push(
-                fixedAttemptCount >= 2
-                    ? '<li class="status-ok">Fixed attempt limit is configured.</li>'
-                    : '<li class="status-error">Fixed attempts must be at least 2.</li>'
-            );
-        } else if (attemptLimitType === 'once') {
-            validations.push('<li class="status-ok">Single-attempt policy is enabled.</li>');
-        } else {
-            validations.push('<li class="status-ok">Unlimited attempts are allowed.</li>');
-        }
-        if (marksCalculation.fixEnabled) {
-            if (!marksCalculation.hasSelectedMark) {
-                validations.push('<li class="status-error">Select exactly one mark value for fixed marks mode.</li>');
-            } else if (marksCalculation.isValid) {
-                validations.push('<li class="status-ok">Fixed marks calculation matches total questions and total marks.</li>');
-            } else {
-                validations.push(`<li class="status-error">Fixed marks mismatch: ${marksCalculation.totalQuestions} x ${marksCalculation.selectedMark} = ${marksCalculation.expectedTotalMarks}, but Total Marks is ${marksCalculation.totalMarks}.</li>`);
-            }
-        }
-        if (fixedPerCategory) {
-            if (fixedDistribution.isComplete) {
-                validations.push('<li class="status-ok">Category question counts match the exam total.</li>');
-            } else if (fixedDistribution.totalAllocated < fixedDistribution.totalQuestions) {
-                validations.push(`<li class="status-warning">Allocate exactly ${fixedDistribution.totalQuestions} questions across categories. Currently allocated: ${fixedDistribution.totalAllocated}.</li>`);
-            } else {
-                validations.push(`<li class="status-error">Category question counts (${fixedDistribution.totalAllocated}) exceed the exam total (${fixedDistribution.totalQuestions}).</li>`);
-            }
-        }
-        if (fixedMarksPerCategory) {
-            if (categoryMarksDistribution.isComplete) {
-                validations.push('<li class="status-ok">Category marks match the exam total.</li>');
-            } else if (categoryMarksDistribution.totalAllocated < categoryMarksDistribution.totalMarks) {
-                validations.push(`<li class="status-warning">Allocate exactly ${categoryMarksDistribution.totalMarks} marks across categories. Currently allocated: ${categoryMarksDistribution.totalAllocated}.</li>`);
-            } else {
-                validations.push(`<li class="status-error">Category marks (${categoryMarksDistribution.totalAllocated}) exceed the exam total (${categoryMarksDistribution.totalMarks}).</li>`);
-            }
-        }
-
-        refs.configValidationList.innerHTML = validations.join('');
-    }
-
-    function shuffleArray(items) {
-        const copy = [...items];
-        for (let index = copy.length - 1; index > 0; index -= 1) {
-            const swapIndex = Math.floor(Math.random() * (index + 1));
-            [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
-        }
-        return copy;
-    }
-
-    function showQuestionSelectionWarning(message) {
-        if (window.Swal && typeof window.Swal.fire === 'function') {
-            window.Swal.fire({
-                icon: 'warning',
-                title: 'Insufficient Questions',
-                text: message,
-            });
-            return;
-        }
-
-        if (window.EmsToast && typeof window.EmsToast.warning === 'function') {
-            window.EmsToast.warning(message);
-            return;
-        }
-
-        if (refs.questionBankFeedback) {
-            refs.questionBankFeedback.textContent = message;
-            refs.questionBankFeedback.classList.add('is-invalid');
-        }
-    }
-
-    async function randomSelectCategory(categoryId) {
-        if (!isManualQuestionSelectionEnabled()) {
-            showQuestionSelectionWarning('Enable Fixed Questions or Question Pool before selecting questions.');
-            return;
-        }
-
-        const limits = getQuestionSelectionLimits();
-        const totalQuestionsAllowed = limits.max;
-        const fixedPerCategory = refs.fixCategoryQuestions.checked && !isQuestionPoolEnabled();
-        const endpoints = window.examCreateConfig?.endpoints || {};
-        const endpoint = endpoints.questionBankRandom || endpoints.questionBank;
-        if (!endpoint) {
-            showQuestionSelectionWarning('Random selection endpoint is unavailable.');
-            return;
-        }
-
-        let categoryAllowedLimit = totalQuestionsAllowed;
-        if (fixedPerCategory) {
-            const fixedDistribution = computeFixedCategoryDistribution();
-            const row = fixedDistribution.rows.find((r) => String(r.categoryId) === String(categoryId));
-            categoryAllowedLimit = row ? row.count : 0;
-        } else {
-            const selectedOutsideCategory = [...state.selectedQuestions].filter((questionId) => {
-                const question = getQuestionById(questionId);
-                return question && !questionMatchesSelectedCategory(question, categoryId);
-            }).length;
-            categoryAllowedLimit = Math.max(0, totalQuestionsAllowed - selectedOutsideCategory);
-        }
-
-        const marks = [...state.selectedMarks].join(',');
-        const formats = [...state.selectedExamFormat].join(',');
-        const url = new URL(endpoint, window.location.origin);
-        url.searchParams.set('categories', String(categoryId));
-        if (marks) url.searchParams.set('marks', marks);
-        if (formats) url.searchParams.set('formats', formats);
-        url.searchParams.set('count', String(categoryAllowedLimit));
-
-        try {
-            const response = await fetch(url, {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
-            }
-            const payload = await response.json();
-            const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-            if (rows.length < categoryAllowedLimit) {
-                showQuestionSelectionWarning(
-                    `Only ${rows.length} matching question(s) are available in ${getCategoryLabelById(categoryId)}; ${categoryAllowedLimit} are required.`
-                );
-                return;
-            }
-
-            [...state.selectedQuestions].forEach((questionId) => {
-                const question = getQuestionById(questionId);
-                if (question && questionMatchesSelectedCategory(question, categoryId)) {
-                    state.selectedQuestions.delete(questionId);
-                }
-            });
-
-            rows.forEach((question) => {
-                rememberSelectedQuestion(question);
-                state.selectedQuestions.add(question.id);
-            });
-            mergeQuestionBankRows(rows, { append: true });
-            refs.questionBankFeedback?.classList.remove('is-invalid');
-            updateQuestionBankCards();
-            updateWorkflowAndSnapshot();
-        } catch (err) {
-            console.error('Category random select failed', err);
-            showQuestionSelectionWarning('Could not complete random selection. Please try again.');
-        }
-    }
-
-    async function randomSelectGlobal() {
-        if (!isManualQuestionSelectionEnabled()) {
-            showQuestionSelectionWarning('Enable Fixed Questions or Question Pool before selecting questions.');
-            return;
-        }
-
-        const limits = getQuestionSelectionLimits();
-        const totalQuestionsAllowed = limits.max;
-        const fixedPerCategory = refs.fixCategoryQuestions.checked && !isQuestionPoolEnabled();
-        const previousSelection = new Set(state.selectedQuestions);
-        const endpoints = window.examCreateConfig?.endpoints || {};
-        const endpoint = endpoints.questionBankRandom || endpoints.questionBank;
-        if (!endpoint) {
-            showQuestionSelectionWarning('Random selection endpoint is unavailable.');
-            return;
-        }
-
-        const categoryIds = [...state.selectedCategories].join(',');
-        const marks = [...state.selectedMarks].join(',');
-        const formats = [...state.selectedExamFormat].join(',');
-        const url = new URL(endpoint, window.location.origin);
-        if (categoryIds) url.searchParams.set('categories', categoryIds);
-        if (marks) url.searchParams.set('marks', marks);
-        if (formats) url.searchParams.set('formats', formats);
-
-        let categoryQuotas = {};
-        if (fixedPerCategory) {
-            const fixedDistribution = computeFixedCategoryDistribution();
-            categoryQuotas = Object.fromEntries(
-                fixedDistribution.rows.map((row) => [String(row.categoryId), row.count])
-            );
-            url.searchParams.set('count', String(fixedDistribution.rows.reduce((sum, row) => sum + row.count, 0)));
-            url.searchParams.set('category_quotas', JSON.stringify(categoryQuotas));
-        } else {
-            url.searchParams.set('count', String(totalQuestionsAllowed));
-        }
-
-        try {
-            const response = await fetch(url, {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
-            }
-            const payload = await response.json();
-            const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-            const required = fixedPerCategory
-                ? Object.values(categoryQuotas).reduce((sum, n) => sum + Number(n || 0), 0)
-                : totalQuestionsAllowed;
-            if (rows.length < required) {
-                state.selectedQuestions = previousSelection;
-                showQuestionSelectionWarning(
-                    `Only ${rows.length} matching question(s) are available; ${required} are required.`
-                );
-                return;
-            }
-
-            state.selectedQuestions.clear();
-            rows.forEach((question) => {
-                rememberSelectedQuestion(question);
-                state.selectedQuestions.add(question.id);
-            });
-            mergeQuestionBankRows(rows, { append: true });
-            refs.questionBankFeedback?.classList.remove('is-invalid');
-            updateQuestionBankCards();
-            updateWorkflowAndSnapshot();
-        } catch (err) {
-            state.selectedQuestions = previousSelection;
-            console.error('Random select failed', err);
-            showQuestionSelectionWarning('Could not complete random selection. Please try again.');
-        }
-    }
-
-    function updateQuestionBankCards() {
-        const selectedCategoryIds = [...state.selectedCategories].map(String);
-        const hasMarksFilter = state.selectedMarks.size > 0;
-        const limits = getQuestionSelectionLimits();
+    function renderQuestionBankCardsForPart(partState) {
+        const root = partState.root;
+        const cardsEl = root.querySelector('[data-question-category-cards]');
+        const feedbackEl = root.querySelector('[data-question-bank-feedback]');
+        if (!cardsEl || !feedbackEl) return;
+
+        const selectedCategoryIds = [...partState.selectedCategories].map(String);
+        const hasMarksFilter = partState.selectedMarks.size > 0;
+        const limits = getQuestionSelectionLimitsForPart(partState);
         const selectionEnabled = !limits.viewOnly;
         const totalQuestionsAllowed = limits.max;
-        const fixedPerCategory = refs.fixCategoryQuestions.checked && !isQuestionPoolEnabled();
+        const fixedPerCategory = Boolean(partField(root, 'fix_category_questions')?.checked) && !isQuestionPoolEnabledForPart(partState);
 
-        pruneSelectedQuestionsToVisibleBank();
-        updateQuestionSelectionControlsVisibility();
-        const shortages = computeQuestionShortages();
-        renderQuestionShortages(shortages);
+        pruneSelectedQuestionsToVisibleBankForPart(partState);
+        updateQuestionSelectionControlsVisibilityForPart(partState);
+        renderQuestionShortagesForPart(partState);
+        syncPartQuestionIdsHidden(partState);
 
         let fixedDistribution = { rows: [] };
-        if (fixedPerCategory) {
-            fixedDistribution = computeFixedCategoryDistribution();
-        }
+        if (fixedPerCategory) fixedDistribution = computeFixedCategoryDistributionForPart(partState);
 
-        const bankWithSelected = [...state.questionBank];
-        Object.values(state.selectedQuestionCache || {}).forEach((question) => {
-            if (!bankWithSelected.some((item) => String(item.id) === String(question.id))) {
-                bankWithSelected.push(question);
-            }
+        const bankWithSelected = [...partState.questionBank];
+        Object.values(partState.selectedQuestionCache || {}).forEach((question) => {
+            if (!bankWithSelected.some((item) => String(item.id) === String(question.id))) bankWithSelected.push(question);
         });
 
         const byCategory = new Map();
         for (const q of bankWithSelected) {
             const targetCategoryId = resolveQuestionDisplayCategory(q, selectedCategoryIds);
-            if (!targetCategoryId) {
-                continue;
-            }
-            if (!byCategory.has(targetCategoryId)) {
-                byCategory.set(targetCategoryId, []);
-            }
+            if (!targetCategoryId) continue;
+            if (!byCategory.has(targetCategoryId)) byCategory.set(targetCategoryId, []);
             byCategory.get(targetCategoryId).push(q);
         }
 
-        const totalSelectedGlobal = state.selectedQuestions.size;
-        if (refs.globalSelectedCount) refs.globalSelectedCount.textContent = totalSelectedGlobal;
-        if (refs.globalAllowedCount) {
-            refs.globalAllowedCount.textContent = selectionEnabled ? String(totalQuestionsAllowed) : '0';
-        }
+        const totalSelectedGlobal = partState.selectedQuestions.size;
+        const globalSelectedCountEl = root.querySelector('[data-field-ui="global_selected_count"]');
+        const globalAllowedCountEl = root.querySelector('[data-field-ui="global_allowed_count"]');
+        if (globalSelectedCountEl) globalSelectedCountEl.textContent = totalSelectedGlobal;
+        if (globalAllowedCountEl) globalAllowedCountEl.textContent = selectionEnabled ? String(totalQuestionsAllowed) : '0';
 
         const globalLimitReached = selectionEnabled && totalSelectedGlobal >= totalQuestionsAllowed;
 
         if (!selectedCategoryIds.length) {
-            refs.questionCategoryCards.innerHTML = '';
-            refs.questionBankFeedback.textContent = 'Select categories above to load the question bank.';
-            updateQuestionBankLoadMeta();
+            cardsEl.innerHTML = '';
+            feedbackEl.textContent = 'Select categories above to load the question bank.';
+            updateQuestionBankLoadMetaForPart(partState);
             return;
         }
 
-        refs.questionCategoryCards.innerHTML = selectedCategoryIds
-            .map((categoryId) => {
-                const categoryKey = String(categoryId);
-                const categoryName = getCategoryLabelById(categoryKey);
-                const questions = byCategory.get(categoryKey) || [];
-                const expanded = state.expandedCards.has(categoryKey);
-                const serverCount = Number(state.categoryCounts[categoryKey] ?? 0);
-                const loadState = state.categoryLoadState[categoryKey] || { status: 'idle', has_more: false };
-                const loadedCount = questions.length;
+        cardsEl.innerHTML = selectedCategoryIds.map((categoryId) => {
+            const categoryKey = String(categoryId);
+            const categoryName = getCategoryLabelById(categoryKey);
+            const questions = byCategory.get(categoryKey) || [];
+            const expanded = partState.expandedCards.has(categoryKey);
+            const serverCount = Number(partState.categoryCounts[categoryKey] ?? 0);
+            const loadState = partState.categoryLoadState[categoryKey] || { status: 'idle', has_more: false };
+            const loadedCount = questions.length;
 
-                let categoryAllowedLimit = totalQuestionsAllowed;
-                if (fixedPerCategory) {
-                    const row = fixedDistribution.rows.find((r) => String(r.categoryId) === categoryKey);
-                    categoryAllowedLimit = row ? row.count : 0;
-                }
+            let categoryAllowedLimit = totalQuestionsAllowed;
+            if (fixedPerCategory) {
+                const row = fixedDistribution.rows.find((r) => String(r.categoryId) === categoryKey);
+                categoryAllowedLimit = row ? row.count : 0;
+            }
 
-                const selectedInCategory = [...state.selectedQuestions].filter((questionId) => {
-                    const question = getQuestionById(questionId);
-                    return question && questionMatchesSelectedCategory(question, categoryKey);
-                }).length;
-                const categoryLimitReached = selectionEnabled && fixedPerCategory
-                    ? selectedInCategory >= categoryAllowedLimit
-                    : false;
+            const selectedInCategory = [...partState.selectedQuestions].filter((questionId) => {
+                const question = getQuestionByIdForPart(partState, questionId);
+                return question && questionMatchesSelectedCategory(question, categoryKey);
+            }).length;
+            const categoryLimitReached = selectionEnabled && fixedPerCategory ? selectedInCategory >= categoryAllowedLimit : false;
 
-                let categorySelectionText = '';
-                if (selectionEnabled) {
-                    categorySelectionText = fixedPerCategory
-                        ? `<span class="question-accordion__selection-count">${selectedInCategory}/${categoryAllowedLimit} selected</span>`
-                        : `<span class="question-accordion__selection-count">${selectedInCategory} picked</span>`;
-                }
+            let categorySelectionText = '';
+            if (selectionEnabled) {
+                categorySelectionText = fixedPerCategory
+                    ? `<span class="question-accordion__selection-count">${selectedInCategory}/${categoryAllowedLimit} selected</span>`
+                    : `<span class="question-accordion__selection-count">${selectedInCategory} picked</span>`;
+            }
 
-                let questionsList = '';
-                if (loadState.status === 'loading') {
-                    questionsList = '<li class="question-accordion__empty">Loading questions...</li>';
-                } else if (loadState.status === 'idle') {
-                    questionsList = `
-                        <li class="question-accordion__empty">
-                            ${serverCount} matching question(s) available.
-                            <div style="margin-top:0.75rem;">
-                                <button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">
-                                    Load questions
-                                </button>
-                            </div>
-                        </li>
-                    `;
-                } else if (loadState.status === 'error') {
-                    questionsList = `
-                        <li class="question-accordion__empty">
-                            Could not load questions.
-                            <div style="margin-top:0.75rem;">
-                                <button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">
-                                    Retry
-                                </button>
-                            </div>
-                        </li>
-                    `;
-                } else if (loadedCount === 0) {
-                    questionsList = `<li class="question-accordion__empty">No questions found for this category${hasMarksFilter ? ' matching the selected marks filter' : ''}.</li>`;
-                } else {
-                    questionsList = questions
-                        .map((question) => {
-                            const isSelected = state.selectedQuestions.has(question.id)
-                                || state.selectedQuestions.has(String(question.id))
-                                || state.selectedQuestions.has(Number(question.id));
-                            const disabled = selectionEnabled && !isSelected && (globalLimitReached || categoryLimitReached);
-                            const diffBadge = question.difficulty
-                                ? `<span class="question-accordion__badge question-accordion__badge--${escapeHtml(question.difficulty)}">${escapeHtml(question.difficulty)}</span>`
-                                : '';
-                            const marksBadge = question.marks
-                                ? `<span class="question-accordion__marks">${Number(question.marks)} mark${Number(question.marks) !== 1 ? 's' : ''}</span>`
-                                : '';
-                            const typeBadge = question.type
-                                ? `<span class="question-accordion__type">${escapeHtml(String(question.type).replace(/_/g, ' '))}</span>`
-                                : '';
+            let questionsList = '';
+            if (loadState.status === 'loading') {
+                questionsList = '<li class="question-accordion__empty">Loading questions...</li>';
+            } else if (loadState.status === 'idle') {
+                questionsList = `
+                    <li class="question-accordion__empty">
+                        ${serverCount} matching question(s) available.
+                        <div style="margin-top:0.75rem;">
+                            <button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">Load questions</button>
+                        </div>
+                    </li>
+                `;
+            } else if (loadState.status === 'error') {
+                questionsList = `
+                    <li class="question-accordion__empty">
+                        Could not load questions.
+                        <div style="margin-top:0.75rem;">
+                            <button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">Retry</button>
+                        </div>
+                    </li>
+                `;
+            } else if (loadedCount === 0) {
+                questionsList = `<li class="question-accordion__empty">No questions found for this category${hasMarksFilter ? ' matching the selected marks filter' : ''}.</li>`;
+            } else {
+                questionsList = questions.map((question) => {
+                    const isSelected = partState.selectedQuestions.has(question.id)
+                        || partState.selectedQuestions.has(String(question.id))
+                        || partState.selectedQuestions.has(Number(question.id));
+                    const disabled = selectionEnabled && !isSelected && (globalLimitReached || categoryLimitReached);
+                    const diffBadge = question.difficulty
+                        ? `<span class="question-accordion__badge question-accordion__badge--${escapeHtml(question.difficulty)}">${escapeHtml(question.difficulty)}</span>`
+                        : '';
+                    const marksBadge = question.marks
+                        ? `<span class="question-accordion__marks">${Number(question.marks)} mark${Number(question.marks) !== 1 ? 's' : ''}</span>`
+                        : '';
+                    const typeBadge = question.type
+                        ? `<span class="question-accordion__type">${escapeHtml(String(question.type).replace(/_/g, ' '))}</span>`
+                        : '';
 
-                            if (!selectionEnabled) {
-                                return `
-                                    <li class="question-accordion__item question-accordion__item--readonly">
-                                        <div class="question-accordion__body">
-                                            <span class="question-accordion__text">${escapeHtml(question.text)}</span>
-                                            <div class="question-accordion__meta">${diffBadge}${marksBadge}${typeBadge}</div>
-                                        </div>
-                                    </li>
-                                `;
-                            }
-
-                            return `
-                                <li class="question-accordion__item ${isSelected ? 'is-selected' : ''}">
-                                    <label class="question-checkbox-label ${disabled ? 'is-disabled' : ''}">
-                                        <input type="checkbox" class="question-checkbox" data-question-id="${question.id}" data-category-id="${escapeHtml(categoryKey)}" ${isSelected ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
-                                        <div class="question-accordion__body">
-                                            <span class="question-accordion__text">${escapeHtml(question.text)}</span>
-                                            <div class="question-accordion__meta">${diffBadge}${marksBadge}${typeBadge}</div>
-                                        </div>
-                                    </label>
-                                </li>
-                            `;
-                        })
-                        .join('');
-
-                    if (loadState.has_more) {
-                        questionsList += `
-                            <li class="question-accordion__empty">
-                                <button type="button" class="panel-button-secondary panel-button--small" data-action="load-more-category-questions" data-category-id="${escapeHtml(categoryKey)}">
-                                    Load more (${loadedCount} of ${serverCount})
-                                </button>
+                    if (!selectionEnabled) {
+                        return `
+                            <li class="question-accordion__item question-accordion__item--readonly">
+                                <div class="question-accordion__body">
+                                    <span class="question-accordion__text">${escapeHtml(question.text)}</span>
+                                    <div class="question-accordion__meta">${diffBadge}${marksBadge}${typeBadge}</div>
+                                </div>
                             </li>
                         `;
                     }
-                }
 
-                const randomSelectHtml = selectionEnabled && fixedPerCategory
-                    ? `<button type="button" class="panel-button-secondary panel-button--small" data-action="random-select-category" data-category-id="${escapeHtml(categoryKey)}">Random Select</button>`
-                    : '';
-
-                const loadBtnHtml = loadState.status === 'idle' || loadState.status === 'error'
-                    ? `<button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">Load questions</button>`
-                    : '';
-
-                return `
-                    <article class="question-accordion" data-category-accordion="${escapeHtml(categoryKey)}" data-expanded="${expanded ? 'true' : 'false'}">
-                        <button
-                            type="button"
-                            class="question-accordion__header"
-                            data-action="toggle-expand"
-                            data-category-id="${escapeHtml(categoryKey)}"
-                            aria-expanded="${expanded ? 'true' : 'false'}"
-                        >
-                            <span class="question-accordion__chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
-                            <span class="question-accordion__title">
-                                ${escapeHtml(categoryName)}
-                                <span class="question-accordion__count">(${serverCount} question${serverCount !== 1 ? 's' : ''})</span>
-                            </span>
-                        </button>
-
-                        <div class="question-accordion__panel" data-role="accordion-panel"${expanded ? '' : ' hidden'}>
-                            <div class="question-accordion__panel-inner">
-                                <div class="question-accordion__toolbar">
-                                    <div class="toolbar-left">${randomSelectHtml}${loadBtnHtml}</div>
-                                    <div class="toolbar-right">
-                                        ${categorySelectionText}
-                                        <button type="button" class="panel-button-secondary panel-button--small" data-action="add-question" data-category-id="${escapeHtml(categoryKey)}">+ Add Question</button>
-                                    </div>
+                    return `
+                        <li class="question-accordion__item ${isSelected ? 'is-selected' : ''}">
+                            <label class="question-checkbox-label ${disabled ? 'is-disabled' : ''}">
+                                <input type="checkbox" class="question-checkbox" data-question-id="${question.id}" data-category-id="${escapeHtml(categoryKey)}" ${isSelected ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+                                <div class="question-accordion__body">
+                                    <span class="question-accordion__text">${escapeHtml(question.text)}</span>
+                                    <div class="question-accordion__meta">${diffBadge}${marksBadge}${typeBadge}</div>
                                 </div>
-                                <ul class="question-accordion__list">${questionsList}</ul>
+                            </label>
+                        </li>
+                    `;
+                }).join('');
+
+                if (loadState.has_more) {
+                    questionsList += `
+                        <li class="question-accordion__empty">
+                            <button type="button" class="panel-button-secondary panel-button--small" data-action="load-more-category-questions" data-category-id="${escapeHtml(categoryKey)}">Load more (${loadedCount} of ${serverCount})</button>
+                        </li>
+                    `;
+                }
+            }
+
+            const randomSelectHtml = selectionEnabled && fixedPerCategory
+                ? `<button type="button" class="panel-button-secondary panel-button--small" data-action="random-select-category" data-category-id="${escapeHtml(categoryKey)}">Random Select</button>`
+                : '';
+            const loadBtnHtml = loadState.status === 'idle' || loadState.status === 'error'
+                ? `<button type="button" class="panel-button-secondary panel-button--small" data-action="load-category-questions" data-category-id="${escapeHtml(categoryKey)}">Load questions</button>`
+                : '';
+
+            return `
+                <article class="question-accordion" data-category-accordion="${escapeHtml(categoryKey)}" data-expanded="${expanded ? 'true' : 'false'}">
+                    <button type="button" class="question-accordion__header" data-action="toggle-expand" data-category-id="${escapeHtml(categoryKey)}" aria-expanded="${expanded ? 'true' : 'false'}">
+                        <span class="question-accordion__chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+                        <span class="question-accordion__title">
+                            ${escapeHtml(categoryName)}
+                            <span class="question-accordion__count">(${serverCount} question${serverCount !== 1 ? 's' : ''})</span>
+                        </span>
+                    </button>
+                    <div class="question-accordion__panel" data-role="accordion-panel"${expanded ? '' : ' hidden'}>
+                        <div class="question-accordion__panel-inner">
+                            <div class="question-accordion__toolbar">
+                                <div class="toolbar-left">${randomSelectHtml}${loadBtnHtml}</div>
+                                <div class="toolbar-right">
+                                    ${categorySelectionText}
+                                    <button type="button" class="panel-button-secondary panel-button--small" data-action="add-question" data-category-id="${escapeHtml(categoryKey)}">+ Add Question</button>
+                                </div>
                             </div>
+                            <ul class="question-accordion__list">${questionsList}</ul>
                         </div>
-                    </article>
-                `;
-            })
-            .join('');
+                    </div>
+                </article>
+            `;
+        }).join('');
 
         const modeHint = limits.viewOnly
             ? ' View-only mode: enable Fixed Questions or Question Pool to select specific questions.'
-            : (isQuestionPoolEnabled()
+            : (isQuestionPoolEnabledForPart(partState)
                 ? ` Select between ${limits.min} and ${limits.max} questions for the pool.`
                 : ` Select exactly ${limits.exact} question(s).`);
 
-        const totalAvailable = Object.values(state.categoryCounts || {}).reduce((sum, n) => sum + Number(n || 0), 0);
-        const loadedRows = state.questionBank.length;
-        refs.questionBankFeedback.textContent = (
-            `${totalAvailable} matching question(s) across ${selectedCategoryIds.length} categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}. Expand a category or click Load questions to fetch rows (${loadedRows} loaded).`
-        ) + modeHint;
-        updateQuestionBankLoadMeta();
+        const totalAvailable = Object.values(partState.categoryCounts || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+        const loadedRows = partState.questionBank.length;
+        feedbackEl.textContent = `${totalAvailable} matching question(s) across ${selectedCategoryIds.length} categor${selectedCategoryIds.length === 1 ? 'y' : 'ies'}. Expand a category or click Load questions to fetch rows (${loadedRows} loaded).${modeHint}`;
+        updateQuestionBankLoadMetaForPart(partState);
     }
 
-    let questionBankSyncTimer = null;
-    function scheduleQuestionBankSync(delayMs = 350) {
-        clearTimeout(questionBankSyncTimer);
-        questionBankSyncTimer = setTimeout(() => {
-            syncQuestionBankFromServer();
+    function handleQuestionBankClick(partState, event) {
+        const root = partState.root;
+        const bankSection = root.querySelector('[data-question-bank]');
+        if (!bankSection || !bankSection.contains(event.target)) return;
+
+        const loadCategoryBtn = event.target.closest('[data-action="load-category-questions"]');
+        const loadMoreCategoryBtn = event.target.closest('[data-action="load-more-category-questions"]');
+        const expandButton = event.target.closest('[data-action="toggle-expand"]');
+        const addButton = event.target.closest('[data-action="add-question"]');
+        const randomSelectBtn = event.target.closest('[data-action="random-select-category"]');
+
+        if (loadCategoryBtn) {
+            const categoryId = String(loadCategoryBtn.dataset.categoryId || '');
+            if (!categoryId) return;
+            partState.expandedCards.add(categoryId);
+            loadCategoryQuestionsForPart(partState, categoryId, { append: false });
+            return;
+        }
+        if (loadMoreCategoryBtn) {
+            const categoryId = String(loadMoreCategoryBtn.dataset.categoryId || '');
+            if (!categoryId) return;
+            loadCategoryQuestionsForPart(partState, categoryId, { append: true });
+            return;
+        }
+        if (expandButton) {
+            const categoryId = String(expandButton.dataset.categoryId || '');
+            if (partState.expandedCards.has(categoryId)) {
+                partState.expandedCards.delete(categoryId);
+                renderQuestionBankCardsForPart(partState);
+            } else {
+                partState.expandedCards.add(categoryId);
+                renderQuestionBankCardsForPart(partState);
+                const loadState = partState.categoryLoadState[categoryId];
+                if (!loadState || loadState.status === 'idle') {
+                    loadCategoryQuestionsForPart(partState, categoryId, { append: false });
+                }
+            }
+            return;
+        }
+        if (addButton) {
+            openAddQuestionModalForPart(partState, addButton.dataset.categoryId || '');
+            return;
+        }
+        if (randomSelectBtn) {
+            randomSelectCategoryForPart(partState, randomSelectBtn.dataset.categoryId);
+        }
+    }
+
+    function handleQuestionBankChange(partState, event) {
+        const checkbox = event.target.closest('.question-checkbox');
+        if (!checkbox) return;
+
+        const questionId = Number(checkbox.dataset.questionId);
+        if (checkbox.checked) {
+            partState.selectedQuestions.add(questionId);
+            const question = getQuestionByIdForPart(partState, questionId);
+            if (question) rememberSelectedQuestionForPart(partState, question);
+        } else {
+            partState.selectedQuestions.delete(questionId);
+            delete partState.selectedQuestionCache[String(questionId)];
+        }
+
+        renderQuestionBankCardsForPart(partState);
+        updatePartMetaSummary(partState);
+        updateExamSummary();
+        updateWorkflowAndSnapshot();
+    }
+
+    function scheduleQuestionBankSyncForPart(partState, delayMs = 350) {
+        window.clearTimeout(partState.syncTimer);
+        partState.syncTimer = window.setTimeout(() => {
+            syncQuestionBankFromServerForPart(partState);
         }, delayMs);
     }
 
-    function buildSharedQuestionBankParams() {
-        const marks = [...state.selectedMarks].join(',');
+    function buildSharedQuestionBankParamsForPart(partState) {
+        const marks = [...partState.selectedMarks].join(',');
         const formats = [...state.selectedExamFormat].join(',');
-        const keyword = cleanText(refs.questionSearch?.value || '');
+        const keyword = cleanText(partState.root.querySelector('[data-question-search-input]')?.value || '');
         return { marks, formats, keyword };
     }
 
-    function mergeQuestionBankRows(rows, { append = false, replaceCategoryId = null } = {}) {
+    function mergeQuestionBankRowsForPart(partState, rows, { append = false, replaceCategoryId = null } = {}) {
         const incoming = Array.isArray(rows) ? rows : [];
         if (replaceCategoryId) {
-            const keep = state.questionBank.filter((q) => !questionMatchesSelectedCategory(q, replaceCategoryId));
-            state.questionBank = keep.concat(incoming);
+            const keep = partState.questionBank.filter((q) => !questionMatchesSelectedCategory(q, replaceCategoryId));
+            partState.questionBank = keep.concat(incoming);
             return;
         }
         if (!append) {
-            state.questionBank = incoming.slice();
+            partState.questionBank = incoming.slice();
             return;
         }
-        const seen = new Set(state.questionBank.map((q) => String(q.id)));
+        const seen = new Set(partState.questionBank.map((q) => String(q.id)));
         incoming.forEach((question) => {
             const key = String(question.id);
-            if (seen.has(key)) {
-                return;
-            }
+            if (seen.has(key)) return;
             seen.add(key);
-            state.questionBank.push(question);
+            partState.questionBank.push(question);
         });
     }
 
-    function updateQuestionBankLoadMeta() {
-        const loaded = state.questionBank.length;
-        const total = Object.values(state.categoryCounts || {}).reduce((sum, n) => sum + Number(n || 0), 0);
-        if (refs.questionBankLoadMeta) {
-            refs.questionBankLoadMeta.textContent = total > 0
+    function updateQuestionBankLoadMetaForPart(partState) {
+        const root = partState.root;
+        const loaded = partState.questionBank.length;
+        const total = Object.values(partState.categoryCounts || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+        const metaEl = root.querySelector('[data-question-bank-load-meta]');
+        if (metaEl) {
+            metaEl.textContent = total > 0
                 ? `Counts ready: ${total} matching. Loaded rows: ${loaded}.`
                 : (loaded > 0 ? `Loaded ${loaded} question(s).` : '');
         }
-        if (refs.questionBankLoadMoreWrap) {
-            refs.questionBankLoadMoreWrap.hidden = true;
-        }
+        const loadMoreWrap = root.querySelector('[data-field-wrap="question_bank_load_more"]');
+        if (loadMoreWrap) loadMoreWrap.hidden = true;
     }
 
-    function resetCategoryQuestionLoads() {
-        state.questionBank = [];
-        state.categoryLoadState = {};
-        [...state.selectedCategories].forEach((categoryId) => {
-            state.categoryLoadState[String(categoryId)] = {
-                status: 'idle',
-                next_cursor: null,
-                has_more: false,
-                requestSeq: 0,
-            };
+    function resetCategoryQuestionLoadsForPart(partState) {
+        partState.questionBank = [];
+        partState.categoryLoadState = {};
+        [...partState.selectedCategories].forEach((categoryId) => {
+            partState.categoryLoadState[String(categoryId)] = { status: 'idle', next_cursor: null, has_more: false, requestSeq: 0 };
         });
     }
 
-    async function fetchSelectedQuestionMetadata(ids) {
+    async function fetchSelectedQuestionMetadataForPart(partState, ids) {
         const endpoints = window.examCreateConfig?.endpoints || {};
-        if (!endpoints.questionBank || !ids?.length) {
-            return;
-        }
-        const missing = ids.filter((id) => !getQuestionById(id));
-        if (!missing.length) {
-            return;
-        }
+        if (!endpoints.questionBank || !ids?.length) return;
+        const missing = ids.filter((id) => !getQuestionByIdForPart(partState, id));
+        if (!missing.length) return;
+
         const url = new URL(endpoints.questionBank, window.location.origin);
         url.searchParams.set('ids', missing.join(','));
         url.searchParams.set('per_page', String(Math.min(100, missing.length)));
+
         try {
-            const response = await fetch(url, {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            if (!response.ok) {
-                return;
-            }
+            const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) return;
             const payload = await response.json();
             const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-            rows.forEach((question) => rememberSelectedQuestion(question));
-            mergeQuestionBankRows(rows, { append: true });
+            rows.forEach((question) => rememberSelectedQuestionForPart(partState, question));
+            mergeQuestionBankRowsForPart(partState, rows, { append: true });
         } catch (err) {
             console.error('Failed to hydrate selected questions', err);
         }
     }
 
-    async function syncQuestionBankCounts() {
+    async function syncQuestionBankCountsForPart(partState) {
         const endpoints = window.examCreateConfig?.endpoints || {};
         const countsUrl = endpoints.questionBankCounts || endpoints.questionBank;
         if (!countsUrl) return;
 
-        const categoryIds = [...state.selectedCategories].map(String);
+        const categoryIds = [...partState.selectedCategories].map(String);
         if (!categoryIds.length) {
-            state.categoryCounts = {};
-            state.questionBankMeta = { total: 0, next_cursor: null, has_more: false, per_page: 50 };
-            resetCategoryQuestionLoads();
-            updateQuestionBankLoadMeta();
-            updateQuestionBankCards();
+            partState.categoryCounts = {};
+            partState.questionBankMeta = { total: 0 };
+            resetCategoryQuestionLoadsForPart(partState);
+            updateQuestionBankLoadMetaForPart(partState);
+            renderQuestionBankCardsForPart(partState);
             return;
         }
 
-        if (state.countsAbortController) {
-            state.countsAbortController.abort();
-        }
-        state.countsAbortController = new AbortController();
-        const { marks, formats, keyword } = buildSharedQuestionBankParams();
+        if (partState.countsAbortController) partState.countsAbortController.abort();
+        partState.countsAbortController = new AbortController();
+
+        const { marks, formats, keyword } = buildSharedQuestionBankParamsForPart(partState);
         const url = new URL(countsUrl, window.location.origin);
         url.searchParams.set('categories', categoryIds.join(','));
         if (marks) url.searchParams.set('marks', marks);
@@ -4389,288 +3276,741 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(url, {
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                signal: state.countsAbortController.signal,
+                signal: partState.countsAbortController.signal,
             });
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
-            }
+            if (!response.ok) throw new Error('HTTP ' + response.status);
             const payload = await response.json();
             const counts = payload?.data && typeof payload.data === 'object' ? payload.data : {};
-            state.categoryCounts = {};
-            categoryIds.forEach((id) => {
-                state.categoryCounts[id] = Number(counts[id] ?? counts[String(id)] ?? 0);
-            });
-            state.questionBankMeta = {
-                total: Number(payload?.meta?.total ?? Object.values(state.categoryCounts).reduce((s, n) => s + Number(n || 0), 0)),
-                next_cursor: null,
-                has_more: false,
-                per_page: 50,
+            partState.categoryCounts = {};
+            categoryIds.forEach((id) => { partState.categoryCounts[id] = Number(counts[id] ?? counts[String(id)] ?? 0); });
+            partState.questionBankMeta = {
+                total: Number(payload?.meta?.total ?? Object.values(partState.categoryCounts).reduce((s, n) => s + Number(n || 0), 0)),
             };
         } catch (err) {
-            if (err?.name === 'AbortError') {
-                return;
-            }
+            if (err?.name === 'AbortError') return;
             console.error('Failed to load question bank counts', err);
             window.EmsToast?.error('Failed to load question counts.');
         } finally {
-            state.countsAbortController = null;
-            updateQuestionBankLoadMeta();
+            partState.countsAbortController = null;
+            updateQuestionBankLoadMetaForPart(partState);
         }
     }
 
-    async function loadCategoryQuestions(categoryId, { append = false } = {}) {
+    async function loadCategoryQuestionsForPart(partState, categoryId, { append = false } = {}) {
         const endpoints = window.examCreateConfig?.endpoints || {};
         if (!endpoints.questionBank) return;
-
         const categoryKey = String(categoryId || '');
         if (!categoryKey) return;
 
-        const current = state.categoryLoadState[categoryKey] || {
-            status: 'idle',
-            next_cursor: null,
-            has_more: false,
-            requestSeq: 0,
-        };
-        if (append && !current.has_more) {
-            return;
-        }
+        const current = partState.categoryLoadState[categoryKey] || { status: 'idle', next_cursor: null, has_more: false, requestSeq: 0 };
+        if (append && !current.has_more) return;
 
         const requestSeq = (current.requestSeq || 0) + 1;
-        state.categoryLoadState[categoryKey] = {
-            ...current,
-            status: 'loading',
-            requestSeq,
-        };
-        updateQuestionBankCards();
+        partState.categoryLoadState[categoryKey] = { ...current, status: 'loading', requestSeq };
+        renderQuestionBankCardsForPart(partState);
 
-        const { marks, formats, keyword } = buildSharedQuestionBankParams();
+        const { marks, formats, keyword } = buildSharedQuestionBankParamsForPart(partState);
         const url = new URL(endpoints.questionBank, window.location.origin);
         url.searchParams.set('categories', categoryKey);
         if (marks) url.searchParams.set('marks', marks);
         if (formats) url.searchParams.set('formats', formats);
         if (keyword) url.searchParams.set('q', keyword);
         url.searchParams.set('per_page', '50');
-        if (append && current.next_cursor) {
-            url.searchParams.set('cursor', String(current.next_cursor));
-        }
+        if (append && current.next_cursor) url.searchParams.set('cursor', String(current.next_cursor));
 
         try {
-            const response = await fetch(url, {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
-            }
-            if ((state.categoryLoadState[categoryKey]?.requestSeq || 0) !== requestSeq) {
-                return;
-            }
+            const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            if ((partState.categoryLoadState[categoryKey]?.requestSeq || 0) !== requestSeq) return;
+
             const payload = await response.json();
             const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
             const meta = payload?.meta && typeof payload.meta === 'object' ? payload.meta : {};
 
-            if (append) {
-                mergeQuestionBankRows(rows, { append: true });
-            } else {
-                mergeQuestionBankRows(rows, { replaceCategoryId: categoryKey });
-            }
+            if (append) mergeQuestionBankRowsForPart(partState, rows, { append: true });
+            else mergeQuestionBankRowsForPart(partState, rows, { replaceCategoryId: categoryKey });
 
             rows.forEach((question) => {
-                if (
-                    state.selectedQuestions.has(question.id)
-                    || state.selectedQuestions.has(String(question.id))
-                    || state.selectedQuestions.has(Number(question.id))
-                ) {
-                    rememberSelectedQuestion(question);
+                if (partState.selectedQuestions.has(question.id) || partState.selectedQuestions.has(String(question.id)) || partState.selectedQuestions.has(Number(question.id))) {
+                    rememberSelectedQuestionForPart(partState, question);
                 }
             });
 
-            state.categoryLoadState[categoryKey] = {
-                status: 'loaded',
-                next_cursor: meta.next_cursor ?? null,
-                has_more: Boolean(meta.has_more),
-                requestSeq,
+            partState.categoryLoadState[categoryKey] = {
+                status: 'loaded', next_cursor: meta.next_cursor ?? null, has_more: Boolean(meta.has_more), requestSeq,
             };
-            if (typeof meta.total === 'number') {
-                state.categoryCounts[categoryKey] = Number(meta.total);
-            }
-            updateQuestionBankCards();
+            if (typeof meta.total === 'number') partState.categoryCounts[categoryKey] = Number(meta.total);
+
+            renderQuestionBankCardsForPart(partState);
+            updatePartMetaSummary(partState);
+            updateExamSummary();
             updateWorkflowAndSnapshot();
         } catch (err) {
             console.error('Failed to load category questions', err);
-            state.categoryLoadState[categoryKey] = {
-                status: 'error',
-                next_cursor: null,
-                has_more: false,
-                requestSeq,
-            };
-            updateQuestionBankCards();
+            partState.categoryLoadState[categoryKey] = { status: 'error', next_cursor: null, has_more: false, requestSeq };
+            renderQuestionBankCardsForPart(partState);
             window.EmsToast?.error('Failed to load questions for ' + getCategoryLabelById(categoryKey));
         }
     }
 
-    async function syncQuestionBankFromServer() {
-        const refreshBtn = document.getElementById('refresh-question-bank');
-        const bankSection = document.getElementById('question-bank-section');
-        const managedByButton = Boolean(refreshBtn?.classList.contains('is-loading'));
+    function hydratePartSelectedQuestions(partState) {
+        partState.hasHydratedSelectedQuestions = true;
+        if (!Array.isArray(partState.hydratedQuestionIds) || !partState.hydratedQuestionIds.length) return;
 
-        if (refs.questionBankFeedback) {
-            refs.questionBankFeedback.textContent = 'Loading question counts...';
-        }
-        if (refreshBtn && !managedByButton) {
+        partState.hydratedQuestionIds.forEach((questionId) => {
+            partState.selectedQuestions.add(questionId);
+            const question = getQuestionByIdForPart(partState, questionId);
+            if (question) rememberSelectedQuestionForPart(partState, question);
+        });
+
+        syncPartQuestionIdsHidden(partState);
+    }
+
+    async function syncQuestionBankFromServerForPart(partState, { refreshBtn = null } = {}) {
+        const feedbackEl = partState.root.querySelector('[data-question-bank-feedback]');
+        if (feedbackEl) feedbackEl.textContent = 'Loading question counts...';
+        if (refreshBtn) {
             refreshBtn.disabled = true;
             refreshBtn.classList.add('is-loading');
             refreshBtn.setAttribute('aria-busy', 'true');
         }
-        bankSection?.classList.add('is-loading');
 
         try {
-            resetCategoryQuestionLoads();
-            await syncQuestionBankCounts();
-            await fetchSelectedQuestionMetadata([...state.selectedQuestions]);
-            if (state.isEditMode && !state.hasHydratedSelectedQuestions) {
-                await fetchSelectedQuestionMetadata(state.hydratedQuestionIds || []);
-                hydrateSelectedQuestions();
+            resetCategoryQuestionLoadsForPart(partState);
+            await syncQuestionBankCountsForPart(partState);
+            await fetchSelectedQuestionMetadataForPart(partState, [...partState.selectedQuestions]);
+            if (state.isEditMode && !partState.hasHydratedSelectedQuestions) {
+                await fetchSelectedQuestionMetadataForPart(partState, partState.hydratedQuestionIds || []);
+                hydratePartSelectedQuestions(partState);
             }
-            updateQuestionBankCards();
+            renderQuestionBankCardsForPart(partState);
+            updatePartMetaSummary(partState);
+            updateExamSummary();
             updateWorkflowAndSnapshot();
         } finally {
-            if (refreshBtn && !managedByButton) {
+            if (refreshBtn) {
                 refreshBtn.disabled = false;
                 refreshBtn.classList.remove('is-loading');
                 refreshBtn.removeAttribute('aria-busy');
             }
-            bankSection?.classList.remove('is-loading');
-            updateQuestionBankLoadMeta();
+            updateQuestionBankLoadMetaForPart(partState);
         }
     }
-    window.syncQuestionBankFromServer = syncQuestionBankFromServer;
-    window.loadCategoryQuestions = loadCategoryQuestions;
 
+    function refreshPartQuestionBank(partState, btnEl) {
+        return syncQuestionBankFromServerForPart(partState, { refreshBtn: btnEl });
+    }
 
-    function renderDiscountSummary() {
-        if (!state.selectedDiscounts.size) {
-            refs.discountSummary.innerHTML = '<li>No discount rules selected.</li>';
+    function showQuestionSelectionWarningForPart(partState, message) {
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            window.Swal.fire({ icon: 'warning', title: 'Insufficient Questions', text: message });
+            return;
+        }
+        if (window.EmsToast && typeof window.EmsToast.warning === 'function') {
+            window.EmsToast.warning(message);
+            return;
+        }
+        const el = partState.root.querySelector('[data-question-bank-feedback]');
+        if (el) {
+            el.textContent = message;
+            el.classList.add('is-invalid');
+        }
+    }
+
+    async function randomSelectCategoryForPart(partState, categoryId) {
+        if (!isManualQuestionSelectionEnabledForPart(partState)) {
+            showQuestionSelectionWarningForPart(partState, 'Enable Fixed Questions or Question Pool before selecting questions.');
             return;
         }
 
-        const selected = state.config.discountRules.filter((rule) => state.selectedDiscounts.has(rule.id));
-        refs.discountSummary.innerHTML = selected
-            .map((rule) => {
-                const pct = state.discountPercentages[rule.id] || rule.default_percentage || 0;
-                return `<li><strong>${pct}%</strong> ${escapeHtml(rule.label)} — ${escapeHtml(rule.summary)}</li>`;
-            })
-            .join('');
+        const root = partState.root;
+        const limits = getQuestionSelectionLimitsForPart(partState);
+        const totalQuestionsAllowed = limits.max;
+        const fixedPerCategory = Boolean(partField(root, 'fix_category_questions')?.checked) && !isQuestionPoolEnabledForPart(partState);
+        const endpoints = window.examCreateConfig?.endpoints || {};
+        const endpoint = endpoints.questionBankRandom || endpoints.questionBank;
+        if (!endpoint) {
+            showQuestionSelectionWarningForPart(partState, 'Random selection endpoint is unavailable.');
+            return;
+        }
+
+        let categoryAllowedLimit = totalQuestionsAllowed;
+        if (fixedPerCategory) {
+            const fixedDistribution = computeFixedCategoryDistributionForPart(partState);
+            const row = fixedDistribution.rows.find((r) => String(r.categoryId) === String(categoryId));
+            categoryAllowedLimit = row ? row.count : 0;
+        } else {
+            const selectedOutsideCategory = [...partState.selectedQuestions].filter((questionId) => {
+                const question = getQuestionByIdForPart(partState, questionId);
+                return question && !questionMatchesSelectedCategory(question, categoryId);
+            }).length;
+            categoryAllowedLimit = Math.max(0, totalQuestionsAllowed - selectedOutsideCategory);
+        }
+
+        const marks = [...partState.selectedMarks].join(',');
+        const formats = [...state.selectedExamFormat].join(',');
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.set('categories', String(categoryId));
+        if (marks) url.searchParams.set('marks', marks);
+        if (formats) url.searchParams.set('formats', formats);
+        url.searchParams.set('count', String(categoryAllowedLimit));
+
+        try {
+            const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            const payload = await response.json();
+            const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            if (rows.length < categoryAllowedLimit) {
+                showQuestionSelectionWarningForPart(partState, `Only ${rows.length} matching question(s) are available in ${getCategoryLabelById(categoryId)}; ${categoryAllowedLimit} are required.`);
+                return;
+            }
+
+            [...partState.selectedQuestions].forEach((questionId) => {
+                const question = getQuestionByIdForPart(partState, questionId);
+                if (question && questionMatchesSelectedCategory(question, categoryId)) partState.selectedQuestions.delete(questionId);
+            });
+            rows.forEach((question) => { rememberSelectedQuestionForPart(partState, question); partState.selectedQuestions.add(question.id); });
+            mergeQuestionBankRowsForPart(partState, rows, { append: true });
+            root.querySelector('[data-question-bank-feedback]')?.classList.remove('is-invalid');
+            renderQuestionBankCardsForPart(partState);
+            updatePartMetaSummary(partState);
+            updateExamSummary();
+            updateWorkflowAndSnapshot();
+        } catch (err) {
+            console.error('Category random select failed', err);
+            showQuestionSelectionWarningForPart(partState, 'Could not complete random selection. Please try again.');
+        }
     }
 
-    function updateWorkflowAndSnapshot() {
-        const basicComplete = cleanText(refs.title.value).length >= 3
-            && refs.difficulty.value && refs.status.value && refs.mode.value && refs.visibility.value;
-        const candidateVisible = !refs.candidateSection.hidden;
-        const candidateComplete = !candidateVisible || state.importedCandidates.length > 0 || state.manualEmails.length > 0;
-        const totalQuestions = toInt(refs.totalQuestions.value, 0);
-        const questionPoolComplete = !isQuestionPoolEnabled()
-            || toInt(refs.maximumQuestions.value, 0) > totalQuestions;
-        const categoryMarksDistribution = computeFixedCategoryMarksDistribution();
-        const categoryMarksComplete = !refs.fixCategoryMarks?.checked
-            || categoryMarksDistribution.isComplete;
-        const configComplete = state.selectedCategories.size > 0 && totalQuestions > 0 && questionPoolComplete &&
-            (!refs.fixCategoryQuestions.checked || computeFixedCategoryDistribution().isComplete) &&
-            categoryMarksComplete;
-        const marksCalculation = computeMarksCalculationState();
-        const marksComplete = state.selectedMarks.size > 0 && (!marksCalculation.fixEnabled || marksCalculation.isValid);
+    async function randomSelectGlobalForPart(partState) {
+        if (!isManualQuestionSelectionEnabledForPart(partState)) {
+            showQuestionSelectionWarningForPart(partState, 'Enable Fixed Questions or Question Pool before selecting questions.');
+            return;
+        }
+
+        const root = partState.root;
+        const limits = getQuestionSelectionLimitsForPart(partState);
+        const totalQuestionsAllowed = limits.max;
+        const fixedPerCategory = Boolean(partField(root, 'fix_category_questions')?.checked) && !isQuestionPoolEnabledForPart(partState);
+        const previousSelection = new Set(partState.selectedQuestions);
+        const endpoints = window.examCreateConfig?.endpoints || {};
+        const endpoint = endpoints.questionBankRandom || endpoints.questionBank;
+        if (!endpoint) {
+            showQuestionSelectionWarningForPart(partState, 'Random selection endpoint is unavailable.');
+            return;
+        }
+
+        const categoryIds = [...partState.selectedCategories].join(',');
+        const marks = [...partState.selectedMarks].join(',');
+        const formats = [...state.selectedExamFormat].join(',');
+        const url = new URL(endpoint, window.location.origin);
+        if (categoryIds) url.searchParams.set('categories', categoryIds);
+        if (marks) url.searchParams.set('marks', marks);
+        if (formats) url.searchParams.set('formats', formats);
+
+        let categoryQuotas = {};
+        if (fixedPerCategory) {
+            const fixedDistribution = computeFixedCategoryDistributionForPart(partState);
+            categoryQuotas = Object.fromEntries(fixedDistribution.rows.map((row) => [String(row.categoryId), row.count]));
+            url.searchParams.set('count', String(fixedDistribution.rows.reduce((sum, row) => sum + row.count, 0)));
+            url.searchParams.set('category_quotas', JSON.stringify(categoryQuotas));
+        } else {
+            url.searchParams.set('count', String(totalQuestionsAllowed));
+        }
+
+        try {
+            const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            const payload = await response.json();
+            const rows = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            const required = fixedPerCategory
+                ? Object.values(categoryQuotas).reduce((sum, n) => sum + Number(n || 0), 0)
+                : totalQuestionsAllowed;
+            if (rows.length < required) {
+                partState.selectedQuestions = previousSelection;
+                showQuestionSelectionWarningForPart(partState, `Only ${rows.length} matching question(s) are available; ${required} are required.`);
+                return;
+            }
+
+            partState.selectedQuestions.clear();
+            rows.forEach((question) => { rememberSelectedQuestionForPart(partState, question); partState.selectedQuestions.add(question.id); });
+            mergeQuestionBankRowsForPart(partState, rows, { append: true });
+            root.querySelector('[data-question-bank-feedback]')?.classList.remove('is-invalid');
+            renderQuestionBankCardsForPart(partState);
+            updatePartMetaSummary(partState);
+            updateExamSummary();
+            updateWorkflowAndSnapshot();
+        } catch (err) {
+            partState.selectedQuestions = previousSelection;
+            console.error('Random select failed', err);
+            showQuestionSelectionWarningForPart(partState, 'Could not complete random selection. Please try again.');
+        }
+    }
+
+    function openAddQuestionModalForPart(partState, categoryId, options = {}) {
+        state.lastAddQuestionPartKey = partState.partKey;
+
+        const endpoints = window.examCreateConfig?.endpoints || {};
+        const createUrl = endpoints.questionCreate || '/admin/questions/create';
+        const url = new URL(createUrl, window.location.origin);
+        url.searchParams.set('source', 'exam-create');
+
+        const resolvedCategoryId = categoryId
+            || ([...partState.selectedCategories].length === 1 ? [...partState.selectedCategories][0] : '');
+        if (resolvedCategoryId) url.searchParams.set('category_id', resolvedCategoryId);
+
+        const marksValues = [];
+        if (options.marks) marksValues.push(Number(options.marks));
+        else marksValues.push(...[...partState.selectedMarks].map(Number));
+        [...new Set(marksValues.filter((mark) => mark > 0))].forEach((mark) => url.searchParams.append('marks[]', String(mark)));
+
+        [...state.selectedExamFormat].forEach((format) => url.searchParams.append('formats[]', format));
+        if (refs.difficulty?.value) url.searchParams.set('difficulty', refs.difficulty.value);
+
+        window.open(url.toString(), '_blank');
+    }
+
+    // ── Part-scoped event binding ──────────────────────────────────────
+
+    function handlePartAction(partState, action, el) {
+        switch (action) {
+            case 'toggle': togglePartExpanded(partState); break;
+            case 'duplicate': duplicatePart(partState); break;
+            case 'delete': deletePart(partState); break;
+            case 'refresh_bank': refreshPartQuestionBank(partState, el); break;
+            case 'random_select': randomSelectGlobalForPart(partState); break;
+            case 'add_question': openAddQuestionModalForPart(partState, ''); break;
+            case 'load_more': break; // handled per category via delegated clicks
+            case 'fix_total_marks': applyMarksCalculationFixForPart(partState, 'total_marks'); break;
+            case 'fix_total_questions': applyMarksCalculationFixForPart(partState, 'total_questions'); break;
+            default: break;
+        }
+    }
+
+    function bindPartEvents(partState) {
+        const root = partState.root;
+
+        root.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-part-action]');
+            if (actionEl) {
+                handlePartAction(partState, actionEl.dataset.partAction, actionEl);
+                return;
+            }
+
+            const marksBtn = event.target.closest('[data-mark-value]');
+            if (marksBtn) {
+                const mark = Number(marksBtn.dataset.markValue);
+                const fixEach = Boolean(partField(root, 'fix_marks_each_question')?.checked);
+                if (!fixEach) {
+                    if (partState.selectedMarks.has(mark)) partState.selectedMarks.delete(mark);
+                    else partState.selectedMarks.add(mark);
+                } else {
+                    partState.selectedMarks = new Set([mark]);
+                }
+                renderPartQuestionMarks(partState);
+                partState.lastFetchedKey = '';
+                updatePartUi(partState);
+                updateExamSummary();
+                updateWorkflowAndSnapshot();
+                return;
+            }
+
+            const distBtn = event.target.closest('[data-distribution-id]');
+            if (distBtn) {
+                partState.selectedDistributionType = distBtn.dataset.distributionId;
+                renderPartDistributionTypes(partState);
+                updateExamSummary();
+                return;
+            }
+
+            handleQuestionBankClick(partState, event);
+        });
+
+        root.addEventListener('change', (event) => {
+            handleQuestionBankChange(partState, event);
+
+            const field = event.target?.dataset?.field;
+            if (field && PART_REACTIVE_FIELDS.has(field)) {
+                updatePartUi(partState);
+                updateExamSummary();
+                updateWorkflowAndSnapshot();
+            }
+        });
+
+        root.addEventListener('input', (event) => {
+            if (handlePartAllocationInput(partState, event)) {
+                return;
+            }
+            const field = event.target?.dataset?.field;
+            if (!field || field === 'question_search' || field === 'name') {
+                return;
+            }
+            if (PART_REACTIVE_FIELDS.has(field)) {
+                updatePartUi(partState);
+                updateExamSummary();
+                updateWorkflowAndSnapshot();
+            }
+        });
+
+        const searchInput = root.querySelector('[data-question-search-input]');
+        searchInput?.addEventListener('input', () => {
+            partState.lastFetchedKey = '';
+            scheduleQuestionBankSyncForPart(partState, 400);
+            renderQuestionBankCardsForPart(partState);
+        });
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // EXAM SUMMARY (aggregated across all parts)
+    // ────────────────────────────────────────────────────────────────
+
+    function setText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    }
+
+    function updateExamSummary() {
+        const parts = getOrderedParts();
+        let totalQuestions = 0;
+        let totalMarks = 0;
+        const totalDuration = toInt(refs.examDurationMinutes?.value, 0);
+        const categoryTotals = new Map();
+        const distributionCounts = new Map();
+
+        parts.forEach((partState) => {
+            const root = partState.root;
+            const totalQ = toInt(partField(root, 'total_questions')?.value, 0);
+            const totalM = toInt(partField(root, 'total_marks')?.value, 0);
+            totalQuestions += totalQ;
+            totalMarks += totalM;
+
+            const selectedIds = [...partState.selectedCategories];
+            if (selectedIds.length) {
+                const perCategoryQuestions = Boolean(partField(root, 'fix_category_questions')?.checked)
+                    ? partState.extraQuestionsAllocations
+                    : buildEvenCategoryCounts(selectedIds, totalQ);
+
+                selectedIds.forEach((cid) => {
+                    const key = String(cid);
+                    const count = toInt(perCategoryQuestions[key], 0);
+                    const existing = categoryTotals.get(key) || { name: getCategoryLabelById(key), questions: 0 };
+                    existing.questions += count;
+                    categoryTotals.set(key, existing);
+                });
+            }
+
+            if (partState.selectedDistributionType) {
+                const label = state.config.distributionTypes.find((d) => d.id === partState.selectedDistributionType)?.label
+                    || partState.selectedDistributionType;
+                distributionCounts.set(label, (distributionCounts.get(label) || 0) + 1);
+            }
+        });
+
+        setText('summary-total-parts', String(parts.length));
+        setText('summary-total-questions', String(totalQuestions));
+        setText('summary-total-marks', String(totalMarks));
+        setText('summary-total-duration', `${totalDuration} min`);
+
+        const passingMarks = toInt(refs.passingMarks?.value, 0);
+        setText('summary-passing-marks', String(passingMarks));
+
+        const negativeEnabled = Boolean(refs.enableNegativeMarking?.checked);
+        const negativeType = refs.negativeMarkingType?.value || '';
+        setText('summary-negative-marks', negativeEnabled ? `${negativeType}%` : 'Off');
+
+        if (refs.passingMarksCeiling) refs.passingMarksCeiling.textContent = String(totalMarks);
+
+        const distributionListEl = document.getElementById('summary-question-distribution');
+        if (distributionListEl) {
+            distributionListEl.innerHTML = distributionCounts.size
+                ? [...distributionCounts.entries()].map(([label, count]) => `<li>${escapeHtml(label)}: <strong>${count}</strong> part(s)</li>`).join('')
+                : '<li>No distribution configured yet.</li>';
+        }
+
+        const categoryListEl = document.getElementById('summary-category-list');
+        if (categoryListEl) {
+            categoryListEl.innerHTML = categoryTotals.size
+                ? [...categoryTotals.values()].map((c) => `<li>${escapeHtml(c.name)}: <strong>${c.questions}</strong> question(s)</li>`).join('')
+                : '<li>No categories selected yet.</li>';
+        }
+
+        const overviewListEl = document.getElementById('summary-overview-list');
+        if (overviewListEl) {
+            overviewListEl.innerHTML = [
+                `<li>Parts: <strong>${parts.length}</strong></li>`,
+                `<li>Total questions: <strong>${totalQuestions}</strong></li>`,
+                `<li>Total marks: <strong>${totalMarks}</strong></li>`,
+                `<li>Total duration: <strong>${totalDuration} min</strong></li>`,
+                `<li>Passing marks: <strong>${passingMarks}</strong> / ${totalMarks}</li>`,
+                `<li>${passingMarks <= totalMarks ? 'Passing marks are within range.' : 'Warning: passing marks exceed total marks.'}</li>`,
+            ].join('');
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // WORKFLOW CHECKLIST + LIVE SNAPSHOT
+    // ────────────────────────────────────────────────────────────────
+
+    function getDescriptionTextLength() {
+        const html = getRichTextValue('exam_description');
+        return cleanText(String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')).length;
+    }
+
+    function getExamCategoryValue() {
+        if (!refs.examCategory) return '';
+        if (refs.examCategory.tomselect) {
+            return cleanText(String(refs.examCategory.tomselect.getValue() || ''));
+        }
+        return cleanText(String(refs.examCategory.value || ''));
+    }
+
+    function getExamCategoryLabel() {
+        const value = getExamCategoryValue();
+        if (!value || !refs.examCategory) return '';
+        const option = [...refs.examCategory.options].find((opt) => String(opt.value) === value);
+        return cleanText(option?.dataset?.categoryName || option?.textContent || '');
+    }
+
+    function sidebarCheck(label, status, meta, required = false) {
+        return { label, status, meta: meta || '', required: Boolean(required) };
+    }
+
+    function buildSidebarValidationChecks() {
+        const checks = [];
+        const title = cleanText(refs.title?.value || '');
+        if (title.length >= 3) {
+            checks.push(sidebarCheck('Title', 'ok', title.length > 48 ? `${title.slice(0, 48)}…` : title, true));
+        } else if (title.length > 0) {
+            checks.push(sidebarCheck('Title', 'error', 'Need at least 3 characters.', true));
+        } else {
+            checks.push(sidebarCheck('Title', 'error', 'Required — enter an exam title.', true));
+        }
+
+        const categoryValue = getExamCategoryValue();
+        const categoryLabel = getExamCategoryLabel();
+        if (categoryValue) {
+            checks.push(sidebarCheck('Exam Category', 'ok', categoryLabel || `Category #${categoryValue}`, true));
+        } else {
+            checks.push(sidebarCheck('Exam Category', 'error', 'Required — select a category.', true));
+        }
+
+        const descriptionLength = getDescriptionTextLength();
+        if (descriptionLength > 0) {
+            checks.push(sidebarCheck('Description', 'ok', `${descriptionLength} character${descriptionLength === 1 ? '' : 's'}`, false));
+        } else {
+            checks.push(sidebarCheck('Description', 'warn', 'Optional — add scope, audience, or outcomes.', false));
+        }
+
+        const difficulty = cleanText(refs.difficulty?.value || '');
+        checks.push(difficulty
+            ? sidebarCheck('Difficulty', 'ok', difficulty.replace(/_/g, ' '), false)
+            : sidebarCheck('Difficulty', 'warn', 'Optional — choose a difficulty level.', false));
+
+        const statusValue = cleanText(refs.status?.value || '');
+        checks.push(statusValue
+            ? sidebarCheck('Status', 'ok', statusValue.replace(/_/g, ' '), true)
+            : sidebarCheck('Status', 'error', 'Required — choose a status.', true));
+
+        const modeValue = cleanText(refs.mode?.value || state.selectedMode || '');
+        checks.push(modeValue
+            ? sidebarCheck('Exam Mode', 'ok', modeValue.replace(/_/g, ' '), true)
+            : sidebarCheck('Exam Mode', 'error', 'Required — choose an exam mode.', true));
+
+        const visibilityValue = cleanText(refs.visibility?.value || state.selectedVisibility || '');
+        checks.push(visibilityValue
+            ? sidebarCheck('Visibility', 'ok', visibilityValue.replace(/_/g, ' '), true)
+            : sidebarCheck('Visibility', 'error', 'Required — choose visibility.', true));
+
+        const tagCount = Array.isArray(state.tags) ? state.tags.length : 0;
+        checks.push(tagCount > 0
+            ? sidebarCheck('Tags', 'ok', `${tagCount} tag${tagCount === 1 ? '' : 's'}`, false)
+            : sidebarCheck('Tags', 'warn', 'Optional — tags help search and reporting.', false));
+
         const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
-        const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
-        const timerComplete = !timerEnabled || durationMinutes > 0;
-        const examFormatComplete = state.selectedExamFormat instanceof Set
-            ? state.selectedExamFormat.size > 0
-            : Boolean(state.selectedExamFormat);
+        const duration = toInt(refs.examDurationMinutes?.value, 0);
+        if (!timerEnabled) {
+            checks.push(sidebarCheck('Timer & Duration', 'ok', 'Timer disabled', true));
+        } else if (duration >= 1) {
+            checks.push(sidebarCheck('Timer & Duration', 'ok', `${duration} min · auto-submit ${refs.autoSubmitOnTimerEnd?.checked ? 'on' : 'off'}`, true));
+        } else {
+            checks.push(sidebarCheck('Timer & Duration', 'error', 'Duration must be at least 1 minute.', true));
+        }
+
+        const formatCount = state.selectedExamFormat instanceof Set ? state.selectedExamFormat.size : 0;
+        if (formatCount > 0) {
+            const formats = [...state.selectedExamFormat].map((id) => String(id).toUpperCase()).join(', ');
+            checks.push(sidebarCheck('Exam Format', 'ok', formats, true));
+        } else {
+            checks.push(sidebarCheck('Exam Format', 'error', 'Select at least one format.', true));
+        }
+
         const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
-        const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
         const scheduleStartAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
         const scheduleEndAt = cleanText(refs.scheduleEndAt ? refs.scheduleEndAt.value : '');
         const scheduleStartTs = parseDateTimeValue(scheduleStartAt);
         const scheduleEndTs = parseDateTimeValue(scheduleEndAt);
-        const fixedAttemptCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
-        const scheduleComplete = scheduleType !== 'fixed_window'
-            || (Boolean(scheduleStartAt) && Boolean(scheduleEndAt) && scheduleStartTs !== null && scheduleEndTs !== null && scheduleEndTs > scheduleStartTs);
-        const attemptsComplete = attemptLimitType !== 'fixed_count' || fixedAttemptCount >= 2;
-        const scheduleAndAttemptsComplete = scheduleComplete && attemptsComplete;
-
-        const freeCount = state.freeImportedCandidates.length + state.freeManualEmails.length;
-        const pricingComplete = refs.pricingSection.hidden || (Boolean(state.selectedPricing) && (state.selectedPricing !== 'free_for_imported' || freeCount > 0));
-
-        const fixedDistribution = computeFixedCategoryDistribution();
-        const shortages = computeQuestionShortages();
-        const selectionLimits = getQuestionSelectionLimits();
-        const selectionCountValid = selectionLimits.viewOnly
-            || (
-                state.selectedQuestions.size >= selectionLimits.min
-                && state.selectedQuestions.size <= selectionLimits.max
-            );
-        const questionBankComplete = state.selectedCategories.size > 0
-            && shortages.length === 0
-            && selectionCountValid;
-        const instructionRulesComplete = state.selectedInstructionRules.size > 0;
-        const instructionsComplete = getInstructionTextLength() > 20;
-
-        const checklist = [
-            { label: 'Basic Information', complete: basicComplete, show: true },
-            { label: 'Timer Setup', complete: timerComplete, show: true },
-            { label: 'Exam Format', complete: examFormatComplete, show: true },
-            { label: 'Schedule & Attempts', complete: scheduleAndAttemptsComplete, show: true },
-            { label: 'Candidate Access', complete: candidateComplete, show: candidateVisible },
-            { label: 'Exam Configuration', complete: configComplete, show: true },
-            { label: 'Question Rules', complete: marksComplete, show: true },
-            { label: 'Pricing and Discount', complete: pricingComplete, show: !refs.pricingSection.hidden },
-            { label: 'Question Bank', complete: questionBankComplete, show: true },
-            { label: 'Exam Rules', complete: instructionRulesComplete, show: true },
-            { label: 'Instructions', complete: instructionsComplete, show: true }
-        ];
-
-        let checklistIndex = 0;
-        refs.workflowStatusList.innerHTML = checklist
-            .filter(item => item.show)
-            .map((item) => {
-                checklistIndex++;
-                return `<li class="${item.complete ? 'status-ok' : 'status-warning'}">${checklistIndex}. ${escapeHtml(item.label)} - ${item.complete ? 'Complete' : 'Pending'}</li>`;
-            })
-            .join('');
-
-        refs.snapshotVisibility.textContent = refs.visibility.options[refs.visibility.selectedIndex]?.textContent || '-';
-        refs.snapshotMode.textContent = refs.mode.options[refs.mode.selectedIndex]?.textContent || '-';
-        refs.snapshotCategories.textContent = String(state.selectedCategories.size);
-        refs.snapshotMarks.textContent = String(state.selectedMarks.size);
-        if (refs.snapshotTimer) {
-            refs.snapshotTimer.textContent = timerEnabled ? `${durationMinutes} min` : 'Disabled';
-        }
-        if (refs.snapshotExamFormat) {
-            refs.snapshotExamFormat.textContent = getSelectedExamFormatLabels().join(', ') || '-';
-        }
-        if (refs.snapshotSchedule) {
-            const scheduleStartLabel = formatScheduleDateTimeForDisplay(scheduleStartAt);
-            const scheduleEndLabel = formatScheduleDateTimeForDisplay(scheduleEndAt);
-            refs.snapshotSchedule.textContent = scheduleType === 'fixed_window'
-                ? (scheduleStartAt && scheduleEndAt ? `${scheduleStartLabel} to ${scheduleEndLabel}` : 'Fixed window (incomplete)')
-                : 'Any time';
-        }
-        if (refs.snapshotAttempts) {
-            refs.snapshotAttempts.textContent = attemptLimitType === 'fixed_count'
-                ? `${fixedAttemptCount || 0} times`
-                : (attemptLimitType === 'once' ? 'Once' : 'Unlimited');
-        }
-
-        const privateCount = state.importedCandidates.length + state.manualEmails.length;
-        if (state.selectedPricing === 'free_for_imported') {
-            refs.snapshotCandidates.textContent = `${privateCount} (Private) / ${freeCount} (Free)`;
+        if (scheduleType !== 'fixed_window') {
+            checks.push(sidebarCheck('Schedule', 'ok', scheduleType.replace(/_/g, ' '), true));
+        } else if (!scheduleStartAt || !scheduleEndAt) {
+            checks.push(sidebarCheck('Schedule', 'error', 'Set start and end for the fixed window.', true));
+        } else if (scheduleStartTs === null || scheduleEndTs === null) {
+            checks.push(sidebarCheck('Schedule', 'error', 'Schedule date-time values are invalid.', true));
+        } else if (scheduleEndTs <= scheduleStartTs) {
+            checks.push(sidebarCheck('Schedule', 'error', 'End must be later than start.', true));
         } else {
-            refs.snapshotCandidates.textContent = String(privateCount);
+            checks.push(sidebarCheck('Schedule', 'ok', 'Fixed window configured', true));
         }
 
-        refs.snapshotDiscounts.textContent = String(state.selectedDiscounts.size);
-        if (refs.snapshotInstructionRules) {
-            refs.snapshotInstructionRules.textContent = String(state.selectedInstructionRules.size);
+        const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
+        const fixedAttemptCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
+        if (attemptLimitType === 'fixed_count' && fixedAttemptCount < 2) {
+            checks.push(sidebarCheck('Attempts', 'error', 'Fixed attempt limit must be at least 2.', true));
+        } else if (attemptLimitType === 'fixed_count') {
+            checks.push(sidebarCheck('Attempts', 'ok', `${fixedAttemptCount} attempts`, true));
+        } else {
+            checks.push(sidebarCheck('Attempts', 'ok', attemptLimitType.replace(/_/g, ' '), true));
+        }
+
+        const candidateVisible = Boolean(refs.candidateSection && !refs.candidateSection.hidden);
+        if (candidateVisible) {
+            const candidateCount = state.importedCandidates.length + state.manualEmails.length;
+            checks.push(candidateCount > 0
+                ? sidebarCheck('Candidate Access', 'ok', `${candidateCount} candidate${candidateCount === 1 ? '' : 's'}`, true)
+                : sidebarCheck('Candidate Access', 'error', 'Add at least one candidate email.', true));
+        }
+
+        const parts = getOrderedParts();
+        if (!parts.length) {
+            checks.push(sidebarCheck('Exam Parts', 'error', 'Add at least one exam part.', true));
+        } else {
+            const partIssues = [];
+            parts.forEach((partState, index) => {
+                const displayName = cleanText(partField(partState.root, 'name')?.value || '') || `Part ${index + 1}`;
+                const errors = validatePart(partState, '');
+                if (errors.length) {
+                    partIssues.push({ name: displayName, message: errors[0].replace(/^:\s*/, '') });
+                }
+            });
+
+            const totalQuestions = parts.reduce((sum, p) => sum + toInt(partField(p.root, 'total_questions')?.value, 0), 0);
+            if (partIssues.length) {
+                checks.push(sidebarCheck(
+                    'Exam Parts',
+                    'error',
+                    `${partIssues.length} of ${parts.length} part${parts.length === 1 ? '' : 's'} need attention`,
+                    true
+                ));
+                partIssues.forEach((issue) => {
+                    checks.push(sidebarCheck(issue.name, 'error', issue.message, true));
+                });
+            } else {
+                checks.push(sidebarCheck(
+                    'Exam Parts',
+                    'ok',
+                    `${parts.length} part${parts.length === 1 ? '' : 's'} · ${totalQuestions} question${totalQuestions === 1 ? '' : 's'}`,
+                    true
+                ));
+            }
+        }
+
+        const totalMarksSum = parts.reduce((sum, p) => sum + toInt(partField(p.root, 'total_marks')?.value, 0), 0);
+        const passingMarks = toInt(refs.passingMarks?.value, 0);
+        if (Number.isNaN(passingMarks) || passingMarks < 0) {
+            checks.push(sidebarCheck('Passing Marks', 'error', 'Passing marks is required.', true));
+        } else if (totalMarksSum > 0 && passingMarks > totalMarksSum) {
+            checks.push(sidebarCheck('Passing Marks', 'error', `Cannot exceed total marks (${totalMarksSum}).`, true));
+        } else {
+            checks.push(sidebarCheck('Passing Marks', 'ok', `${passingMarks} / ${totalMarksSum || '—'}`, true));
+        }
+
+        const negativeOn = Boolean(refs.enableNegativeMarking?.checked);
+        const negativeType = cleanText(refs.negativeMarkingType?.value || '');
+        checks.push(negativeOn
+            ? sidebarCheck('Negative Marking', 'ok', negativeType ? negativeType.replace(/_/g, ' ') : 'Enabled', false)
+            : sidebarCheck('Negative Marking', 'warn', 'Optional — currently off.', false));
+
+        if (refs.pricingSection && !refs.pricingSection.hidden) {
+            const freeCount = state.freeImportedCandidates.length + state.freeManualEmails.length;
+            if (!state.selectedPricing) {
+                checks.push(sidebarCheck('Pricing', 'error', 'Select a pricing option.', true));
+            } else if (state.selectedPricing === 'free_for_imported' && freeCount < 1) {
+                checks.push(sidebarCheck('Pricing', 'error', 'Add free-access candidate emails.', true));
+            } else {
+                const discountCount = (state.selectedDiscounts?.size || 0) + (state.customDiscounts?.length || 0);
+                checks.push(sidebarCheck(
+                    'Pricing',
+                    'ok',
+                    `${String(state.selectedPricing).replace(/_/g, ' ')}${discountCount ? ` · ${discountCount} discount${discountCount === 1 ? '' : 's'}` : ''}`,
+                    true
+                ));
+            }
+        }
+
+        const ruleCount = state.selectedInstructionRules?.size || 0;
+        checks.push(ruleCount > 0
+            ? sidebarCheck('Exam Rules', 'ok', `${ruleCount} rule${ruleCount === 1 ? '' : 's'} selected`, false)
+            : sidebarCheck('Exam Rules', 'warn', 'Optional — select predefined rules.', false));
+
+        const instructionLength = getInstructionTextLength();
+        if (instructionLength > 20) {
+            checks.push(sidebarCheck('Instructions', 'ok', `${instructionLength} characters`, false));
+        } else if (instructionLength > 0) {
+            checks.push(sidebarCheck('Instructions', 'warn', 'Add a bit more detail for candidates.', false));
+        } else {
+            checks.push(sidebarCheck('Instructions', 'warn', 'Optional — candidate instructions are empty.', false));
+        }
+
+        return checks;
+    }
+
+    function updateWorkflowAndSnapshot() {
+        if (!refs.sidebarValidationList) return;
+
+        const checks = buildSidebarValidationChecks();
+        const icons = { ok: '✓', warn: '!', error: '✕' };
+
+        refs.sidebarValidationList.innerHTML = checks.map((item) => `
+            <li class="exam-aside-check is-${escapeHtml(item.status)}" data-required="${item.required ? '1' : '0'}">
+                <span class="exam-aside-check__icon" aria-hidden="true">${icons[item.status] || '•'}</span>
+                <span class="exam-aside-check__body">
+                    <span class="exam-aside-check__label">${escapeHtml(item.label)}${item.required ? ' *' : ''}</span>
+                    <span class="exam-aside-check__meta">${escapeHtml(item.meta)}</span>
+                </span>
+            </li>
+        `).join('');
+
+        const requiredChecks = checks.filter((item) => item.required);
+        const readyRequired = requiredChecks.filter((item) => item.status === 'ok').length;
+        const requiredTotal = requiredChecks.length || checks.length;
+        const errorCount = checks.filter((item) => item.status === 'error').length;
+        const warnCount = checks.filter((item) => item.status === 'warn').length;
+        const okCount = checks.filter((item) => item.status === 'ok').length;
+        const progressPct = requiredTotal > 0 ? Math.round((readyRequired / requiredTotal) * 100) : 0;
+
+        if (refs.sidebarProgressFill) {
+            refs.sidebarProgressFill.style.width = `${progressPct}%`;
+            refs.sidebarProgressFill.classList.toggle('is-blocked', errorCount > 0);
+            refs.sidebarProgressFill.classList.toggle('is-attention', errorCount === 0 && warnCount > 0);
+        }
+        if (refs.sidebarProgressLabel) {
+            refs.sidebarProgressLabel.textContent = `${readyRequired} / ${requiredTotal} required ready · ${okCount} ok · ${warnCount} optional · ${errorCount} missing`;
+        }
+        if (refs.sidebarReadinessBadge) {
+            refs.sidebarReadinessBadge.classList.remove('is-ready', 'is-blocked', 'is-attention');
+            if (errorCount > 0) {
+                refs.sidebarReadinessBadge.textContent = 'Blocked';
+                refs.sidebarReadinessBadge.classList.add('is-blocked');
+            } else if (warnCount > 0) {
+                refs.sidebarReadinessBadge.textContent = 'Review';
+                refs.sidebarReadinessBadge.classList.add('is-attention');
+            } else {
+                refs.sidebarReadinessBadge.textContent = 'Ready';
+                refs.sidebarReadinessBadge.classList.add('is-ready');
+            }
         }
     }
+
+    // ── Rich text editors ──────────────────────────────────────────────
 
     async function initRichTextEditors() {
         if (state.richEditorsInitializing || state.richEditorsReady) {
@@ -4684,9 +4024,7 @@ document.addEventListener('DOMContentLoaded', () => {
             input.classList.add('panel-input', 'rich-editor-fallback');
             input.removeAttribute('hidden');
             input.style.display = 'block';
-            if (!input.style.minHeight) {
-                input.style.minHeight = '180px';
-            }
+            if (!input.style.minHeight) input.style.minHeight = '180px';
             const host = document.querySelector(`[data-editor-input="${input.id}"]`);
             if (host) {
                 host.hidden = true;
@@ -4698,9 +4036,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!window.EmsRichTextEditor || typeof window.EmsRichTextEditor.initAll !== 'function') {
             revealFallback(refs.description);
             revealFallback(refs.instructions);
-            if (refs.instructions) {
-                refs.instructions.addEventListener('input', updateInstructionCounter);
-            }
+            if (refs.instructions) refs.instructions.addEventListener('input', updateInstructionCounter);
             updateInstructionCounter();
             state.richEditorsReady = true;
             state.richEditorsInitializing = false;
@@ -4719,37 +4055,24 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn(error);
             revealFallback(refs.description);
             revealFallback(refs.instructions);
-            if (refs.instructions) {
-                refs.instructions.addEventListener('input', updateInstructionCounter);
-            }
+            if (refs.instructions) refs.instructions.addEventListener('input', updateInstructionCounter);
         }
         state.richEditors = registry instanceof Map ? registry : new Map();
 
-        // Guarantee visible editors even if adapters were skipped
-        if (!state.richEditors.has('exam_description')) {
-            revealFallback(refs.description);
-        }
+        if (!state.richEditors.has('exam_description')) revealFallback(refs.description);
         if (!state.richEditors.has('candidate_instructions')) {
             revealFallback(refs.instructions);
-            if (refs.instructions) {
-                refs.instructions.addEventListener('input', updateInstructionCounter);
-            }
+            if (refs.instructions) refs.instructions.addEventListener('input', updateInstructionCounter);
         }
 
         const descriptionEditor = getRichEditor('exam_description');
         const instructionEditor = getRichEditor('candidate_instructions');
 
         if (descriptionEditor) {
-            descriptionEditor.onChange(() => {
-                updateWorkflowAndSnapshot();
-            });
+            descriptionEditor.onChange(() => updateWorkflowAndSnapshot());
         }
-
         if (instructionEditor) {
-            instructionEditor.onChange(() => {
-                updateInstructionCounter();
-                updateWorkflowAndSnapshot();
-            });
+            instructionEditor.onChange(() => { updateInstructionCounter(); updateWorkflowAndSnapshot(); });
         }
 
         updateInstructionCounter();
@@ -4780,30 +4103,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getRichEditor(inputId) {
-        if (!(state.richEditors instanceof Map)) {
-            return null;
-        }
+        if (!(state.richEditors instanceof Map)) return null;
         return state.richEditors.get(inputId) || null;
     }
 
     function getRichTextValue(inputId) {
         const editor = getRichEditor(inputId);
-        if (editor) {
-            return editor.getData();
-        }
-
+        if (editor) return editor.getData();
         const field = document.getElementById(inputId);
         return field ? field.value : '';
     }
 
     function syncRichTextFields() {
-        if (!(state.richEditors instanceof Map) || state.richEditors.size === 0) {
-            return;
-        }
+        if (!(state.richEditors instanceof Map) || state.richEditors.size === 0) return;
         state.richEditors.forEach((editor) => {
-            if (editor && typeof editor.sync === 'function') {
-                editor.sync();
-            }
+            if (editor && typeof editor.sync === 'function') editor.sync();
         });
     }
 
@@ -4812,96 +4126,83 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.instructionsCount.textContent = String(getInstructionTextLength());
     }
 
-    function openAddQuestionModal(categoryId, options = {}) {
-        const endpoints = window.examCreateConfig?.endpoints || {};
-        const createUrl = endpoints.questionCreate || '/admin/questions/create';
-        const url = new URL(createUrl, window.location.origin);
-        url.searchParams.set('source', 'exam-create');
+    // ────────────────────────────────────────────────────────────────
+    // VALIDATION + SUBMIT
+    // ────────────────────────────────────────────────────────────────
 
-        const resolvedCategoryId = categoryId
-            || ([...state.selectedCategories].length === 1 ? [...state.selectedCategories][0] : '');
-        if (resolvedCategoryId) {
-            url.searchParams.set('category_id', resolvedCategoryId);
+    function validatePart(partState, partLabel) {
+        const errors = [];
+        const root = partState.root;
+        const prefix = partLabel ? `${partLabel}: ` : '';
+
+        const name = cleanText(partField(root, 'name')?.value || '');
+        if (!name) errors.push(`${prefix}enter a part name.`);
+
+        const totalQuestions = toInt(partField(root, 'total_questions')?.value, 0);
+        if (totalQuestions < 1) errors.push(`${prefix}total questions must be at least 1.`);
+
+        const totalMarks = toInt(partField(root, 'total_marks')?.value, 0);
+        if (totalMarks < 1) errors.push(`${prefix}total marks must be at least 1.`);
+
+        if (partState.selectedCategories.size < 1) errors.push(`${prefix}select at least one question category.`);
+        if (partState.selectedMarks.size < 1) errors.push(`${prefix}select at least one question marks filter.`);
+
+        const usePool = Boolean(partField(root, 'use_question_pool')?.checked);
+        const maximumQuestions = toInt(partField(root, 'maximum_questions')?.value, 0);
+        if (usePool && maximumQuestions <= totalQuestions) {
+            errors.push(`${prefix}maximum questions in the pool must be greater than total questions.`);
         }
 
-        const marksValues = [];
-        if (options.marks) {
-            marksValues.push(Number(options.marks));
-        } else {
-            marksValues.push(...[...state.selectedMarks].map(Number));
+        const hasFixedPaperSets = Boolean(partField(root, 'fixed_paper_set')?.checked);
+        const paperSets = toInt(partField(root, 'paper_sets')?.value, 0);
+        if (hasFixedPaperSets && (!Number.isInteger(paperSets) || paperSets < 1 || paperSets > totalQuestions)) {
+            errors.push(`${prefix}paper sets must be a whole number between 1 and total questions.`);
         }
-        [...new Set(marksValues.filter((mark) => mark > 0))].forEach((mark) => {
-            url.searchParams.append('marks[]', String(mark));
+
+        const selectionLimits = getQuestionSelectionLimitsForPart(partState);
+        const selectedQuestionCount = partState.selectedQuestions.size;
+        if (!selectionLimits.viewOnly) {
+            if (selectionLimits.exact !== null && selectedQuestionCount !== selectionLimits.exact) {
+                errors.push(`${prefix}select exactly ${selectionLimits.exact} question(s).`);
+            } else if (selectedQuestionCount < selectionLimits.min || selectedQuestionCount > selectionLimits.max) {
+                errors.push(`${prefix}select between ${selectionLimits.min} and ${selectionLimits.max} question(s) for the pool.`);
+            }
+        }
+
+        const shortages = computeQuestionShortagesForPart(partState);
+        shortages.forEach((item) => {
+            errors.push(`${prefix}not enough matching questions available (available ${item.available} / required ${item.required}).`);
         });
 
-        [...state.selectedExamFormat].forEach((format) => {
-            url.searchParams.append('formats[]', format);
-        });
-
-        if (refs.difficulty?.value) {
-            url.searchParams.set('difficulty', refs.difficulty.value);
+        if (Boolean(partField(root, 'fix_category_questions')?.checked)) {
+            const distribution = computeFixedCategoryDistributionForPart(partState);
+            if (!distribution.isComplete) {
+                errors.push(`${prefix}allocate exactly ${distribution.totalQuestions} questions across categories (currently ${distribution.totalAllocated}).`);
+            }
         }
 
-        window.open(url.toString(), '_blank');
-    }
-
-    function closeAddQuestionModal() {
-        if (refs.modal) {
-            refs.modal.hidden = true;
-        }
-        if (refs.addQuestionForm) {
-            refs.addQuestionForm.reset();
+        if (Boolean(partField(root, 'fix_category_marks')?.checked)) {
+            const marksDistribution = computeFixedCategoryMarksDistributionForPart(partState);
+            if (!marksDistribution.isComplete) {
+                errors.push(`${prefix}allocate exactly ${marksDistribution.totalMarks} marks across categories (currently ${marksDistribution.totalAllocated}).`);
+            }
         }
 
-        if (window.EmsSelect && typeof window.EmsSelect.setValue === 'function') {
-            ['new_question_category', 'new_question_marks', 'new_question_difficulty'].forEach((fieldId) => {
-                const field = document.getElementById(fieldId);
-                if (field) {
-                    window.EmsSelect.setValue(fieldId, field.value);
-                }
-            });
-        }
-    }
-
-    function addQuestionFromModal() {
-        if (!refs.addQuestionForm || !refs.newQuestionCategory || !refs.newQuestionText) {
-            return;
+        const marksCalculation = computeMarksCalculationForPart(partState);
+        if (marksCalculation.fixEnabled) {
+            if (!marksCalculation.hasSelectedMark || partState.selectedMarks.size !== 1) {
+                errors.push(`${prefix}select exactly one question marks filter when Fix Marks Each Question is enabled.`);
+            } else if (!marksCalculation.isValid) {
+                errors.push(`${prefix}fixed marks mismatch (${marksCalculation.totalQuestions} x ${marksCalculation.selectedMark} should equal ${marksCalculation.expectedTotalMarks}).`);
+            }
         }
 
-        const categoryId = refs.newQuestionCategory.value;
-        const marks = toInt(refs.newQuestionMarks?.value, 1);
-        const difficulty = refs.newQuestionDifficulty?.value || 'medium';
-        const text = cleanText(refs.newQuestionText.value);
-
-        if (!categoryId || !text) {
-            showFormErrors(['Please select category and write question text before adding.']);
-            return;
-        }
-
-        clearFormErrors();
-        const nextId = state.questionBank.length
-            ? Math.max(...state.questionBank.map((question) => toInt(question.id, 0))) + 1
-            : 2001;
-
-        state.questionBank.push({ id: nextId, categoryId, marks, difficulty, text });
-        state.categoryAvailability[categoryId] = toInt(state.categoryAvailability[categoryId], 0) + 1;
-        closeAddQuestionModal();
-        renderCategorySelector();
-        updateQuestionBankCards();
-        updateWorkflowAndSnapshot();
+        return errors;
     }
 
     function collectSubmissionErrors() {
         const errors = [];
-        const totalQuestions = toInt(refs.totalQuestions.value, 0);
-        const usesQuestionPool = isQuestionPoolEnabled();
-        const maximumQuestions = toInt(refs.maximumQuestions?.value, 0);
-        const totalMarks = toInt(refs.totalMarks.value, 0);
-        const passingMarks = toInt(refs.passingMarks.value, 0);
-        const paperSets = toInt(refs.paperSets.value, 0);
-        const hasFixedPaperSets = Boolean(refs.fixedPaperSet?.checked);
         const timerEnabled = Boolean(refs.enableExamTimer && refs.enableExamTimer.checked);
-        const durationMinutes = Math.max(0, toInt(refs.examDurationMinutes ? refs.examDurationMinutes.value : 0, 0));
         const scheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
         const attemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
         const scheduleStartAt = cleanText(refs.scheduleStartAt ? refs.scheduleStartAt.value : '');
@@ -4911,10 +4212,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const attemptLimitCount = Math.max(0, toInt(refs.attemptLimitCount ? refs.attemptLimitCount.value : 0, 0));
 
         if (cleanText(refs.title.value).length < 3) errors.push('Exam title must be at least 3 characters long.');
+        if (!getExamCategoryValue()) errors.push('Select an exam category.');
         if (!state.selectedExamFormat || state.selectedExamFormat.size === 0) errors.push('Select at least one exam format.');
-        if (timerEnabled && (!Number.isInteger(durationMinutes) || durationMinutes < 1)) {
-            errors.push('Exam duration must be a whole number of at least 1 minute when timer is enabled.');
-        }
         if (scheduleType === 'fixed_window') {
             if (!scheduleStartAt || !scheduleEndAt) {
                 errors.push('Set both schedule start and end date-time when fixed schedule window is selected.');
@@ -4927,84 +4226,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (attemptLimitType === 'fixed_count' && attemptLimitCount < 2) {
             errors.push('Fixed attempt limit must be at least 2.');
         }
-        if (totalQuestions < 1) errors.push('Total questions must be at least 1.');
-        if (usesQuestionPool && maximumQuestions <= totalQuestions) {
-            errors.push('Maximum questions in the pool must be greater than Total Questions Ask.');
-        }
-        if (state.selectedCategories.size < 1) errors.push('Select at least one question category.');
-        if (hasFixedPaperSets && (!Number.isInteger(paperSets) || paperSets < 1 || paperSets > totalQuestions)) {
-            errors.push('Paper sets must be a whole number between 1 and total questions.');
-        }
-        if (passingMarks > totalMarks) errors.push('Passing marks cannot exceed total marks.');
 
-        const selectionLimits = getQuestionSelectionLimits();
-        const selectedQuestionCount = state.selectedQuestions.size;
-        if (!selectionLimits.viewOnly) {
-            if (selectionLimits.exact !== null && selectedQuestionCount !== selectionLimits.exact) {
-                errors.push(`Select exactly ${selectionLimits.exact} question(s) for this exam.`);
-            } else if (selectedQuestionCount < selectionLimits.min || selectedQuestionCount > selectionLimits.max) {
-                errors.push(`Select between ${selectionLimits.min} and ${selectionLimits.max} question(s) for the question pool.`);
-            }
-        } else {
-            state.selectedQuestions.clear();
+        const parts = getOrderedParts();
+        if (!parts.length) {
+            errors.push('Add at least one exam part.');
         }
 
-        const shortages = computeQuestionShortages();
-        shortages.forEach((item) => {
-            if (!item.categoryId) {
-                errors.push(`Not enough matching questions available. Need ${item.missing} more (available ${item.available} / required ${item.required}).`);
-                return;
-            }
-            errors.push(
-                `Need ${item.missing} more ${item.marks}-mark question(s) in ${getCategoryLabelById(item.categoryId)} (available ${item.available} / required ${item.required}).`
-            );
+        let totalMarksSum = 0;
+        parts.forEach((partState, index) => {
+            const displayName = cleanText(partField(partState.root, 'name')?.value || '') || `#${index + 1}`;
+            errors.push(...validatePart(partState, `Part "${displayName}"`));
+            totalMarksSum += toInt(partField(partState.root, 'total_marks')?.value, 0);
         });
 
-        if (refs.fixCategoryQuestions.checked) {
-            const distribution = computeFixedCategoryDistribution();
-            if (!distribution.isComplete) {
-                errors.push(
-                    `Allocate exactly ${distribution.totalQuestions} questions across categories. Currently allocated: ${distribution.totalAllocated}.`
-                );
-            }
+        const passingMarks = toInt(refs.passingMarks.value, 0);
+        if (passingMarks < 0) errors.push('Passing marks is required.');
+        if (totalMarksSum > 0 && passingMarks > totalMarksSum) {
+            errors.push(`Passing marks cannot exceed the total marks across all parts (${totalMarksSum}).`);
         }
-        if (refs.fixCategoryMarks?.checked) {
-            const marksDistribution = computeFixedCategoryMarksDistribution();
-            if (!marksDistribution.isComplete) {
-                errors.push(
-                    `Allocate exactly ${marksDistribution.totalMarks} marks across categories. Currently allocated: ${marksDistribution.totalAllocated}.`
-                );
-            }
+        if (timerEnabled) {
+            const duration = toInt(refs.examDurationMinutes?.value, 0);
+            if (duration < 1) errors.push('Exam duration must be at least 1 minute when the timer is enabled.');
         }
-        const marksCalculation = computeMarksCalculationState();
-        if (marksCalculation.fixEnabled) {
-            if (!marksCalculation.hasSelectedMark || state.selectedMarks.size !== 1) {
-                errors.push('Select exactly one question marks filter when "Fix Marks Each Question" is enabled.');
-            }
-            if (marksCalculation.hasSelectedMark && !marksCalculation.isValid) {
-                errors.push(`Fixed marks mismatch: ${marksCalculation.totalQuestions} questions with ${marksCalculation.selectedMark} mark(s) requires Total Marks ${marksCalculation.expectedTotalMarks}.`);
-            }
-        } else if (!state.selectedMarks.size) {
-            errors.push('Select at least one question marks filter.');
+
+        if (!refs.candidateSection.hidden && state.importedCandidates.length + state.manualEmails.length === 0) {
+            errors.push('Add at least one candidate email for the current access configuration.');
         }
-        if (!refs.candidateSection.hidden && state.importedCandidates.length + state.manualEmails.length === 0) errors.push('Add at least one candidate email for the current access configuration.');
         if (!refs.pricingSection.hidden && !state.selectedPricing) {
             errors.push('Select one pricing option.');
         } else if (!refs.pricingSection.hidden && (state.selectedPricing === 'paid' || state.selectedPricing === 'free_for_imported')) {
-            // If Free for Imported Candidates is selected, validate that they added at least one free candidate email
             if (state.selectedPricing === 'free_for_imported' && state.freeImportedCandidates.length + state.freeManualEmails.length === 0) {
                 errors.push('Add at least one candidate email to the Free Candidate List for the free access configuration.');
             }
-
-            // Validate Predefined Discounts
-            state.selectedDiscounts.forEach(id => {
+            state.selectedDiscounts.forEach((id) => {
                 const pct = state.discountPercentages[id];
                 if (pct === undefined || isNaN(pct) || pct < 0 || pct > 100) {
                     errors.push('All selected predefined discounts must have a percentage value between 0% and 100%.');
                 }
             });
-
-            // Validate Custom Discounts
             state.customDiscounts.forEach((item, index) => {
                 if (!item.name || !item.name.trim()) {
                     errors.push(`Custom Discount Offer #${index + 1}: Offer name is required.`);
@@ -5015,54 +4274,35 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        refs.selectedCategoriesHidden.value = JSON.stringify([...state.selectedCategories]);
-        refs.marksHidden.value = JSON.stringify([...state.selectedMarks]);
+        // Sync exam-level hidden fields right before submit.
         if (refs.discountHidden) {
             refs.discountHidden.value = JSON.stringify(
-                [...state.selectedDiscounts].map((id) => ({
-                    id,
-                    percentage: state.discountPercentages[id],
-                }))
+                [...state.selectedDiscounts].map((id) => ({ id, percentage: state.discountPercentages[id] }))
             );
         }
-        if (refs.customDiscountsHidden) {
-            refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts || []);
-        }
-        if (refs.pricingOptionHidden) {
-            refs.pricingOptionHidden.value = state.selectedPricing || '';
-        }
-        if (refs.distributionTypeHidden) {
-            refs.distributionTypeHidden.value = state.selectedDistributionType || '';
-        }
-        if (refs.questionIdsHidden) {
-            refs.questionIdsHidden.value = JSON.stringify(
-                selectionLimits.viewOnly
-                    ? []
-                    : [...state.selectedQuestions].map((id) => Number(id)).filter((id) => id > 0)
-            );
-        }
-        syncExtraMarksAllocations();
+        if (refs.customDiscountsHidden) refs.customDiscountsHidden.value = JSON.stringify(state.customDiscounts || []);
+        if (refs.pricingOptionHidden) refs.pricingOptionHidden.value = state.selectedPricing || '';
         refs.tagsHidden.value = JSON.stringify(state.tags);
-        if (refs.examFormatHidden) {
-            refs.examFormatHidden.value = JSON.stringify([...state.selectedExamFormat]);
-        }
-        if (refs.scheduleTypeHidden) {
-            refs.scheduleTypeHidden.value = scheduleType;
-        }
-        if (refs.attemptLimitTypeHidden) {
-            refs.attemptLimitTypeHidden.value = attemptLimitType;
-        }
+        if (refs.examFormatHidden) refs.examFormatHidden.value = JSON.stringify([...state.selectedExamFormat]);
+        if (refs.scheduleTypeHidden) refs.scheduleTypeHidden.value = scheduleType;
+        if (refs.attemptLimitTypeHidden) refs.attemptLimitTypeHidden.value = attemptLimitType;
         refs.manualEmailsHidden.value = JSON.stringify(state.manualEmails);
         refs.importedCandidatesHidden.value = JSON.stringify(state.importedCandidates);
-
         refs.freeManualEmailsHidden.value = JSON.stringify(state.freeManualEmails);
         refs.freeImportedCandidatesHidden.value = JSON.stringify(state.freeImportedCandidates);
-        state.selectedInstructionRules = new Set(
-            normalizeInstructionRuleSelection([...state.selectedInstructionRules])
-        );
+        state.selectedInstructionRules = new Set(normalizeInstructionRuleSelection([...state.selectedInstructionRules]));
         syncInstructionRulesHidden();
 
-        syncExtraQuestionsHidden();
+        // Re-sync every part's hidden fields (categories/allocations/marks/question ids)
+        // and make sure `parts[N]` indexes are sequential before the browser serializes the form.
+        parts.forEach((partState) => {
+            syncPartCategoryFeedback(partState);
+            syncPartExtraQuestionsAllocationsHidden(partState);
+            syncPartExtraMarksAllocationsHidden(partState);
+            renderPartQuestionMarks(partState);
+            syncPartQuestionIdsHidden(partState);
+        });
+        reindexParts();
 
         return errors;
     }
@@ -5085,74 +4325,308 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hideLoader() {
-        if (!refs.loader) {
-            return;
-        }
-
+        if (!refs.loader) return;
         refs.loader.classList.add('is-hidden');
-        if (refs.page) {
-            refs.page.setAttribute('data-page-ready', 'true');
-        }
-
-        window.setTimeout(() => {
-            setDefaultFocusOnTitle();
-        }, 50);
+        if (refs.page) refs.page.setAttribute('data-page-ready', 'true');
+        window.setTimeout(() => setDefaultFocusOnTitle(), 50);
     }
 
     function setDefaultFocusOnTitle() {
-        if (!refs.title || refs.title.disabled) {
-            return;
-        }
-
-        window.requestAnimationFrame(() => {
-            refs.title.focus({ preventScroll: true });
-        });
+        if (!refs.title || refs.title.disabled) return;
+        window.requestAnimationFrame(() => refs.title.focus({ preventScroll: true }));
     }
+
+    // ────────────────────────────────────────────────────────────────
+    // MASTER UPDATE + EVENT BINDING
+    // ────────────────────────────────────────────────────────────────
 
     function updateAll() {
         if (!state.selectedExamFormat || !(state.selectedExamFormat instanceof Set) || state.selectedExamFormat.size === 0) {
             state.selectedExamFormat = new Set(['mcq']);
         }
-        state.selectedScheduleType = normalizeScheduleType(
-            state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time')
-        );
-        state.selectedAttemptLimitType = normalizeAttemptLimitType(
-            state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once')
-        );
+        state.selectedScheduleType = normalizeScheduleType(state.selectedScheduleType || (refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time'));
+        state.selectedAttemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType || (refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'once'));
 
-        // Reactive question bank sync check
-        const currentCategoriesStr = [...state.selectedCategories].sort().join(',');
-        const currentMarksStr = [...state.selectedMarks].sort().join(',');
-        const currentFormatsStr = [...state.selectedExamFormat].sort().join(',');
-
-        if (state.lastFetchedCategories !== currentCategoriesStr ||
-            state.lastFetchedMarks !== currentMarksStr ||
-            state.lastFetchedFormats !== currentFormatsStr) {
-
-            state.lastFetchedCategories = currentCategoriesStr;
-            state.lastFetchedMarks = currentMarksStr;
-            state.lastFetchedFormats = currentFormatsStr;
-
-            scheduleQuestionBankSync(200);
-        }
-
-        if (refs.examFormatOptions && refs.examFormatHidden) {
-            renderExamFormatOptions();
-        }
+        renderExamFormatOptions();
         renderScheduleTypeOptions();
         renderAttemptLimitOptions();
         updateScheduleConfigState();
         updateTimerConfigState();
         updateConditionalSections();
-        renderMarksCalculationManagement();
-        updateConfigPreview();
-        renderFixedCategoryDistribution();
-        renderFixedCategoryMarksDistribution();
-        updateQuestionBankCards();
         renderDiscountSummary();
+
+        getOrderedParts().forEach((partState) => updatePartUi(partState));
+
+        updateExamSummary();
         updateWorkflowAndSnapshot();
     }
 
+    function bindEvents() {
+        if (state.eventsBound) return;
+        try {
+            bindEventsInternal();
+            state.eventsBound = true;
+        } catch (error) {
+            state.eventsBound = false;
+            throw error;
+        }
+    }
+
+    function bindEventsInternal() {
+        initSectionCollapse();
+
+        refs.mode.addEventListener('change', () => { state.selectedMode = refs.mode.value; updateAll(); });
+        refs.visibility.addEventListener('change', () => {
+            state.selectedVisibility = refs.visibility.value;
+            renderPricingOptions();
+            updateAll();
+        });
+
+        if (refs.enableExamTimer) {
+            refs.enableExamTimer.addEventListener('change', () => { updateTimerConfigState(); updateWorkflowAndSnapshot(); updateExamSummary(); });
+        }
+        if (refs.examDurationMinutes) {
+            refs.examDurationMinutes.addEventListener('input', () => { updateTimerConfigState(); updateWorkflowAndSnapshot(); updateExamSummary(); });
+        }
+        if (refs.autoSubmitOnTimerEnd) {
+            refs.autoSubmitOnTimerEnd.addEventListener('change', () => { updateTimerConfigState(); });
+        }
+
+        if (refs.examFormatOptions) {
+            refs.examFormatOptions.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-format-id]');
+                if (!card) return;
+                const formatId = card.dataset.formatId;
+                if (state.selectedExamFormat.has(formatId)) {
+                    if (state.selectedExamFormat.size > 1) state.selectedExamFormat.delete(formatId);
+                } else {
+                    state.selectedExamFormat.add(formatId);
+                }
+                renderExamFormatOptions();
+                updateAll();
+            });
+        }
+
+        if (refs.scheduleTypeOptions) {
+            refs.scheduleTypeOptions.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-schedule-type-id]');
+                if (!card) return;
+                state.selectedScheduleType = normalizeScheduleType(card.dataset.scheduleTypeId);
+                renderScheduleTypeOptions();
+                updateAll();
+            });
+        }
+
+        if (refs.attemptLimitOptions) {
+            refs.attemptLimitOptions.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-attempt-type-id]');
+                if (!card) return;
+                state.selectedAttemptLimitType = normalizeAttemptLimitType(card.dataset.attemptTypeId);
+                renderAttemptLimitOptions();
+                updateAll();
+            });
+        }
+
+        [refs.scheduleStartAt, refs.scheduleEndAt, refs.attemptLimitCount].forEach((field) => {
+            if (!field) return;
+            field.addEventListener('input', updateAll);
+            field.addEventListener('change', updateAll);
+        });
+
+        if (refs.enableNegativeMarking) {
+            refs.enableNegativeMarking.addEventListener('change', () => {
+                refs.negativeMarkingConfig.hidden = !refs.enableNegativeMarking.checked;
+                updateExamSummary();
+                updateWorkflowAndSnapshot();
+            });
+        }
+        if (refs.negativeMarkingType) {
+            refs.negativeMarkingType.addEventListener('change', () => {
+                updateExamSummary();
+                updateWorkflowAndSnapshot();
+            });
+        }
+        if (refs.passingMarks) {
+            refs.passingMarks.addEventListener('input', () => { updateExamSummary(); updateWorkflowAndSnapshot(); });
+        }
+
+        refs.pricingOptions.addEventListener('click', (event) => {
+            const card = event.target.closest('[data-pricing-option]');
+            if (!card || card.classList.contains('is-hidden')) return;
+            state.selectedPricing = card.dataset.pricingOption;
+            highlightPricingOptions();
+            updateAll();
+        });
+
+        refs.discountRules.addEventListener('click', (event) => {
+            if (event.target.closest('input') || event.target.closest('.discount-pct-wrap')) return;
+            const card = event.target.closest('[data-discount-id]');
+            if (!card) return;
+            const id = card.dataset.discountId;
+            if (state.selectedDiscounts.has(id)) state.selectedDiscounts.delete(id);
+            else state.selectedDiscounts.add(id);
+            renderDiscountRules();
+            updateAll();
+        });
+
+        refs.candidateTabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                state.activeCandidateTab = button.dataset.candidateTab;
+                renderCandidateTabs();
+            });
+        });
+
+        refs.dropZone.addEventListener('dragover', (event) => { event.preventDefault(); refs.dropZone.classList.add('is-active'); });
+        refs.dropZone.addEventListener('dragleave', () => refs.dropZone.classList.remove('is-active'));
+        refs.dropZone.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            refs.dropZone.classList.remove('is-active');
+            const file = event.dataTransfer?.files?.[0];
+            if (file) { refs.candidateFile.files = event.dataTransfer.files; await handleCandidateFile(file); }
+        });
+        refs.candidateFile.addEventListener('change', async (event) => {
+            const file = event.target.files?.[0];
+            if (file) await handleCandidateFile(file);
+        });
+
+        refs.freeCandidateTabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                state.activeFreeCandidateTab = button.dataset.freeCandidateTab;
+                renderFreeCandidateTabs();
+            });
+        });
+
+        if (refs.freeDropZone) {
+            refs.freeDropZone.addEventListener('dragover', (event) => { event.preventDefault(); refs.freeDropZone.classList.add('is-active'); });
+            refs.freeDropZone.addEventListener('dragleave', () => refs.freeDropZone.classList.remove('is-active'));
+            refs.freeDropZone.addEventListener('drop', async (event) => {
+                event.preventDefault();
+                refs.freeDropZone.classList.remove('is-active');
+                const file = event.dataTransfer?.files?.[0];
+                if (file) { refs.freeCandidateFile.files = event.dataTransfer.files; await handleFreeCandidateFile(file); }
+            });
+        }
+        if (refs.freeCandidateFile) {
+            refs.freeCandidateFile.addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (file) await handleFreeCandidateFile(file);
+            });
+        }
+
+        if (refs.customDiscountsBtn) {
+            refs.customDiscountsBtn.addEventListener('click', () => {
+                state.customDiscounts.push({ name: '', description: '', percentage: 10 });
+                renderCustomDiscounts();
+            });
+        }
+
+        refs.applyInstructionTemplate.addEventListener('click', applyInstructionTemplate);
+
+        if (refs.instructionRulesList) {
+            refs.instructionRulesList.addEventListener('change', (event) => {
+                const checkbox = event.target.closest('input[data-rule-id]');
+                if (!checkbox) return;
+                const ruleId = cleanText(checkbox.dataset.ruleId || '');
+                if (!ruleId) return;
+
+                const card = checkbox.closest('.instruction-rule-card');
+                const isRequired = checkbox.dataset.required === '1';
+
+                if (checkbox.checked) {
+                    state.selectedInstructionRules.add(ruleId);
+                    card?.classList.add('is-active');
+                } else if (isRequired) {
+                    checkbox.checked = true;
+                    state.selectedInstructionRules.add(ruleId);
+                    card?.classList.add('is-active');
+                } else {
+                    state.selectedInstructionRules.delete(ruleId);
+                    card?.classList.remove('is-active');
+                }
+
+                if (refs.instructionRulesCount) refs.instructionRulesCount.textContent = String(state.selectedInstructionRules.size);
+                syncInstructionRulesHidden();
+                updateWorkflowAndSnapshot();
+            });
+        }
+
+        if (refs.addExamPartBtn) {
+            refs.addExamPartBtn.addEventListener('click', addPartButtonHandler);
+        }
+
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            const payload = event.data;
+            if (!payload || payload.type !== 'exam-create-question-created') return;
+
+            const questionId = Number(payload.question?.id || 0);
+            const targetPart = getPartByKey(state.lastAddQuestionPartKey) || getFirstPart();
+            if (!targetPart) return;
+
+            syncQuestionBankFromServerForPart(targetPart).then(() => {
+                if (questionId > 0 && isManualQuestionSelectionEnabledForPart(targetPart)) {
+                    const limits = getQuestionSelectionLimitsForPart(targetPart);
+                    if (targetPart.selectedQuestions.size < limits.max) {
+                        targetPart.selectedQuestions.add(questionId);
+                    }
+                    renderQuestionBankCardsForPart(targetPart);
+                    updateExamSummary();
+                }
+                window.EmsToast?.success('Question created and question bank refreshed.');
+            });
+        });
+
+        refs.form.addEventListener('submit', (event) => {
+            syncRichTextFields();
+            const errors = collectSubmissionErrors();
+            if (errors.length) {
+                event.preventDefault();
+                showFormErrors(errors);
+                refs.errorBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            clearFormErrors();
+        });
+
+        [
+            refs.title, refs.description, refs.difficulty, refs.status, refs.mode, refs.visibility,
+            refs.examCategory,
+            refs.enableExamTimer, refs.examDurationMinutes, refs.autoSubmitOnTimerEnd,
+            refs.scheduleStartAt, refs.scheduleEndAt, refs.attemptLimitCount,
+            refs.passingMarks, refs.enableNegativeMarking, refs.negativeMarkingType,
+        ].forEach((field) => {
+            if (!field) return;
+            field.addEventListener('input', updateWorkflowAndSnapshot);
+            field.addEventListener('change', updateWorkflowAndSnapshot);
+        });
+
+        // Tom Select may initialize after bindEvents; re-hook category changes.
+        window.setTimeout(() => {
+            const select = refs.examCategory;
+            if (!select) return;
+            const ts = select.tomselect;
+            if (ts && typeof ts.on === 'function') {
+                ts.on('change', updateWorkflowAndSnapshot);
+            }
+        }, 0);
+
+        window.examCreateUpdateSidebar = updateWorkflowAndSnapshot;
+    }
+
+    // ── Public surface for question-bank-init.js / legacy callers ────
+
     window.examCreateState = state;
     window.examCreateUpdateAll = updateAll;
+
+    window.syncQuestionBankFromServer = function syncQuestionBankFromServer() {
+        const expandedParts = getOrderedParts().filter((p) => p.expanded);
+        const targets = expandedParts.length ? expandedParts : getOrderedParts();
+        return Promise.all(targets.map((p) => syncQuestionBankFromServerForPart(p)));
+    };
+
+    window.loadCategoryQuestions = function loadCategoryQuestions(categoryId, opts) {
+        const part = getOrderedParts().find((p) => p.expanded) || getFirstPart();
+        if (!part) return Promise.resolve();
+        return loadCategoryQuestionsForPart(part, categoryId, opts);
+    };
 });
