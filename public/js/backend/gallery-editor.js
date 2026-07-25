@@ -1,6 +1,7 @@
 /**
  * Gallery image editor — crop, brightness, contrast, resize, rotate, flip, shapes, compress.
  * Lazy-loads Cropper.js when needed. Modal markup: #gallery-image-editor (shared partial).
+ * Export preview updates live (debounced) as settings change.
  */
 (function (global) {
     'use strict';
@@ -10,6 +11,7 @@
         brightness: 0,
         contrast: 0,
         maxEdge: 2400,
+        previewDebounceMs: 160,
     };
 
     let cropperLoading = null;
@@ -99,6 +101,7 @@
             shapeGroup: modal.querySelector('[data-gie-shapes]'),
             preview: modal.querySelector('[data-gie-preview]'),
             previewWrap: modal.querySelector('[data-gie-preview-wrap]'),
+            previewHint: modal.querySelector('[data-gie-preview-hint]'),
         };
 
         const state = {
@@ -112,12 +115,18 @@
             brightness: DEFAULTS.brightness,
             contrast: DEFAULTS.contrast,
             quality: DEFAULTS.quality,
+            previewTimer: null,
+            previewToken: 0,
+            lastBlob: null,
+            lastCanvas: null,
+            closed: false,
         };
 
         els.title.textContent = options.name || 'Edit image';
         els.img.removeAttribute('src');
-        els.previewWrap.hidden = true;
+        if (els.preview.src) URL.revokeObjectURL(els.preview.src);
         els.preview.removeAttribute('src');
+        if (els.previewHint) els.previewHint.textContent = 'Preparing…';
 
         modal.hidden = false;
         modal.setAttribute('aria-hidden', 'false');
@@ -156,6 +165,13 @@
             aspectRatio: NaN,
             ready() {
                 applyFilters();
+                scheduleLivePreview(true);
+            },
+            cropend() {
+                scheduleLivePreview();
+            },
+            zoom() {
+                scheduleLivePreview();
             },
         });
 
@@ -181,6 +197,7 @@
                 state.cropper.setAspectRatio(NaN);
             }
             els.stage.classList.toggle('is-circle-mask', shape === 'circle');
+            scheduleLivePreview();
         }
 
         function syncSizeFromCrop() {
@@ -195,6 +212,7 @@
             if (els.lockRatio.checked && state.aspect) {
                 els.height.value = String(Math.max(1, Math.round(w / state.aspect)));
             }
+            scheduleLivePreview();
         }
 
         function onHeightInput() {
@@ -202,6 +220,7 @@
             if (els.lockRatio.checked && state.aspect) {
                 els.width.value = String(Math.max(1, Math.round(h * state.aspect)));
             }
+            scheduleLivePreview();
         }
 
         async function buildExportCanvas() {
@@ -239,28 +258,63 @@
             return canvas;
         }
 
+        function scheduleLivePreview(immediate) {
+            if (state.closed) return;
+            if (els.previewHint) els.previewHint.textContent = 'Updating…';
+            if (state.previewTimer) {
+                clearTimeout(state.previewTimer);
+                state.previewTimer = null;
+            }
+            const run = () => {
+                state.previewTimer = null;
+                refreshPreview().catch(() => {
+                    if (els.previewHint) els.previewHint.textContent = 'Preview unavailable';
+                });
+            };
+            if (immediate) {
+                run();
+                return;
+            }
+            state.previewTimer = setTimeout(run, DEFAULTS.previewDebounceMs);
+        }
+
         async function refreshPreview() {
+            if (state.closed || !state.cropper) return null;
+            const token = ++state.previewToken;
             const canvas = await buildExportCanvas();
+            if (token !== state.previewToken || state.closed) return null;
+
             const blob = await canvasToBlob(
                 canvas,
                 state.shape === 'circle' ? 'image/png' : 'image/jpeg',
                 state.quality
             );
+            if (token !== state.previewToken || state.closed) return null;
+
             if (els.preview.src) URL.revokeObjectURL(els.preview.src);
             els.preview.src = URL.createObjectURL(blob);
-            els.previewWrap.hidden = false;
+            state.lastBlob = blob;
+            state.lastCanvas = canvas;
             els.meta.textContent = `${canvas.width} × ${canvas.height} · ${Math.round(blob.size / 1024)} KB`;
+            if (els.previewHint) els.previewHint.textContent = 'Live';
             return { canvas, blob };
         }
 
         return new Promise((resolve) => {
             const cleanup = (result) => {
+                state.closed = true;
+                if (state.previewTimer) {
+                    clearTimeout(state.previewTimer);
+                    state.previewTimer = null;
+                }
+                state.previewToken += 1;
                 modal.removeEventListener('click', onClick);
                 els.brightness.removeEventListener('input', onBrightness);
                 els.quality.removeEventListener('input', onQuality);
                 if (els.contrast) els.contrast.removeEventListener('input', onContrast);
                 els.width.removeEventListener('input', onWidthInput);
                 els.height.removeEventListener('input', onHeightInput);
+                els.img.removeEventListener('crop', onCrop);
                 if (state.cropper) {
                     state.cropper.destroy();
                     state.cropper = null;
@@ -278,6 +332,7 @@
                 state.brightness = parseInt(els.brightness.value, 10) || 0;
                 els.brightnessVal.textContent = String(state.brightness);
                 applyFilters();
+                scheduleLivePreview();
             };
 
             const onContrast = () => {
@@ -285,11 +340,17 @@
                 state.contrast = parseInt(els.contrast.value, 10) || 0;
                 els.contrastVal.textContent = String(state.contrast);
                 applyFilters();
+                scheduleLivePreview();
             };
 
             const onQuality = () => {
                 state.quality = Math.min(1, Math.max(0.4, (parseInt(els.quality.value, 10) || 85) / 100));
                 els.qualityVal.textContent = `${Math.round(state.quality * 100)}%`;
+                scheduleLivePreview();
+            };
+
+            const onCrop = () => {
+                syncSizeFromCrop();
             };
 
             const onClick = async (event) => {
@@ -309,20 +370,24 @@
                 try {
                     if (action === 'rotate-left') {
                         state.cropper.rotate(-90);
+                        scheduleLivePreview();
                         return;
                     }
                     if (action === 'rotate-right') {
                         state.cropper.rotate(90);
+                        scheduleLivePreview();
                         return;
                     }
                     if (action === 'flip-h') {
                         state.flipX *= -1;
                         state.cropper.scaleX(state.flipX);
+                        scheduleLivePreview();
                         return;
                     }
                     if (action === 'flip-v') {
                         state.flipY *= -1;
                         state.cropper.scaleY(state.flipY);
+                        scheduleLivePreview();
                         return;
                     }
                     if (action === 'reset') {
@@ -341,12 +406,7 @@
                         els.height.value = String(state.naturalHeight);
                         setShape('rectangle');
                         applyFilters();
-                        return;
-                    }
-                    if (action === 'preview') {
-                        actionBtn.disabled = true;
-                        await refreshPreview();
-                        actionBtn.disabled = false;
+                        scheduleLivePreview(true);
                         return;
                     }
                     if (action === 'skip') {
@@ -359,14 +419,17 @@
                         actionBtn.disabled = true;
                         actionBtn.textContent = 'Saving…';
                         syncSizeFromCrop();
-                        const { blob, canvas } = await refreshPreview();
+                        const result = (state.lastBlob && state.lastCanvas)
+                            ? { blob: state.lastBlob, canvas: state.lastCanvas }
+                            : await refreshPreview();
+                        if (!result?.blob) throw new Error('Unable to export edited image.');
                         const ext = state.shape === 'circle' ? 'png' : 'jpg';
                         const base = (options.name || 'image').replace(/\.[^.]+$/, '');
-                        const file = new File([blob], `${base}-edited.${ext}`, {
-                            type: blob.type,
+                        const file = new File([result.blob], `${base}-edited.${ext}`, {
+                            type: result.blob.type,
                             lastModified: Date.now(),
                         });
-                        file.__editorMeta = { width: canvas.width, height: canvas.height };
+                        file.__editorMeta = { width: result.canvas.width, height: result.canvas.height };
                         cleanup(file);
                         return;
                     }
@@ -383,8 +446,8 @@
             els.quality.addEventListener('input', onQuality);
             els.width.addEventListener('input', onWidthInput);
             els.height.addEventListener('input', onHeightInput);
+            els.img.addEventListener('crop', onCrop);
             setShape('rectangle');
-            els.img.addEventListener('crop', syncSizeFromCrop);
         });
     }
 

@@ -193,14 +193,44 @@
 .dark .gallery-editor-check { color: rgb(148 163 184); }
 
 .gallery-editor-preview-wrap {
-    margin-top: 0.35rem;
+    margin-top: 0.55rem;
+    padding: 0.65rem;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 0.85rem;
+    background: rgb(248 250 252);
+}
+
+.dark .gallery-editor-preview-wrap {
+    border-color: rgb(51 65 85);
+    background: rgb(2 6 23);
+}
+
+.gallery-editor-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.gallery-editor-preview-head .gallery-editor-label {
+    margin: 0;
+}
+
+.gallery-editor-preview-hint {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(99 102 241);
 }
 
 .gallery-editor-preview {
     width: 100%;
-    max-height: 10rem;
+    max-height: 11rem;
+    min-height: 5.5rem;
     object-fit: contain;
-    border-radius: 0.75rem;
+    border-radius: 0.65rem;
     background: rgb(15 23 42);
 }
 

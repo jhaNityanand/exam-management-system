@@ -144,7 +144,23 @@
         document.body.appendChild(modal);
     };
 
+    const galleryEditUrlFor = (id) => {
+        if (global.galleryEditUrlTemplate) {
+            return String(global.galleryEditUrlTemplate).replace('__ID__', String(id));
+        }
+        const commit = global.galleryCommitUrl || '';
+        if (commit.includes('/commit')) {
+            return commit.replace(/\/commit\/?$/, `/${id}/edit`);
+        }
+        const store = String(global.galleryStoreUrl || '').replace(/\/$/, '');
+        return `${store}/${id}/edit`;
+    };
+
     const initGalleryPickers = (existingMedia = {}) => {
+        const csrf = () => global.galleryCsrf
+            || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            || '';
+
         const fetchGallery = async (kind = 'image', search = '') => {
             const url = new URL(global.galleryDataUrl, global.location.origin);
             url.searchParams.set('kind', kind);
@@ -155,44 +171,130 @@
             return res.json();
         };
 
-        const uploadToGallery = async (file, onProgress) => {
-            return new Promise((resolve, reject) => {
-                const formData = new FormData();
-                formData.append('files[]', file);
-                formData.append('_token', global.galleryCsrf);
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', global.galleryStoreUrl, true);
-                xhr.setRequestHeader('Accept', 'application/json');
-                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                xhr.upload.onprogress = (event) => {
-                    if (!event.lengthComputable || typeof onProgress !== 'function') return;
-                    onProgress(Math.round((event.loaded / event.total) * 100));
-                };
-                xhr.onload = () => {
-                    let payload = null;
-                    try { payload = JSON.parse(xhr.responseText || '{}'); } catch { /* ignore */ }
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve(payload?.data?.[0] || payload?.data || payload);
-                        return;
+        const uploadFilesToGallery = (files, onProgress) => new Promise((resolve, reject) => {
+            const formData = new FormData();
+            files.forEach((file) => formData.append('files[]', file));
+            formData.append('_token', csrf());
+            formData.append('source', 'picker');
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', global.galleryStoreUrl, true);
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrf());
+            xhr.upload.onprogress = (event) => {
+                if (!event.lengthComputable || typeof onProgress !== 'function') return;
+                onProgress(Math.round((event.loaded / event.total) * 100));
+            };
+            xhr.onload = () => {
+                let payload = null;
+                try { payload = JSON.parse(xhr.responseText || '{}'); } catch { /* ignore */ }
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    const rows = Array.isArray(payload?.data) ? payload.data : [payload?.data || payload].filter(Boolean);
+                    resolve(rows);
+                    return;
+                }
+                reject(new Error(payload?.message || 'Upload failed'));
+            };
+            xhr.onerror = () => reject(new Error('Upload failed'));
+            xhr.send(formData);
+        });
+
+        const saveEditedToGallery = (id, file) => new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', galleryEditUrlFor(id), true);
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrf());
+            xhr.onload = () => {
+                let payload = null;
+                try { payload = JSON.parse(xhr.responseText || '{}'); } catch { /* ignore */ }
+                if (xhr.status >= 200 && xhr.status < 300 && payload?.data) {
+                    resolve(payload.data);
+                    return;
+                }
+                reject(new Error(payload?.message || 'Save edit failed'));
+            };
+            xhr.onerror = () => reject(new Error('Save edit failed'));
+            xhr.send(formData);
+        });
+
+        const isImageItem = (item) => {
+            if (item?.is_image === true || item?.kind === 'image') return true;
+            return /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(item?.file_url || '');
+        };
+
+        const syncEmptyState = (fieldRoot) => {
+            const preview = fieldRoot.querySelector('[data-gallery-preview]');
+            const empty = fieldRoot.querySelector('[data-gallery-empty]');
+            const clearBtn = fieldRoot.querySelector('.gallery-picker-clear');
+            const has = Boolean(preview?.querySelector('.gallery-picker-thumb'));
+            if (empty) empty.hidden = has;
+            if (clearBtn) clearBtn.hidden = !has;
+        };
+
+        const bindThumbActions = (thumb, fieldRoot, multiple) => {
+            if (thumb.dataset.actionsBound === '1') return;
+            thumb.dataset.actionsBound = '1';
+
+            thumb.addEventListener('click', async (event) => {
+                const removeBtn = event.target.closest('[data-picker-remove]');
+                const editBtn = event.target.closest('[data-picker-edit]');
+                const id = thumb.dataset.id;
+
+                if (removeBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (multiple) {
+                        fieldRoot.querySelector(`.gallery-picker-inputs input[value="${id}"]`)?.remove();
+                        thumb.remove();
+                    } else {
+                        fieldRoot.querySelector('[data-gallery-preview]').innerHTML = '';
+                        const hidden = fieldRoot.querySelector('input[type="hidden"]:not([name$="[]"])');
+                        if (hidden) hidden.value = '';
                     }
-                    reject(new Error(payload?.message || 'Upload failed'));
-                };
-                xhr.onerror = () => reject(new Error('Upload failed'));
-                xhr.send(formData);
+                    syncEmptyState(fieldRoot);
+                    return;
+                }
+
+                if (!editBtn) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const img = thumb.querySelector('img');
+                if (!img?.src || !global.GalleryImageEditor?.open) return;
+
+                try {
+                    const edited = await global.GalleryImageEditor.open({
+                        src: img.src,
+                        name: thumb.dataset.name || 'image.jpg',
+                        root: document,
+                    });
+                    if (!edited || edited.__keepOriginal) return;
+                    const item = await saveEditedToGallery(id, edited);
+                    const url = item.file_url || item.url;
+                    if (url) {
+                        img.src = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                        img.classList.remove('hidden');
+                        thumb.querySelector('.gallery-picker-thumb__placeholder')?.remove();
+                    }
+                    global.EmsToast?.success?.('Image updated.');
+                } catch (error) {
+                    global.EmsToast?.error?.(error.message || 'Unable to edit image.');
+                }
             });
         };
 
         const renderThumb = (container, item, multiple, fieldRoot) => {
             const id = item.id;
             const url = item.file_url;
-            const isImage = item.is_image !== false && (item.kind === 'image' || /\.(jpe?g|png|gif|webp|svg)$/i.test(url || ''));
+            const image = isImageItem(item);
+            const existing = container.querySelector(`.gallery-picker-thumb[data-id="${id}"]`);
 
             if (!multiple) {
                 container.innerHTML = '';
                 const hidden = fieldRoot.querySelector('input[type="hidden"]:not([name$="[]"])');
                 if (hidden) hidden.value = id;
-                const clearBtn = fieldRoot.querySelector('.gallery-picker-clear');
-                if (clearBtn) clearBtn.hidden = false;
             } else {
                 const inputsHost = fieldRoot.querySelector('.gallery-picker-inputs');
                 if (inputsHost && !inputsHost.querySelector(`input[value="${id}"]`)) {
@@ -202,17 +304,57 @@
                     input.value = id;
                     inputsHost.appendChild(input);
                 }
+                if (existing) {
+                    const img = existing.querySelector('img');
+                    if (image && url && img) {
+                        img.src = url;
+                        img.classList.remove('hidden');
+                    }
+                    syncEmptyState(fieldRoot);
+                    return;
+                }
             }
 
             const thumb = document.createElement('div');
             thumb.className = 'gallery-picker-thumb is-selected';
             thumb.dataset.id = id;
-            if (isImage && url) {
-                thumb.innerHTML = `<img src="${url}" alt="" class="gallery-picker-thumb__img">`;
-            } else {
-                thumb.innerHTML = `<span class="gallery-picker-thumb__placeholder">${item.original_name || `#${id}`}</span>`;
-            }
+            thumb.dataset.name = item.original_name || '';
+            const media = image && url
+                ? `<img src="${url}" alt="" class="gallery-picker-thumb__img">`
+                : `<span class="gallery-picker-thumb__placeholder">${item.original_name || `#${id}`}</span>`;
+            const editBtn = image
+                ? `<button type="button" class="gallery-picker-thumb__btn" data-picker-edit title="Edit" aria-label="Edit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l9.414-9.414a2 2 0 000-2.828l-2.172-2.172a2 2 0 00-2.828 0L4.293 14.707A1 1 0 004 15.414V20z"/></svg></button>`
+                : '';
+            thumb.innerHTML = `
+                ${media}
+                <div class="gallery-picker-thumb__actions">
+                    ${editBtn}
+                    <button type="button" class="gallery-picker-thumb__btn gallery-picker-thumb__btn--danger" data-picker-remove title="Remove" aria-label="Remove">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            `;
             container.appendChild(thumb);
+            bindThumbActions(thumb, fieldRoot, multiple);
+            syncEmptyState(fieldRoot);
+        };
+
+        const openEditorForItem = async (item) => {
+            if (!isImageItem(item) || !global.GalleryImageEditor?.open) return item;
+            const src = item.file_url || item.url;
+            if (!src) return item;
+            try {
+                const edited = await global.GalleryImageEditor.open({
+                    src,
+                    name: item.original_name || 'image.jpg',
+                    root: document,
+                });
+                if (!edited || edited.__keepOriginal) return item;
+                return await saveEditedToGallery(item.id, edited);
+            } catch (error) {
+                global.EmsToast?.error?.(error.message || 'Unable to open image editor.');
+                return item;
+            }
         };
 
         const hydrateExistingMedia = (fieldRoot) => {
@@ -225,6 +367,7 @@
                     id: fieldRoot.querySelector('input[type="hidden"]')?.value,
                     file_url: existingMedia.og_image_id,
                     kind: 'image',
+                    is_image: true,
                 }, false, fieldRoot);
             }
             if (name === 'featured_image_id' && existingMedia.featured_image_id) {
@@ -232,11 +375,12 @@
                     id: fieldRoot.querySelector('input[type="hidden"]')?.value,
                     file_url: existingMedia.featured_image_id,
                     kind: 'image',
+                    is_image: true,
                 }, false, fieldRoot);
             }
             if (name === 'attachment_ids' && existingMedia.attachment_ids) {
                 Object.entries(existingMedia.attachment_ids).forEach(([id, fileUrl]) => {
-                    renderThumb(preview, { id, file_url: fileUrl, kind: 'image' }, true, fieldRoot);
+                    renderThumb(preview, { id, file_url: fileUrl, kind: 'image', is_image: true }, true, fieldRoot);
                 });
             }
         };
@@ -255,14 +399,19 @@
             const grid = modal?.querySelector('[data-grid]');
             const searchInput = modal?.querySelector('.gallery-picker-search');
             const preview = fieldRoot.querySelector('.gallery-picker-preview');
+            const dropzone = fieldRoot.querySelector('[data-gallery-dropzone]');
+            const fileInput = fieldRoot.querySelector('.gallery-picker-upload-input');
             const uploadProgress = fieldRoot.querySelector('[data-gallery-upload-progress]');
             const uploadProgressBar = fieldRoot.querySelector('[data-gallery-upload-progress-bar]');
+            const uploadProgressLabel = fieldRoot.querySelector('[data-gallery-upload-progress-label]');
             let picked = new Set();
+            let uploading = false;
 
-            const showUploadProgress = (pct) => {
+            const showUploadProgress = (pct, label) => {
                 if (!uploadProgress || !uploadProgressBar) return;
                 uploadProgress.hidden = false;
                 uploadProgressBar.style.transform = `scaleX(${Math.max(0.05, Math.min(1, pct / 100))})`;
+                if (uploadProgressLabel && label) uploadProgressLabel.textContent = label;
             };
 
             const hideUploadProgress = () => {
@@ -330,6 +479,45 @@
                 }
             };
 
+            const processFiles = async (fileList) => {
+                if (!preview || uploading) return;
+                const files = [...(fileList || [])].filter(Boolean);
+                if (!files.length) return;
+
+                if (!multiple && files.length > 1) {
+                    global.EmsToast?.info?.('Only one file can be selected for this field.');
+                }
+
+                const batch = multiple ? files : files.slice(0, 1);
+                uploading = true;
+                dropzone?.classList.add('is-uploading');
+
+                try {
+                    showUploadProgress(5, batch.length > 1 ? `Uploading ${batch.length} files…` : 'Uploading…');
+                    let items = await uploadFilesToGallery(batch, (pct) => {
+                        showUploadProgress(pct, batch.length > 1 ? `Uploading ${pct}%` : `Uploading ${pct}%`);
+                    });
+                    hideUploadProgress();
+
+                    // Single image upload → auto-open editor after Gallery store.
+                    if (batch.length === 1 && isImageItem(items[0])) {
+                        items = [await openEditorForItem(items[0])];
+                    }
+
+                    items.forEach((item) => renderThumb(preview, item, multiple, fieldRoot));
+                    global.EmsToast?.success?.(
+                        items.length === 1 ? 'Uploaded to Gallery.' : `${items.length} files uploaded to Gallery.`
+                    );
+                } catch (error) {
+                    hideUploadProgress();
+                    global.EmsToast?.error?.(error.message || 'Could not upload file to gallery.');
+                    global.Swal?.fire?.({ icon: 'error', title: 'Upload failed', text: error.message || 'Could not upload file to gallery.' });
+                } finally {
+                    uploading = false;
+                    dropzone?.classList.remove('is-uploading');
+                }
+            };
+
             fieldRoot.querySelectorAll('.gallery-picker-open').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     picked = new Set();
@@ -356,12 +544,22 @@
                 }
                 if (!multiple) {
                     const itemCell = grid?.querySelector(`[data-id="${ids[0]}"]`);
-                    const item = { id: ids[0], file_url: itemCell?.querySelector('img')?.src, kind };
+                    const item = {
+                        id: ids[0],
+                        file_url: itemCell?.querySelector('img')?.src,
+                        kind,
+                        is_image: Boolean(itemCell?.querySelector('img')),
+                    };
                     renderThumb(preview, item, false, fieldRoot);
                 } else {
                     ids.forEach((id) => {
                         const itemCell = grid?.querySelector(`[data-id="${id}"]`);
-                        const item = { id, file_url: itemCell?.querySelector('img')?.src, kind };
+                        const item = {
+                            id,
+                            file_url: itemCell?.querySelector('img')?.src,
+                            kind,
+                            is_image: Boolean(itemCell?.querySelector('img')),
+                        };
                         renderThumb(preview, item, true, fieldRoot);
                     });
                 }
@@ -374,26 +572,59 @@
                 if (hidden) hidden.value = '';
                 const inputsHost = fieldRoot.querySelector('.gallery-picker-inputs');
                 if (inputsHost) inputsHost.innerHTML = '';
-                const clearBtn = fieldRoot.querySelector('.gallery-picker-clear');
-                if (clearBtn) clearBtn.hidden = true;
+                syncEmptyState(fieldRoot);
             });
 
-            fieldRoot.querySelector('.gallery-picker-upload-input')?.addEventListener('change', async (e) => {
-                const file = e.target.files?.[0];
-                if (!file || !preview) return;
-                try {
-                    showUploadProgress(5);
-                    const item = await uploadToGallery(file, showUploadProgress);
-                    hideUploadProgress();
-                    renderThumb(preview, item, multiple, fieldRoot);
-                } catch {
-                    hideUploadProgress();
-                    global.Swal?.fire?.({ icon: 'error', title: 'Upload failed', text: 'Could not upload file to gallery.' });
-                }
+            fileInput?.addEventListener('change', async (e) => {
+                await processFiles(e.target.files);
                 e.target.value = '';
             });
 
+            if (dropzone) {
+                ['dragenter', 'dragover'].forEach((type) => {
+                    dropzone.addEventListener(type, (event) => {
+                        event.preventDefault();
+                        dropzone.classList.add('is-dragover');
+                    });
+                });
+                ['dragleave', 'drop'].forEach((type) => {
+                    dropzone.addEventListener(type, (event) => {
+                        event.preventDefault();
+                        dropzone.classList.remove('is-dragover');
+                    });
+                });
+                dropzone.addEventListener('drop', (event) => processFiles(event.dataTransfer?.files));
+                dropzone.addEventListener('click', () => fileInput?.click());
+                dropzone.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        fileInput?.click();
+                    }
+                });
+            }
+
+            // Bind edit/remove on server-rendered thumbs.
+            preview?.querySelectorAll('.gallery-picker-thumb').forEach((thumb) => {
+                if (!thumb.querySelector('.gallery-picker-thumb__actions')) {
+                    const image = Boolean(thumb.querySelector('img:not(.hidden)'));
+                    const editBtn = image
+                        ? `<button type="button" class="gallery-picker-thumb__btn" data-picker-edit title="Edit" aria-label="Edit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l9.414-9.414a2 2 0 000-2.828l-2.172-2.172a2 2 0 00-2.828 0L4.293 14.707A1 1 0 004 15.414V20z"/></svg></button>`
+                        : '';
+                    const actions = document.createElement('div');
+                    actions.className = 'gallery-picker-thumb__actions';
+                    actions.innerHTML = `
+                        ${editBtn}
+                        <button type="button" class="gallery-picker-thumb__btn gallery-picker-thumb__btn--danger" data-picker-remove title="Remove" aria-label="Remove">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    `;
+                    thumb.appendChild(actions);
+                }
+                bindThumbActions(thumb, fieldRoot, multiple);
+            });
+
             hydrateExistingMedia(fieldRoot);
+            syncEmptyState(fieldRoot);
         });
     };
 

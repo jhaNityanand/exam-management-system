@@ -65,14 +65,16 @@
                         <span>Lock aspect ratio</span>
                     </label>
 
-                    <div class="gallery-editor-preview-wrap" data-gie-preview-wrap hidden>
-                        <p class="gallery-editor-label">Export preview</p>
-                        <img data-gie-preview alt="Edited preview" class="gallery-editor-preview">
+                    <div class="gallery-editor-preview-wrap" data-gie-preview-wrap>
+                        <div class="gallery-editor-preview-head">
+                            <p class="gallery-editor-label">Live preview</p>
+                            <span class="gallery-editor-preview-hint" data-gie-preview-hint>Updating…</span>
+                        </div>
+                        <img data-gie-preview alt="Live edited preview" class="gallery-editor-preview">
                     </div>
                 </div>
 
                 <div class="gallery-editor-actions">
-                    <button type="button" class="gallery-action-btn" data-gie-action="preview">Preview</button>
                     <button type="button" class="gallery-action-btn" data-gie-action="skip">Keep original</button>
                     <button type="button" class="panel-button-primary" data-gie-action="save">Save edited</button>
                 </div>

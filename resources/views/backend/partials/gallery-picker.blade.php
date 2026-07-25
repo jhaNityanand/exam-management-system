@@ -14,13 +14,37 @@
     $previewId = $previewId ?? ($multiple ? $name . '_preview' : $name . '_preview');
     $modalId = 'gallery-picker-' . preg_replace('/[^a-z0-9_-]/i', '-', $name);
     $selected = $multiple ? (array) ($value ?? []) : array_filter([(int) $value]);
+    $accept = $kind === 'image' ? 'image/*' : 'image/*,video/*,.pdf';
 @endphp
 
-<div class="gallery-picker-field" data-gallery-picker data-name="{{ $name }}" data-multiple="{{ $multiple ? '1' : '0' }}" data-kind="{{ $kind }}" data-modal-id="{{ $modalId }}">
+<div
+    class="gallery-picker-field"
+    data-gallery-picker
+    data-name="{{ $name }}"
+    data-multiple="{{ $multiple ? '1' : '0' }}"
+    data-kind="{{ $kind }}"
+    data-modal-id="{{ $modalId }}"
+>
     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{{ $label }}</label>
 
+    <div
+        class="gallery-picker-dropzone"
+        data-gallery-dropzone
+        tabindex="0"
+        role="button"
+        aria-label="Upload {{ $multiple ? 'files' : 'a file' }}"
+    >
+        <div class="gallery-picker-dropzone__inner">
+            <svg class="gallery-picker-dropzone__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="gallery-picker-dropzone__title">Drag &amp; drop {{ $multiple ? 'files' : 'a file' }} here</p>
+            <p class="gallery-picker-dropzone__hint">or click to browse · stored in Gallery</p>
+        </div>
+    </div>
+
     @if ($multiple)
-        <div id="{{ $previewId }}" class="gallery-picker-preview gallery-picker-preview--multi flex flex-wrap gap-2 mb-2">
+        <div id="{{ $previewId }}" class="gallery-picker-preview gallery-picker-preview--multi" data-gallery-preview>
             @foreach ($selected as $gid)
                 <div class="gallery-picker-thumb" data-id="{{ $gid }}">
                     <img src="" alt="" class="gallery-picker-thumb__img hidden">
@@ -33,8 +57,9 @@
                 <input type="hidden" name="{{ $name }}[]" value="{{ $gid }}">
             @endforeach
         </div>
+        <p class="gallery-picker-empty" data-gallery-empty @if(count($selected)) hidden @endif>No files selected yet.</p>
     @else
-        <div id="{{ $previewId }}" class="gallery-picker-preview mb-2">
+        <div id="{{ $previewId }}" class="gallery-picker-preview" data-gallery-preview>
             @if (!empty($selected[0]))
                 <div class="gallery-picker-thumb is-selected" data-id="{{ $selected[0] }}">
                     @if ($previewUrl)
@@ -47,24 +72,30 @@
             @endif
         </div>
         <input type="hidden" id="{{ $inputId }}" name="{{ $name }}" value="{{ $selected[0] ?? '' }}">
+        <p class="gallery-picker-empty" data-gallery-empty @if(!empty($selected[0])) hidden @endif>No file selected yet.</p>
     @endif
 
-    <div class="flex flex-wrap gap-2">
+    <div class="gallery-picker-toolbar">
         <button type="button" class="gallery-picker-open panel-button-secondary text-sm" data-target="{{ $modalId }}">
             Choose from Gallery
         </button>
-        <button type="button" class="gallery-picker-clear panel-button-secondary text-sm" @if(!$multiple && empty($selected[0])) hidden @endif>
+        <button type="button" class="gallery-picker-clear panel-button-secondary text-sm" @if($multiple ? !count($selected) : empty($selected[0])) hidden @endif>
             Clear
         </button>
         <label class="gallery-picker-upload panel-button-secondary text-sm cursor-pointer">
             Upload
-            <input type="file" class="sr-only gallery-picker-upload-input" accept="{{ $kind === 'image' ? 'image/*' : 'image/*,video/*,.pdf' }}">
+            <input
+                type="file"
+                class="sr-only gallery-picker-upload-input"
+                accept="{{ $accept }}"
+                @if ($multiple) multiple @endif
+            >
         </label>
     </div>
 
     <div class="gallery-picker-upload-progress" data-gallery-upload-progress hidden>
         <div class="gallery-picker-upload-progress__bar" data-gallery-upload-progress-bar></div>
-        <span>Uploading…</span>
+        <span data-gallery-upload-progress-label>Uploading…</span>
     </div>
 </div>
 

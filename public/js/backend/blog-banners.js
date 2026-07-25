@@ -1,6 +1,9 @@
 /**
- * Multi-banner uploader for Blog create/edit.
+ * Multi-banner uploader for Blog/News create/edit.
  * Images only · DnD reorder · edit via GalleryImageEditor · gallery commit API.
+ *
+ * Single image  → upload, then auto-open editor, save edit onto gallery row.
+ * Multiple images → upload all directly (no auto-editor); Edit opens editor per card.
  */
 (function () {
     'use strict';
@@ -13,6 +16,18 @@
 
     function toast(type, message) {
         if (window.EmsToast?.[type]) window.EmsToast[type](message);
+    }
+
+    function editUrlFor(id) {
+        if (window.galleryEditUrlTemplate) {
+            return String(window.galleryEditUrlTemplate).replace('__ID__', String(id));
+        }
+        const commit = window.galleryCommitUrl || '';
+        if (commit.includes('/commit')) {
+            return commit.replace(/\/commit\/?$/, `/${id}/edit`);
+        }
+        const store = (window.galleryStoreUrl || '').replace(/\/$/, '');
+        return `${store}/${id}/edit`;
     }
 
     function initUploader(root) {
@@ -32,6 +47,7 @@
         const chooseBtn = root.querySelector('[data-banner-choose]');
 
         let dragCard = null;
+        let uploading = false;
 
         function selectedIds() {
             return [...grid.querySelectorAll('input[name="' + name + '[]"]')].map((el) => Number(el.value));
@@ -71,9 +87,10 @@
             card.className = 'blog-banner-card';
             card.dataset.bannerId = String(item.id);
             card.draggable = true;
+            const safeName = (item.original_name || 'Banner').replace(/"/g, '&quot;');
             card.innerHTML = `
                 <div class="blog-banner-card__media">
-                    <img src="${item.file_url || item.url || ''}" alt="${(item.original_name || 'Banner').replace(/"/g, '&quot;')}">
+                    <img src="${item.file_url || item.url || ''}" alt="${safeName}">
                 </div>
                 <div class="blog-banner-card__actions">
                     <button type="button" class="blog-banner-icon-btn" data-banner-edit title="Edit" aria-label="Edit">
@@ -98,6 +115,17 @@
             syncEmpty();
         }
 
+        function updateCard(card, item) {
+            if (!card || !item?.id) return;
+            card.dataset.bannerId = String(item.id);
+            card.querySelector('input')?.setAttribute('value', String(item.id));
+            const img = card.querySelector('img');
+            const url = item.file_url || item.url;
+            if (img && url) {
+                img.src = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+            }
+        }
+
         function commitFile(displayFile, originalFile) {
             return new Promise((resolve, reject) => {
                 const formData = new FormData();
@@ -119,7 +147,6 @@
                     showProgress(pct, `Uploading ${pct}%`);
                 };
                 xhr.onload = () => {
-                    hideProgress();
                     let payload = null;
                     try { payload = JSON.parse(xhr.responseText || '{}'); } catch { /* ignore */ }
                     if (xhr.status >= 200 && xhr.status < 300 && payload?.data) {
@@ -129,7 +156,6 @@
                     reject(new Error(payload?.message || `Upload failed (${xhr.status})`));
                 };
                 xhr.onerror = () => {
-                    hideProgress();
                     reject(new Error('Network error while uploading.'));
                 };
                 showProgress(5, 'Uploading…');
@@ -137,39 +163,89 @@
             });
         }
 
+        function saveEditedToGallery(id, file) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', editUrlFor(id), true);
+                xhr.setRequestHeader('X-CSRF-TOKEN', csrf());
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.setRequestHeader('Accept', 'application/json');
+                xhr.onload = () => {
+                    let payload = null;
+                    try { payload = JSON.parse(xhr.responseText || '{}'); } catch { /* ignore */ }
+                    if (xhr.status >= 200 && xhr.status < 300 && payload?.data) {
+                        resolve(payload.data);
+                        return;
+                    }
+                    reject(new Error(payload?.message || `Save edit failed (${xhr.status})`));
+                };
+                xhr.onerror = () => reject(new Error('Network error while saving edit.'));
+                xhr.send(formData);
+            });
+        }
+
+        async function maybeEditAfterUpload(item) {
+            if (!item?.id || !window.GalleryImageEditor?.open) return item;
+            const src = item.file_url || item.url;
+            if (!src) return item;
+
+            try {
+                const edited = await window.GalleryImageEditor.open({
+                    src,
+                    name: item.original_name || 'banner.jpg',
+                    root: document,
+                });
+                if (!edited || edited.__keepOriginal) return item;
+                return await saveEditedToGallery(item.id, edited);
+            } catch (error) {
+                toast('error', error.message || 'Unable to open image editor.');
+                return item;
+            }
+        }
+
         async function processFiles(fileList) {
+            if (uploading) {
+                toast('info', 'Please wait for the current upload to finish.');
+                return;
+            }
+
             const files = [...(fileList || [])].filter((f) => f && f.type.startsWith('image/'));
             if (!files.length) {
                 toast('error', 'Only image files are allowed for banners.');
                 return;
             }
 
-            for (const file of files) {
-                try {
-                    let display = file;
-                    let original = null;
-                    if (window.GalleryImageEditor?.open) {
-                        const objectUrl = URL.createObjectURL(file);
-                        try {
-                            const edited = await window.GalleryImageEditor.open({
-                                src: objectUrl,
-                                name: file.name,
-                                root: document,
-                                originalFile: file,
-                            });
-                            if (edited && !edited.__keepOriginal) {
-                                display = edited;
-                                original = file;
-                            }
-                        } finally {
-                            URL.revokeObjectURL(objectUrl);
+            uploading = true;
+            dropzone?.classList.add('is-uploading');
+            const total = files.length;
+            let done = 0;
+
+            try {
+                for (const file of files) {
+                    showProgress(Math.round((done / total) * 100) || 5, `Uploading ${done + 1} of ${total}…`);
+                    try {
+                        let item = await commitFile(file, null);
+                        // Single-image flow: open editor automatically after upload.
+                        if (total === 1) {
+                            hideProgress();
+                            item = await maybeEditAfterUpload(item);
                         }
+                        addItem(item);
+                        done += 1;
+                        showProgress(Math.round((done / total) * 100), `Uploaded ${done} of ${total}`);
+                    } catch (error) {
+                        toast('error', error.message || 'Banner upload failed.');
                     }
-                    const item = await commitFile(display, original);
-                    addItem(item);
-                } catch (error) {
-                    toast('error', error.message || 'Banner upload failed.');
                 }
+                if (done > 0) {
+                    toast('success', done === 1 ? 'Banner uploaded.' : `${done} banners uploaded.`);
+                }
+            } finally {
+                uploading = false;
+                dropzone?.classList.remove('is-uploading');
+                hideProgress();
             }
         }
 
@@ -256,7 +332,16 @@
             });
         });
         dropzone?.addEventListener('drop', (event) => processFiles(event.dataTransfer?.files));
-        dropzone?.addEventListener('click', () => fileInput?.click());
+        dropzone?.addEventListener('click', (event) => {
+            if (event.target.closest('label') || event.target.closest('input')) return;
+            fileInput?.click();
+        });
+        dropzone?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                fileInput?.click();
+            }
+        });
 
         grid?.addEventListener('click', async (event) => {
             const card = event.target.closest('.blog-banner-card');
@@ -270,23 +355,17 @@
 
             if (event.target.closest('[data-banner-edit]')) {
                 const img = card.querySelector('img');
-                if (!img?.src || !window.GalleryImageEditor?.open) return;
+                const id = Number(card.dataset.bannerId);
+                if (!img?.src || !id || !window.GalleryImageEditor?.open) return;
                 try {
                     const edited = await window.GalleryImageEditor.open({
                         src: img.src,
                         name: 'banner.jpg',
                         root: document,
                     });
-                    if (!edited) return;
-                    const item = await commitFile(edited, null);
-                    const oldId = card.dataset.bannerId;
-                    card.dataset.bannerId = String(item.id);
-                    card.querySelector('input')?.setAttribute('value', String(item.id));
-                    if (img) img.src = item.file_url;
-                    // Replace previous id in order if duplicates somehow appear
-                    if (oldId && Number(oldId) !== Number(item.id)) {
-                        // keep card as-is
-                    }
+                    if (!edited || edited.__keepOriginal) return;
+                    const item = await saveEditedToGallery(id, edited);
+                    updateCard(card, item);
                     toast('success', 'Banner updated.');
                 } catch (error) {
                     toast('error', error.message || 'Unable to edit banner.');

@@ -333,6 +333,10 @@ body.ems-modal-open {
     border-color: #4338ca;
     background: linear-gradient(180deg, rgba(79,70,229,0.12) 0%, #0f172a 100%);
 }
+.blog-banner-dropzone.is-uploading {
+    opacity: 0.72;
+    pointer-events: none;
+}
 .blog-banner-dropzone.is-dragover {
     border-color: #4f46e5;
     background: #e0e7ff;

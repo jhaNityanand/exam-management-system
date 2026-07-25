@@ -852,10 +852,11 @@
         const files = [...(fileList || [])].filter(Boolean);
         if (!files.length) return;
 
+        const staged = [];
         files.forEach((file) => {
             const kind = detectClientKind(file);
             const isImage = kind === 'image';
-            pendingItems.push({
+            const item = {
                 id: uid(),
                 originalFile: file,
                 displayFile: file,
@@ -866,7 +867,9 @@
                 status: 'pending',
                 progress: 0,
                 error: null,
-            });
+            };
+            pendingItems.push(item);
+            staged.push(item);
         });
 
         state.trash = 'active';
@@ -875,6 +878,11 @@
         renderPending();
         els.fileInput.value = '';
         toast('success', files.length + ' file(s) added to pending uploads.');
+
+        // Single image → open editor automatically; multi stays in the grid.
+        if (staged.length === 1 && staged[0].isImage) {
+            editPendingItem(staged[0]);
+        }
     }
 
     function removePending(id) {

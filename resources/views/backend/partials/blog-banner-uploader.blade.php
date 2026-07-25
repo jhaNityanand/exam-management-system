@@ -20,7 +20,7 @@
     <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
         <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">{{ $label }}</label>
-            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Upload one or more images. Drag to reorder. First image is the featured banner.</p>
+            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Upload one or more images. Single uploads open the editor; multiple uploads appear in the grid for per-image editing. Drag to reorder — first image is featured.</p>
         </div>
         <div class="flex flex-wrap gap-2">
             <button type="button" class="panel-button-secondary text-sm" data-banner-choose>Choose from Gallery</button>
