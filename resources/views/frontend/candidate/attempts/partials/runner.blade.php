@@ -9,6 +9,7 @@
     $policy = $payload['policy'] ?? [];
     $requireWebcam = ! empty($policy['require_webcam']);
     $asOverlay = ! empty($asOverlay);
+    $timedExam = ! empty($payload['exam']['enable_exam_timer']);
 @endphp
 
 <div class="cx-exam{{ $asOverlay ? ' cx-exam--overlay is-active' : '' }}"
@@ -19,6 +20,10 @@
      data-urls='@json($urls)'>
 
     <header class="cx-topbar" id="cx-topbar">
+        <div class="cx-topbar__mobile-leading">
+            <div id="cx-timer" class="cx-timer cx-timer--top" aria-live="polite" title="{{ $timedExam ? 'Time remaining' : 'Elapsed time' }}">--:--</div>
+        </div>
+
         <div class="cx-topbar__left">
             <div class="cx-topbar__title-row">
                 <span class="cx-live-badge">Live exam</span>
@@ -30,9 +35,9 @@
                 <span id="cx-progress-label">0 / 0 answered</span>
             </p>
         </div>
+
         <div class="cx-topbar__right">
             <p id="cx-save-state" class="cx-save-state" data-state="saved" title="Answers sync automatically">Saved</p>
-            <div id="cx-timer" class="cx-timer cx-timer--top" aria-live="polite">--:--</div>
             <button type="button"
                     class="cx-icon-btn cx-drawer-toggle"
                     id="cx-drawer-toggle"
@@ -57,6 +62,7 @@
             <div id="cx-question" class="cx-question-wrap"></div>
 
             <div class="cx-footer-actions">
+                <button type="button" class="cx-btn cx-btn--ghost" id="cx-clear-selection">Clear selection</button>
                 <button type="button" class="cx-btn cx-btn--ghost" id="cx-skip">Skip</button>
                 <button type="button" class="cx-btn cx-btn--primary" id="cx-submit">Save &amp; next</button>
                 <button type="button" class="cx-btn cx-btn--review" id="cx-mark-review-next">Mark for review &amp; next</button>
@@ -74,7 +80,7 @@
             </div>
 
             <div class="cx-rail__timer-wrap">
-                <p class="cx-rail__label">Time remaining</p>
+                <p class="cx-rail__label" id="cx-rail-timer-label">{{ $timedExam ? 'Time remaining' : 'Time elapsed' }}</p>
                 <div id="cx-rail-timer" class="cx-timer cx-timer--rail" aria-live="off">--:--</div>
             </div>
 
@@ -96,6 +102,7 @@
                 <div class="cx-palette" id="cx-palette" role="list"></div>
                 <ul class="cx-legend">
                     <li><span class="cx-legend__swatch is-answered"></span> Answered</li>
+                    <li><span class="cx-legend__swatch is-pending"></span> Save pending</li>
                     <li><span class="cx-legend__swatch is-review"></span> Review</li>
                     <li><span class="cx-legend__swatch is-visited"></span> Visited</li>
                     <li><span class="cx-legend__swatch is-current"></span> Current</li>
@@ -110,6 +117,18 @@
 
     <div id="cx-toast" class="cx-toast" hidden role="status" aria-live="polite"></div>
 
+    <div class="cx-modal" id="cx-violation-modal" hidden aria-hidden="true">
+        <div class="cx-modal__backdrop" data-close-violation></div>
+        <div class="cx-modal__card" role="dialog" aria-modal="true" aria-labelledby="cx-violation-title">
+            <h2 id="cx-violation-title">Rule warning</h2>
+            <p class="cx-modal__lead" id="cx-violation-message">A monitoring event was recorded.</p>
+            <p class="cx-modal__meta" id="cx-violation-meta"></p>
+            <div class="cx-modal__actions">
+                <button type="button" class="cx-btn cx-btn--primary" id="cx-violation-ack" data-close-violation>I understand</button>
+            </div>
+        </div>
+    </div>
+
     <div class="cx-modal" id="cx-submit-modal" hidden aria-hidden="true">
         <div class="cx-modal__backdrop" data-close-modal></div>
         <div class="cx-modal__card" role="dialog" aria-modal="true" aria-labelledby="cx-submit-title">
@@ -118,7 +137,7 @@
             <ul class="cx-modal__stats" id="cx-submit-stats"></ul>
             <div class="cx-modal__actions">
                 <button type="button" class="cx-btn cx-btn--ghost" data-close-modal>Continue review</button>
-                <button type="button" class="cx-btn cx-btn--primary" id="cx-confirm-submit">Submit exam</button>
+                <button type="button" class="cx-btn cx-btn--danger" id="cx-confirm-submit">Submit exam</button>
             </div>
         </div>
     </div>

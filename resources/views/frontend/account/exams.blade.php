@@ -46,6 +46,11 @@
                                     <span class="ca-badge {{ in_array($attempt->status, ['submitted','graded'], true) ? 'is-info' : '' }}">
                                         {{ ucfirst(str_replace('_', ' ', $attempt->status)) }}
                                     </span>
+                                    @if($attempt->submission_reason)
+                                        <div style="color:var(--et-text-muted);font-size:.78rem;margin-top:.2rem">
+                                            {{ $attempt->submissionReasonLabel() }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>{{ $attempt->percentage !== null ? number_format((float) $attempt->percentage, 1).'%' : '—' }}</td>
                                 <td>{{ optional($attempt->started_at)->format('d M Y H:i') ?: '—' }}</td>

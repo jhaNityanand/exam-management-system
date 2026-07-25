@@ -28,6 +28,7 @@
                             <th>Score</th>
                             <th>Percentage</th>
                             <th>Status</th>
+                            <th>Submission</th>
                             <th>Date</th>
                             <th></th>
                         </tr>
@@ -47,6 +48,7 @@
                                         <span class="ca-badge">{{ ucfirst(str_replace('_', ' ', (string) $result->status)) }}</span>
                                     @endif
                                 </td>
+                                <td>{{ $result->submission_reason ? $result->submissionReasonLabel() : '—' }}</td>
                                 <td>{{ optional($result->submitted_at)->format('d M Y') ?: '—' }}</td>
                                 <td>
                                     <a class="et-btn et-btn--ghost et-btn--sm" href="{{ route('frontend.attempts.result', $result) }}">View</a>

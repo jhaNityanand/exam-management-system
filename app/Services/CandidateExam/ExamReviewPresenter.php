@@ -106,7 +106,9 @@ class ExamReviewPresenter
             'status_label' => $attempt->passed ? 'Pass' : 'Fail',
             'time_spent_seconds' => (int) ($attempt->time_spent_seconds ?? 0),
             'submission_reason' => $reason,
-            'submission_label' => ucwords(str_replace('_', ' ', $reason)),
+            'submission_label' => $attempt->submission_reason
+                ? $attempt->submissionReasonLabel()
+                : ucwords(str_replace('_', ' ', $reason)),
         ];
     }
 

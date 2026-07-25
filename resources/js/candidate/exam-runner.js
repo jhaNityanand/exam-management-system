@@ -2,7 +2,7 @@ import { api } from './api';
 import { createAutosave } from './autosave';
 import { bindProctoring, startWebcamMonitor } from './proctoring';
 import { clearLocal, loadLocal, saveLocal } from './store';
-import { createTimer } from './timer';
+import { createElapsedTimer, createTimer } from './timer';
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -184,7 +184,9 @@ export function initExamRunner(root) {
     const questions = payload.questions || [];
     const policy = payload.policy || {};
     const requireWebcam = root.dataset.requireWebcam === '1' || !!policy.require_webcam;
+    const requireMicrophone = !!policy.require_microphone;
     const singleAttempt = !!policy.single_attempt_per_question;
+    const violationLimit = Number(policy.focus_violation_limit || 3);
 
     const state = {
         index: 0,
@@ -192,12 +194,13 @@ export function initExamRunner(root) {
         review: {},
         visited: {},
         leftAnswered: {},
+        pendingSave: new Set(),
         submitting: false,
         reviewSweep: false,
         toastTimer: null,
         drawerOpen: false,
         webcamStop: null,
-        proctorCleanup: null,
+        proctorApi: null,
         heartbeatTimer: null,
         timerApi: null,
         destroyed: false,
@@ -252,6 +255,11 @@ export function initExamRunner(root) {
     const drawerClose = root.querySelector('#cx-drawer-close');
     const modal = root.querySelector('#cx-submit-modal');
     const statsEl = root.querySelector('#cx-submit-stats');
+    const violationModal = root.querySelector('#cx-violation-modal');
+    const violationTitle = root.querySelector('#cx-violation-title');
+    const violationMessage = root.querySelector('#cx-violation-message');
+    const violationMeta = root.querySelector('#cx-violation-meta');
+    const railTimerLabel = root.querySelector('#cx-rail-timer-label');
 
     const autosave = createAutosave({
         attemptId: payload.attempt.id,
@@ -270,9 +278,16 @@ export function initExamRunner(root) {
             saveStateEl.dataset.state = label;
             saveStateEl.title = detail || 'Answers sync automatically in the background';
             if (label === 'offline') notify('You are offline. Answers are kept on this device.', 'warn');
-            else if (label === 'error' && detail) notify(detail, 'error');
+            else if (label === 'error') {
+                notify(detail || 'Answer could not be saved. Retrying…', 'error', 6000);
+                paintPalette();
+            }
         },
         onRevision: (revision) => syncLocal(revision),
+        onQueueChange: (pendingIds) => {
+            state.pendingSave = new Set(pendingIds.map((id) => Number(id)));
+            paintPalette();
+        },
     });
     autosave.setRevision(serverRevision);
 
@@ -345,7 +360,13 @@ export function initExamRunner(root) {
     function paintPalette() {
         if (!paletteEl) return;
         paletteEl.innerHTML = '';
-        questions.forEach((q, idx) => {
+
+        const distinctParts = new Set(
+            questions.map((q) => q.part_id).filter((id) => id != null && id !== ''),
+        );
+        const useParts = distinctParts.size > 1;
+
+        const appendButton = (q, idx) => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.textContent = String(idx + 1);
@@ -355,9 +376,16 @@ export function initExamRunner(root) {
                 btn.classList.add('is-current');
                 btn.setAttribute('aria-current', 'true');
             }
-            if (state.review[q.id]) btn.classList.add('is-review');
-            else if (isAnsweredValue(state.answers[q.id])) btn.classList.add('is-answered');
-            else if (state.visited[q.id]) btn.classList.add('is-visited');
+            if (state.review[q.id]) {
+                btn.classList.add('is-review');
+            } else if (state.pendingSave.has(Number(q.id))) {
+                btn.classList.add('is-pending');
+                btn.title = 'Answer is syncing or failed to save. Retrying…';
+            } else if (isAnsweredValue(state.answers[q.id])) {
+                btn.classList.add('is-answered');
+            } else if (state.visited[q.id]) {
+                btn.classList.add('is-visited');
+            }
 
             if (isLockedIndex(idx)) {
                 btn.classList.add('is-locked');
@@ -370,8 +398,73 @@ export function initExamRunner(root) {
                     if (window.matchMedia('(max-width: 960px)').matches) setDrawer(false);
                 });
             }
-            paletteEl.appendChild(btn);
+            return btn;
+        };
+
+        if (!useParts) {
+            questions.forEach((q, idx) => {
+                paletteEl.appendChild(appendButton(q, idx));
+            });
+            return;
+        }
+
+        const groups = new Map();
+        questions.forEach((q, idx) => {
+            const key = q.part_id != null ? String(q.part_id) : 'none';
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    id: q.part_id,
+                    name: q.part_name || 'Questions',
+                    sort: q.part_sort_order ?? 9999,
+                    items: [],
+                });
+            }
+            groups.get(key).items.push({ q, idx });
         });
+
+        Array.from(groups.values())
+            .sort((a, b) => a.sort - b.sort)
+            .forEach((group) => {
+                const section = document.createElement('div');
+                section.className = 'cx-palette__group';
+                const title = document.createElement('h4');
+                title.className = 'cx-palette__group-title';
+                title.textContent = group.name;
+                section.appendChild(title);
+                const grid = document.createElement('div');
+                grid.className = 'cx-palette__grid';
+                group.items.forEach(({ q, idx }) => {
+                    grid.appendChild(appendButton(q, idx));
+                });
+                section.appendChild(grid);
+                paletteEl.appendChild(section);
+            });
+    }
+
+    function openViolationModal(warning) {
+        if (!violationModal || !warning) return;
+        if (violationTitle) violationTitle.textContent = warning.title || 'Rule warning';
+        if (violationMessage) violationMessage.textContent = warning.message || '';
+        if (violationMeta) {
+            if (warning.limit && warning.count) {
+                violationMeta.textContent = `Warning ${warning.count} of ${warning.limit}. Further violations may auto-submit your exam.`;
+                violationMeta.hidden = false;
+            } else {
+                violationMeta.textContent = '';
+                violationMeta.hidden = true;
+            }
+        }
+        violationModal.hidden = false;
+        violationModal.removeAttribute('hidden');
+        violationModal.setAttribute('aria-hidden', 'false');
+        root.querySelector('#cx-violation-ack')?.focus();
+    }
+
+    function closeViolationModal() {
+        if (!violationModal) return;
+        violationModal.hidden = true;
+        violationModal.setAttribute('hidden', 'hidden');
+        violationModal.setAttribute('aria-hidden', 'true');
     }
 
     function updateProgress() {
@@ -501,13 +594,41 @@ export function initExamRunner(root) {
             const ok = await autosave.flush({ waitForInflight: true, requireEmpty: true });
             if (!ok) throw new Error(autosave.lastError() || 'Unable to sync answers. Please try again.');
             const data = await api(urls.submit, { method: 'POST', body: {} });
-            state.webcamStop?.();
+            leaveExamCleanly();
             clearLocal(payload.attempt.id, userId);
             window.location.href = data.redirect || urls.result;
         } catch (e) {
             state.submitting = false;
             notify(e.message || 'Submit failed', 'error', 7000);
         }
+    }
+
+    function leaveExamCleanly() {
+        state.submitting = true;
+        state.proctorApi?.allowNavigation?.();
+        state.webcamStop?.();
+        state.proctorApi?.destroy?.();
+        state.proctorApi = null;
+    }
+
+    function handleAutoSubmitted(details = {}) {
+        if (state.submitting) return;
+        state.submitting = true;
+        const message = details.message
+            || 'Your exam has been automatically submitted because you exceeded the maximum number of allowed rule violations.';
+        openViolationModal({
+            title: 'Exam submitted',
+            message,
+            count: details.violationCount || violationLimit,
+            limit: details.limit || violationLimit,
+            action: 'auto_submit',
+        });
+        notify(message, 'error', 7000);
+        leaveExamCleanly();
+        clearLocal(payload.attempt.id, userId);
+        window.setTimeout(() => {
+            window.location.href = urls.result;
+        }, 1200);
     }
 
     async function advanceAfterSave() {
@@ -554,8 +675,20 @@ export function initExamRunner(root) {
     }
 
     async function handleSubmitClick() {
+        const q = questions[state.index];
+        if (q) {
+            state.review[q.id] = false;
+        }
         persistCurrent({ debounceMs: 0 });
-        await autosave.flush({ waitForInflight: true });
+        const ok = await autosave.flush({ waitForInflight: true });
+        if (!ok && autosave.isStopped()) {
+            notify(autosave.lastError() || 'Answer could not be saved.', 'error', 6000);
+            paintPalette();
+            return;
+        }
+        if (!ok) {
+            notify(autosave.lastError() || 'Answer could not be saved. Retrying…', 'warn', 5000);
+        }
         await advanceAfterSave();
     }
 
@@ -566,6 +699,29 @@ export function initExamRunner(root) {
         persistCurrent({ debounceMs: 0 });
         await autosave.flush({ waitForInflight: true });
         await advanceAfterSave();
+    }
+
+    function clearSelection() {
+        const q = questions[state.index];
+        if (!q || !questionEl) return;
+        if (isLockedIndex(state.index)) {
+            notify('This question is locked after answering.', 'warn');
+            return;
+        }
+
+        const name = 'q' + q.id;
+        questionEl.querySelectorAll('[name="' + name + '"]').forEach((el) => {
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = false;
+                el.closest('.cx-choice')?.classList.remove('is-selected');
+            } else {
+                el.value = '';
+            }
+        });
+
+        state.answers[q.id] = emptyAnswerFor(q);
+        persistCurrent({ debounceMs: 0 });
+        notify('Selection cleared.', 'info', 2500);
     }
 
     function skipCurrent() {
@@ -608,6 +764,7 @@ export function initExamRunner(root) {
         cleanups.push(() => el.removeEventListener(event, handler));
     }
 
+    on(root.querySelector('#cx-clear-selection'), 'click', clearSelection);
     on(root.querySelector('#cx-skip'), 'click', skipCurrent);
     on(root.querySelector('#cx-submit'), 'click', () => {
         handleSubmitClick().catch((e) => notify(e.message || 'Unable to continue', 'error'));
@@ -628,12 +785,19 @@ export function initExamRunner(root) {
     modal?.querySelectorAll('[data-close-modal]').forEach((el) => {
         on(el, 'click', closeModal);
     });
+    violationModal?.querySelectorAll('[data-close-violation]').forEach((el) => {
+        on(el, 'click', closeViolationModal);
+    });
 
     const onKeyDown = (event) => {
         if (state.destroyed) return;
         if (event.key === 'Escape') {
             if (state.drawerOpen) {
                 setDrawer(false);
+                return;
+            }
+            if (violationModal && !violationModal.hidden) {
+                closeViolationModal();
                 return;
             }
             if (modal && !modal.hidden) closeModal();
@@ -658,6 +822,21 @@ export function initExamRunner(root) {
     document.addEventListener('keydown', onKeyDown);
     cleanups.push(() => document.removeEventListener('keydown', onKeyDown));
 
+    function applyTimerLabel(label, stage, mode) {
+        timerEls.forEach((el) => {
+            el.textContent = label;
+            const classes = ['cx-timer'];
+            if (el.classList.contains('cx-timer--rail')) classes.push('cx-timer--rail');
+            if (el.classList.contains('cx-timer--top')) classes.push('cx-timer--top');
+            if (mode === 'elapsed') classes.push('is-elapsed');
+            classes.push('is-' + (stage || 'green'));
+            el.className = classes.join(' ');
+        });
+        if (railTimerLabel) {
+            railTimerLabel.textContent = mode === 'elapsed' ? 'Time elapsed' : 'Time remaining';
+        }
+    }
+
     if (payload.exam?.enable_exam_timer && payload.attempt?.expires_at) {
         const totalSeconds = Math.max(
             1,
@@ -666,43 +845,38 @@ export function initExamRunner(root) {
         state.timerApi = createTimer({
             expiresAt: payload.attempt.expires_at,
             serverNow: payload.server_now,
-            onTick: ({ label, stage }) => {
-                timerEls.forEach((el) => {
-                    el.textContent = label;
-                    el.className = ['cx-timer', el.classList.contains('cx-timer--rail') ? 'cx-timer--rail' : '', el.classList.contains('cx-timer--top') ? 'cx-timer--top' : '', 'is-' + stage]
-                        .filter(Boolean)
-                        .join(' ');
-                });
-            },
+            onTick: ({ label, stage, mode }) => applyTimerLabel(label, stage, mode || 'remaining'),
             onExpire: () => {
                 notify('Time is up. Submitting your exam…', 'warn', 8000);
                 if (payload.exam.auto_submit_on_timer_end) {
                     finalizeSubmit().catch(() => {
+                        leaveExamCleanly();
                         window.location.href = urls.result;
                     });
                 }
             },
         });
         state.timerApi.start(totalSeconds);
-    } else {
-        timerEls.forEach((el) => {
-            el.textContent = 'No timer';
-            el.classList.add('is-green');
+    } else if (payload.attempt?.started_at) {
+        state.timerApi = createElapsedTimer({
+            startedAt: payload.attempt.started_at,
+            serverNow: payload.server_now || new Date().toISOString(),
+            onTick: ({ label, stage, mode }) => applyTimerLabel(label, stage, mode || 'elapsed'),
         });
+        state.timerApi.start();
+    } else {
+        applyTimerLabel('--:--', 'green', 'elapsed');
     }
 
-    state.proctorCleanup = bindProctoring({
+    state.proctorApi = bindProctoring({
         eventsUrl: urls.events,
         policy,
-        onAutoSubmit: () => {
-            notify('Exam submitted due to a rule violation.', 'error', 6000);
-            state.webcamStop?.();
-            window.setTimeout(() => {
-                window.location.href = urls.result;
-            }, 800);
-        },
-        onWarning: (message) => {
-            if (message) notify(message, 'warn', 6000);
+        examRoot: root,
+        onAutoSubmit: (details) => handleAutoSubmitted(details || {}),
+        onWarning: (warning) => {
+            if (!warning) return;
+            openViolationModal(warning);
+            notify(warning.message, 'warn', 5000);
         },
         onFullscreenExit: () => {
             if (!policy.require_fullscreen) return;
@@ -740,11 +914,10 @@ export function initExamRunner(root) {
             videoEl: root.querySelector('#cx-webcam-preview'),
             statusEl: root.querySelector('#cx-webcam-status'),
             eventsUrl: urls.events,
+            requireMicrophone,
             onStatus: (message, tone = 'warn') => notify(message, tone),
-            onAutoSubmit: () => {
-                state.webcamStop?.();
-                window.location.href = urls.result;
-            },
+            onWarning: (warning) => openViolationModal(warning),
+            onAutoSubmit: (details) => handleAutoSubmitted(details || {}),
         });
     }
 
@@ -783,7 +956,8 @@ export function initExamRunner(root) {
         if (state.heartbeatTimer) window.clearInterval(state.heartbeatTimer);
         state.timerApi?.stop?.();
         state.webcamStop?.();
-        state.proctorCleanup?.();
+        state.proctorApi?.allowNavigation?.();
+        state.proctorApi?.destroy?.();
         setDrawer(false);
         cleanups.forEach((fn) => {
             try { fn(); } catch (e) {}

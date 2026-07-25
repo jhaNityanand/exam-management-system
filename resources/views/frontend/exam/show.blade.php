@@ -143,35 +143,10 @@
         </div>
 
         @auth
-            @if($previousAttempts->isNotEmpty())
-                <div class="et-card" style="padding:1.25rem" id="previous-attempts">
-                    <h2 style="margin-top:0">Previous attempts</h2>
-                    <div style="overflow:auto">
-                        <table class="et-table">
-                            <thead>
-                            <tr>
-                                <th>Attempt</th>
-                                <th>Status</th>
-                                <th>Score</th>
-                                <th>Submitted</th>
-                                <th></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($previousAttempts as $attempt)
-                                <tr>
-                                    <td>#{{ $attempt->id }}</td>
-                                    <td>{{ ucfirst($attempt->status) }}</td>
-                                    <td>{{ $attempt->percentage !== null ? $attempt->percentage.'%' : '—' }}</td>
-                                    <td>{{ optional($attempt->submitted_at)->format('d M Y H:i') ?: '—' }}</td>
-                                    <td><a href="{{ route('frontend.attempts.result', $attempt) }}">View</a></td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            @endif
+            @include('frontend.exam.partials.previous-attempts', [
+                'exam' => $exam,
+                'previousAttempts' => $previousAttempts,
+            ])
         @endauth
     </div>
 @endsection
@@ -210,6 +185,25 @@
             }
         });
     }
+
+    document.querySelectorAll('[data-pa-toggle]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const card = btn.closest('[data-pa-card]');
+            if (!card) return;
+            const panelId = btn.getAttribute('aria-controls');
+            const panel = panelId ? document.getElementById(panelId) : card.querySelector('.pa-card__body');
+            const label = btn.querySelector('[data-pa-toggle-label]');
+            const open = card.classList.contains('is-collapsed');
+
+            card.classList.toggle('is-collapsed', !open);
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (panel) {
+                if (open) panel.removeAttribute('hidden');
+                else panel.setAttribute('hidden', 'hidden');
+            }
+            if (label) label.textContent = open ? 'Hide details' : 'Show details';
+        });
+    });
 })();
 </script>
 @endpush

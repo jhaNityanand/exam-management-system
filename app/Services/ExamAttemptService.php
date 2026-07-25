@@ -79,49 +79,68 @@ class ExamAttemptService
 
     protected function assignQuestions(ExamAttempt $attempt, Exam $exam): void
     {
-        $mode = $this->selector->resolveMode($exam);
-        $questions = $this->selector->select($exam);
+        $exam->loadMissing('parts.questions', 'parts.selectedQuestionCategories');
+        $parts = $exam->parts->sortBy('sort_order')->values();
 
-        if ($exam->shuffle_questions) {
-            shuffle($questions);
+        if ($parts->isEmpty()) {
+            throw new AttemptQuestionShortageException(
+                'Exam has no parts configured.',
+                [['type' => 'parts_empty']]
+            );
         }
 
         $rows = [];
         $now = now();
-        foreach (array_values($questions) as $index => $question) {
-            /** @var Question $question */
-            $options = is_array($question->options) ? $question->options : [];
-            $optionKeys = array_keys($options);
-            if ($exam->shuffle_options) {
-                shuffle($optionKeys);
+        $position = 0;
+
+        foreach ($parts as $part) {
+            $mode = $this->selector->resolveMode($part);
+            $questions = $this->selector->selectForPart($exam, $part);
+
+            $shufflePart = (bool) ($part->shuffle_questions || $exam->shuffle_questions);
+            if ($shufflePart) {
+                shuffle($questions);
             }
 
-            $rows[] = [
-                'exam_attempt_id' => $attempt->id,
-                'question_id' => $question->id,
-                'position' => $index + 1,
-                'category_id' => $question->category_id,
-                'marks' => (int) ((isset($question->pivot) ? $question->pivot->marks_override : null) ?? $question->marks ?? 0),
-                'question_snapshot' => json_encode([
-                    'id' => $question->id,
-                    'body' => $question->body,
-                    'type' => $question->type,
-                    'allows_multiple' => (bool) $question->allows_multiple,
-                    'options' => $options,
-                    'correct_answer' => $question->correct_answer,
-                    'correct_answers' => $question->correct_answers,
-                    'explanation' => $question->explanation,
-                    'difficulty' => $question->difficulty,
-                    'marks' => $question->marks,
-                ], JSON_THROW_ON_ERROR),
-                'option_order' => json_encode(array_values($optionKeys), JSON_THROW_ON_ERROR),
-                'selection_meta' => json_encode([
-                    'mode' => $mode,
-                    'source_question_id' => $question->id,
-                ], JSON_THROW_ON_ERROR),
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
+            foreach (array_values($questions) as $question) {
+                /** @var Question $question */
+                $position++;
+                $options = is_array($question->options) ? $question->options : [];
+                $optionKeys = array_keys($options);
+                if ($exam->shuffle_options || $part->shuffle_options) {
+                    shuffle($optionKeys);
+                }
+
+                $rows[] = [
+                    'exam_attempt_id' => $attempt->id,
+                    'question_id' => $question->id,
+                    'position' => $position,
+                    'category_id' => $question->category_id,
+                    'marks' => (int) ((isset($question->pivot) ? $question->pivot->marks_override : null) ?? $question->marks ?? 0),
+                    'question_snapshot' => json_encode([
+                        'id' => $question->id,
+                        'body' => $question->body,
+                        'type' => $question->type,
+                        'allows_multiple' => (bool) $question->allows_multiple,
+                        'options' => $options,
+                        'correct_answer' => $question->correct_answer,
+                        'correct_answers' => $question->correct_answers,
+                        'explanation' => $question->explanation,
+                        'difficulty' => $question->difficulty,
+                        'marks' => $question->marks,
+                    ], JSON_THROW_ON_ERROR),
+                    'option_order' => json_encode(array_values($optionKeys), JSON_THROW_ON_ERROR),
+                    'selection_meta' => json_encode([
+                        'mode' => $mode,
+                        'source_question_id' => $question->id,
+                        'part_id' => (int) $part->id,
+                        'part_name' => (string) ($part->name ?: 'Part'),
+                        'part_sort_order' => (int) $part->sort_order,
+                    ], JSON_THROW_ON_ERROR),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
         }
 
         ExamAttemptQuestion::query()->where('exam_attempt_id', $attempt->id)->delete();

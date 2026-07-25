@@ -22,7 +22,7 @@ class ExamProctoringService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array{violation_count:int, action:?string, auto_submitted:bool}
+     * @return array{violation_count:int, action:?string, auto_submitted:bool, submission_reason:?string, submission_message:?string}
      */
     public function recordEvent(ExamAttempt $attempt, string $event, array $payload = []): array
     {
@@ -40,9 +40,11 @@ class ExamProctoringService
             'copy_attempt',
             'paste_attempt',
             'cut_attempt',
+            'drag_attempt',
             'right_click',
             'devtools_open',
             'page_refresh',
+            'navigation_back',
             'session_warning',
             'media_lost',
         ];
@@ -64,11 +66,23 @@ class ExamProctoringService
             ?: ($attempt->loadMissing('exam.proctoringPolicy')->exam?->proctoringPolicy?->toRuntimeArray() ?? []);
 
         if (! $this->eventApplies($event, $policy)) {
-            return ['violation_count' => 0, 'action' => null, 'auto_submitted' => false];
+            return [
+                'violation_count' => 0,
+                'action' => null,
+                'auto_submitted' => false,
+                'submission_reason' => null,
+                'submission_message' => null,
+            ];
         }
 
         if ($this->isDuplicateFocusEvent($attempt, $event)) {
-            return ['violation_count' => 0, 'action' => 'deduped', 'auto_submitted' => false];
+            return [
+                'violation_count' => 0,
+                'action' => 'deduped',
+                'auto_submitted' => false,
+                'submission_reason' => null,
+                'submission_message' => null,
+            ];
         }
 
         $count = ExamAttemptViolation::query()
@@ -94,16 +108,60 @@ class ExamProctoringService
         ]);
 
         $autoSubmitted = false;
+        $submissionReason = null;
+        $submissionMessage = null;
         if ($applied === 'auto_submit') {
-            $this->grading->submit($attempt, reason: 'violation_limit', auto: true);
+            $submissionReason = $this->resolveViolationSubmissionReason($attempt, $event, $payload);
+            $this->grading->submit($attempt, reason: $submissionReason, auto: true);
             $autoSubmitted = true;
+            $submissionMessage = ExamAttempt::labelForSubmissionReason($submissionReason);
         }
 
         return [
             'violation_count' => $count,
             'action' => $applied,
             'auto_submitted' => $autoSubmitted,
+            'submission_reason' => $submissionReason,
+            'submission_message' => $submissionMessage,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected function resolveViolationSubmissionReason(ExamAttempt $attempt, string $event, array $payload = []): string
+    {
+        $types = ExamAttemptViolation::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->pluck('type')
+            ->unique()
+            ->values();
+
+        if ($types->count() > 1) {
+            return 'violation_multiple';
+        }
+
+        if ($event === 'media_lost') {
+            $detail = strtolower((string) ($payload['reason'] ?? ''));
+            if (str_contains($detail, 'audio') || str_contains($detail, 'mic')) {
+                return 'violation_microphone_disabled';
+            }
+            if (str_contains($detail, 'video') || str_contains($detail, 'camera')) {
+                return 'violation_camera_disabled';
+            }
+
+            return 'violation_media_lost';
+        }
+
+        if (in_array($event, ['copy_attempt', 'paste_attempt', 'cut_attempt', 'drag_attempt'], true)) {
+            return 'violation_copy_paste';
+        }
+
+        if (in_array($event, ['tab_switch', 'window_blur'], true)) {
+            return 'violation_tab_switch';
+        }
+
+        return 'violation_'.$event;
     }
 
     public function storeSnapshot(ExamAttempt $attempt, UploadedFile $file, string $type = 'selfie'): ExamAttemptSnapshot
@@ -217,10 +275,10 @@ class ExamProctoringService
         return match ($event) {
             'tab_switch', 'window_blur' => (bool) ($policy['detect_tab_switch'] ?? false),
             'fullscreen_exit' => (bool) ($policy['require_fullscreen'] ?? false),
-            'copy_attempt', 'paste_attempt', 'cut_attempt' => (bool) ($policy['block_copy_paste'] ?? false),
+            'copy_attempt', 'paste_attempt', 'cut_attempt', 'drag_attempt' => (bool) ($policy['block_copy_paste'] ?? false),
             'right_click' => (bool) ($policy['block_context_menu'] ?? false),
             'devtools_open' => (bool) ($policy['detect_devtools'] ?? false),
-            'page_refresh' => (bool) ($policy['block_page_refresh'] ?? false),
+            'page_refresh', 'navigation_back' => (bool) ($policy['block_page_refresh'] ?? false),
             'media_lost' => (bool) (($policy['require_webcam'] ?? false) || ($policy['require_microphone'] ?? false)),
             default => true,
         };

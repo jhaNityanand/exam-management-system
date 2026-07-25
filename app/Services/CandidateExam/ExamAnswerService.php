@@ -65,6 +65,16 @@ class ExamAnswerService
                 ->pluck('id')
                 ->all();
 
+            $policy = $locked->policy_snapshot
+                ?: ($locked->loadMissing('exam.proctoringPolicy')->exam?->proctoringPolicy?->toRuntimeArray() ?? []);
+            $singleAttempt = (bool) ($policy['single_attempt_per_question'] ?? false);
+
+            $existingAnswers = ExamAttemptAnswer::query()
+                ->where('exam_attempt_id', $locked->id)
+                ->whereIn('exam_attempt_question_id', $validQuestionIds)
+                ->get()
+                ->keyBy('exam_attempt_question_id');
+
             foreach ($items as $item) {
                 $qid = (int) ($item['exam_attempt_question_id'] ?? 0);
                 if (! in_array($qid, $validQuestionIds, true)) {
@@ -77,10 +87,34 @@ class ExamAnswerService
                 $value = $item['answer_value'] ?? null;
                 $isAnswered = $this->isAnswered($value);
 
-                $answer = ExamAttemptAnswer::query()->firstOrNew([
+                $answer = $existingAnswers->get($qid) ?: ExamAttemptAnswer::query()->firstOrNew([
                     'exam_attempt_id' => $locked->id,
                     'exam_attempt_question_id' => $qid,
                 ]);
+
+                if (
+                    $singleAttempt
+                    && $answer->exists
+                    && $answer->is_answered
+                    && $this->isAnswered($answer->answer_value)
+                ) {
+                    // Lock previously answered questions: allow review flag / visited only.
+                    $answer->fill([
+                        'is_marked_for_review' => (bool) ($item['is_marked_for_review'] ?? $answer->is_marked_for_review),
+                        'is_visited' => true,
+                    ]);
+                    $answer->save();
+                    $saved[] = [
+                        'exam_attempt_question_id' => $answer->exam_attempt_question_id,
+                        'answer_value' => $answer->answer_value,
+                        'is_marked_for_review' => $answer->is_marked_for_review,
+                        'is_visited' => $answer->is_visited,
+                        'is_answered' => $answer->is_answered,
+                        'revision' => $answer->revision,
+                        'locked' => true,
+                    ];
+                    continue;
+                }
 
                 $answer->fill([
                     'answer_value' => $value,

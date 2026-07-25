@@ -2029,3 +2029,262 @@ html.dark .et-logo__img {
   flex: 0 0 auto;
   white-space: nowrap;
 }
+
+/* Previous attempts (exam show) */
+.et-badge--success { background: rgba(5, 150, 105, 0.12); color: var(--et-success); }
+.et-badge--info { background: rgba(2, 132, 200, 0.12); color: var(--et-info); }
+.et-badge--pass { background: rgba(5, 150, 105, 0.12); color: var(--et-success); }
+.et-badge--fail { background: rgba(220, 38, 38, 0.12); color: var(--et-danger); }
+
+.pa-section {
+  padding: 1.35rem 1.25rem 1.4rem;
+}
+.pa-section__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+.pa-section__head h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.25rem;
+}
+.pa-section__lead {
+  margin: 0;
+  color: var(--et-text-muted);
+  font-size: 0.92rem;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+.pa-empty .et-empty {
+  border-style: dashed;
+  background: var(--et-surface-2);
+}
+.pa-list {
+  display: grid;
+  gap: 1rem;
+}
+.pa-card {
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius);
+  background: var(--et-surface);
+  padding: 1.1rem 1.05rem 1.05rem;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  transition: border-color var(--et-transition), box-shadow var(--et-transition);
+}
+.pa-card.is-latest {
+  border-color: color-mix(in srgb, var(--et-accent) 45%, var(--et-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--et-accent) 18%, transparent), var(--et-shadow);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--et-accent-soft) 70%, transparent), transparent 4.5rem),
+    var(--et-surface);
+}
+.pa-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.pa-card__title-wrap { min-width: 0; flex: 1 1 16rem; }
+.pa-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.pa-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+.pa-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+.pa-card__aside {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.pa-card__score {
+  text-align: right;
+  min-width: 7.5rem;
+}
+.pa-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+.pa-toggle__icon {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--et-transition);
+  margin-top: -0.15rem;
+}
+.pa-card:not(.is-collapsed) .pa-toggle__icon {
+  transform: rotate(-135deg);
+  margin-top: 0.15rem;
+}
+.pa-card__body {
+  margin-top: 0.85rem;
+}
+.pa-card.is-collapsed .pa-card__body {
+  display: none;
+}
+.pa-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--et-border);
+}
+.pa-card__score-value {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--et-accent);
+  line-height: 1;
+}
+.pa-card__score-meta {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--et-text-muted);
+  font-weight: 600;
+}
+.pa-progress {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.95rem 0 0.9rem;
+}
+.pa-progress__track {
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--et-surface-2);
+  overflow: hidden;
+}
+.pa-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--et-teal-700), var(--et-teal-600));
+}
+.pa-progress__label {
+  font-size: 0.78rem;
+  color: var(--et-text-muted);
+  font-weight: 600;
+}
+.pa-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+.pa-summary__item {
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface-2);
+  padding: 0.65rem 0.75rem;
+  display: grid;
+  gap: 0.2rem;
+}
+.pa-summary__label {
+  font-size: 0.72rem;
+  color: var(--et-text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pa-summary__value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--et-text);
+  letter-spacing: -0.02em;
+}
+.pa-rows {
+  display: grid;
+  gap: 0.85rem;
+}
+.pa-row-group {
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  overflow: hidden;
+  background: var(--et-surface);
+}
+.pa-row-group__title {
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--et-text-muted);
+  font-weight: 800;
+  background: var(--et-surface-2);
+  border-bottom: 1px solid var(--et-border);
+}
+.pa-rows__list {
+  margin: 0;
+  display: grid;
+}
+.pa-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 34%) 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.7rem 0.9rem;
+  border-top: 1px solid var(--et-border);
+}
+.pa-row:first-child { border-top: 0; }
+.pa-row dt {
+  margin: 0;
+  color: var(--et-text-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.pa-row dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--et-text);
+  text-align: right;
+  word-break: break-word;
+}
+.pa-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--et-border);
+}
+@media (min-width: 720px) {
+  .pa-summary { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .pa-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1100px) {
+  .pa-section { padding: 1.5rem 1.45rem 1.55rem; }
+}
+@media (max-width: 640px) {
+  .pa-card__score { text-align: left; width: 100%; }
+  .pa-card__aside {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pa-card__actions .et-btn { flex: 1 1 auto; justify-content: center; }
+  .pa-row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .pa-row dd { text-align: left; }
+}

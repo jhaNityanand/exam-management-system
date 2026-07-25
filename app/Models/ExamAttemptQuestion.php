@@ -53,6 +53,7 @@ class ExamAttemptQuestion extends Model
     {
         $snapshot = $this->question_snapshot ?? [];
         unset($snapshot['correct_answer'], $snapshot['correct_answers'], $snapshot['explanation']);
+        $meta = $this->selection_meta ?? [];
 
         return [
             'id' => $this->id,
@@ -61,6 +62,9 @@ class ExamAttemptQuestion extends Model
             'category_id' => $this->category_id,
             'marks' => $this->marks,
             'option_order' => $this->option_order,
+            'part_id' => isset($meta['part_id']) ? (int) $meta['part_id'] : null,
+            'part_name' => isset($meta['part_name']) ? (string) $meta['part_name'] : null,
+            'part_sort_order' => isset($meta['part_sort_order']) ? (int) $meta['part_sort_order'] : null,
             'question' => $snapshot,
         ];
     }

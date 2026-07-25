@@ -4,6 +4,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\ExamAttemptAnswer;
 use App\Models\ExamEntitlement;
+use App\Models\ExamPart;
 use App\Models\ExamProctoringPolicy;
 use App\Models\Organization;
 use App\Models\Question;
@@ -97,7 +98,18 @@ beforeEach(function () {
         'instructions' => '<p>Follow the rules.</p>',
     ]);
 
-    $this->exam->questions()->sync([
+    $part = ExamPart::create([
+        'exam_id' => $this->exam->id,
+        'name' => 'Part A',
+        'sort_order' => 0,
+        'is_default' => true,
+        'total_questions' => 2,
+        'total_marks' => 4,
+        'fixed_questions' => true,
+        'selected_categories' => [$this->category->id],
+        'question_marks_filter' => [2],
+    ]);
+    $part->questions()->sync([
         $this->q1->id => ['sort_order' => 0, 'status' => 'active'],
         $this->q2->id => ['sort_order' => 1, 'status' => 'active'],
     ]);
@@ -117,6 +129,48 @@ test('public exam detail hides instructions and shows public fields', function (
         ->assertSee($this->exam->title)
         ->assertSee('Minutes')
         ->assertDontSee('Follow the rules.', false);
+});
+
+test('authenticated exam show renders previous attempt cards with details', function () {
+    $service = app(\App\Services\CandidateExam\ExamSessionService::class);
+    $attempt = $service->startOrResume($this->exam, $this->candidate, [], [
+        'browser' => 'Chrome',
+        'device_type' => 'desktop',
+        'session_token' => 'prev-attempts-ui',
+    ]);
+    $attempt->update([
+        'correct_count' => 1,
+        'wrong_count' => 1,
+        'unanswered_count' => 0,
+        'score' => 2,
+        'percentage' => 50,
+        'passed' => true,
+        'submission_reason' => 'manual',
+        'timezone' => 'Asia/Kolkata',
+    ]);
+    app(\App\Services\CandidateExam\ExamGradingService::class)->submit($attempt->fresh(), reason: 'manual', auto: false);
+
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.show', $this->exam))
+        ->assertOk()
+        ->assertSee('id="previous-attempts"', false)
+        ->assertSee('pa-card is-collapsed is-latest', false)
+        ->assertSee('Show details', false)
+        ->assertSee('Attempt #')
+        ->assertSee('View attempt details', false)
+        ->assertSee('Review answers', false)
+        ->assertSee('Timing', false)
+        ->assertSee('Questions', false)
+        ->assertSee('Marks &amp; performance', false)
+        ->assertSee('Submission', false);
+});
+
+test('authenticated exam show shows empty previous attempts state', function () {
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.show', $this->exam))
+        ->assertOk()
+        ->assertSee('No previous attempts found.', false)
+        ->assertSee('Start your first attempt to track your exam history here.', false);
 });
 
 test('candidate cannot access admin panel', function () {
@@ -168,6 +222,10 @@ test('candidate can start attempt save answers and submit for grading', function
     expect($attempt->expires_at)->not->toBeNull();
     expect($attempt->policy_snapshot)->toBeArray();
     expect($attempt->attemptQuestions)->toHaveCount(2);
+    $meta = $attempt->attemptQuestions()->orderBy('position')->first()?->selection_meta;
+    expect($meta)->toBeArray();
+    expect($meta['part_id'] ?? null)->not->toBeNull();
+    expect($meta['part_name'] ?? null)->toBe('Part A');
 
     $qRows = $attempt->attemptQuestions()->orderBy('position')->get();
     $this->patchJson(route('frontend.attempts.answers', $attempt), [
@@ -358,6 +416,9 @@ test('attempt runner page exposes redesigned shell and answer acknowledgements',
         ->assertSee('id="cx-drawer-toggle"', false)
         ->assertSee('id="cx-toast"', false)
         ->assertSee('id="cx-webcam"', false)
+        ->assertSee('id="cx-violation-modal"', false)
+        ->assertSee('id="cx-timer"', false)
+        ->assertSee('Clear selection', false)
         ->assertSee('Save &amp; next', false)
         ->assertSee('Mark for review &amp; next', false)
         ->assertSee('Final submit', false)
@@ -416,6 +477,86 @@ test('attempt runner page exposes redesigned shell and answer acknowledgements',
             ],
         ])
         ->assertStatus(422);
+});
+
+test('proctoring auto submit stores readable violation reason', function () {
+    $service = app(ExamSessionService::class);
+    $attempt = $service->startOrResume(
+        $this->exam,
+        $this->candidate,
+        [],
+        ['browser' => 'phpunit', 'session_token' => 'violation-reason-token'],
+        null,
+        [
+            'detect_tab_switch' => true,
+            'focus_violation_limit' => 2,
+            'focus_violation_action' => 'auto_submit',
+            'auto_submit_on_violation' => true,
+            'require_webcam' => false,
+            'require_microphone' => false,
+            'require_fullscreen' => false,
+            'block_copy_paste' => false,
+            'block_context_menu' => false,
+            'detect_devtools' => false,
+            'block_page_refresh' => false,
+        ]
+    );
+
+    $proctoring = app(\App\Services\CandidateExam\ExamProctoringService::class);
+    $first = $proctoring->recordEvent($attempt, 'tab_switch');
+    expect($first['auto_submitted'])->toBeFalse();
+    expect($first['violation_count'])->toBe(1);
+
+    $this->travel(3)->seconds();
+
+    $second = $proctoring->recordEvent($attempt->fresh(), 'tab_switch');
+    expect($second['auto_submitted'])->toBeTrue();
+    expect($second['action'])->toBe('auto_submit');
+    expect($second['submission_reason'])->toBe('violation_tab_switch');
+    expect($second['submission_message'])->toBe('Maximum tab switches exceeded');
+
+    $attempt->refresh();
+    expect($attempt->status)->toBe('submitted');
+    expect($attempt->submission_reason)->toBe('violation_tab_switch');
+    expect($attempt->submissionReasonLabel())->toBe('Maximum tab switches exceeded');
+
+    $summary = app(\App\Services\CandidateExam\ExamReviewPresenter::class)->presentSummary($attempt);
+    expect($summary['submission_label'])->toBe('Maximum tab switches exceeded');
+});
+
+test('untimed exams expose started_at and runtime parts metadata', function () {
+    $this->exam->update(['enable_exam_timer' => false]);
+
+    $partB = ExamPart::create([
+        'exam_id' => $this->exam->id,
+        'name' => 'Part B',
+        'sort_order' => 1,
+        'is_default' => false,
+        'total_questions' => 1,
+        'total_marks' => 2,
+        'fixed_questions' => true,
+        'selected_categories' => [$this->category->id],
+    ]);
+    $partB->questions()->sync([
+        $this->q2->id => ['sort_order' => 0, 'status' => 'active'],
+    ]);
+    // Keep only q1 on default part A.
+    $partA = ExamPart::query()->where('exam_id', $this->exam->id)->where('is_default', true)->first();
+    $partA->update(['total_questions' => 1, 'total_marks' => 2]);
+    $partA->questions()->sync([
+        $this->q1->id => ['sort_order' => 0, 'status' => 'active'],
+    ]);
+
+    $service = app(ExamSessionService::class);
+    $attempt = $service->startOrResume($this->exam, $this->candidate);
+    expect($attempt->expires_at)->toBeNull();
+
+    $payload = $service->toRuntimePayload($attempt->fresh());
+    expect($payload['exam']['enable_exam_timer'])->toBeFalse();
+    expect($payload['attempt']['started_at'])->not->toBeNull();
+    expect($payload['parts'])->toHaveCount(2);
+    expect(collect($payload['questions'])->pluck('part_name')->unique()->sort()->values()->all())
+        ->toBe(['Part A', 'Part B']);
 });
 
 test('start returns runner html for in-place modal mount and started resumes', function () {

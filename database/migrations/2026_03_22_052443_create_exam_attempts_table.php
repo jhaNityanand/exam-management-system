@@ -36,7 +36,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('paper_set')->nullable();
             $table->string('timezone', 64)->nullable();
             $table->timestamp('submitted_at')->nullable();
-            $table->string('submission_reason', 64)->nullable();
+            $table->string('submission_reason', 120)->nullable();
             $table->timestamp('result_released_at')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();

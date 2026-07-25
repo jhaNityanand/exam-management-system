@@ -134,4 +134,40 @@ class ExamAttempt extends Model
     {
         return in_array($this->status, [self::STATUS_ACTIVE, self::STATUS_IN_PROGRESS], true);
     }
+
+    public function submissionReasonLabel(): string
+    {
+        return self::labelForSubmissionReason($this->submission_reason);
+    }
+
+    public static function labelForSubmissionReason(?string $reason): string
+    {
+        $reason = trim((string) $reason);
+        if ($reason === '') {
+            return '—';
+        }
+
+        return match ($reason) {
+            'manual' => 'Submitted by candidate',
+            'timer_expired' => 'Time expired — exam auto-submitted',
+            'violation_limit' => 'Maximum rule violations exceeded',
+            'violation_multiple' => 'Multiple rule violations detected',
+            'violation_tab_switch', 'violation_window_blur' => 'Maximum tab switches exceeded',
+            'violation_fullscreen_exit' => 'Fullscreen exited multiple times',
+            'violation_copy_attempt',
+            'violation_paste_attempt',
+            'violation_cut_attempt',
+            'violation_drag_attempt',
+            'violation_copy_paste' => 'Copy/paste violation limit exceeded',
+            'violation_right_click' => 'Right-click violation limit exceeded',
+            'violation_devtools_open' => 'Developer tools violation limit exceeded',
+            'violation_page_refresh' => 'Page refresh violation limit exceeded',
+            'violation_navigation_back' => 'Back navigation violation limit exceeded',
+            'violation_camera_disabled' => 'Camera disabled during the exam',
+            'violation_microphone_disabled' => 'Microphone disabled during the exam',
+            'violation_media_lost' => 'Camera or microphone connection lost',
+            'violation_session_warning' => 'Session warning limit exceeded',
+            default => ucwords(str_replace('_', ' ', $reason)),
+        };
+    }
 }

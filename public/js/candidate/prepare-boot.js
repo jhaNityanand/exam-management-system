@@ -96,6 +96,54 @@
         return fallback;
     }
 
+    function httpErrorMessage(status, payload, rawText) {
+        var specific = firstError(payload, '');
+        if (specific) {
+            if (/expired|challenge/i.test(specific)) {
+                return specific + ' Refresh this page and try again.';
+            }
+            return specific;
+        }
+        if (status === 419) {
+            return 'Your session expired (CSRF). Refresh the page and try again.';
+        }
+        if (status === 401 || status === 403) {
+            return 'You are not allowed to start this exam. Sign in again or contact support.';
+        }
+        if (status === 422) {
+            return 'Some requirements are incomplete. Check the verification list and try again.';
+        }
+        if (status >= 500) {
+            return 'The server could not start the exam. Please retry in a moment.';
+        }
+        if (rawText && /csrf|page expired/i.test(rawText)) {
+            return 'Your session expired. Refresh the page and try again.';
+        }
+        return 'Unable to start exam. Please refresh and try again.';
+    }
+
+    function waitForMountExam(timeoutMs) {
+        timeoutMs = timeoutMs || 8000;
+        return new Promise(function (resolve, reject) {
+            if (typeof window.__cxMountExam === 'function') {
+                resolve(window.__cxMountExam);
+                return;
+            }
+            var started = Date.now();
+            var timer = setInterval(function () {
+                if (typeof window.__cxMountExam === 'function') {
+                    clearInterval(timer);
+                    resolve(window.__cxMountExam);
+                    return;
+                }
+                if (Date.now() - started >= timeoutMs) {
+                    clearInterval(timer);
+                    reject(new Error('Exam scripts failed to load. Refresh the page and try again.'));
+                }
+            }, 100);
+        });
+    }
+
     function supportsMedia() {
         return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
     }
@@ -548,6 +596,8 @@
                 if (!isForm) {
                     headers['Content-Type'] = 'application/json';
                     headers['X-CSRF-TOKEN'] = csrfToken();
+                } else if (!body.has('_token')) {
+                    body.append('_token', csrfToken());
                 }
                 var res = await fetch(startUrl, {
                     method: 'POST',
@@ -556,8 +606,16 @@
                     credentials: 'same-origin',
                     signal: abortController.signal,
                 });
-                var data = await res.json().catch(function () { return {}; });
-                if (!res.ok) throw new Error(firstError(data, 'Unable to start exam.'));
+                var rawText = await res.text();
+                var data = {};
+                try {
+                    data = rawText ? JSON.parse(rawText) : {};
+                } catch (e) {
+                    data = {};
+                }
+                if (!res.ok) {
+                    throw new Error(httpErrorMessage(res.status, data, rawText));
+                }
                 return data;
             } finally {
                 clearTimeout(timer);
@@ -666,11 +724,8 @@
             // Hand webcam off to the runner after mount so prepare stream can stop cleanly.
             stopAllMedia();
 
-            if (typeof window.__cxMountExam !== 'function') {
-                throw new Error('Exam scripts are still loading. Please wait a moment and retry.');
-            }
-
-            window.__cxMountExam(examRoot);
+            var mountExam = await waitForMountExam(8000);
+            mountExam(examRoot);
             setLoading(false);
 
             if (root) {

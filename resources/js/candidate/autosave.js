@@ -5,7 +5,7 @@ function isTerminalError(error) {
     return status === 401 || status === 403 || status === 404 || status === 419 || status === 422;
 }
 
-export function createAutosave({ attemptId, url, userId, onState, onRevision }) {
+export function createAutosave({ attemptId, url, userId, onState, onRevision, onQueueChange }) {
     let queue = new Map();
     let revision = 0;
     let timer = null;
@@ -14,6 +14,10 @@ export function createAutosave({ attemptId, url, userId, onState, onRevision }) 
     let lastError = '';
     let stopped = false;
 
+    function emitQueue() {
+        onQueueChange?.(Array.from(queue.keys()));
+    }
+
     function setState(state, detail = '') {
         onState?.(state, detail);
     }
@@ -21,6 +25,7 @@ export function createAutosave({ attemptId, url, userId, onState, onRevision }) 
     function enqueue(item, debounceMs = 500) {
         if (stopped) return;
         queue.set(item.exam_attempt_question_id, item);
+        emitQueue();
         setState('pending');
         schedule(typeof debounceMs === 'number' ? debounceMs : 500);
     }
@@ -44,10 +49,12 @@ export function createAutosave({ attemptId, url, userId, onState, onRevision }) 
     async function sendOnce() {
         if (queue.size === 0) {
             setState('saved');
+            emitQueue();
             return true;
         }
         if (!navigator.onLine) {
             setState('offline');
+            emitQueue();
             return false;
         }
 
@@ -70,16 +77,24 @@ export function createAutosave({ attemptId, url, userId, onState, onRevision }) 
             revision = data.revision ?? revision + 1;
             onRevision?.(revision);
 
+            const skipped = new Set(
+                Array.isArray(data.skipped)
+                    ? data.skipped.map((id) => Number(id))
+                    : [],
+            );
+
             snapshot.forEach((item) => {
+                const qid = Number(item.exam_attempt_question_id);
                 const current = queue.get(item.exam_attempt_question_id);
-                if (current === item) {
-                    queue.delete(item.exam_attempt_question_id);
-                }
+                if (current !== item) return;
+                if (skipped.has(qid)) return;
+                queue.delete(item.exam_attempt_question_id);
             });
 
-            // If backend skipped invalid IDs, keep a soft warning without blocking UX.
+            emitQueue();
+
             if (typeof data.saved === 'number' && data.saved < answers.length) {
-                lastError = 'Some answers could not be confirmed. Retrying…';
+                lastError = 'Some answers could not be saved. Retrying…';
                 setState('error', lastError);
             } else {
                 failCount = 0;
@@ -93,6 +108,7 @@ export function createAutosave({ attemptId, url, userId, onState, onRevision }) 
             failCount += 1;
             lastError = e?.message || 'Save failed';
             setState('error', lastError);
+            emitQueue();
 
             if (isTerminalError(e)) {
                 stopped = true;
@@ -128,6 +144,7 @@ export function createAutosave({ attemptId, url, userId, onState, onRevision }) 
 
         if (queue.size === 0) {
             setState('saved');
+            emitQueue();
             return true;
         }
 
@@ -157,6 +174,7 @@ export function createAutosave({ attemptId, url, userId, onState, onRevision }) 
         },
         getRevision: () => revision,
         pendingCount: () => queue.size,
+        pendingIds: () => Array.from(queue.keys()),
         lastError: () => lastError,
         isStopped: () => stopped,
     };

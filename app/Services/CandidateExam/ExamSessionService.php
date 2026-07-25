@@ -153,6 +153,23 @@ class ExamSessionService
             return $payload;
         })->all();
 
+        $parts = collect($questions)
+            ->filter(fn (array $q) => ! empty($q['part_id']))
+            ->groupBy('part_id')
+            ->map(function ($group) {
+                $first = $group->first();
+
+                return [
+                    'id' => (int) ($first['part_id'] ?? 0),
+                    'name' => (string) ($first['part_name'] ?? 'Part'),
+                    'sort_order' => (int) ($first['part_sort_order'] ?? 0),
+                    'question_count' => $group->count(),
+                ];
+            })
+            ->sortBy('sort_order')
+            ->values()
+            ->all();
+
         return [
             'server_now' => now()->toIso8601String(),
             'attempt' => [
@@ -198,6 +215,7 @@ class ExamSessionService
                 'focus_violation_action' => 'warn',
                 'auto_submit_on_violation' => false,
             ], $policy),
+            'parts' => $parts,
             'questions' => $questions,
         ];
     }

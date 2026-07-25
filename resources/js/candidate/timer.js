@@ -1,3 +1,15 @@
+function pad(n) {
+    return String(n).padStart(2, '0');
+}
+
+export function formatDuration(seconds) {
+    const total = Math.max(0, Math.floor(seconds));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
 export function createTimer({ expiresAt, serverNow, onTick, onExpire }) {
     const expiresMs = new Date(expiresAt).getTime();
     const offset = new Date(serverNow).getTime() - Date.now();
@@ -20,20 +32,14 @@ export function createTimer({ expiresAt, serverNow, onTick, onExpire }) {
         return 'red';
     }
 
-    function format(seconds) {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        const pad = (n) => String(n).padStart(2, '0');
-        return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-    }
-
     function tick(totalSeconds) {
         const left = remaining();
         onTick?.({
             left,
-            label: format(left),
+            elapsed: null,
+            label: formatDuration(left),
             stage: stage(totalSeconds, left),
+            mode: 'remaining',
         });
         if (left <= 0) {
             stop();
@@ -52,5 +58,43 @@ export function createTimer({ expiresAt, serverNow, onTick, onExpire }) {
         timerId = null;
     }
 
-    return { start, stop, remaining, format };
+    return { start, stop, remaining, format: formatDuration };
+}
+
+export function createElapsedTimer({ startedAt, serverNow, onTick }) {
+    const startedMs = new Date(startedAt).getTime();
+    const offset = new Date(serverNow).getTime() - Date.now();
+    let timerId = null;
+
+    function now() {
+        return Date.now() + offset;
+    }
+
+    function elapsed() {
+        return Math.max(0, Math.floor((now() - startedMs) / 1000));
+    }
+
+    function tick() {
+        const value = elapsed();
+        onTick?.({
+            left: null,
+            elapsed: value,
+            label: formatDuration(value),
+            stage: 'green',
+            mode: 'elapsed',
+        });
+    }
+
+    function start() {
+        stop();
+        tick();
+        timerId = window.setInterval(tick, 1000);
+    }
+
+    function stop() {
+        if (timerId) window.clearInterval(timerId);
+        timerId = null;
+    }
+
+    return { start, stop, elapsed, format: formatDuration };
 }

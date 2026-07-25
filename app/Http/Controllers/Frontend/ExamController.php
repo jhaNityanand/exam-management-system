@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\ExamCategory;
 use App\Services\CandidateExam\ExamEligibilityService;
+use App\Services\CandidateExam\PreviousAttemptPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,7 +18,8 @@ class ExamController extends Controller
     use RespondsWithFrontendJson;
 
     public function __construct(
-        protected ExamEligibilityService $eligibility
+        protected ExamEligibilityService $eligibility,
+        protected PreviousAttemptPresenter $previousAttempts
     ) {}
 
     public function index(Request $request): View|JsonResponse
@@ -111,15 +113,46 @@ class ExamController extends Controller
             'attempts_allowed' => $this->eligibility->allowedAttempts($exam),
         ];
 
-        $previousAttempts = $user
-            ? ExamAttempt::query()
+        $previousAttempts = collect();
+        if ($user) {
+            $attemptModels = ExamAttempt::query()
                 ->where('exam_id', $exam->id)
                 ->where('user_id', $user->id)
                 ->whereIn('status', ['submitted', 'expired', 'graded', 'abandoned'])
+                ->with(['device:id,exam_attempt_id,browser,device_type,os,timezone'])
+                ->withCount('violations')
+                ->withCount([
+                    'attemptAnswers as marked_for_review_count' => fn ($q) => $q->where('is_marked_for_review', true),
+                ])
+                ->withSum([
+                    'attemptAnswers as negative_marks_sum' => fn ($q) => $q->where('awarded_marks', '<', 0),
+                ], 'awarded_marks')
                 ->latest('id')
                 ->limit(10)
-                ->get(['id', 'status', 'score', 'percentage', 'passed', 'submitted_at', 'started_at'])
-            : collect();
+                ->get([
+                    'id',
+                    'exam_id',
+                    'attempt_no',
+                    'status',
+                    'score',
+                    'percentage',
+                    'passed',
+                    'correct_count',
+                    'wrong_count',
+                    'unanswered_count',
+                    'time_spent_seconds',
+                    'started_at',
+                    'submitted_at',
+                    'submission_reason',
+                    'timezone',
+                    'paper_set',
+                    'device_meta',
+                    'exam_config_snapshot',
+                    'result_released_at',
+                ]);
+
+            $previousAttempts = collect($this->previousAttempts->presentMany($attemptModels, $exam));
+        }
 
         $relatedExams = Exam::query()
             ->publicCatalog()
