@@ -3,6 +3,12 @@
 @php
     $seo = ['title' => 'Rules — '.$exam->title];
     $policy = $policy ?? $exam->proctoringPolicy;
+    $warningLimit = (int) ($policy?->focus_violation_limit ?? 3);
+    $rulesAgreed = ! empty($rulesAgreed);
+    $agreeUrl = $agreeUrl ?? route('frontend.exams.rules.agree', $exam);
+    $canContinueAttempt = ! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']);
+    $needsPayment = ! empty($evaluation['requires_payment']);
+    $canAttempt = (! empty($evaluation['can_attempt']) || empty($evaluation['reasons'])) && ! $needsPayment && ! $canContinueAttempt;
 @endphp
 
 @section('content')
@@ -33,6 +39,15 @@
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->passing_marks }}</span><span class="et-stat__label">Passing marks</span></div>
     </div>
 
+    <div class="et-callout et-callout--warning et-warning-limit" role="note">
+        <strong>Warnings allowed: {{ $warningLimit }}</strong>
+        @if($warningLimit === 0)
+            <p>No warnings are allowed. The first monitored violation (such as switching tabs) can auto-submit your exam.</p>
+        @else
+            <p>You may receive up to <strong>{{ $warningLimit }}</strong> monitored warning{{ $warningLimit === 1 ? '' : 's' }} (tab switch, focus loss, etc.). Reaching this limit auto-submits your exam.</p>
+        @endif
+    </div>
+
     <div class="et-card" style="padding:1.25rem">
         <h2 style="margin-top:0">Assessment summary</h2>
         <ul>
@@ -51,6 +66,7 @@
                 @if($policy?->require_microphone) Microphone required.@endif
                 @if($policy?->require_fullscreen) Fullscreen required.@endif
             </li>
+            <li><strong>Warnings allowed:</strong> {{ $warningLimit }}</li>
         </ul>
     </div>
 
@@ -67,15 +83,29 @@
 
     @include('frontend.partials.exam-rules', ['rules' => $rules])
 
-    <div class="et-card et-rules-actions">
-        @if(! empty($evaluation['requires_payment']))
+    <div class="et-card et-rules-actions" id="cx-rules-actions"
+         data-agree-url="{{ $agreeUrl }}"
+         data-rules-agreed="{{ $rulesAgreed ? '1' : '0' }}">
+        @unless($canContinueAttempt || $needsPayment)
+            <label class="et-agree">
+                <input type="checkbox" id="cx-rules-agree" @checked($rulesAgreed)>
+                <span>I have read and agree to the exam rules, instructions, and monitoring policies above.</span>
+            </label>
+        @endunless
+
+        @if($needsPayment)
             <button type="button" class="et-btn et-btn--primary" id="rules-purchase-btn"
                     data-url="{{ route('frontend.exams.purchase', $exam) }}">Purchase Exam</button>
             <span style="color:var(--et-text-muted)">Payment is required before continuing.</span>
-        @elseif(! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']))
+        @elseif($canContinueAttempt)
             <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
-        @elseif(! empty($evaluation['can_attempt']) || empty($evaluation['reasons']))
-            <a href="{{ route('frontend.exams.prepare', $exam) }}" class="et-btn et-btn--primary">Continue to verification</a>
+        @elseif($canAttempt)
+            <a href="{{ route('frontend.exams.prepare', $exam) }}"
+               class="et-btn et-btn--primary"
+               id="cx-rules-continue"
+               @unless($rulesAgreed) aria-disabled="true" tabindex="-1" @endunless>
+                Continue to verification
+            </a>
         @else
             <span style="color:var(--et-text-muted)">{{ $evaluation['reasons'][0] ?? 'You cannot start this exam right now.' }}</span>
         @endif
@@ -90,6 +120,7 @@ setInterval(() => {
     const el = document.getElementById('cx-current-time');
     if (el) el.textContent = new Date().toLocaleString();
 }, 1000);
+
 document.getElementById('rules-purchase-btn')?.addEventListener('click', async (e) => {
     if (!confirm('Complete placeholder payment?')) return;
     const res = await fetch(e.currentTarget.dataset.url, {
@@ -102,5 +133,53 @@ document.getElementById('rules-purchase-btn')?.addEventListener('click', async (
     if (res.ok) location.reload();
     else alert('Payment failed');
 });
+
+(function () {
+    const wrap = document.getElementById('cx-rules-actions');
+    const checkbox = document.getElementById('cx-rules-agree');
+    const continueBtn = document.getElementById('cx-rules-continue');
+    if (!wrap || !checkbox || !continueBtn) return;
+
+    const agreeUrl = wrap.getAttribute('data-agree-url') || '';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    function setContinueEnabled(enabled) {
+        if (enabled) {
+            continueBtn.removeAttribute('aria-disabled');
+            continueBtn.removeAttribute('tabindex');
+            continueBtn.classList.remove('is-disabled');
+        } else {
+            continueBtn.setAttribute('aria-disabled', 'true');
+            continueBtn.setAttribute('tabindex', '-1');
+            continueBtn.classList.add('is-disabled');
+        }
+    }
+
+    setContinueEnabled(checkbox.checked);
+
+    continueBtn.addEventListener('click', (e) => {
+        if (!checkbox.checked) {
+            e.preventDefault();
+            checkbox.focus();
+        }
+    });
+
+    checkbox.addEventListener('change', async () => {
+        const agreed = checkbox.checked;
+        setContinueEnabled(agreed);
+        if (!agreeUrl) return;
+        try {
+            await fetch(agreeUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ agreed }),
+            });
+        } catch (err) {}
+    });
+})();
 </script>
 @endpush

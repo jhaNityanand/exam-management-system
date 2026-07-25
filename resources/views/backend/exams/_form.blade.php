@@ -493,6 +493,35 @@
                         @endphp
                         value="{{ json_encode(array_values($instructionRulesSeed)) }}"
                     >
+
+                    @php
+                        $warningLimitSeed = old('focus_violation_limit', $exam?->proctoringPolicy?->focus_violation_limit ?? 3);
+                    @endphp
+                    <div class="instruction-warning-limit">
+                        <label for="focus_violation_limit" class="exam-label">Warnings allowed before auto-submit</label>
+                        <p class="exam-help">How many monitored warnings (tab switch, focus loss, etc.) a candidate may receive before the exam is auto-submitted. Use <strong>0</strong> for no warnings (first violation submits).</p>
+                        <div class="instruction-warning-limit__row">
+                            <input
+                                type="number"
+                                name="focus_violation_limit"
+                                id="focus_violation_limit"
+                                class="panel-input"
+                                min="0"
+                                max="99"
+                                step="1"
+                                required
+                                value="{{ (int) $warningLimitSeed }}"
+                            >
+                            <div class="instruction-warning-limit__presets" role="group" aria-label="Quick presets">
+                                @foreach ([0, 1, 3, 5, 10] as $preset)
+                                    <button type="button" class="panel-button-secondary js-warning-limit-preset" data-value="{{ $preset }}">{{ $preset }}</button>
+                                @endforeach
+                            </div>
+                        </div>
+                        @error('focus_violation_limit')
+                            <p class="exam-help exam-help-warning">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
             </section>
 

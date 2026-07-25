@@ -1760,6 +1760,63 @@ html.dark .et-hero__dot { background: var(--et-slate-600); }
   background: color-mix(in srgb, var(--et-success) 10%, var(--et-surface));
   border-color: color-mix(in srgb, var(--et-success) 35%, var(--et-border));
 }
+.et-callout--warning {
+  background: color-mix(in srgb, var(--et-warning) 14%, var(--et-surface));
+  border-color: color-mix(in srgb, var(--et-warning) 45%, var(--et-border));
+  color: var(--et-text);
+}
+.et-callout--warning strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+  color: #92400e;
+}
+.et-callout--warning p {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--et-text);
+}
+.et-warning-limit {
+  box-shadow: inset 4px 0 0 var(--et-warning);
+}
+.et-agree {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  width: 100%;
+  margin: 0 0 0.85rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius);
+  background: var(--et-surface-2);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.et-agree input {
+  margin-top: 0.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+}
+.et-btn.is-disabled,
+.et-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+.et-rules-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+.et-rules-actions .et-agree {
+  flex: 1 1 100%;
+}
+.cx-prepare-agree {
+  margin-top: 1rem;
+}
 .et-share {
   display: flex;
   flex-wrap: wrap;

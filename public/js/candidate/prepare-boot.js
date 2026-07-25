@@ -163,6 +163,7 @@
         var detectDevtools = boolAttr(root, 'data-detect-devtools');
         var startUrl = root.getAttribute('data-start-url') || '';
         var verifyUrl = root.getAttribute('data-verify-url') || '';
+        var agreeUrl = root.getAttribute('data-agree-url') || '';
         var challengeToken = root.getAttribute('data-challenge-token') || '';
         var sessionToken = (window.crypto && crypto.randomUUID)
             ? crypto.randomUUID().replace(/-/g, '')
@@ -174,6 +175,7 @@
             fullscreen: !requireFullscreen,
             selfie: !requireSelfie,
             devtoolsClosed: !detectDevtools,
+            rulesAgreed: boolAttr(root, 'data-rules-agreed'),
             videoStream: null,
             audioStream: null,
             photoBlob: null,
@@ -190,6 +192,7 @@
         var permBtn = document.getElementById('cx-request-permissions');
         var fsBtn = document.getElementById('cx-request-fullscreen');
         var startBtn = document.getElementById('cx-start-exam');
+        var agreeCb = document.getElementById('cx-prepare-rules-agree');
         var errorEl = document.getElementById('cx-prepare-error');
         var readyEl = document.getElementById('cx-ready-msg');
         var loading = document.getElementById('cx-loading');
@@ -220,6 +223,7 @@
             if (requireFullscreen && !state.fullscreen) missing.push('fullscreen');
             if (requireSelfie && !state.selfie) missing.push('identity selfie');
             if (detectDevtools && !state.devtoolsClosed) missing.push('closing developer tools');
+            if (!state.rulesAgreed) missing.push('agreeing to the exam rules');
             if (!missing.length) return 'All required checks are complete. You can start the exam.';
             return 'Start is disabled until you complete: ' + missing.join(', ') + '.';
         }
@@ -231,7 +235,8 @@
                 && state.microphone
                 && state.fullscreen
                 && state.selfie
-                && state.devtoolsClosed;
+                && state.devtoolsClosed
+                && state.rulesAgreed;
             if (startBtn) {
                 startBtn.disabled = !ready;
                 startBtn.setAttribute('aria-disabled', ready ? 'false' : 'true');
@@ -248,6 +253,47 @@
                 captureBtn.disabled = !state.webcam || (requireSelfie && state.selfie);
             }
             setStatus(root, 'devtools_closed', state.devtoolsClosed ? 'closed' : 'detected');
+        }
+
+        async function persistRulesAgreed(agreed) {
+            state.rulesAgreed = !!agreed;
+            root.setAttribute('data-rules-agreed', agreed ? '1' : '0');
+            updateStartEnabled();
+
+            var jobs = [];
+            if (agreeUrl) {
+                jobs.push(fetch(agreeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        agreed: !!agreed,
+                        challenge_token: challengeToken || null,
+                    }),
+                    credentials: 'same-origin',
+                }).catch(function () {}));
+            }
+            if (verifyUrl && challengeToken && agreed) {
+                jobs.push(fetch(verifyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        challenge_token: challengeToken,
+                        completed_checks: ['rules_agreed'],
+                    }),
+                    credentials: 'same-origin',
+                }).catch(function () {}));
+            }
+            await Promise.all(jobs);
         }
 
         function currentDevtoolsGaps() {
@@ -655,6 +701,7 @@
             if (requireMic && !state.microphone) return 'Microphone access is required.';
             if (requireFullscreen && !state.fullscreen) return 'Fullscreen is required.';
             if (requireSelfie && (!state.selfie || !state.photoBlob)) return 'Capture a live selfie before starting.';
+            if (!state.rulesAgreed) return 'Please agree to the exam rules before starting.';
             return '';
         }
 
@@ -724,6 +771,7 @@
                 microphone: !!state.microphone,
                 fullscreen: !!state.fullscreen,
                 selfie: !!state.selfie,
+                rules_agreed: !!state.rulesAgreed,
             };
 
             try {
@@ -858,6 +906,12 @@
                 }).catch(function () {});
             }
         });
+        if (agreeCb) {
+            agreeCb.checked = !!state.rulesAgreed;
+            agreeCb.addEventListener('change', function () {
+                persistRulesAgreed(agreeCb.checked);
+            });
+        }
         if (startBtn) startBtn.addEventListener('click', function (e) {
             e.preventDefault();
             startExam();

@@ -4735,6 +4735,16 @@ document.addEventListener('DOMContentLoaded', () => {
         window.examCreateUpdateSidebar = updateWorkflowAndSnapshot;
     }
 
+    document.querySelectorAll('.js-warning-limit-preset').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const input = document.getElementById('focus_violation_limit');
+            if (!input) return;
+            input.value = String(btn.getAttribute('data-value') || '0');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    });
+
     // ── Public surface for question-bank-init.js / legacy callers ────
 
     window.examCreateState = state;

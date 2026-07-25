@@ -569,6 +569,17 @@
                     </div>
                 @endif
 
+                <div class="rounded-xl border border-amber-200 bg-amber-50/80 dark:border-amber-500/30 dark:bg-amber-500/10 px-4 py-3">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300 mb-1">Warnings allowed</h3>
+                    <p class="text-sm text-amber-900 dark:text-amber-100">
+                        <span class="font-semibold text-lg">{{ (int) ($exam->proctoringPolicy?->focus_violation_limit ?? 3) }}</span>
+                        monitored warning{{ (int) ($exam->proctoringPolicy?->focus_violation_limit ?? 3) === 1 ? '' : 's' }} before auto-submit
+                        @if ((int) ($exam->proctoringPolicy?->focus_violation_limit ?? 3) === 0)
+                            <span class="block text-xs mt-1 opacity-90">0 means the first counting violation auto-submits the exam.</span>
+                        @endif
+                    </p>
+                </div>
+
                 @if ($hasHtml($exam->instructions))
                     <x-rich-text-content :content="$exam->instructions" class="text-sm leading-relaxed text-slate-800 dark:text-slate-100" />
                 @else

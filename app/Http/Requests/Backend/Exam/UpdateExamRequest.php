@@ -151,6 +151,7 @@ class UpdateExamRequest extends FormRequest
                 'string',
                 Rule::in(\App\Support\ExamFormOptions::instructionRuleIds()),
             ],
+            'focus_violation_limit' => ['required', 'integer', 'min:0', 'max:99'],
 
             // ── SEO / Metadata ────────────────────────────────────────────
             'meta_title'       => ['nullable', 'string', 'max:255'],
@@ -229,6 +230,10 @@ class UpdateExamRequest extends FormRequest
                 $examFormat = [$examFormat];
             }
             $payload['exam_format'] = is_array($examFormat) ? $examFormat : [];
+        }
+
+        if ($this->exists('focus_violation_limit')) {
+            $payload['focus_violation_limit'] = $this->input('focus_violation_limit', 3);
         }
 
         $jsonListFields = [

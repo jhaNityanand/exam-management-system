@@ -108,6 +108,7 @@ class ExamService
             $data['free_candidate_excel_file'],
             $data['candidate_excel_file'],
             $data['parts'],
+            $data['focus_violation_limit'], // stored on exam_proctoring_policies, not exams
         );
 
         return app(GalleryService::class)->sanitizeHtmlFields($data, [
@@ -193,6 +194,7 @@ class ExamService
     {
         return DB::transaction(function () use ($data) {
             $partsInput = $this->extractPartsInput($data);
+            $policyOverrides = $this->extractPolicyOverrides($data);
             $data = $this->prepareData($data);
 
             $data['created_by'] = Auth::id();
@@ -203,9 +205,10 @@ class ExamService
             $this->syncParts($exam, $partsInput);
             $this->refreshExamAggregates($exam);
             $this->syncGalleryMedia($exam);
-            app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam);
+            app(\App\Services\CandidateExam\ExamRequirementResolver::class)
+                ->syncPolicy($exam, null, $policyOverrides);
 
-            return $exam->fresh(['parts.questions']);
+            return $exam->fresh(['parts.questions', 'proctoringPolicy']);
         });
     }
 
@@ -216,6 +219,7 @@ class ExamService
                 ? $this->extractPartsInput($data)
                 : null;
 
+            $policyOverrides = $this->extractPolicyOverrides($data);
             $data = $this->prepareData($data);
 
             if (array_key_exists('slug', $data) || array_key_exists('title', $data) || empty($exam->slug)) {
@@ -235,10 +239,28 @@ class ExamService
 
             $this->refreshExamAggregates($exam->fresh());
             $this->syncGalleryMedia($exam->fresh());
-            app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam->fresh());
+            app(\App\Services\CandidateExam\ExamRequirementResolver::class)
+                ->syncPolicy($exam->fresh(), null, $policyOverrides);
 
-            return $exam->fresh(['parts.questions']);
+            return $exam->fresh(['parts.questions', 'proctoringPolicy']);
         });
+    }
+
+    /**
+     * Extract proctoring fields that live on exam_proctoring_policies (not exams).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    protected function extractPolicyOverrides(array $data): ?array
+    {
+        if (! array_key_exists('focus_violation_limit', $data)) {
+            return null;
+        }
+
+        return [
+            'focus_violation_limit' => max(0, min(99, (int) $data['focus_violation_limit'])),
+        ];
     }
 
     /**

@@ -90,8 +90,12 @@ export function messageForEvent(event, count, limit) {
         mouse_lock_bypass: 'Mouse actions outside the exam area are restricted.',
     }[event] || 'A monitoring event was recorded.';
 
-    if (limit && count && !['right_click', 'media_lost'].includes(event)) {
-        return `${base} Warning ${Math.max(1, count)} of ${limit}. Repeated violations may auto-submit your exam.`;
+    if (count && !['right_click', 'media_lost'].includes(event) && limit != null && Number.isFinite(Number(limit))) {
+        const max = Math.max(0, Number(limit));
+        if (max === 0) {
+            return `${base} No warnings are allowed for this exam. This may auto-submit your attempt.`;
+        }
+        return `${base} Warning ${Math.max(1, count)} of ${max}. Repeated violations may auto-submit your exam.`;
     }
     return base;
 }

@@ -61,6 +61,7 @@ Route::redirect('/contact', '/contact-us', 301);
 
 Route::middleware('auth')->group(function () {
     Route::get('/exams/{exam:slug}/rules', [CandidateExamController::class, 'rules'])->name('frontend.exams.rules');
+    Route::post('/exams/{exam:slug}/rules/agree', [CandidateExamController::class, 'agreeRules'])->name('frontend.exams.rules.agree');
     Route::get('/exams/{exam:slug}/prepare', [CandidateExamController::class, 'prepare'])->name('frontend.exams.prepare');
     Route::get('/exams/{exam:slug}/started', [CandidateExamController::class, 'started'])->name('frontend.exams.started');
     Route::post('/exams/{exam:slug}/verification', [CandidateExamController::class, 'storeVerification'])->name('frontend.exams.verification');

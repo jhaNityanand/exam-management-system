@@ -95,13 +95,16 @@ class ExamProctoringService
 
         $forceSubmit = $this->forcesAutoSubmit($event);
         $count = $this->countingViolationCount($attempt) + 1;
-        $limit = max(1, (int) ($policy['focus_violation_limit'] ?? 3));
+        // 0 = no warnings allowed (first counting violation auto-submits).
+        $limit = max(0, (int) ($policy['focus_violation_limit'] ?? 3));
         $action = $policy['focus_violation_action'] ?? 'warn';
         $autoSubmit = (bool) ($policy['auto_submit_on_violation'] ?? false);
 
         $applied = 'warn';
-        if ($forceSubmit || $count >= $limit) {
-            $applied = ($forceSubmit || $autoSubmit || $action === 'auto_submit')
+        $limitReached = $count >= $limit;
+        if ($forceSubmit || $limitReached) {
+            // Reaching the configured warning budget always auto-submits.
+            $applied = ($forceSubmit || $limitReached || $autoSubmit || $action === 'auto_submit')
                 ? 'auto_submit'
                 : ($action ?: 'flag');
         }

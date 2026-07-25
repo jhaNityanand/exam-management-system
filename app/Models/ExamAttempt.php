@@ -55,6 +55,7 @@ class ExamAttempt extends Model
         'policy_snapshot',
         'device_meta',
         'session_token',
+        'rules_agreed_at',
     ];
 
     protected function casts(): array
@@ -71,6 +72,7 @@ class ExamAttempt extends Model
             'expires_at' => 'datetime',
             'heartbeat_at' => 'datetime',
             'last_saved_at' => 'datetime',
+            'rules_agreed_at' => 'datetime',
             'submitted_at' => 'datetime',
             'result_released_at' => 'datetime',
             'score' => 'decimal:2',

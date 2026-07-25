@@ -83,6 +83,7 @@ class ExamSessionService
             'device_meta' => $deviceMeta !== [] ? $deviceMeta : ($attempt->device_meta ?? []),
             'session_token' => $attempt->session_token ?: $token,
             'paper_set' => $attempt->paper_set ?: 1,
+            'rules_agreed_at' => $attempt->rules_agreed_at ?: now(),
         ])->save();
 
         if ($request) {

@@ -36,7 +36,7 @@ class CandidateExamController extends Controller
 
         $user->ensureCandidateMembership((int) $exam->organization_id);
         $evaluation = $this->eligibility->evaluate($exam, $user);
-        $policy = $this->requirements->syncPolicy($exam);
+        $policy = $this->requirements->policyForExam($exam);
         $exam->setRelation('proctoringPolicy', $policy);
 
         $rules = $this->requirements->rulesForExam(
@@ -49,6 +49,53 @@ class CandidateExamController extends Controller
             'evaluation' => $evaluation,
             'rules' => $rules,
             'policy' => $policy,
+            'rulesAgreed' => (bool) session($this->rulesAgreedSessionKey($exam)),
+            'agreeUrl' => route('frontend.exams.rules.agree', $exam),
+        ]);
+    }
+
+    public function agreeRules(Request $request, Exam $exam): JsonResponse
+    {
+        $this->assertPublished($exam);
+        $user = $request->user();
+        abort_unless($this->eligibility->canViewPublicDetail($exam, $user), 403);
+
+        $data = $request->validate([
+            'agreed' => ['required', 'boolean'],
+            'challenge_token' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $key = $this->rulesAgreedSessionKey($exam);
+        if ($data['agreed']) {
+            session([$key => now()->toIso8601String()]);
+        } else {
+            session()->forget($key);
+        }
+
+        if (! empty($data['challenge_token'])) {
+            $challenge = ExamVerificationChallenge::query()
+                ->where('token', $data['challenge_token'])
+                ->where('exam_id', $exam->id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($challenge && $challenge->isValid()) {
+                $completed = array_values(array_filter(
+                    $challenge->completed_checks ?? [],
+                    static fn (string $check): bool => $check !== 'rules_agreed'
+                ));
+                if ($data['agreed']) {
+                    $completed[] = 'rules_agreed';
+                }
+                $challenge->completed_checks = array_values(array_unique($completed));
+                $challenge->save();
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'agreed' => (bool) $data['agreed'],
+            'agreed_at' => session($key),
         ]);
     }
 
@@ -65,10 +112,11 @@ class CandidateExamController extends Controller
                 ->with('error', 'Payment is required before preparing this exam.');
         }
 
-        $policy = $this->requirements->syncPolicy($exam);
+        $policy = $this->requirements->policyForExam($exam);
         $exam->setRelation('proctoringPolicy', $policy);
         $checks = $this->requirements->readinessChecks($policy->toRuntimeArray());
-        $challenge = $this->createChallenge($exam, $user->id, $policy->toRuntimeArray());
+        $rulesAgreed = (bool) session($this->rulesAgreedSessionKey($exam));
+        $challenge = $this->createChallenge($exam, $user->id, $policy->toRuntimeArray(), $rulesAgreed);
 
         return view('frontend.candidate.exams.prepare', [
             'exam' => $exam,
@@ -76,6 +124,8 @@ class CandidateExamController extends Controller
             'policy' => $policy,
             'checks' => $checks,
             'challenge' => $challenge,
+            'rulesAgreed' => $rulesAgreed || in_array('rules_agreed', $challenge->completed_checks ?? [], true),
+            'agreeUrl' => route('frontend.exams.rules.agree', $exam),
         ]);
     }
 
@@ -172,6 +222,7 @@ class CandidateExamController extends Controller
                 'checks.microphone' => ['nullable', 'boolean'],
                 'checks.fullscreen' => ['nullable', 'boolean'],
                 'checks.selfie' => ['nullable', 'boolean'],
+                'checks.rules_agreed' => ['nullable', 'boolean'],
                 'selfie' => ['nullable', 'image', 'max:5120'],
             ]);
 
@@ -187,7 +238,7 @@ class CandidateExamController extends Controller
                 ]);
             }
 
-            $this->assertReadyToStart($policyArray, $data, $challenge, $request);
+            $this->assertReadyToStart($policyArray, $data, $challenge, $request, $exam);
 
             $attempt = DB::transaction(function () use ($exam, $user, $data, $request, $policyArray, $challenge) {
                 if ($request->hasFile('selfie')) {
@@ -354,7 +405,7 @@ class CandidateExamController extends Controller
     /**
      * @param  array<string, mixed>  $policy
      */
-    protected function createChallenge(Exam $exam, int $userId, array $policy): ExamVerificationChallenge
+    protected function createChallenge(Exam $exam, int $userId, array $policy, bool $rulesAgreed = false): ExamVerificationChallenge
     {
         ExamVerificationChallenge::query()
             ->where('exam_id', $exam->id)
@@ -376,13 +427,15 @@ class CandidateExamController extends Controller
             $required[] = 'selfie';
         }
 
+        $completed = $rulesAgreed ? ['rules_agreed'] : [];
+
         return ExamVerificationChallenge::query()->create([
             'organization_id' => $exam->organization_id,
             'exam_id' => $exam->id,
             'user_id' => $userId,
             'token' => Str::random(48),
             'required_checks' => $required,
-            'completed_checks' => [],
+            'completed_checks' => $completed,
             'expires_at' => now()->addMinutes(30),
         ]);
     }
@@ -391,10 +444,23 @@ class CandidateExamController extends Controller
      * @param  array<string, mixed>  $policy
      * @param  array<string, mixed>  $data
      */
-    protected function assertReadyToStart(array $policy, array $data, ExamVerificationChallenge $challenge, Request $request): void
-    {
+    protected function assertReadyToStart(
+        array $policy,
+        array $data,
+        ExamVerificationChallenge $challenge,
+        Request $request,
+        Exam $exam
+    ): void {
         $checks = $data['checks'] ?? [];
         $errors = [];
+
+        $agreed = ! empty($checks['rules_agreed'])
+            || in_array('rules_agreed', $challenge->completed_checks ?? [], true)
+            || (bool) session($this->rulesAgreedSessionKey($exam));
+
+        if (! $agreed) {
+            $errors['checks.rules_agreed'] = 'Please agree to the exam rules before starting.';
+        }
 
         if (! empty($policy['require_webcam']) && empty($checks['webcam'])) {
             $errors['checks.webcam'] = 'Webcam access is required before starting.';
@@ -414,5 +480,10 @@ class CandidateExamController extends Controller
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    protected function rulesAgreedSessionKey(Exam $exam): string
+    {
+        return 'exam_rules_agreed.'.$exam->id;
     }
 }

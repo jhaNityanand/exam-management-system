@@ -26,7 +26,10 @@ export function createRuleEngine({
     videoEl = null,
     statusEl = null,
 }) {
-    const limit = Number(policy.focus_violation_limit || 0) || 3;
+    const rawLimit = policy.focus_violation_limit;
+    const limit = rawLimit === null || rawLimit === undefined || rawLimit === ''
+        ? 3
+        : Math.max(0, Number(rawLimit));
     const allowUnloadRef = { current: false };
     const cleanups = [];
 

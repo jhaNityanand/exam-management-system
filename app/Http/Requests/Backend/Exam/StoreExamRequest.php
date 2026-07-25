@@ -146,6 +146,7 @@ class StoreExamRequest extends FormRequest
                 'string',
                 Rule::in(\App\Support\ExamFormOptions::instructionRuleIds()),
             ],
+            'focus_violation_limit' => ['required', 'integer', 'min:0', 'max:99'],
 
             // ── SEO / Metadata ────────────────────────────────────────────
             'meta_title'       => ['nullable', 'string', 'max:255'],
@@ -224,6 +225,7 @@ class StoreExamRequest extends FormRequest
             'predefined_instruction_rules' => $this->normalizeJsonList(
                 $this->input('predefined_instruction_rules')
             ),
+            'focus_violation_limit' => $this->input('focus_violation_limit', 3),
             'tags' => $this->normalizeJsonList($this->input('tags')),
             'imported_candidates' => $this->decodeJsonValue($this->input('imported_candidates', [])),
             'manual_candidate_emails' => $this->normalizeJsonList($this->input('manual_candidate_emails')),

@@ -58,7 +58,10 @@
      data-require-fullscreen="{{ $requireFullscreen ? '1' : '0' }}"
      data-require-selfie="{{ $requireSelfie ? '1' : '0' }}"
      data-block-context="{{ ($policy?->block_context_menu) ? '1' : '0' }}"
-     data-detect-devtools="{{ ($policy?->detect_devtools) ? '1' : '0' }}">
+     data-detect-devtools="{{ ($policy?->detect_devtools) ? '1' : '0' }}"
+     data-rules-agreed="{{ !empty($rulesAgreed) ? '1' : '0' }}"
+     data-agree-url="{{ $agreeUrl ?? route('frontend.exams.rules.agree', $exam) }}"
+     data-warning-limit="{{ (int) ($policy?->focus_violation_limit ?? 3) }}">
 
     <div class="cx-prepare__hero">
         <div class="cx-prepare__hero-inner">
@@ -178,6 +181,11 @@
             @if($requireSelfie)
                 <p class="cx-prepare__hint">Tip: Selfies must be captured live from your webcam. File uploads are not accepted.</p>
             @endif
+
+            <label class="et-agree cx-prepare-agree">
+                <input type="checkbox" id="cx-prepare-rules-agree" @checked(!empty($rulesAgreed))>
+                <span>I agree to the exam rules and monitoring policies, including the warning limit of <strong>{{ (int) ($policy?->focus_violation_limit ?? 3) }}</strong>.</span>
+            </label>
         </section>
 
         <div class="cx-prepare__footer">

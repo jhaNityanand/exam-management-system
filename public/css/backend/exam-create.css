@@ -1989,6 +1989,47 @@ span.flatpickr-weekday,
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+.instruction-warning-limit {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #fcd34d;
+    border-radius: 0.86rem;
+    background: #fffbeb;
+}
+
+.instruction-warning-limit .exam-label {
+    margin-bottom: 0.25rem;
+}
+
+.instruction-warning-limit__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.55rem;
+}
+
+.instruction-warning-limit__row .panel-input {
+    width: 6.5rem;
+    max-width: 100%;
+}
+
+.instruction-warning-limit__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.instruction-warning-limit__presets .panel-button-secondary {
+    min-width: 2.5rem;
+    padding: 0.35rem 0.55rem;
+}
+
+.dark .instruction-warning-limit {
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(245, 158, 11, 0.12);
+}
+
 .instruction-rule-card {
     border: 1px solid #d8e3ef;
     border-radius: 0.86rem;

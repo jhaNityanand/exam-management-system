@@ -32,6 +32,7 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamp('heartbeat_at')->nullable();
             $table->timestamp('last_saved_at')->nullable();
+            $table->timestamp('rules_agreed_at')->nullable();
             $table->unsignedInteger('revision')->default(0);
             $table->unsignedSmallInteger('paper_set')->nullable();
             $table->string('timezone', 64)->nullable();

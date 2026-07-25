@@ -171,6 +171,7 @@
 
             // Instructions & rules — preserve empty arrays (do not fall back to defaults)
             'predefined_instruction_rules' => $exam->predefined_instruction_rules ?? [],
+            'focus_violation_limit' => (int) ($exam->proctoringPolicy?->focus_violation_limit ?? 3),
 
             // SEO / metadata
             'meta_title' => $exam->meta_title,

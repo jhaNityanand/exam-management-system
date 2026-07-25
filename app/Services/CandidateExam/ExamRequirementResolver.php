@@ -97,14 +97,48 @@ class ExamRequirementResolver
         return $policy;
     }
 
-    public function syncPolicy(Exam $exam, ?array $selectedKeys = null): ExamProctoringPolicy
+    /**
+     * @param  list<string>|null  $selectedKeys
+     * @param  array<string, mixed>|null  $overrides  Applied after rule resolution (e.g. focus_violation_limit from form).
+     */
+    public function syncPolicy(Exam $exam, ?array $selectedKeys = null, ?array $overrides = null): ExamProctoringPolicy
     {
         $resolved = $this->resolve($exam, $selectedKeys);
+        $existing = ExamProctoringPolicy::query()->where('exam_id', $exam->id)->first();
+        $hasLimitOverride = is_array($overrides) && array_key_exists('focus_violation_limit', $overrides);
+
+        // Warning limit is admin-owned. Never wipe it when syncing from rules/prepare/start.
+        if ($existing && ! $hasLimitOverride) {
+            $resolved['focus_violation_limit'] = max(0, min(99, (int) $existing->focus_violation_limit));
+        }
+
+        if (is_array($overrides)) {
+            foreach ($overrides as $key => $value) {
+                if (! array_key_exists($key, $resolved)) {
+                    continue;
+                }
+                if ($key === 'focus_violation_limit') {
+                    $resolved[$key] = max(0, min(99, (int) $value));
+                    continue;
+                }
+                $resolved[$key] = $value;
+            }
+        }
 
         return ExamProctoringPolicy::query()->updateOrCreate(
             ['exam_id' => $exam->id],
             $resolved
         );
+    }
+
+    /**
+     * Load the saved policy for display; sync only when missing.
+     */
+    public function policyForExam(Exam $exam): ExamProctoringPolicy
+    {
+        $exam->loadMissing('proctoringPolicy');
+
+        return $exam->proctoringPolicy ?: $this->syncPolicy($exam);
     }
 
     /**

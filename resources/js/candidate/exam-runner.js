@@ -186,7 +186,9 @@ export function initExamRunner(root) {
     const requireWebcam = root.dataset.requireWebcam === '1' || !!policy.require_webcam;
     const requireMicrophone = !!policy.require_microphone;
     const singleAttempt = !!policy.single_attempt_per_question;
-    const violationLimit = Number(policy.focus_violation_limit || 3);
+    const violationLimit = policy.focus_violation_limit === null || policy.focus_violation_limit === undefined || policy.focus_violation_limit === ''
+        ? 3
+        : Math.max(0, Number(policy.focus_violation_limit));
 
     const state = {
         index: 0,

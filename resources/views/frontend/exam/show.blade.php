@@ -61,6 +61,18 @@
 
         <div class="et-card" style="padding:1.25rem">
             <h2 style="margin-top:0">Exam details</h2>
+            @php
+                $policy = $exam->proctoringPolicy;
+                $warningLimit = (int) ($policy?->focus_violation_limit ?? 3);
+            @endphp
+            <div class="et-callout et-callout--warning et-warning-limit" role="note" style="margin:0 0 1rem">
+                <strong>Warnings allowed: {{ $warningLimit }}</strong>
+                @if($warningLimit === 0)
+                    <p>No warnings are allowed during this exam. The first monitored violation can auto-submit your attempt.</p>
+                @else
+                    <p>Candidates may receive up to <strong>{{ $warningLimit }}</strong> monitored warning{{ $warningLimit === 1 ? '' : 's' }} before the exam is auto-submitted.</p>
+                @endif
+            </div>
             <div class="et-grid et-grid--2" style="gap:.75rem 1.25rem">
                 <div><strong>Mode:</strong> {{ ucfirst((string) $exam->exam_mode) }}</div>
                 <div><strong>Question types:</strong> {{ $formats ?: '—' }}</div>
@@ -74,6 +86,7 @@
                 <div><strong>Attempts allowed:</strong> {{ $attemptsLabel }}</div>
                 <div><strong>Language:</strong> {{ strtoupper((string) ($exam->language ?: 'en')) }}</div>
                 <div><strong>Timezone:</strong> {{ $exam->timezone ?: config('app.timezone') }}</div>
+                <div><strong>Warnings allowed:</strong> {{ $warningLimit }}</div>
                 <div><strong>Schedule:</strong>
                     @if(($exam->schedule_type ?? 'any_time') === 'fixed_window')
                         {{ optional($exam->scheduled_start)->format('d M Y H:i') ?: '—' }}

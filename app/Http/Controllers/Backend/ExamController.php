@@ -78,6 +78,7 @@ class ExamController extends Controller
             'category:id,name',
             'createdBy:id,name',
             'ogImage',
+            'proctoringPolicy',
         ]);
 
         $stats = $this->examService->getAttemptStats($exam);
@@ -184,6 +185,7 @@ class ExamController extends Controller
                         'selectedQuestionCategories:id',
                     ]);
             },
+            'proctoringPolicy',
         ]);
 
         return view('backend.exams.edit', compact('exam', 'categories', 'formOptions'));
