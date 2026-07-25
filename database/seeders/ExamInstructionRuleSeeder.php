@@ -148,8 +148,8 @@ class ExamInstructionRuleSeeder extends Seeder
             [
                 'rule_key' => 'tab_switch_autosubmit',
                 'slug' => 'tab_switch_autosubmit',
-                'title' => 'Switching tabs may auto-submit the exam.',
-                'description' => 'Leaving the active exam window can immediately end the attempt.',
+                'title' => 'Switching tabs is monitored and may auto-submit the exam.',
+                'description' => 'Leaving the exam tab or minimizing the window triggers a warning. Repeated violations beyond the configured limit auto-submit the attempt.',
                 'category' => 'monitoring',
                 'icon' => 'tabs',
                 'is_default' => true,
@@ -157,7 +157,7 @@ class ExamInstructionRuleSeeder extends Seeder
                 'is_actionable' => true,
                 'requirements' => [
                     'detect_tab_switch' => true,
-                    'focus_violation_limit' => 1,
+                    'focus_violation_limit' => 3,
                     'focus_violation_action' => 'auto_submit',
                     'auto_submit_on_violation' => true,
                 ],
@@ -302,7 +302,7 @@ class ExamInstructionRuleSeeder extends Seeder
                 'rule_key' => 'block_devtools_and_context_menu',
                 'slug' => 'block_devtools_and_context_menu',
                 'title' => 'Right-click and developer tools are not allowed.',
-                'description' => 'Context menu, Inspect Element, and common developer-tools shortcuts are blocked during the exam.',
+                'description' => 'Right-click is blocked with a soft warning. Opening developer tools is warned first; repeated violations may auto-submit the attempt.',
                 'category' => 'integrity',
                 'icon' => 'ban',
                 'is_default' => true,
@@ -311,6 +311,34 @@ class ExamInstructionRuleSeeder extends Seeder
                 'requirements' => [
                     'block_context_menu' => true,
                     'detect_devtools' => true,
+                ],
+            ],
+            [
+                'rule_key' => 'lock_keyboard',
+                'slug' => 'lock_keyboard',
+                'title' => 'Lock keyboard shortcuts during the exam.',
+                'description' => 'When enabled, common keyboard shortcuts (except exam navigation and answer typing) are blocked while the exam is active.',
+                'category' => 'integrity',
+                'icon' => 'keyboard',
+                'is_default' => false,
+                'is_required' => false,
+                'is_actionable' => true,
+                'requirements' => [
+                    'lock_keyboard' => true,
+                ],
+            ],
+            [
+                'rule_key' => 'lock_mouse',
+                'slug' => 'lock_mouse',
+                'title' => 'Restrict mouse interactions outside the exam UI.',
+                'description' => 'When enabled, pointer interactions outside the exam content area are blocked to reduce distraction and cheating vectors.',
+                'category' => 'integrity',
+                'icon' => 'mouse',
+                'is_default' => false,
+                'is_required' => false,
+                'is_actionable' => true,
+                'requirements' => [
+                    'lock_mouse' => true,
                 ],
             ],
         ];

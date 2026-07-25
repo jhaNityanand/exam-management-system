@@ -585,6 +585,12 @@ html.dark .cx-loading__card .cx-save-state,
     -webkit-user-select: text;
     user-select: text;
 }
+.cx-exam.is-mouse-locked {
+    cursor: default;
+}
+body.cx-mouse-lock {
+    overscroll-behavior: none;
+}
 .cx-icon-btn {
     width: 2.2rem;
     height: 2.2rem;

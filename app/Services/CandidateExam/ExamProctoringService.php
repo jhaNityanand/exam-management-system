@@ -47,6 +47,9 @@ class ExamProctoringService
             'navigation_back',
             'session_warning',
             'media_lost',
+            'media_grace_expired',
+            'keyboard_lock_bypass',
+            'mouse_lock_bypass',
         ];
 
         if (! in_array($event, $allowed, true)) {
@@ -66,9 +69,14 @@ class ExamProctoringService
             ?: ($attempt->loadMissing('exam.proctoringPolicy')->exam?->proctoringPolicy?->toRuntimeArray() ?? []);
 
         if (! $this->eventApplies($event, $policy)) {
+            return $this->emptyEventResult();
+        }
+
+        // Soft / grace events: notify only — never auto-submit from a single accidental click.
+        if ($this->isSoftEvent($event)) {
             return [
-                'violation_count' => 0,
-                'action' => null,
+                'violation_count' => $this->countingViolationCount($attempt),
+                'action' => 'warn',
                 'auto_submitted' => false,
                 'submission_reason' => null,
                 'submission_message' => null,
@@ -77,7 +85,7 @@ class ExamProctoringService
 
         if ($this->isDuplicateFocusEvent($attempt, $event)) {
             return [
-                'violation_count' => 0,
+                'violation_count' => $this->countingViolationCount($attempt),
                 'action' => 'deduped',
                 'auto_submitted' => false,
                 'submission_reason' => null,
@@ -85,17 +93,17 @@ class ExamProctoringService
             ];
         }
 
-        $count = ExamAttemptViolation::query()
-            ->where('exam_attempt_id', $attempt->id)
-            ->count() + 1;
-
-        $limit = (int) ($policy['focus_violation_limit'] ?? 3);
+        $forceSubmit = $this->forcesAutoSubmit($event);
+        $count = $this->countingViolationCount($attempt) + 1;
+        $limit = max(1, (int) ($policy['focus_violation_limit'] ?? 3));
         $action = $policy['focus_violation_action'] ?? 'warn';
         $autoSubmit = (bool) ($policy['auto_submit_on_violation'] ?? false);
 
         $applied = 'warn';
-        if ($count >= $limit) {
-            $applied = $autoSubmit || $action === 'auto_submit' ? 'auto_submit' : ($action ?: 'flag');
+        if ($forceSubmit || $count >= $limit) {
+            $applied = ($forceSubmit || $autoSubmit || $action === 'auto_submit')
+                ? 'auto_submit'
+                : ($action ?: 'flag');
         }
 
         ExamAttemptViolation::query()->create([
@@ -127,22 +135,57 @@ class ExamProctoringService
     }
 
     /**
+     * @return array{violation_count:int, action:?string, auto_submitted:bool, submission_reason:?string, submission_message:?string}
+     */
+    protected function emptyEventResult(): array
+    {
+        return [
+            'violation_count' => 0,
+            'action' => null,
+            'auto_submitted' => false,
+            'submission_reason' => null,
+            'submission_message' => null,
+        ];
+    }
+
+    protected function isSoftEvent(string $event): bool
+    {
+        // Soft events are blocked/logged client-side but must not burn the shared violation budget.
+        return in_array($event, [
+            'right_click',
+            'media_lost',
+            'session_warning',
+            'keyboard_lock_bypass',
+            'mouse_lock_bypass',
+        ], true);
+    }
+
+    protected function forcesAutoSubmit(string $event): bool
+    {
+        return $event === 'media_grace_expired';
+    }
+
+    protected function countingViolationCount(ExamAttempt $attempt): int
+    {
+        return ExamAttemptViolation::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->whereNotIn('type', [
+                'right_click',
+                'media_lost',
+                'session_warning',
+                'keyboard_lock_bypass',
+                'mouse_lock_bypass',
+            ])
+            ->count();
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
     protected function resolveViolationSubmissionReason(ExamAttempt $attempt, string $event, array $payload = []): string
     {
-        $types = ExamAttemptViolation::query()
-            ->where('exam_attempt_id', $attempt->id)
-            ->pluck('type')
-            ->unique()
-            ->values();
-
-        if ($types->count() > 1) {
-            return 'violation_multiple';
-        }
-
-        if ($event === 'media_lost') {
-            $detail = strtolower((string) ($payload['reason'] ?? ''));
+        if ($event === 'media_grace_expired' || $event === 'media_lost') {
+            $detail = strtolower((string) ($payload['reason'] ?? $payload['kind'] ?? ''));
             if (str_contains($detail, 'audio') || str_contains($detail, 'mic')) {
                 return 'violation_microphone_disabled';
             }
@@ -151,6 +194,23 @@ class ExamProctoringService
             }
 
             return 'violation_media_lost';
+        }
+
+        $types = ExamAttemptViolation::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->whereNotIn('type', [
+                'right_click',
+                'media_lost',
+                'session_warning',
+                'keyboard_lock_bypass',
+                'mouse_lock_bypass',
+            ])
+            ->pluck('type')
+            ->unique()
+            ->values();
+
+        if ($types->count() > 1) {
+            return 'violation_multiple';
         }
 
         if (in_array($event, ['copy_attempt', 'paste_attempt', 'cut_attempt', 'drag_attempt'], true)) {
@@ -279,7 +339,9 @@ class ExamProctoringService
             'right_click' => (bool) ($policy['block_context_menu'] ?? false),
             'devtools_open' => (bool) ($policy['detect_devtools'] ?? false),
             'page_refresh', 'navigation_back' => (bool) ($policy['block_page_refresh'] ?? false),
-            'media_lost' => (bool) (($policy['require_webcam'] ?? false) || ($policy['require_microphone'] ?? false)),
+            'media_lost', 'media_grace_expired' => (bool) (($policy['require_webcam'] ?? false) || ($policy['require_microphone'] ?? false)),
+            'keyboard_lock_bypass' => (bool) ($policy['lock_keyboard'] ?? false),
+            'mouse_lock_bypass' => (bool) ($policy['lock_mouse'] ?? false),
             default => true,
         };
     }

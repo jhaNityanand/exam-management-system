@@ -124,6 +124,7 @@
             <p class="cx-modal__lead" id="cx-violation-message">A monitoring event was recorded.</p>
             <p class="cx-modal__meta" id="cx-violation-meta"></p>
             <div class="cx-modal__actions">
+                <button type="button" class="cx-btn cx-btn--ghost" id="cx-violation-reconnect" hidden>Reconnect camera</button>
                 <button type="button" class="cx-btn cx-btn--primary" id="cx-violation-ack" data-close-violation>I understand</button>
             </div>
         </div>

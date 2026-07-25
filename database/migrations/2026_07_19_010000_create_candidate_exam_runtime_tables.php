@@ -23,6 +23,8 @@ return new class extends Migration
             $table->boolean('block_copy_paste')->default(false);
             $table->boolean('block_context_menu')->default(false);
             $table->boolean('detect_devtools')->default(false);
+            $table->boolean('lock_keyboard')->default(false);
+            $table->boolean('lock_mouse')->default(false);
             $table->boolean('block_page_refresh')->default(false);
             $table->boolean('enforce_single_session')->default(false);
             $table->boolean('single_attempt_per_question')->default(false);

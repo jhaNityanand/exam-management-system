@@ -1,6 +1,6 @@
 import { api } from './api';
 import { createAutosave } from './autosave';
-import { bindProctoring, startWebcamMonitor } from './proctoring';
+import { createRuleEngine } from './proctoring';
 import { clearLocal, loadLocal, saveLocal } from './store';
 import { createElapsedTimer, createTimer } from './timer';
 
@@ -259,7 +259,9 @@ export function initExamRunner(root) {
     const violationTitle = root.querySelector('#cx-violation-title');
     const violationMessage = root.querySelector('#cx-violation-message');
     const violationMeta = root.querySelector('#cx-violation-meta');
+    const violationReconnectBtn = root.querySelector('#cx-violation-reconnect');
     const railTimerLabel = root.querySelector('#cx-rail-timer-label');
+    let mediaGraceActive = false;
 
     const autosave = createAutosave({
         attemptId: payload.attempt.id,
@@ -441,12 +443,32 @@ export function initExamRunner(root) {
             });
     }
 
+    function setReconnectVisible(visible) {
+        if (!violationReconnectBtn) return;
+        if (visible) {
+            violationReconnectBtn.hidden = false;
+            violationReconnectBtn.removeAttribute('hidden');
+            violationReconnectBtn.disabled = false;
+            violationReconnectBtn.textContent = requireMicrophone ? 'Reconnect camera / mic' : 'Reconnect camera';
+        } else {
+            violationReconnectBtn.hidden = true;
+            violationReconnectBtn.setAttribute('hidden', 'hidden');
+            violationReconnectBtn.disabled = false;
+        }
+    }
+
     function openViolationModal(warning) {
         if (!violationModal || !warning) return;
         if (violationTitle) violationTitle.textContent = warning.title || 'Rule warning';
         if (violationMessage) violationMessage.textContent = warning.message || '';
         if (violationMeta) {
-            if (warning.limit && warning.count) {
+            if (warning.graceSeconds != null && warning.graceLeft != null) {
+                violationMeta.textContent = `Restore access within ${warning.graceLeft}s or the exam will be submitted automatically.`;
+                violationMeta.hidden = false;
+            } else if (warning.graceSeconds != null && warning.canReconnect) {
+                violationMeta.textContent = `Restore access within ${warning.graceSeconds}s or the exam will be submitted automatically.`;
+                violationMeta.hidden = false;
+            } else if (warning.limit && warning.count && !['right_click'].includes(warning.event)) {
                 violationMeta.textContent = `Warning ${warning.count} of ${warning.limit}. Further violations may auto-submit your exam.`;
                 violationMeta.hidden = false;
             } else {
@@ -454,17 +476,44 @@ export function initExamRunner(root) {
                 violationMeta.hidden = true;
             }
         }
+        mediaGraceActive = !!(warning.canReconnect || warning.event === 'media_lost');
+        setReconnectVisible(mediaGraceActive);
         violationModal.hidden = false;
         violationModal.removeAttribute('hidden');
         violationModal.setAttribute('aria-hidden', 'false');
-        root.querySelector('#cx-violation-ack')?.focus();
+        if (mediaGraceActive && violationReconnectBtn) violationReconnectBtn.focus();
+        else root.querySelector('#cx-violation-ack')?.focus();
     }
 
     function closeViolationModal() {
         if (!violationModal) return;
+        mediaGraceActive = false;
+        setReconnectVisible(false);
         violationModal.hidden = true;
         violationModal.setAttribute('hidden', 'hidden');
         violationModal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function handleMediaReconnect() {
+        if (!violationReconnectBtn || violationReconnectBtn.disabled) return;
+        violationReconnectBtn.disabled = true;
+        violationReconnectBtn.textContent = 'Reconnecting…';
+        notify('Trying to reconnect…', 'info', 3000);
+        try {
+            const ok = await state.proctorApi?.reconnectMedia?.();
+            if (ok) {
+                notify(requireMicrophone ? 'Camera & microphone reconnected.' : 'Camera reconnected.', 'info', 4000);
+                closeViolationModal();
+            } else {
+                notify('Reconnect failed. Allow permissions and try again.', 'error', 6000);
+                violationReconnectBtn.disabled = false;
+                violationReconnectBtn.textContent = requireMicrophone ? 'Reconnect camera / mic' : 'Reconnect camera';
+            }
+        } catch (e) {
+            notify(e?.message || 'Reconnect failed. Please try again.', 'error', 6000);
+            violationReconnectBtn.disabled = false;
+            violationReconnectBtn.textContent = requireMicrophone ? 'Reconnect camera / mic' : 'Reconnect camera';
+        }
     }
 
     function updateProgress() {
@@ -788,6 +837,9 @@ export function initExamRunner(root) {
     violationModal?.querySelectorAll('[data-close-violation]').forEach((el) => {
         on(el, 'click', closeViolationModal);
     });
+    on(violationReconnectBtn, 'click', () => {
+        handleMediaReconnect().catch(() => {});
+    });
 
     const onKeyDown = (event) => {
         if (state.destroyed) return;
@@ -868,11 +920,35 @@ export function initExamRunner(root) {
         applyTimerLabel('--:--', 'green', 'elapsed');
     }
 
-    state.proctorApi = bindProctoring({
+    state.proctorApi = createRuleEngine({
         eventsUrl: urls.events,
         policy,
         examRoot: root,
+        videoEl: requireWebcam ? root.querySelector('#cx-webcam-preview') : null,
+        statusEl: requireWebcam ? root.querySelector('#cx-webcam-status') : null,
         onAutoSubmit: (details) => handleAutoSubmitted(details || {}),
+        onMediaStatus: (message, tone = 'warn') => notify(message, tone),
+        onMediaGraceTick: (secondsLeft) => {
+            if (secondsLeft == null) {
+                closeViolationModal();
+                return;
+            }
+            openViolationModal({
+                title: 'Media connection lost',
+                message: 'Please re-enable the required camera'
+                    + (requireMicrophone ? ' and microphone' : '')
+                    + ' to continue, then tap Reconnect.',
+                event: 'media_lost',
+                graceSeconds: 60,
+                graceLeft: secondsLeft,
+                canReconnect: true,
+                action: 'warn',
+            });
+            if (violationMeta) {
+                violationMeta.textContent = `Restore access within ${secondsLeft}s or the exam will be submitted automatically.`;
+                violationMeta.hidden = false;
+            }
+        },
         onWarning: (warning) => {
             if (!warning) return;
             openViolationModal(warning);
@@ -908,18 +984,6 @@ export function initExamRunner(root) {
             notify('Fullscreen is required for this exam.', 'warn');
         },
     });
-
-    if (requireWebcam) {
-        state.webcamStop = startWebcamMonitor({
-            videoEl: root.querySelector('#cx-webcam-preview'),
-            statusEl: root.querySelector('#cx-webcam-status'),
-            eventsUrl: urls.events,
-            requireMicrophone,
-            onStatus: (message, tone = 'warn') => notify(message, tone),
-            onWarning: (warning) => openViolationModal(warning),
-            onAutoSubmit: (details) => handleAutoSubmitted(details || {}),
-        });
-    }
 
     if (policy.require_fullscreen && !document.fullscreenElement) {
         document.documentElement.requestFullscreen?.().catch(() => {

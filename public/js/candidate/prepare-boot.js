@@ -78,6 +78,10 @@
             captured: 'Captured',
             ready: 'Ready',
             missing: 'Missing',
+            ok: 'OK',
+            warn: 'Open',
+            closed: 'Closed',
+            detected: 'Detected',
         };
         el.textContent = labels[state] || state;
         el.dataset.state = state;
@@ -156,6 +160,7 @@
         var requireMic = boolAttr(root, 'data-require-mic');
         var requireFullscreen = boolAttr(root, 'data-require-fullscreen');
         var requireSelfie = boolAttr(root, 'data-require-selfie');
+        var detectDevtools = boolAttr(root, 'data-detect-devtools');
         var startUrl = root.getAttribute('data-start-url') || '';
         var verifyUrl = root.getAttribute('data-verify-url') || '';
         var challengeToken = root.getAttribute('data-challenge-token') || '';
@@ -168,6 +173,7 @@
             microphone: !requireMic,
             fullscreen: !requireFullscreen,
             selfie: !requireSelfie,
+            devtoolsClosed: !detectDevtools,
             videoStream: null,
             audioStream: null,
             photoBlob: null,
@@ -213,13 +219,19 @@
             if (requireMic && !state.microphone) missing.push('microphone access');
             if (requireFullscreen && !state.fullscreen) missing.push('fullscreen');
             if (requireSelfie && !state.selfie) missing.push('identity selfie');
+            if (detectDevtools && !state.devtoolsClosed) missing.push('closing developer tools');
             if (!missing.length) return 'All required checks are complete. You can start the exam.';
             return 'Start is disabled until you complete: ' + missing.join(', ') + '.';
         }
 
         function updateStartEnabled() {
             var forceDisabled = startBtn && startBtn.getAttribute('data-force-disabled') === '1';
-            var ready = !forceDisabled && state.webcam && state.microphone && state.fullscreen && state.selfie;
+            var ready = !forceDisabled
+                && state.webcam
+                && state.microphone
+                && state.fullscreen
+                && state.selfie
+                && state.devtoolsClosed;
             if (startBtn) {
                 startBtn.disabled = !ready;
                 startBtn.setAttribute('aria-disabled', ready ? 'false' : 'true');
@@ -235,6 +247,67 @@
             if (captureBtn) {
                 captureBtn.disabled = !state.webcam || (requireSelfie && state.selfie);
             }
+            setStatus(root, 'devtools_closed', state.devtoolsClosed ? 'closed' : 'detected');
+        }
+
+        function currentDevtoolsGaps() {
+            return {
+                width: Math.abs((window.outerWidth || 0) - (window.innerWidth || 0)),
+                height: Math.abs((window.outerHeight || 0) - (window.innerHeight || 0)),
+            };
+        }
+
+        var detoolsBaseline = null;
+        var detoolsSamples = 0;
+        var detoolsForcedOpen = false;
+
+        function captureDevtoolsBaseline() {
+            var gaps = currentDevtoolsGaps();
+            if (!detoolsBaseline) {
+                detoolsBaseline = gaps;
+                return;
+            }
+            detoolsBaseline = {
+                width: Math.min(detoolsBaseline.width, gaps.width),
+                height: Math.min(detoolsBaseline.height, gaps.height),
+            };
+        }
+
+        function isDevtoolsLikelyOpen() {
+            var gaps = currentDevtoolsGaps();
+            if (!detoolsBaseline) {
+                captureDevtoolsBaseline();
+                return false;
+            }
+            // Absolute outer-inner gaps include normal browser chrome and cause false positives.
+            // Only treat DevTools as open when a dock panel grows beyond the baseline.
+            var dockThreshold = 120;
+            var widthDelta = gaps.width - detoolsBaseline.width;
+            var heightDelta = gaps.height - detoolsBaseline.height;
+            return widthDelta >= dockThreshold || heightDelta >= dockThreshold;
+        }
+
+        function syncDevtoolsGate() {
+            if (!detectDevtools) {
+                state.devtoolsClosed = true;
+                updateStartEnabled();
+                return;
+            }
+
+            detoolsSamples += 1;
+            if (detoolsSamples <= 5 && !detoolsForcedOpen) {
+                captureDevtoolsBaseline();
+            }
+
+            var open = detoolsForcedOpen || isDevtoolsLikelyOpen();
+            // If the dock heuristic says closed, clear a prior shortcut-only force flag.
+            if (!isDevtoolsLikelyOpen()) {
+                detoolsForcedOpen = false;
+                open = false;
+            }
+
+            state.devtoolsClosed = !open;
+            updateStartEnabled();
         }
 
         function stopStream(stream) {
@@ -809,6 +882,25 @@
 
         if (root.getAttribute('data-block-context') === '1') {
             setStatus(root, 'browser_lock', 'info');
+        }
+
+        if (detectDevtools) {
+            captureDevtoolsBaseline();
+            syncDevtoolsGate();
+            window.setInterval(syncDevtoolsGate, 1200);
+            window.addEventListener('resize', syncDevtoolsGate);
+            document.addEventListener('keydown', function (e) {
+                var key = (e.key || '').toLowerCase();
+                var isDevtools =
+                    key === 'f12' ||
+                    (e.ctrlKey && e.shiftKey && ['i', 'j', 'c', 'k'].indexOf(key) !== -1) ||
+                    (e.metaKey && e.altKey && ['i', 'j', 'c'].indexOf(key) !== -1);
+                if (!isDevtools) return;
+                e.preventDefault();
+                detoolsForcedOpen = true;
+                showError('Close developer tools before starting the exam. Start remains disabled while they are open.');
+                syncDevtoolsGate();
+            });
         }
 
         updateStartEnabled();

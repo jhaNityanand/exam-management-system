@@ -207,6 +207,8 @@ class ExamSessionService
                 'block_copy_paste' => false,
                 'block_context_menu' => false,
                 'detect_devtools' => false,
+                'lock_keyboard' => false,
+                'lock_mouse' => false,
                 'block_page_refresh' => false,
                 'enforce_single_session' => false,
                 'single_attempt_per_question' => false,

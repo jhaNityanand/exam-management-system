@@ -524,6 +524,71 @@ test('proctoring auto submit stores readable violation reason', function () {
     expect($summary['submission_label'])->toBe('Maximum tab switches exceeded');
 });
 
+test('right click is soft warn and does not auto submit', function () {
+    $service = app(ExamSessionService::class);
+    $attempt = $service->startOrResume(
+        $this->exam,
+        $this->candidate,
+        [],
+        ['browser' => 'phpunit', 'session_token' => 'soft-right-click'],
+        null,
+        [
+            'block_context_menu' => true,
+            'detect_tab_switch' => true,
+            'focus_violation_limit' => 1,
+            'focus_violation_action' => 'auto_submit',
+            'auto_submit_on_violation' => true,
+        ]
+    );
+
+    $proctoring = app(\App\Services\CandidateExam\ExamProctoringService::class);
+    $result = $proctoring->recordEvent($attempt, 'right_click');
+
+    expect($result['action'])->toBe('warn');
+    expect($result['auto_submitted'])->toBeFalse();
+    expect($result['violation_count'])->toBe(0);
+    expect($attempt->fresh()->status)->toBeIn(['active', 'in_progress']);
+});
+
+test('media grace expiry auto submits without waiting for focus limit', function () {
+    $service = app(ExamSessionService::class);
+    $attempt = $service->startOrResume(
+        $this->exam,
+        $this->candidate,
+        [],
+        ['browser' => 'phpunit', 'session_token' => 'media-grace'],
+        null,
+        [
+            'require_webcam' => true,
+            'focus_violation_limit' => 99,
+            'focus_violation_action' => 'warn',
+            'auto_submit_on_violation' => false,
+        ]
+    );
+
+    $proctoring = app(\App\Services\CandidateExam\ExamProctoringService::class);
+    $lost = $proctoring->recordEvent($attempt, 'media_lost', ['reason' => 'video_ended']);
+    expect($lost['auto_submitted'])->toBeFalse();
+    expect($lost['action'])->toBe('warn');
+
+    $expired = $proctoring->recordEvent($attempt->fresh(), 'media_grace_expired', ['reason' => 'video_ended']);
+    expect($expired['auto_submitted'])->toBeTrue();
+    expect($attempt->fresh()->submission_reason)->toBe('violation_camera_disabled');
+});
+
+test('candidate question payload strips correct answers', function () {
+    $service = app(ExamSessionService::class);
+    $attempt = $service->startOrResume($this->exam, $this->candidate);
+    $payload = $service->toRuntimePayload($attempt->fresh());
+
+    expect($payload['questions'])->not->toBeEmpty();
+    foreach ($payload['questions'] as $question) {
+        expect($question['question'] ?? [])->not->toHaveKey('correct_answer');
+        expect($question['question'] ?? [])->not->toHaveKey('correct_answers');
+        expect($question['question'] ?? [])->not->toHaveKey('explanation');
+    }
+});
+
 test('untimed exams expose started_at and runtime parts metadata', function () {
     $this->exam->update(['enable_exam_timer' => false]);
 

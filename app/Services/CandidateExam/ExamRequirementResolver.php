@@ -23,6 +23,8 @@ class ExamRequirementResolver
             'block_copy_paste' => false,
             'block_context_menu' => false,
             'detect_devtools' => false,
+            'lock_keyboard' => false,
+            'lock_mouse' => false,
             'block_page_refresh' => false,
             'enforce_single_session' => false,
             'single_attempt_per_question' => false,
@@ -171,11 +173,20 @@ class ExamRequirementResolver
             ];
         }
 
-        if (! empty($policy['block_context_menu']) || ! empty($policy['detect_devtools'])) {
+        if (! empty($policy['detect_devtools'])) {
+            $checks[] = [
+                'key' => 'devtools_closed',
+                'label' => 'Developer tools closed',
+                'description' => 'Close browser developer tools before starting. The Start Exam button stays disabled while they are open.',
+                'required' => true,
+            ];
+        }
+
+        if (! empty($policy['block_context_menu']) || ! empty($policy['lock_keyboard']) || ! empty($policy['lock_mouse'])) {
             $checks[] = [
                 'key' => 'browser_lock',
                 'label' => 'Browser protections',
-                'description' => 'Right-click and developer tools shortcuts will be blocked during the exam.',
+                'description' => 'Right-click, keyboard, and/or mouse restrictions will apply during the exam.',
                 'required' => false,
                 'informational' => true,
             ];

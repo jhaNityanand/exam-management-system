@@ -51,8 +51,8 @@ class ExamAttemptQuestion extends Model
      */
     public function toCandidatePayload(): array
     {
-        $snapshot = $this->question_snapshot ?? [];
-        unset($snapshot['correct_answer'], $snapshot['correct_answers'], $snapshot['explanation']);
+        $snapshot = is_array($this->question_snapshot) ? $this->question_snapshot : [];
+        $question = $this->sanitizeCandidateQuestion($snapshot);
         $meta = $this->selection_meta ?? [];
 
         return [
@@ -65,7 +65,35 @@ class ExamAttemptQuestion extends Model
             'part_id' => isset($meta['part_id']) ? (int) $meta['part_id'] : null,
             'part_name' => isset($meta['part_name']) ? (string) $meta['part_name'] : null,
             'part_sort_order' => isset($meta['part_sort_order']) ? (int) $meta['part_sort_order'] : null,
-            'question' => $snapshot,
+            'question' => $question,
         ];
+    }
+
+    /**
+     * Strip answer keys and other sensitive fields from the candidate-facing snapshot.
+     *
+     * @param  array<string, mixed>  $snapshot
+     * @return array<string, mixed>
+     */
+    protected function sanitizeCandidateQuestion(array $snapshot): array
+    {
+        $blocked = [
+            'correct_answer',
+            'correct_answers',
+            'explanation',
+            'solution',
+            'answer',
+            'answers',
+            'answer_key',
+            'answer_keys',
+            'grading_rubric',
+            'rubric',
+        ];
+
+        foreach ($blocked as $key) {
+            unset($snapshot[$key]);
+        }
+
+        return $snapshot;
     }
 }
