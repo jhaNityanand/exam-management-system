@@ -2,7 +2,8 @@
 .gallery-editor-modal {
     position: fixed;
     inset: 0;
-    z-index: 90;
+    /* Above TinyMCE dialogs/menus (~200010) so adjuster is never covered */
+    z-index: 205000;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.className = 'ems-rich-editor ems-rich-editor--compact';
                 wrapper.setAttribute('data-ems-rich-editor', '');
                 wrapper.setAttribute('data-editor-input', textarea.id);
-                wrapper.setAttribute('data-editor-height', '140');
+                wrapper.setAttribute('data-editor-height', '220');
                 wrapper.setAttribute('data-editor-preset', 'compact');
                 wrapper.setAttribute('data-editor-mode', 'compact');
                 wrapper.setAttribute(
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const adapter = await window.EmsRichTextEditor.mount(textarea, {
                     wrapper,
-                    height: 140,
+                    height: 220,
                     mode: 'compact',
                     preset: 'compact',
                     menubar: false,

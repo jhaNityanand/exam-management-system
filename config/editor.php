@@ -3,14 +3,14 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Rich Text Editor — simple header toolbar (Linear/Jira look & feel)
+    | Rich Text Editor - modern document-style writing surface
     |--------------------------------------------------------------------------
     |
     | Shared Blade contract: <x-rich-text-editor>. Default UI is "header":
-    | one clean, always-visible action row on top, writing area below,
-    | plus "/" slash commands and "@" mentions for power users. Use
-    | mode="compact" for small inline editors (e.g. question options).
-    | Uploads go through GalleryService via POST admin/editor/media.
+    | full toolbar actions stay visible and wrap to additional rows on
+    | narrower screens. Use mode="compact" for small inline editors
+    | (e.g. question options). Uploads go through GalleryService via
+    | POST admin/editor/media.
     |
     */
     'ui_mode' => env('EDITOR_UI_MODE', 'header'),
@@ -45,20 +45,19 @@ return [
     */
     'orphan_ttl_hours' => (int) env('EDITOR_ORPHAN_TTL_HOURS', 24),
 
-    // Toolbar presets. "header" is a single-row toolbar; TinyMCE collapses
-    // overflow items behind a "…" button (toolbar_mode: floating), so every
-    // action stays available without wrapping into extra rows.
+    // Full toolbar presets. Actions wrap onto extra rows — nothing is hidden
+    // behind an overflow / "More" menu.
     'toolbar_presets' => [
-        'header' => 'fullscreen | fontfamily fontsize | blocks | bold italic underline strikethrough superscript subscript | forecolor backcolor | align | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat',
-        'full' => 'fullscreen | fontfamily fontsize | blocks | bold italic underline strikethrough superscript subscript | forecolor backcolor | align | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat',
-        'standard' => 'fullscreen | blocks | bold italic underline | bullist numlist | link emsimage table | removeformat',
-        'compact' => 'fullscreen | bold italic underline strikethrough | forecolor | bullist numlist | link emsimage | removeformat',
+        'header' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize lineheight | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat emsfullscreen',
+        'full' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize lineheight | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat emsfullscreen',
+        'standard' => 'undo redo | bold italic underline strikethrough | blocks | forecolor | bullist numlist | link emsimage table | removeformat emsfullscreen',
+        'compact' => 'undo redo | bold italic underline strikethrough | forecolor backcolor | bullist numlist | link emsimage | removeformat emsfullscreen',
     ],
 
     'plugins' => [
         'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-        'insertdatetime', 'media', 'table', 'help', 'wordcount',
+        'anchor', 'searchreplace', 'visualblocks', 'code',
+        'insertdatetime', 'media', 'table',
         'codesample', 'nonbreaking', 'directionality',
     ],
 ];

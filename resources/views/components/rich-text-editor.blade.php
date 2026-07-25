@@ -3,8 +3,8 @@
     'inputId' => null,
     'name',
     'value' => '',
-    'placeholder' => 'Write a description, or type / for commands…',
-    'height' => 280,
+    'placeholder' => 'Start writing…',
+    'height' => 360,
     'required' => false,
     'preset' => 'header',
     'mode' => 'header',
@@ -14,7 +14,7 @@
     'wrapperClass' => '',
     'readonly' => false,
     'module' => 'editor',
-    'showHint' => true,
+    'showHint' => false,
 ])
 
 @php
@@ -27,7 +27,7 @@
     $resolvedToolbar = $toolbar ?? '';
     $uploadUrl = route('admin.editor.media.store');
     $cdnBase = rtrim((string) config('editor.cdn.base_url'), '/');
-    $resolvedPlaceholder = $placeholder !== '' ? $placeholder : 'Write a description, or type / for commands…';
+    $resolvedPlaceholder = $placeholder !== '' ? $placeholder : 'Start writing…';
 @endphp
 
 <div
@@ -72,13 +72,6 @@
             <div class="ems-rich-editor__progress-bar" data-editor-progress-bar></div>
             <span class="ems-rich-editor__progress-label" data-editor-progress-label>Uploading…</span>
         </div>
-        @if($showHint && $uiMode !== 'compact')
-            <div class="ems-rich-editor__hint" data-editor-hint>
-                <span>Type <kbd>/</kbd> for commands</span>
-                <span class="ems-rich-editor__hint-sep" aria-hidden="true">·</span>
-                <span><kbd>@</kbd> to mention someone</span>
-            </div>
-        @endif
     </div>
 
     @if($help)

@@ -50,7 +50,7 @@
                 <input type="hidden" name="source" value="exam-create">
             @endif
 
-            <div class="px-4 py-5 sm:p-6 space-y-8">
+            <div class="px-4 pt-5 pb-0 space-y-8">
                 <!-- Row 1: Category, Type, Difficulty, Status -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
                     <div>
@@ -160,7 +160,7 @@
                         name="body"
                         :value="old('body')"
                         placeholder="Type your question content here…"
-                        :height="260"
+                        :height="420"
                         preset="full"
                                     module="question"
                         :required="true"
@@ -226,7 +226,7 @@
                                 name="sa_answer"
                                 :value="old('correct_answer')"
                                 placeholder="Provide a reference answer for graders…"
-                                :height="200"
+                                :height="320"
                                 preset="standard"
                                 module="question"
                                 help="Text answer grading is typically manual, but you can provide a reference answer here for graders."
@@ -244,7 +244,7 @@
                         name="explanation"
                         :value="old('explanation')"
                         placeholder="Optional explanation shown after grading…"
-                        :height="220"
+                        :height="340"
                         preset="full"
                                 module="question"
                     />

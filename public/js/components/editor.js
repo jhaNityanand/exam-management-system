@@ -1,49 +1,95 @@
 (function registerEmsRichTextEditor(global) {
-    // Linear / Jira style editor: one simple header row with every action,
-    // clean writing area below. No floating/overlapping quickbars.
+    // Document-style editor: all toolbar actions stay visible and wrap
+    // across rows based on width. No floating quickbars / overflow menus.
     const DEFAULT_PLUGINS = [
         'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-        'insertdatetime', 'media', 'table', 'help', 'wordcount',
-        'codesample', 'nonbreaking', 'directionality',
+        'anchor', 'searchreplace', 'visualblocks', 'code',
+        'insertdatetime', 'media', 'table',
+        'codesample', 'nonbreaking', 'directionality', 'noneditable',
     ];
 
-    // Single-row header — TinyMCE collapses overflow behind a "…" button
-    // (toolbar_mode: 'floating'), so every action stays reachable without
-    // wrapping into extra rows.
-    // "fullscreen" is placed first: toolbar_mode "floating" fills the row
-    // left-to-right and pushes overflow into the "…" drawer starting from
-    // the right, so a trailing fullscreen button could get buried and
-    // become unclickable on narrower editors. Keeping it first guarantees
-    // it's always visible and reachable.
+    // Full action set — toolbar_mode "wrap" keeps every control visible
+    // on 1–2 rows depending on screen width.
     const HEADER_TOOLBAR = [
-        'fullscreen', '|',
-        'fontfamily', 'fontsize', '|',
+        'undo', 'redo', '|',
+        'bold', 'italic', 'underline', 'strikethrough', '|',
+        'fontfamily', 'fontsize', 'emslinespace', '|',
         'blocks', '|',
-        'bold', 'italic', 'underline', 'strikethrough', 'superscript', 'subscript', '|',
         'forecolor', 'backcolor', '|',
-        'align', '|',
+        'alignleft', 'aligncenter', 'alignright', 'alignjustify', '|',
         'bullist', 'numlist', 'checklist', 'outdent', 'indent', '|',
-        'blockquote', 'codesample', '|',
-        'link', 'emsimage', 'table', 'media', 'attachment', '|',
-        'removeformat',
+        'blockquote', 'codesample', 'hr', '|',
+        'link', 'emsimage', 'table', 'emstabledesign', 'emsshapes', 'emsmedia', 'attachment', '|',
+        'removeformat', 'emscodeview', 'emsfullscreen',
     ].join(' ');
 
     const COMPACT_TOOLBAR = [
-        'fullscreen', '|',
+        'undo', 'redo', '|',
         'bold', 'italic', 'underline', 'strikethrough', '|',
-        'forecolor', '|',
+        'emslinespace', '|',
+        'forecolor', 'backcolor', '|',
         'bullist', 'numlist', '|',
         'link', 'emsimage', '|',
-        'removeformat',
+        'removeformat', 'emscodeview', 'emsfullscreen',
     ].join(' ');
 
     const PRESET_TOOLBARS = {
         header: HEADER_TOOLBAR,
         compact: COMPACT_TOOLBAR,
         full: HEADER_TOOLBAR,
-        standard: 'blocks | bold italic underline | bullist numlist | link emsimage table | removeformat | fullscreen',
+        standard: 'undo redo | bold italic underline strikethrough | blocks | forecolor | bullist numlist | link emsimage table emslinespace | removeformat emscodeview emsfullscreen',
     };
+
+    const FONT_FAMILY_FORMATS = [
+        'Inter=Inter,system-ui,sans-serif',
+        'Arial=Arial,Helvetica,sans-serif',
+        'Calibri=Calibri,Candara,Segoe UI,sans-serif',
+        'Helvetica=Helvetica,Arial,sans-serif',
+        'Roboto=Roboto,Arial,sans-serif',
+        'Open Sans="Open Sans",Arial,sans-serif',
+        'Poppins=Poppins,Arial,sans-serif',
+        'Verdana=Verdana,Geneva,sans-serif',
+        'Tahoma=Tahoma,Geneva,sans-serif',
+        'Georgia=Georgia,Times New Roman,serif',
+        'Times New Roman="Times New Roman",Times,serif',
+        'Courier New="Courier New",Courier,monospace',
+        'Consolas=Consolas,Monaco,monospace',
+        'Monospace=ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+    ].join('; ');
+
+    const FONT_SIZE_FORMATS = '10px 11px 12px 13px 14px 15px 16px 18px 20px 22px 24px 28px 32px 36px 48px';
+    const LINE_HEIGHT_FORMATS = '1 1.15 1.5 2 2.5 3';
+    const CONTENT_PAD_X = '20px';
+    const CONTENT_PAD_Y = '16px';
+
+    const LINE_SPACE_OPTIONS = [
+        { text: 'Single', value: '1' },
+        { text: '1.15', value: '1.15' },
+        { text: '1.5', value: '1.5' },
+        { text: 'Double', value: '2' },
+        { text: '2.5', value: '2.5' },
+        { text: 'Triple', value: '3' },
+    ];
+
+    const TABLE_DESIGN_OPTIONS = [
+        { text: 'Default', value: '' },
+        { text: 'Bordered', value: 'ems-table-bordered' },
+        { text: 'Striped', value: 'ems-table-striped' },
+        { text: 'Minimal', value: 'ems-table-minimal' },
+        { text: 'Modern', value: 'ems-table-modern' },
+        { text: 'Compact', value: 'ems-table-compact' },
+    ];
+
+    const SHAPE_OPTIONS = [
+        { text: 'Rectangle', value: 'rectangle' },
+        { text: 'Rounded rectangle', value: 'rounded' },
+        { text: 'Circle', value: 'circle' },
+        { text: 'Ellipse', value: 'ellipse' },
+        { text: 'Triangle', value: 'triangle' },
+        { text: 'Line', value: 'line' },
+        { text: 'Arrow', value: 'arrow' },
+        { text: 'Star', value: 'star' },
+    ];
 
     // Legacy mode names are mapped onto the current header/compact UI.
     const MODE_ALIASES = {
@@ -83,7 +129,7 @@
         }
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = href + '?v=7';
+        link.href = href + '?v=15';
         document.head.appendChild(link);
         cssInjected = true;
     }
@@ -332,8 +378,216 @@
         const alt = (name || payload.name || 'Image').replace(/"/g, '&quot;');
         const width = payload.width || payload.adjusted?.width;
         const height = payload.height || payload.adjusted?.height;
-        const dims = (width && height) ? ` width="${width}" height="${height}"` : '';
-        return `<img src="${src}" alt="${alt}"${dims} />`;
+        // Cap display size so same-line text can sit vertically centered with the image.
+        let dims = '';
+        if (width && height) {
+            const maxEdge = 280;
+            const scale = Math.min(1, maxEdge / Math.max(Number(width), Number(height)));
+            const w = Math.max(1, Math.round(Number(width) * scale));
+            const h = Math.max(1, Math.round(Number(height) * scale));
+            dims = ` width="${w}" height="${h}"`;
+        }
+        return `<img class="ems-img-inline" src="${src}" alt="${alt}"${dims} style="vertical-align:middle;display:inline;margin:0 0.4em;" />`;
+    }
+
+    function shapeHtml(kind, options = {}) {
+        const text = String(options.text ?? 'Text').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const fill = options.fill || '#0d9488';
+        const border = options.border || '#0f766e';
+        const borderWidth = String(options.borderWidth || '2').replace(/[^\d.]/g, '') || '2';
+        const textColor = options.textColor || '#ffffff';
+        const safeKind = SHAPE_OPTIONS.some((o) => o.value === kind) ? kind : 'rectangle';
+
+        return (
+            `<span class="mceNonEditable ems-shape-box ems-shape-box--${safeKind}" contenteditable="false" data-ems-shape="${safeKind}" `
+            + `data-ems-fill="${fill}" data-ems-border="${border}" data-ems-border-width="${borderWidth}" data-ems-text-color="${textColor}" `
+            + `style="background-color:${fill};border:${borderWidth}px solid ${border};color:${textColor};">`
+            + `<span class="mceEditable ems-shape-box__text" contenteditable="true">${text || '&nbsp;'}</span>`
+            + `</span>&nbsp;`
+        );
+    }
+
+    function readShapeOptions(node) {
+        if (!node) {
+            return { text: 'Text', fill: '#0d9488', border: '#0f766e', borderWidth: '2', textColor: '#ffffff' };
+        }
+        const textEl = node.querySelector?.('.ems-shape-box__text');
+        return {
+            text: (textEl?.textContent || '').trim() || 'Text',
+            fill: node.getAttribute('data-ems-fill') || node.style.backgroundColor || '#0d9488',
+            border: node.getAttribute('data-ems-border') || '#0f766e',
+            borderWidth: node.getAttribute('data-ems-border-width') || '2',
+            textColor: node.getAttribute('data-ems-text-color') || node.style.color || '#ffffff',
+        };
+    }
+
+    function openShapeDialog(editor, kind, existingNode = null) {
+        const initial = readShapeOptions(existingNode);
+        const titleKind = SHAPE_OPTIONS.find((o) => o.value === kind)?.text || 'Shape';
+
+        editor.windowManager.open({
+            title: existingNode ? `Edit ${titleKind}` : `Insert ${titleKind}`,
+            body: {
+                type: 'panel',
+                items: [
+                    { type: 'input', name: 'text', label: 'Text on shape' },
+                    { type: 'colorinput', name: 'fill', label: 'Fill color' },
+                    { type: 'colorinput', name: 'border', label: 'Border color' },
+                    { type: 'input', name: 'borderWidth', label: 'Border width (px)' },
+                    { type: 'colorinput', name: 'textColor', label: 'Text color' },
+                ],
+            },
+            initialData: {
+                text: initial.text,
+                fill: initial.fill,
+                border: initial.border,
+                borderWidth: String(initial.borderWidth || '2'),
+                textColor: initial.textColor,
+            },
+            buttons: [
+                { type: 'cancel', text: 'Cancel' },
+                { type: 'submit', text: existingNode ? 'Update' : 'Insert', primary: true },
+            ],
+            onSubmit: (api) => {
+                const data = api.getData();
+                const html = shapeHtml(kind, {
+                    text: data.text || 'Text',
+                    fill: data.fill || '#0d9488',
+                    border: data.border || '#0f766e',
+                    borderWidth: data.borderWidth || '2',
+                    textColor: data.textColor || '#ffffff',
+                });
+                if (existingNode) {
+                    editor.selection.select(existingNode);
+                    editor.insertContent(html);
+                } else {
+                    editor.insertContent(html);
+                }
+                api.close();
+            },
+        });
+    }
+
+    function applyLineSpacing(editor, value) {
+        try {
+            editor.execCommand('LineHeight', false, value);
+            return;
+        } catch {
+            // fallback below
+        }
+        const blocks = editor.selection.getSelectedBlocks?.() || [];
+        if (!blocks.length) {
+            const node = editor.selection.getNode();
+            const block = editor.dom.getParent(node, 'p,h1,h2,h3,h4,h5,h6,li,td,th,div');
+            if (block) editor.dom.setStyle(block, 'line-height', value);
+            return;
+        }
+        blocks.forEach((block) => editor.dom.setStyle(block, 'line-height', value));
+    }
+
+    function applyParagraphGap(editor, marginBottom) {
+        const blocks = editor.selection.getSelectedBlocks?.() || [];
+        const targets = blocks.length
+            ? blocks
+            : [editor.dom.getParent(editor.selection.getNode(), 'p,h1,h2,h3,h4,h5,h6,li,div')].filter(Boolean);
+        targets.forEach((block) => {
+            if (marginBottom === null) {
+                editor.dom.setStyle(block, 'margin-bottom', '');
+            } else {
+                editor.dom.setStyle(block, 'margin-bottom', marginBottom);
+            }
+        });
+    }
+
+    function applyTableDesign(editor, className) {
+        const table = editor.dom.getParent(editor.selection.getNode(), 'table');
+        if (!table) {
+            notify('warning', 'Place the cursor inside a table first.');
+            return;
+        }
+        TABLE_DESIGN_OPTIONS.forEach((opt) => {
+            if (opt.value) editor.dom.removeClass(table, opt.value);
+        });
+        if (className) editor.dom.addClass(table, className);
+        editor.nodeChanged();
+    }
+
+    function exitCodeView(editor, wrapper, api) {
+        const surface = wrapper?.querySelector('.ems-rich-editor__surface');
+        const panelWrap = surface?.querySelector('.ems-rich-editor__codepanel');
+        const textarea = panelWrap?.querySelector('.ems-rich-editor__codeview');
+        const container = editor.getContainer?.();
+
+        if (textarea) {
+            try {
+                editor.setContent(textarea.value);
+            } catch {
+                // ignore invalid HTML restore issues
+            }
+        }
+        if (panelWrap) panelWrap.hidden = true;
+        if (container) {
+            container.style.display = '';
+            const editWrap = container.querySelector('.tox-sidebar-wrap');
+            if (editWrap) editWrap.style.display = '';
+        }
+        wrapper?.classList.remove('is-codeview');
+        api?.setActive(false);
+        editor.focus();
+    }
+
+    function toggleCodeView(editor, wrapper, api) {
+        const surface = wrapper?.querySelector('.ems-rich-editor__surface');
+        if (!surface) return;
+
+        const container = editor.getContainer?.();
+        const isActive = wrapper.classList.contains('is-codeview');
+
+        if (isActive) {
+            exitCodeView(editor, wrapper, api);
+            return;
+        }
+
+        let panelWrap = surface.querySelector('.ems-rich-editor__codepanel');
+        if (!panelWrap) {
+            panelWrap = document.createElement('div');
+            panelWrap.className = 'ems-rich-editor__codepanel';
+            panelWrap.innerHTML = `
+                <div class="ems-rich-editor__codepanel-bar">
+                    <div class="ems-rich-editor__codepanel-title">
+                        <strong>HTML source</strong>
+                        <span>Edit raw markup, then return to the visual editor.</span>
+                    </div>
+                    <button type="button" class="ems-rich-editor__codepanel-back" data-ems-code-back>
+                        ← Back to editor
+                    </button>
+                </div>
+                <textarea class="ems-rich-editor__codeview" spellcheck="false" aria-label="HTML source"></textarea>
+            `;
+            surface.appendChild(panelWrap);
+            panelWrap.querySelector('[data-ems-code-back]')?.addEventListener('click', () => {
+                exitCodeView(editor, wrapper, api);
+            });
+        }
+
+        const textarea = panelWrap.querySelector('.ems-rich-editor__codeview');
+        textarea.value = editor.getContent({ format: 'html' });
+        panelWrap.hidden = false;
+
+        // Keep TinyMCE toolbar visible; only hide the writing surface.
+        if (container) {
+            const editWrap = container.querySelector('.tox-sidebar-wrap');
+            if (editWrap) {
+                editWrap.style.display = 'none';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        wrapper.classList.add('is-codeview');
+        api?.setActive(true);
+        textarea.focus();
+        textarea.setSelectionRange(0, 0);
     }
 
     let cropperLoading = null;
@@ -361,12 +615,66 @@
         return cropperLoading;
     }
 
+    function editorFromWrapper(wrapper) {
+        const id = wrapper?.getAttribute('data-editor-input')
+            || wrapper?.querySelector?.('textarea')?.id
+            || null;
+        if (id && global.tinymce?.get) {
+            try {
+                const ed = global.tinymce.get(id);
+                if (ed) return ed;
+            } catch {
+                // ignore
+            }
+        }
+        return global.tinymce?.activeEditor || null;
+    }
+
+    function closeTinyMceDialogs(editor) {
+        const ed = editor || global.tinymce?.activeEditor || null;
+        try {
+            if (ed?.windowManager) {
+                if (typeof ed.windowManager.close === 'function') {
+                    ed.windowManager.close();
+                }
+                const windows = ed.windowManager.getWindows?.();
+                if (windows?.length) {
+                    [...windows].forEach((win) => {
+                        try { win.close(); } catch { /* ignore */ }
+                    });
+                }
+            }
+        } catch {
+            // ignore
+        }
+
+        document.querySelectorAll('.tox-dialog-wrap, .tox-dialog-wrap__backdrop').forEach((el) => {
+            try { el.remove(); } catch { /* ignore */ }
+        });
+    }
+
+    function mediaHtml(url, file) {
+        const src = resolveMediaUrl(url);
+        const type = String(file?.type || '').toLowerCase();
+        const name = (file?.name || 'Media').replace(/</g, '');
+        if (type.startsWith('audio/')) {
+            return `<p><audio controls preload="metadata" src="${src}" style="width:100%;max-width:480px"></audio></p>`;
+        }
+        if (type.startsWith('video/') || /\.(mp4|webm|ogg|ogv|mov|m4v)(\?|$)/i.test(src)) {
+            return `<p><video controls preload="metadata" src="${src}" style="max-width:100%;height:auto"></video></p>`;
+        }
+        return `<p><a class="ems-attachment-link" href="${src}" target="_blank" rel="noopener">${name.replace(/"/g, '&quot;')}</a></p>`;
+    }
+
     /**
      * Open crop/rotate modal. Resolves { original, adjusted } or null if cancelled.
      * Prefers the shared GalleryImageEditor when available.
      */
-    function openImageAdjuster(file) {
+    function openImageAdjuster(file, editor = null) {
         return new Promise(async (resolve) => {
+            // Never leave TinyMCE dialogs (e.g. Insert/Edit Link) on top of the adjuster.
+            closeTinyMceDialogs(editor);
+
             if (global.GalleryImageEditor?.open) {
                 const objectUrl = URL.createObjectURL(file);
                 try {
@@ -596,6 +904,7 @@
         return (callback, value, meta) => {
             const input = document.createElement('input');
             input.type = 'file';
+            const editor = editorFromWrapper(wrapper);
 
             if (meta.filetype === 'image') {
                 input.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp';
@@ -610,8 +919,9 @@
                 if (!file) return;
 
                 try {
-                    if (meta.filetype === 'image' || file.type.startsWith('image/')) {
-                        const adjustedPair = await openImageAdjuster(file);
+                    // Image dialog browse only — adjust, upload, fill dialog fields.
+                    if (meta.filetype === 'image') {
+                        const adjustedPair = await openImageAdjuster(file, editor);
                         if (!adjustedPair) return;
                         const payload = await uploadImagePair({
                             original: adjustedPair.original,
@@ -630,7 +940,34 @@
                         return;
                     }
 
-                    const kind = meta.filetype === 'media' ? 'video' : 'file';
+                    // Media dialog browse — upload and insert directly so content always appears.
+                    if (meta.filetype === 'media') {
+                        const kind = file.type.startsWith('audio/') ? 'file' : 'video';
+                        const prepared = await prepareUploadFile(file, kind === 'video' ? 'video' : 'file', wrapper);
+                        const payload = await uploadFile({
+                            file: prepared,
+                            kind: kind === 'video' ? 'video' : 'file',
+                            uploadUrl,
+                            wrapper,
+                            filename: prepared.name || file.name,
+                        });
+                        const url = resolveMediaUrl(payload.location);
+                        closeTinyMceDialogs(editor);
+                        if (editor) {
+                            editor.insertContent(mediaHtml(url, file));
+                            editor.focus();
+                        } else {
+                            callback(url, { title: payload.name || prepared.name || file.name });
+                        }
+                        notify('success', 'Media uploaded successfully.');
+                        return;
+                    }
+
+                    // Link / generic file browse — upload URL only.
+                    // Do NOT open the image adjuster here (it stacked under Insert/Edit Link).
+                    const kind = file.type.startsWith('image/')
+                        ? 'image'
+                        : (file.type.startsWith('video/') ? 'video' : 'file');
                     const prepared = await prepareUploadFile(file, kind, wrapper);
                     const payload = await uploadFile({
                         file: prepared,
@@ -639,16 +976,10 @@
                         wrapper,
                         filename: prepared.name || file.name,
                     });
-
-                    if (meta.filetype === 'file') {
-                        callback(resolveMediaUrl(payload.location), {
-                            text: payload.name || prepared.name || file.name,
-                            title: payload.name || prepared.name || file.name,
-                        });
-                    } else {
-                        callback(resolveMediaUrl(payload.location), { title: payload.name || prepared.name || file.name });
-                        notify('success', 'Media uploaded successfully.');
-                    }
+                    callback(resolveMediaUrl(payload.location), {
+                        text: payload.name || prepared.name || file.name,
+                        title: payload.name || prepared.name || file.name,
+                    });
                 } catch (error) {
                     notify('error', error.message || 'Upload failed.');
                 } finally {
@@ -667,7 +998,8 @@
      * it into the editor. Returns true on success.
      */
     async function insertUploadedImage(editor, wrapper, uploadUrl, file) {
-        const adjustedPair = await openImageAdjuster(file);
+        closeTinyMceDialogs(editor);
+        const adjustedPair = await openImageAdjuster(file, editor);
         if (!adjustedPair) return false;
         const payload = await uploadImagePair({
             original: adjustedPair.original,
@@ -676,6 +1008,7 @@
             wrapper,
             displayName: file.name,
         });
+        closeTinyMceDialogs(editor);
         editor.insertContent(imageHtml(payload, file.name));
         notify('success', 'Image inserted successfully.');
         return true;
@@ -688,6 +1021,7 @@
      * inserted.
      */
     function insertImageFlow(editor) {
+        closeTinyMceDialogs(editor);
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp';
@@ -700,6 +1034,41 @@
 
             try {
                 await insertUploadedImage(editor, wrapper, uploadUrl, file);
+            } catch (error) {
+                notify('error', error.message || 'Upload failed.');
+            } finally {
+                hideProgress(wrapper);
+            }
+        });
+        input.click();
+    }
+
+    function insertMediaFlow(editor) {
+        closeTinyMceDialogs(editor);
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/mp4,video/webm,video/ogg,audio/*,.mp4,.webm,.ogg,.mp3,.wav,.m4a';
+        input.addEventListener('change', async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            const wrapper = editor.getElement()?.closest('[data-ems-rich-editor]');
+            const uploadUrl = wrapper?.getAttribute('data-editor-upload-url');
+            if (!uploadUrl) return;
+
+            try {
+                const kind = file.type.startsWith('audio/') ? 'file' : 'video';
+                const prepared = await prepareUploadFile(file, kind === 'video' ? 'video' : 'file', wrapper);
+                const payload = await uploadFile({
+                    file: prepared,
+                    kind: kind === 'video' ? 'video' : 'file',
+                    uploadUrl,
+                    wrapper,
+                    filename: prepared.name || file.name,
+                });
+                closeTinyMceDialogs(editor);
+                editor.insertContent(mediaHtml(payload.location, file));
+                editor.focus();
+                notify('success', 'Media inserted successfully.');
             } catch (error) {
                 notify('error', error.message || 'Upload failed.');
             } finally {
@@ -736,10 +1105,8 @@
                     filename: prepared.name || file.name,
                 });
                 const name = payload.name || prepared.name || file.name;
-                if (kind === 'video') {
-                    editor.insertContent(
-                        `<video controls src="${resolveMediaUrl(payload.location)}" style="max-width:100%"></video>`
-                    );
+                if (kind === 'video' || file.type.startsWith('audio/')) {
+                    editor.insertContent(mediaHtml(payload.location, file));
                 } else {
                     editor.insertContent(
                         `<p><a class="ems-attachment-link" href="${resolveMediaUrl(payload.location)}" target="_blank" rel="noopener">${editor.dom.encode(name)}</a></p>`
@@ -770,7 +1137,6 @@
             { text: 'Image', value: 'image', meta: 'Upload or browse image' },
             { text: 'Link', value: 'link', meta: 'Insert a link' },
             { text: 'Attachment', value: 'attachment', meta: 'Upload a file' },
-            { text: 'Mention', value: 'mention', meta: 'Mention someone with @' },
         ];
 
         editor.ui.registry.addAutocompleter('ems-slash', {
@@ -808,7 +1174,6 @@
                     image: () => insertImageFlow(editor),
                     link: () => editor.execCommand('mceLink'),
                     attachment: () => openAttachmentPicker(editor),
-                    mention: () => editor.insertContent('@'),
                 };
 
                 (map[value] || (() => {}))();
@@ -816,70 +1181,9 @@
         });
     }
 
-    function registerMentions(editor, wrapper) {
-        const resolveCandidates = () => {
-            if (Array.isArray(global.emsEditorMentions)) return global.emsEditorMentions;
-            const raw = wrapper?.getAttribute('data-editor-mentions') || '';
-            if (!raw) return [];
-            try {
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch {
-                return [];
-            }
-        };
-
-        editor.ui.registry.addAutocompleter('ems-mentions', {
-            trigger: '@',
-            minChars: 0,
-            columns: 1,
-            fetch: (pattern) => {
-                const q = String(pattern || '').toLowerCase();
-                const people = resolveCandidates()
-                    .filter((person) => {
-                        const name = String(person.name || person.label || '').toLowerCase();
-                        const email = String(person.email || '').toLowerCase();
-                        return !q || name.includes(q) || email.includes(q);
-                    })
-                    .slice(0, 8)
-                    .map((person) => ({
-                        type: 'autocompleteitem',
-                        value: String(person.id || person.name || person.label || ''),
-                        text: person.name || person.label || person.email || 'User',
-                        meta: person.email || 'Mention',
-                    }));
-
-                if (!people.length && !q) {
-                    return Promise.resolve([{
-                        type: 'autocompleteitem',
-                        value: '',
-                        text: 'No people available',
-                        meta: 'Mentions list is empty',
-                    }]);
-                }
-
-                return Promise.resolve(people);
-            },
-            onAction: (api, rng, value) => {
-                editor.selection.setRng(rng);
-                api.hide();
-                if (!value) {
-                    editor.insertContent('');
-                    return;
-                }
-                const people = resolveCandidates();
-                const person = people.find((p) => String(p.id || p.name || p.label) === String(value));
-                const label = person?.name || person?.label || value;
-                const safeLabel = editor.dom.encode(String(label));
-                const safeId = editor.dom.encode(String(value));
-                editor.insertContent(
-                    `<span class="ems-mention" data-mention-id="${safeId}" contenteditable="false">@${safeLabel}</span>&nbsp;`
-                );
-            },
-        });
-    }
-
     function registerCustomButtons(editor) {
+        const wrapper = editor.getElement()?.closest('[data-ems-rich-editor]') || null;
+
         editor.ui.registry.addIcon(
             'ems-checklist',
             '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M9.5 16.2 5.8 12.5l1.4-1.4 2.3 2.3 6.3-6.3 1.4 1.4-7.7 7.7zM4 19h16v1.5H4V19zm0-4.5h2V16H4v-1.5zm0-4h2V12H4v-1.5zm0-4h2V8H4V6.5z"/></svg>'
@@ -887,6 +1191,14 @@
         editor.ui.registry.addIcon(
             'ems-attachment',
             '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M16.5 6.5v8.8a4.5 4.5 0 1 1-9 0V6.2a3.2 3.2 0 1 1 6.4 0v8.6a1.9 1.9 0 1 1-3.8 0V7.5h1.5v7.3a.4.4 0 0 0 .8 0V6.2a1.7 1.7 0 1 0-3.4 0v9.1a3 3 0 1 0 6 0V6.5h1.5z"/></svg>'
+        );
+        editor.ui.registry.addIcon(
+            'ems-linespace',
+            '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M4 5h16v1.6H4V5zm0 5.2h16v1.6H4v-1.6zm0 5.2h16V17H4v-1.6zM3 3.2l2.2 2.2L3 7.6V3.2zm0 13.2l2.2 2.2L3 20.8v-4.4z"/></svg>'
+        );
+        editor.ui.registry.addIcon(
+            'ems-shape',
+            '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h5A2.5 2.5 0 0 1 14 6.5v5a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 4 11.5v-5zM16.5 10a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"/></svg>'
         );
 
         editor.ui.registry.addToggleButton('checklist', {
@@ -908,6 +1220,103 @@
             tooltip: 'Insert image',
             onAction: () => insertImageFlow(editor),
         });
+
+        editor.ui.registry.addButton('emsmedia', {
+            icon: 'embed',
+            tooltip: 'Insert video or audio',
+            onAction: () => insertMediaFlow(editor),
+        });
+
+        editor.ui.registry.addMenuButton('emslinespace', {
+            icon: 'ems-linespace',
+            tooltip: 'Line spacing',
+            fetch: (callback) => {
+                const items = LINE_SPACE_OPTIONS.map((opt) => ({
+                    type: 'menuitem',
+                    text: opt.text,
+                    onAction: () => applyLineSpacing(editor, opt.value),
+                }));
+                items.push({ type: 'separator' });
+                items.push({
+                    type: 'menuitem',
+                    text: 'Add space after paragraph',
+                    onAction: () => applyParagraphGap(editor, '1.25em'),
+                });
+                items.push({
+                    type: 'menuitem',
+                    text: 'Remove space after paragraph',
+                    onAction: () => applyParagraphGap(editor, '0'),
+                });
+                items.push({
+                    type: 'menuitem',
+                    text: 'Reset paragraph spacing',
+                    onAction: () => applyParagraphGap(editor, null),
+                });
+                callback(items);
+            },
+        });
+
+        editor.ui.registry.addToggleButton('emscodeview', {
+            icon: 'sourcecode',
+            tooltip: 'Show HTML code',
+            onAction: (api) => toggleCodeView(editor, wrapper, api),
+            onSetup: (api) => {
+                api.setActive(Boolean(wrapper?.classList.contains('is-codeview')));
+                return () => {};
+            },
+        });
+
+        editor.ui.registry.addMenuButton('emsshapes', {
+            icon: 'ems-shape',
+            tooltip: 'Insert shape',
+            fetch: (callback) => {
+                callback(SHAPE_OPTIONS.map((opt) => ({
+                    type: 'menuitem',
+                    text: opt.text,
+                    onAction: () => openShapeDialog(editor, opt.value),
+                })));
+            },
+        });
+
+        editor.ui.registry.addButton('emsshapeedit', {
+            text: 'Edit shape',
+            tooltip: 'Edit shape colors and text',
+            onAction: () => {
+                const node = editor.selection.getNode();
+                const box = editor.dom.getParent(node, '.ems-shape-box');
+                if (!box) {
+                    notify('warning', 'Select a shape first.');
+                    return;
+                }
+                openShapeDialog(editor, box.getAttribute('data-ems-shape') || 'rectangle', box);
+            },
+        });
+
+        editor.ui.registry.addContextToolbar('emsshapetoolbar', {
+            predicate: (node) => Boolean(editor.dom.getParent(node, '.ems-shape-box')),
+            items: 'emsshapeedit',
+            position: 'node',
+            scope: 'node',
+        });
+
+        editor.on('dblclick', (event) => {
+            const box = editor.dom.getParent(event.target, '.ems-shape-box');
+            if (!box) return;
+            event.preventDefault();
+            openShapeDialog(editor, box.getAttribute('data-ems-shape') || 'rectangle', box);
+        });
+
+        editor.ui.registry.addMenuButton('emstabledesign', {
+            icon: 'table',
+            tooltip: 'Table design',
+            fetch: (callback) => {
+                callback(TABLE_DESIGN_OPTIONS.map((opt) => ({
+                    type: 'menuitem',
+                    text: opt.text,
+                    onAction: () => applyTableDesign(editor, opt.value),
+                })));
+            },
+        });
     }
 
     async function handleEditorImageDrop(editor, wrapper, uploadUrl, file) {
@@ -926,6 +1335,36 @@
         document.body.classList.toggle('ems-editor-fullscreen', active);
     }
 
+    function getFullscreenElement() {
+        return document.fullscreenElement
+            || document.webkitFullscreenElement
+            || null;
+    }
+
+    function requestElementFullscreen(el) {
+        if (!el) return Promise.reject(new Error('No element'));
+        if (typeof el.requestFullscreen === 'function') {
+            return el.requestFullscreen({ navigationUI: 'hide' }).catch(() => el.requestFullscreen());
+        }
+        if (typeof el.webkitRequestFullscreen === 'function') {
+            el.webkitRequestFullscreen();
+            return Promise.resolve();
+        }
+        return Promise.reject(new Error('Fullscreen API unavailable'));
+    }
+
+    function exitElementFullscreen() {
+        if (!getFullscreenElement()) return Promise.resolve();
+        if (typeof document.exitFullscreen === 'function') {
+            return document.exitFullscreen();
+        }
+        if (typeof document.webkitExitFullscreen === 'function') {
+            document.webkitExitFullscreen();
+            return Promise.resolve();
+        }
+        return Promise.resolve();
+    }
+
     // Solid colors (matching .panel-input light/dark surfaces) — never
     // "transparent", otherwise the iframe falls back to browser-default
     // white regardless of the admin theme.
@@ -936,11 +1375,16 @@
         const link = isDark ? '#5eead4' : '#0f766e';
         const codeBg = isDark ? '#1e293b' : '#f1f5f9';
         const border = isDark ? '#334155' : '#e2e8f0';
-        const mentionBg = isDark ? 'rgba(45, 212, 191, 0.16)' : 'rgba(13, 148, 136, 0.12)';
+        const quoteBg = isDark ? 'rgba(30, 41, 59, 0.55)' : '#f8fafc';
         return `
-            html, body {
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+            html {
+                height: 100%;
                 background: ${bg} !important;
                 scrollbar-color: ${border} ${bg};
+            }
+            html, body {
+                background: ${bg} !important;
             }
             ::-webkit-scrollbar {
                 width: 10px;
@@ -952,41 +1396,165 @@
             ::-webkit-scrollbar-thumb {
                 background: ${border};
                 border-radius: 8px;
+                border: 2px solid ${bg};
             }
             ::-webkit-scrollbar-thumb:hover {
                 background: ${muted};
             }
             body {
-                font-family: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+                position: relative;
+                box-sizing: border-box;
+                font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
                 font-size: 15px;
                 line-height: 1.65;
                 color: ${color};
                 margin: 0;
-                padding: 14px 16px 20px;
-                min-height: 140px;
+                padding: ${CONTENT_PAD_Y} ${CONTENT_PAD_X} 28px;
+                min-height: 100%;
                 text-align: left;
                 direction: ltr;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             }
-            p, h1, h2, h3, h4, li, blockquote {
+            body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before {
+                position: absolute !important;
+                left: ${CONTENT_PAD_X} !important;
+                right: ${CONTENT_PAD_X} !important;
+                top: ${CONTENT_PAD_Y} !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: auto !important;
+                max-width: none !important;
+                color: ${muted} !important;
+                font-family: inherit !important;
+                font-size: inherit !important;
+                font-weight: 400 !important;
+                line-height: inherit !important;
+                letter-spacing: inherit !important;
+                content: attr(data-mce-placeholder);
+                pointer-events: none;
+                white-space: pre-wrap;
+            }
+            p, h1, h2, h3, h4, h5, h6, li, blockquote {
                 text-align: left;
             }
-            p { margin: 0 0 0.75em; }
-            h1, h2, h3, h4 {
+            p {
+                margin: 0 0 0.85em;
+            }
+            p:last-child {
+                margin-bottom: 0;
+            }
+            h1, h2, h3, h4, h5, h6 {
                 font-weight: 650;
                 line-height: 1.3;
-                margin: 1.1em 0 0.45em;
-                letter-spacing: -0.01em;
+                margin: 1.15em 0 0.45em;
+                letter-spacing: -0.015em;
+                color: ${color};
             }
-            h1 { font-size: 1.65em; }
-            h2 { font-size: 1.35em; }
-            h3 { font-size: 1.15em; }
+            h1:first-child, h2:first-child, h3:first-child,
+            h4:first-child, h5:first-child, h6:first-child,
+            p:first-child {
+                margin-top: 0;
+            }
+            h1 { font-size: 1.75em; }
+            h2 { font-size: 1.4em; }
+            h3 { font-size: 1.2em; }
+            h4 { font-size: 1.05em; }
+            h5, h6 { font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.04em; color: ${muted}; }
             a { color: ${link}; text-decoration: underline; text-underline-offset: 2px; }
-            img, video {
+            img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 10px;
+                box-shadow: 0 0 0 1px ${border};
+            }
+            img.ems-img-inline,
+            p img,
+            li img,
+            td img,
+            th img,
+            span img {
+                display: inline !important;
+                vertical-align: middle !important;
+                margin: 0 0.4em !important;
+                max-width: min(100%, 280px);
+            }
+            video {
                 max-width: 100%;
                 height: auto;
                 border-radius: 10px;
                 margin: 0.5em 0;
                 box-shadow: 0 0 0 1px ${border};
+                display: block;
+            }
+            .ems-shape-box {
+                display: inline-flex !important;
+                align-items: center;
+                justify-content: center;
+                vertical-align: middle;
+                margin: 0.25em 0.4em;
+                min-width: 88px;
+                min-height: 56px;
+                padding: 0.55em 0.85em;
+                box-sizing: border-box;
+                text-align: center;
+                font-weight: 600;
+                line-height: 1.25;
+                cursor: pointer;
+                user-select: text;
+                box-shadow: 0 0 0 1px rgb(15 23 42 / 0.06);
+            }
+            .ems-shape-box__text {
+                display: inline-block;
+                outline: none;
+                min-width: 1ch;
+                word-break: break-word;
+            }
+            .ems-shape-box--rectangle { border-radius: 6px; min-width: 120px; }
+            .ems-shape-box--rounded { border-radius: 18px; min-width: 120px; }
+            .ems-shape-box--circle {
+                border-radius: 50%;
+                width: 96px;
+                height: 96px;
+                min-width: 96px;
+                min-height: 96px;
+                padding: 0.5em;
+            }
+            .ems-shape-box--ellipse {
+                border-radius: 50%;
+                min-width: 140px;
+                min-height: 72px;
+            }
+            .ems-shape-box--triangle {
+                clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+                border: 0 !important;
+                min-width: 110px;
+                min-height: 96px;
+                padding: 1.6em 0.75em 0.55em;
+            }
+            .ems-shape-box--line {
+                min-width: 140px;
+                min-height: 12px;
+                height: 12px;
+                padding: 0;
+                border-radius: 999px;
+            }
+            .ems-shape-box--line .ems-shape-box__text { display: none; }
+            .ems-shape-box--arrow {
+                clip-path: polygon(0 28%, 68% 28%, 68% 0, 100% 50%, 68% 100%, 68% 72%, 0 72%);
+                border: 0 !important;
+                min-width: 150px;
+                min-height: 48px;
+                padding: 0.55em 1.4em 0.55em 0.75em;
+            }
+            .ems-shape-box--star {
+                clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+                border: 0 !important;
+                width: 96px;
+                height: 96px;
+                min-width: 96px;
+                min-height: 96px;
+                padding: 1.1em 0.5em;
             }
             table { border-collapse: collapse; width: 100%; margin: 0.75em 0; }
             table td, table th {
@@ -995,7 +1563,40 @@
                 vertical-align: top;
             }
             table th { background: ${codeBg}; font-weight: 600; }
-            ul, ol { margin: 0.4em 0 0.8em; padding-left: 1.4em; }
+            table.ems-table-bordered td,
+            table.ems-table-bordered th {
+                border: 2px solid ${border};
+            }
+            table.ems-table-striped tr:nth-child(even) td {
+                background: ${codeBg};
+            }
+            table.ems-table-minimal td,
+            table.ems-table-minimal th {
+                border: 0;
+                border-bottom: 1px solid ${border};
+            }
+            table.ems-table-modern {
+                border: 0;
+                overflow: hidden;
+                border-radius: 12px;
+                box-shadow: 0 0 0 1px ${border};
+            }
+            table.ems-table-modern td,
+            table.ems-table-modern th {
+                border: 0;
+                border-bottom: 1px solid ${border};
+            }
+            table.ems-table-modern th {
+                background: ${link};
+                color: #fff;
+            }
+            table.ems-table-compact td,
+            table.ems-table-compact th {
+                padding: 4px 8px;
+                font-size: 0.92em;
+            }
+            ul, ol { margin: 0.35em 0 0.85em; padding-left: 1.5em; }
+            li { margin: 0.3em 0; }
             ul[data-ems-checklist] { list-style: none; padding-left: 0.15em; }
             ul[data-ems-checklist] li { position: relative; padding-left: 1.7em; margin: 0.4em 0; }
             ul[data-ems-checklist] li::before { content: '☐'; position: absolute; left: 0; color: ${muted}; }
@@ -1007,28 +1608,21 @@
                 overflow: auto;
                 border: 1px solid ${border};
                 font-size: 0.92em;
+                line-height: 1.55;
             }
             code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
             blockquote {
                 border-left: 3px solid ${link};
-                margin: 0.75em 0;
-                padding: 0.15em 0 0.15em 14px;
+                margin: 0.85em 0;
+                padding: 0.55em 0.85em;
+                background: ${quoteBg};
+                border-radius: 0 8px 8px 0;
                 color: ${muted};
             }
             hr {
                 border: 0;
                 border-top: 1px solid ${border};
-                margin: 1.25em 0;
-            }
-            .ems-mention {
-                display: inline-flex;
-                align-items: center;
-                padding: 0 0.4em;
-                border-radius: 999px;
-                background: ${mentionBg};
-                color: ${link};
-                font-weight: 600;
-                white-space: nowrap;
+                margin: 1.35em 0;
             }
             .ems-attachment-link {
                 display: inline-flex;
@@ -1107,7 +1701,7 @@
         const placeholder = options.placeholder
             || wrapper?.getAttribute('data-editor-placeholder')
             || textarea.getAttribute('placeholder')
-            || 'Write a description, or type / for commands…';
+            || 'Start writing…';
 
         const dark = isDarkMode();
         const skin = dark ? 'oxide-dark' : 'oxide';
@@ -1129,26 +1723,26 @@
                 promotion: false,
                 branding: false,
                 menubar,
-                statusbar: !isCompact,
+                statusbar: false,
                 elementpath: false,
                 plugins: options.plugins || DEFAULT_PLUGINS,
                 toolbar,
-                toolbar_mode: 'floating',
+                toolbar_mode: 'wrap',
                 toolbar_sticky: false,
                 fixed_toolbar_container: false,
                 quickbars_selection_toolbar: false,
                 quickbars_insert_toolbar: false,
-                height: Math.max(height, isCompact ? 150 : 220),
-                min_height: Math.max(Math.min(height, 180), isCompact ? 130 : 160),
+                height: Math.max(height, isCompact ? 220 : 360),
+                min_height: Math.max(height, isCompact ? 200 : 300),
                 placeholder,
                 readonly,
                 skin,
                 skin_url: `${base}/skins/ui/${skin}`,
                 content_css: `${base}/skins/content/${contentCssName}/content.min.css`,
                 content_style: contentStyle(dark),
-                font_family_formats:
-                    'Inter=Inter,sans-serif; Arial=arial,helvetica,sans-serif; Georgia=georgia,serif; Courier New=courier new,courier,monospace; Times New Roman=times new roman,times,serif; Verdana=verdana,geneva,sans-serif',
-                font_size_formats: '10px 12px 14px 15px 16px 18px 20px 24px 28px 32px 36px',
+                font_family_formats: FONT_FAMILY_FORMATS,
+                font_size_formats: FONT_SIZE_FORMATS,
+                line_height_formats: LINE_HEIGHT_FORMATS,
                 block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Heading 5=h5; Heading 6=h6; Preformatted=pre',
                 color_map: [
                     '#0F172A', 'Slate 900', '#334155', 'Slate 700', '#64748B', 'Slate 500',
@@ -1169,36 +1763,453 @@
                 file_picker_callback: buildFilePicker(uploadUrl, wrapper),
                 media_live_embeds: true,
                 link_default_target: '_blank',
+                link_context_toolbar: false,
                 relative_urls: false,
                 remove_script_host: false,
                 convert_urls: true,
                 paste_data_images: true,
-                sandbox_iframes: true,
-                fullscreen_native: false,
+                sandbox_iframes: false,
+                extended_valid_elements: [
+                    'img[class|src|border=0|alt|title|hspace|vspace|width|height|align|onmouseover|onmouseout|name|loading|style]',
+                    'video[*]',
+                    'audio[*]',
+                    'source[*]',
+                    'a[*]',
+                    'span[class|style|contenteditable|data-ems-shape|data-ems-fill|data-ems-border|data-ems-border-width|data-ems-text-color]',
+                ].join(','),
+                noneditable_class: 'mceNonEditable',
+                editable_class: 'mceEditable',
+                table_class_list: [
+                    { title: 'Default', value: '' },
+                    { title: 'Bordered', value: 'ems-table-bordered' },
+                    { title: 'Striped', value: 'ems-table-striped' },
+                    { title: 'Minimal', value: 'ems-table-minimal' },
+                    { title: 'Modern', value: 'ems-table-modern' },
+                    { title: 'Compact', value: 'ems-table-compact' },
+                ],
+                table_toolbar: 'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol | tablecellprops',
+                table_appearance_options: true,
+                video_template_callback: (data) => (
+                    `<video controls="controls" preload="metadata" width="${data.width || ''}" height="${data.height || ''}" style="max-width:100%;height:auto">`
+                    + `<source src="${data.source}"${data.sourcemime ? ` type="${data.sourcemime}"` : ''} />`
+                    + (data.altsource ? `<source src="${data.altsource}"${data.altsourcemime ? ` type="${data.altsourcemime}"` : ''} />` : '')
+                    + '</video>'
+                ),
+                audio_template_callback: (data) => (
+                    `<audio controls="controls" preload="metadata" style="width:100%;max-width:480px">`
+                    + `<source src="${data.source}"${data.sourcemime ? ` type="${data.sourcemime}"` : ''} />`
+                    + '</audio>'
+                ),
                 setup: (editor) => {
                     registerCustomButtons(editor);
                     registerSlashCommands(editor);
-                    registerMentions(editor, wrapper);
 
-                    const forceContentColors = () => {
-                        const body = editor.getBody?.();
-                        if (!body) return;
+                    const surfaceEl = wrapper?.querySelector('.ems-rich-editor__surface') || null;
+                    const configuredHeight = Math.max(height, isCompact ? 220 : 360);
+                    let fullscreenResizeHandler = null;
+                    let fullscreenChangeHandler = null;
+                    let surfaceResizeObserver = null;
+                    let uiParkObserver = null;
+                    let isEmsFullscreen = false;
+                    let fullscreenButtonApi = null;
+                    let savedLayout = null;
+                    let normalSurfaceHeight = configuredHeight;
+                    let lastSyncedSurfaceHeight = 0;
+                    const parkedUiNodes = [];
+
+                    const themeColors = () => {
                         const nowDark = isDarkMode();
-                        editor.dom.setStyles(body, {
-                            'background-color': nowDark ? '#0f172a' : '#ffffff',
+                        return {
+                            dark: nowDark,
+                            bg: nowDark ? '#0f172a' : '#ffffff',
                             color: nowDark ? '#e2e8f0' : '#0f172a',
-                        });
-                        const doc = editor.getDoc?.();
-                        if (doc?.documentElement) {
-                            doc.documentElement.style.backgroundColor = nowDark ? '#0f172a' : '#ffffff';
+                        };
+                    };
+
+                    const isParkableUiNode = (node) => {
+                        if (!node || node.nodeType !== 1) return false;
+                        return node.classList?.contains('tox-tinymce-aux')
+                            || node.classList?.contains('tox-silver-sink')
+                            || node.classList?.contains('tox-dialog-wrap')
+                            || node.matches?.('.tox-tinymce-aux, .tox-silver-sink, .tox-dialog-wrap');
+                    };
+
+                    const parkUiNode = (node) => {
+                        if (!surfaceEl || !isParkableUiNode(node)) return;
+                        if (node.parentElement === surfaceEl) return;
+                        // Never reparent open menus mid-flight — only sinks/aux/dialogs.
+                        if (node.classList?.contains('tox-menu') || node.classList?.contains('tox-collection')) {
+                            return;
+                        }
+                        if (parkedUiNodes.some((entry) => entry.el === node)) {
+                            surfaceEl.appendChild(node);
+                            return;
+                        }
+                        parkedUiNodes.push({ el: node, parent: node.parentNode, next: node.nextSibling });
+                        surfaceEl.appendChild(node);
+                        if (node.classList?.contains('tox-tinymce-aux') || node.classList?.contains('tox-silver-sink')) {
+                            node.classList.add('ems-rte-fs-sink');
                         }
                     };
+
+                    const parkAuxInFullscreen = () => {
+                        if (!surfaceEl) return;
+                        document.querySelectorAll('.tox-tinymce-aux, .tox-silver-sink').forEach((node) => {
+                            parkUiNode(node);
+                        });
+                        if (uiParkObserver) return;
+                        uiParkObserver = new MutationObserver((mutations) => {
+                            mutations.forEach((mutation) => {
+                                mutation.addedNodes.forEach((node) => {
+                                    if (!isParkableUiNode(node)) return;
+                                    // Menus must stay inside the already-parked aux; only park new sinks.
+                                    if (node.classList?.contains('tox-tinymce-aux')
+                                        || node.classList?.contains('tox-silver-sink')
+                                        || node.classList?.contains('tox-dialog-wrap')) {
+                                        parkUiNode(node);
+                                    }
+                                });
+                            });
+                        });
+                        uiParkObserver.observe(document.body, { childList: true });
+                    };
+
+                    const restoreAuxAfterFullscreen = () => {
+                        if (uiParkObserver) {
+                            uiParkObserver.disconnect();
+                            uiParkObserver = null;
+                        }
+                        while (parkedUiNodes.length) {
+                            const { el, parent, next } = parkedUiNodes.pop();
+                            if (!el || !parent) continue;
+                            el.classList?.remove('ems-rte-fs-sink');
+                            try {
+                                if (next && next.parentNode === parent) {
+                                    parent.insertBefore(el, next);
+                                } else {
+                                    parent.appendChild(el);
+                                }
+                            } catch {
+                                parent.appendChild(el);
+                            }
+                        }
+                    };
+
+                    const forceContentColors = () => {
+                        const { bg, color } = themeColors();
+                        const body = editor.getBody?.();
+                        if (body) {
+                            editor.dom.setStyles(body, {
+                                'background-color': bg,
+                                color,
+                            });
+                        }
+                        const doc = editor.getDoc?.();
+                        if (doc?.documentElement) {
+                            doc.documentElement.style.backgroundColor = bg;
+                        }
+                        if (doc?.body) {
+                            doc.body.style.backgroundColor = bg;
+                            doc.body.style.color = color;
+                        }
+                        const iframe = editor.iframeElement
+                            || editor.getContentAreaContainer?.()?.querySelector?.('iframe')
+                            || editor.getContainer?.()?.querySelector?.('.tox-edit-area__iframe');
+                        if (iframe) {
+                            iframe.style.backgroundColor = bg;
+                        }
+                        const editArea = editor.getContentAreaContainer?.()
+                            || editor.getContainer?.()?.querySelector?.('.tox-edit-area');
+                        if (editArea) {
+                            editArea.style.backgroundColor = bg;
+                        }
+                    };
+
+                    const readStyle = (el, prop) => (el?.style ? el.style.getPropertyValue(prop) || el.style[prop] || '' : '');
+
+                    const captureLayoutBeforeFullscreen = () => {
+                        const container = editor.getContainer?.();
+                        if (!container) {
+                            savedLayout = null;
+                            return;
+                        }
+                        const editArea = container.querySelector('.tox-edit-area');
+                        const iframe = container.querySelector('.tox-edit-area__iframe, iframe');
+                        const wrap = container.querySelector('.tox-sidebar-wrap');
+                        const rectH = Math.round(container.getBoundingClientRect().height) || normalSurfaceHeight;
+                        savedLayout = {
+                            containerHeight: container.style.height || '',
+                            containerWidth: container.style.width || '',
+                            containerMaxHeight: container.style.maxHeight || '',
+                            editAreaHeight: readStyle(editArea, 'height'),
+                            editAreaFlex: readStyle(editArea, 'flex'),
+                            editAreaBg: readStyle(editArea, 'backgroundColor') || editArea?.style?.backgroundColor || '',
+                            iframeHeight: readStyle(iframe, 'height'),
+                            iframeBg: iframe?.style?.backgroundColor || '',
+                            wrapHeight: readStyle(wrap, 'height'),
+                            wrapFlex: readStyle(wrap, 'flex'),
+                            surfaceHeight: surfaceEl?.style.height || '',
+                            surfaceWidth: surfaceEl?.style.width || '',
+                            fallbackHeight: Math.max(rectH, configuredHeight),
+                        };
+                    };
+
+                    const applyEditorPixelHeight = (totalHeight) => {
+                        const container = editor.getContainer?.();
+                        if (!container) return;
+                        const target = Math.max(160, Math.round(totalHeight) || configuredHeight);
+                        const header = container.querySelector('.tox-editor-header');
+                        const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 48;
+                        const editH = Math.max(100, target - headerH);
+                        const { bg } = themeColors();
+
+                        container.style.height = `${target}px`;
+                        container.style.width = '100%';
+                        container.style.maxHeight = '';
+
+                        const wrap = container.querySelector('.tox-sidebar-wrap');
+                        if (wrap) {
+                            wrap.style.height = `${editH}px`;
+                            wrap.style.flex = '';
+                        }
+
+                        const editArea = container.querySelector('.tox-edit-area');
+                        if (editArea) {
+                            editArea.style.height = `${editH}px`;
+                            editArea.style.flex = '';
+                            editArea.style.backgroundColor = bg;
+                        }
+
+                        const iframe = container.querySelector('.tox-edit-area__iframe, iframe');
+                        if (iframe) {
+                            iframe.style.height = `${editH}px`;
+                            iframe.style.backgroundColor = bg;
+                        }
+
+                        try {
+                            if (typeof editor.theme?.resizeTo === 'function') {
+                                editor.theme.resizeTo(container.clientWidth || undefined, target);
+                            } else {
+                                editor.fire('ResizeEditor');
+                            }
+                        } catch {
+                            try {
+                                editor.fire('ResizeEditor');
+                            } catch {
+                                // ignore
+                            }
+                        }
+                    };
+
+                    const syncEditorToSurface = () => {
+                        if (isEmsFullscreen || !surfaceEl) return;
+                        const h = Math.round(surfaceEl.clientHeight || 0);
+                        if (h < 140) return;
+                        if (Math.abs(h - lastSyncedSurfaceHeight) < 2) return;
+                        lastSyncedSurfaceHeight = h;
+                        normalSurfaceHeight = h;
+                        applyEditorPixelHeight(h);
+                    };
+
+                    const restoreLayoutAfterFullscreen = () => {
+                        const restoreH = Math.max(
+                            configuredHeight,
+                            normalSurfaceHeight,
+                            savedLayout?.fallbackHeight || 0
+                        );
+
+                        if (surfaceEl) {
+                            surfaceEl.style.width = '';
+                            surfaceEl.style.height = `${restoreH}px`;
+                            surfaceEl.style.minHeight = `${configuredHeight}px`;
+                        }
+
+                        lastSyncedSurfaceHeight = 0;
+                        applyEditorPixelHeight(restoreH);
+                        lastSyncedSurfaceHeight = restoreH;
+                        savedLayout = null;
+
+                        window.requestAnimationFrame(() => {
+                            syncEditorToSurface();
+                            forceContentColors();
+                        });
+                    };
+
+                    const applyFullscreenMetrics = () => {
+                        if (!isEmsFullscreen || !surfaceEl) return;
+                        const container = editor.getContainer?.();
+                        if (!container) return;
+
+                        const viewportH = window.innerHeight
+                            || document.documentElement.clientHeight
+                            || 600;
+                        const header = container.querySelector('.tox-editor-header');
+                        const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 48;
+                        const editH = Math.max(160, viewportH - headerH);
+                        const { bg } = themeColors();
+
+                        surfaceEl.style.height = '100%';
+                        surfaceEl.style.width = '100%';
+                        container.style.height = '100%';
+                        container.style.width = '100%';
+                        container.style.maxHeight = '100%';
+
+                        const wrap = container.querySelector('.tox-sidebar-wrap');
+                        if (wrap) {
+                            wrap.style.height = `${editH}px`;
+                            wrap.style.flex = '1 1 auto';
+                        }
+
+                        const editArea = container.querySelector('.tox-edit-area');
+                        if (editArea) {
+                            editArea.style.height = `${editH}px`;
+                            editArea.style.flex = '1 1 auto';
+                            editArea.style.backgroundColor = bg;
+                        }
+
+                        const iframe = container.querySelector('.tox-edit-area__iframe, iframe');
+                        if (iframe) {
+                            iframe.style.height = `${editH}px`;
+                            iframe.style.backgroundColor = bg;
+                        }
+
+                        forceContentColors();
+                        parkAuxInFullscreen();
+
+                        try {
+                            editor.fire('ResizeEditor');
+                        } catch {
+                            // ignore
+                        }
+                    };
+
+                    const syncThemeClassOnSurface = () => {
+                        if (!surfaceEl) return;
+                        surfaceEl.classList.toggle('ems-rich-editor--dark', isDarkMode());
+                        surfaceEl.classList.toggle('ems-rich-editor--light', !isDarkMode());
+                    };
+
+                    const cleanupFullscreenUi = () => {
+                        isEmsFullscreen = false;
+                        if (fullscreenResizeHandler) {
+                            window.removeEventListener('resize', fullscreenResizeHandler);
+                            fullscreenResizeHandler = null;
+                        }
+                        restoreAuxAfterFullscreen();
+                        surfaceEl?.classList.remove(
+                            'ems-rich-editor__surface--fullscreen',
+                            'ems-rich-editor--dark',
+                            'ems-rich-editor--light'
+                        );
+                        setFullscreenPageState(false);
+                        fullscreenButtonApi?.setActive(false);
+                        restoreLayoutAfterFullscreen();
+                    };
+
+                    const onFullscreenChange = () => {
+                        const active = getFullscreenElement() === surfaceEl;
+                        if (active) {
+                            if (!isEmsFullscreen) {
+                                captureLayoutBeforeFullscreen();
+                            }
+                            isEmsFullscreen = true;
+                            syncThemeClassOnSurface();
+                            surfaceEl.classList.add('ems-rich-editor__surface--fullscreen');
+                            parkAuxInFullscreen();
+                            setFullscreenPageState(true);
+                            fullscreenButtonApi?.setActive(true);
+                            if (!fullscreenResizeHandler) {
+                                fullscreenResizeHandler = () => applyFullscreenMetrics();
+                                window.addEventListener('resize', fullscreenResizeHandler);
+                            }
+                            window.requestAnimationFrame(() => {
+                                applyFullscreenMetrics();
+                                editor.focus();
+                            });
+                            return;
+                        }
+
+                        if (isEmsFullscreen) {
+                            cleanupFullscreenUi();
+                        }
+                    };
+
+                    const exitEmsFullscreen = () => {
+                        if (getFullscreenElement() === surfaceEl) {
+                            exitElementFullscreen().catch(() => cleanupFullscreenUi());
+                            return;
+                        }
+                        cleanupFullscreenUi();
+                    };
+
+                    const enterEmsFullscreen = () => {
+                        if (!surfaceEl || isEmsFullscreen || getFullscreenElement() === surfaceEl) return;
+
+                        captureLayoutBeforeFullscreen();
+                        syncThemeClassOnSurface();
+                        surfaceEl.classList.add('ems-rich-editor__surface--fullscreen');
+
+                        requestElementFullscreen(surfaceEl)
+                            .then(() => {
+                                // fullscreenchange handler applies metrics
+                            })
+                            .catch(() => {
+                                surfaceEl.classList.remove(
+                                    'ems-rich-editor__surface--fullscreen',
+                                    'ems-rich-editor--dark',
+                                    'ems-rich-editor--light'
+                                );
+                                savedLayout = null;
+                                notify('error', 'Fullscreen is not available in this browser.');
+                            });
+                    };
+
+                    const toggleEmsFullscreen = () => {
+                        if (isEmsFullscreen || getFullscreenElement() === surfaceEl) {
+                            exitEmsFullscreen();
+                            return;
+                        }
+                        enterEmsFullscreen();
+                    };
+
+                    editor.ui.registry.addToggleButton('emsfullscreen', {
+                        icon: 'fullscreen',
+                        tooltip: 'Fullscreen',
+                        onAction: () => toggleEmsFullscreen(),
+                        onSetup: (api) => {
+                            fullscreenButtonApi = api;
+                            api.setActive(isEmsFullscreen);
+                            return () => {
+                                if (fullscreenButtonApi === api) fullscreenButtonApi = null;
+                            };
+                        },
+                    });
+
+                    fullscreenChangeHandler = onFullscreenChange;
+                    document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+                    document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
 
                     editor.on('init', () => {
                         wrapper?.classList.add('is-ready');
                         hideProgress(wrapper);
                         textarea.removeAttribute('required');
                         forceContentColors();
+
+                        if (surfaceEl) {
+                            surfaceEl.style.minHeight = `${configuredHeight}px`;
+                            surfaceEl.style.height = `${configuredHeight}px`;
+                            normalSurfaceHeight = configuredHeight;
+                            window.requestAnimationFrame(() => {
+                                applyEditorPixelHeight(configuredHeight);
+                                if (typeof ResizeObserver === 'function' && !surfaceResizeObserver) {
+                                    surfaceResizeObserver = new ResizeObserver(() => {
+                                        if (isEmsFullscreen) return;
+                                        syncEditorToSurface();
+                                    });
+                                    surfaceResizeObserver.observe(surfaceEl);
+                                }
+                            });
+                        }
 
                         if (editor.notificationManager?.open) {
                             const originalOpen = editor.notificationManager.open.bind(editor.notificationManager);
@@ -1230,52 +2241,69 @@
                         handleEditorImageDrop(editor, wrapper, uploadUrl, image);
                     });
 
-                    // Fullscreen reliably escapes any ancestor with overflow/scroll
-                    // clipping (the admin panel's scroll containers) by moving the
-                    // editor surface to <body> for the duration, then restoring it.
-                    // The reference is captured once up front — once the surface is
-                    // reparented to <body> it's no longer inside `wrapper`, so we
-                    // can't re-query it via wrapper.querySelector on the way out.
-                    const surfaceEl = wrapper?.querySelector('.ems-rich-editor__surface') || null;
-                    let fullscreenAnchor = null;
-                    const exitFullscreenReattach = () => {
-                        if (surfaceEl && fullscreenAnchor?.parentNode) {
-                            fullscreenAnchor.parentNode.insertBefore(surfaceEl, fullscreenAnchor);
+                    editor.on('remove', () => {
+                        if (fullscreenChangeHandler) {
+                            document.removeEventListener('fullscreenchange', fullscreenChangeHandler);
+                            document.removeEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+                            fullscreenChangeHandler = null;
                         }
-                        fullscreenAnchor?.remove();
-                        fullscreenAnchor = null;
-                        surfaceEl?.classList.remove('ems-rich-editor__surface--fullscreen');
-                    };
-
-                    editor.on('FullscreenStateChanged', (event) => {
-                        const active = Boolean(event.state);
-                        setFullscreenPageState(active);
-                        if (!surfaceEl) return;
-
-                        if (active) {
-                            fullscreenAnchor = document.createComment('ems-editor-fullscreen-anchor');
-                            surfaceEl.parentNode.insertBefore(fullscreenAnchor, surfaceEl);
-                            document.body.appendChild(surfaceEl);
-                            surfaceEl.classList.add('ems-rich-editor__surface--fullscreen');
-                        } else {
-                            exitFullscreenReattach();
+                        if (surfaceResizeObserver) {
+                            surfaceResizeObserver.disconnect();
+                            surfaceResizeObserver = null;
+                        }
+                        const wasFullscreen = isEmsFullscreen || getFullscreenElement() === surfaceEl;
+                        if (wasFullscreen) {
+                            if (getFullscreenElement() === surfaceEl) {
+                                exitElementFullscreen().catch(() => {});
+                            }
+                            cleanupFullscreenUi();
+                        } else if (uiParkObserver) {
+                            uiParkObserver.disconnect();
+                            uiParkObserver = null;
                         }
                     });
 
-                    editor.on('remove', exitFullscreenReattach);
-
-                    editor.on('change input undo redo SetContent', () => {
+                    const syncTextareaFromEditor = () => {
+                        if (wrapper?.classList.contains('is-codeview')) {
+                            const panel = surfaceEl?.querySelector('.ems-rich-editor__codeview');
+                            if (panel) {
+                                textarea.value = panel.value;
+                                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                                return;
+                            }
+                        }
                         textarea.value = editor.getContent();
                         textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                    });
+                    };
 
-                    editor.on('focus', () => wrapper?.classList.add('is-focused'));
+                    editor.on('change input undo redo SetContent', syncTextareaFromEditor);
+
+                    editor.on('focus', () => {
+                        wrapper?.classList.add('is-focused');
+                        surfaceEl?.classList.add('is-focused');
+                    });
                     editor.on('blur', () => {
                         wrapper?.classList.remove('is-focused');
-                        textarea.value = editor.getContent();
+                        surfaceEl?.classList.remove('is-focused');
+                        syncTextareaFromEditor();
+                    });
+
+                    // Keep form value in sync while editing HTML source.
+                    surfaceEl?.addEventListener('input', (event) => {
+                        if (event.target?.classList?.contains('ems-rich-editor__codeview')) {
+                            textarea.value = event.target.value;
+                            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
                     });
                 },
                 init_instance_callback: (editor) => {
+                    const readEditorHtml = () => {
+                        if (wrapper?.classList.contains('is-codeview')) {
+                            const panel = wrapper.querySelector('.ems-rich-editor__codeview');
+                            if (panel) return panel.value;
+                        }
+                        return editor.getContent();
+                    };
                     const adapter = {
                         id: textarea.id,
                         input: textarea,
@@ -1283,26 +2311,35 @@
                         editor,
                         isFallback: false,
                         mode: uiMode,
-                        getData: () => editor.getContent(),
+                        getData: () => readEditorHtml(),
                         setData: (value) => {
                             editor.setContent(String(value ?? ''));
                             textarea.value = editor.getContent();
+                            const panel = wrapper?.querySelector('.ems-rich-editor__codeview');
+                            if (panel && wrapper.classList.contains('is-codeview')) {
+                                panel.value = textarea.value;
+                            }
                         },
                         sync: () => {
-                            textarea.value = editor.getContent();
+                            textarea.value = readEditorHtml();
                             return textarea.value;
                         },
                         onChange: (callback) => {
                             if (typeof callback !== 'function') return;
-                            editor.on('change input undo redo SetContent', () => callback(editor.getContent()));
+                            editor.on('change input undo redo SetContent', () => callback(readEditorHtml()));
                         },
                         focus: () => editor.focus(),
                         destroy: async () => {
-                            setFullscreenPageState(false);
+                            if (wrapper?.classList.contains('is-codeview')) {
+                                exitCodeView(editor, wrapper, null);
+                            }
+                            if (getFullscreenElement() === wrapper?.querySelector?.('.ems-rich-editor__surface')) {
+                                setFullscreenPageState(false);
+                            }
                             hideProgress(wrapper);
                             editor.destroy();
                             registry.delete(textarea.id);
-                            wrapper?.classList.remove('is-ready', 'is-focused');
+                            wrapper?.classList.remove('is-ready', 'is-focused', 'is-codeview');
                         },
                     };
 
