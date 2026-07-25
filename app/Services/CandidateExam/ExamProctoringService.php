@@ -2,10 +2,13 @@
 
 namespace App\Services\CandidateExam;
 
+use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\ExamAttemptEvent;
 use App\Models\ExamAttemptSnapshot;
 use App\Models\ExamAttemptViolation;
+use App\Models\ExamVerificationChallenge;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -105,7 +108,13 @@ class ExamProctoringService
 
     public function storeSnapshot(ExamAttempt $attempt, UploadedFile $file, string $type = 'selfie'): ExamAttemptSnapshot
     {
-        $path = $file->store('exam-snapshots/'.$attempt->id, 'local');
+        if ($type === 'selfie') {
+            $this->deleteAttemptSelfies($attempt);
+        }
+
+        $candidateId = (int) $attempt->user_id;
+        $directory = 'exam-snapshots/'.$attempt->id.'/candidate-'.$candidateId;
+        $path = $file->storeAs($directory, 'selfie-'.now()->format('YmdHis').'.'.$file->getClientOriginalExtension(), 'local');
 
         return ExamAttemptSnapshot::query()->create([
             'exam_attempt_id' => $attempt->id,
@@ -117,8 +126,36 @@ class ExamProctoringService
                 'original_name' => $file->getClientOriginalName(),
                 'mime' => $file->getMimeType(),
                 'size' => $file->getSize(),
+                'user_id' => $candidateId,
+                'candidate_id' => $candidateId,
             ],
         ]);
+    }
+
+    public function storeChallengeSelfie(
+        ExamVerificationChallenge $challenge,
+        UploadedFile $file,
+        Exam $exam,
+        User $user
+    ): void {
+        $this->clearChallengeSelfie($challenge);
+
+        $directory = 'exam-verification/'.$exam->id.'/candidate-'.$user->id;
+        $path = $file->storeAs($directory, 'selfie.jpg', 'local');
+
+        $challenge->selfie_path = $path;
+        $challenge->selfie_disk = 'local';
+        $challenge->save();
+    }
+
+    public function clearChallengeSelfie(ExamVerificationChallenge $challenge): void
+    {
+        if ($challenge->selfie_path) {
+            Storage::disk($challenge->selfie_disk ?: 'local')->delete($challenge->selfie_path);
+        }
+
+        $challenge->selfie_path = null;
+        $challenge->selfie_disk = null;
     }
 
     public function attachVerificationSelfie(
@@ -127,9 +164,18 @@ class ExamProctoringService
         string $disk,
         ?string $challengeToken = null
     ): ExamAttemptSnapshot {
-        $target = 'exam-snapshots/'.$attempt->id.'/'.basename($path);
+        $this->deleteAttemptSelfies($attempt);
+
+        $candidateId = (int) $attempt->user_id;
+        $extension = pathinfo($path, PATHINFO_EXTENSION) ?: 'jpg';
+        $target = 'exam-snapshots/'.$attempt->id.'/candidate-'.$candidateId.'/selfie.'.$extension;
+        $storage = Storage::disk($disk);
+
         if ($path !== $target) {
-            Storage::disk($disk)->copy($path, $target);
+            if ($storage->exists($target)) {
+                $storage->delete($target);
+            }
+            $storage->copy($path, $target);
         }
 
         return ExamAttemptSnapshot::query()->create([
@@ -139,8 +185,28 @@ class ExamProctoringService
             'disk' => $disk,
             'verification_status' => 'captured',
             'challenge_token' => $challengeToken,
-            'meta' => ['source' => 'prepare_verification'],
+            'meta' => [
+                'source' => 'prepare_verification',
+                'user_id' => $candidateId,
+                'candidate_id' => $candidateId,
+                'exam_id' => (int) $attempt->exam_id,
+            ],
         ]);
+    }
+
+    protected function deleteAttemptSelfies(ExamAttempt $attempt): void
+    {
+        $existing = ExamAttemptSnapshot::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->where('type', 'selfie')
+            ->get();
+
+        foreach ($existing as $snapshot) {
+            if ($snapshot->path) {
+                Storage::disk($snapshot->disk ?: 'local')->delete($snapshot->path);
+            }
+            $snapshot->delete();
+        }
     }
 
     /**

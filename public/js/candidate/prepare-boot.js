@@ -185,7 +185,7 @@
                 readyEl.dataset.state = ready ? 'ready' : 'blocked';
             }
             if (captureBtn) {
-                captureBtn.disabled = !state.webcam;
+                captureBtn.disabled = !state.webcam || (requireSelfie && state.selfie);
             }
         }
 
@@ -205,6 +205,8 @@
                 preview.srcObject = null;
                 preview.hidden = true;
                 preview.setAttribute('hidden', 'hidden');
+                var liveSlot = preview.closest('.cx-prepare__media-slot');
+                if (liveSlot) liveSlot.classList.remove('is-active');
             }
             if (state.micTimer) {
                 clearInterval(state.micTimer);
@@ -223,6 +225,14 @@
             preview.playsInline = true;
             preview.hidden = false;
             preview.removeAttribute('hidden');
+            var liveSlot = preview.closest('.cx-prepare__media-slot');
+            if (liveSlot) liveSlot.classList.add('is-active');
+            var media = document.getElementById('cx-prepare-media');
+            if (media) {
+                media.classList.add('is-visible');
+                media.hidden = false;
+                media.removeAttribute('hidden');
+            }
             var playPromise = preview.play();
             if (playPromise && typeof playPromise.catch === 'function') {
                 playPromise.catch(function () {});
@@ -478,13 +488,18 @@
                 photoPreview.src = URL.createObjectURL(blob);
                 photoPreview.hidden = false;
                 photoPreview.removeAttribute('hidden');
+                var selfieSlot = photoPreview.closest('.cx-prepare__media-slot');
+                if (selfieSlot) selfieSlot.classList.add('is-active');
             }
             setStatus(root, 'selfie', 'captured');
             if (retakeBtn) {
                 retakeBtn.hidden = false;
                 retakeBtn.removeAttribute('hidden');
             }
-            if (captureBtn) captureBtn.textContent = 'Selfie captured';
+            if (captureBtn) {
+                captureBtn.textContent = 'Selfie captured';
+                captureBtn.disabled = true;
+            }
 
             if (verifyUrl && challengeToken) {
                 var form = new FormData();
@@ -681,14 +696,39 @@
             state.photoBlob = null;
             state.selfie = false;
             if (photoPreview) {
+                if (photoPreview.src && photoPreview.src.indexOf('blob:') === 0) {
+                    try { URL.revokeObjectURL(photoPreview.src); } catch (err) {}
+                }
+                photoPreview.removeAttribute('src');
                 photoPreview.hidden = true;
                 photoPreview.setAttribute('hidden', 'hidden');
+                var selfieSlot = photoPreview.closest('.cx-prepare__media-slot');
+                if (selfieSlot) selfieSlot.classList.remove('is-active');
             }
             setStatus(root, 'selfie', 'required');
-            if (captureBtn) captureBtn.textContent = 'Capture selfie';
+            if (captureBtn) {
+                captureBtn.textContent = 'Capture selfie';
+                captureBtn.disabled = !state.webcam;
+            }
             retakeBtn.hidden = true;
             retakeBtn.setAttribute('hidden', 'hidden');
             updateStartEnabled();
+
+            if (verifyUrl && challengeToken) {
+                var form = new FormData();
+                form.append('_token', csrfToken());
+                form.append('challenge_token', challengeToken);
+                form.append('clear_selfie', '1');
+                fetch(verifyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: form,
+                    credentials: 'same-origin',
+                }).catch(function () {});
+            }
         });
         if (startBtn) startBtn.addEventListener('click', function (e) {
             e.preventDefault();
@@ -717,5 +757,23 @@
         }
 
         updateStartEnabled();
+        dismissPageBoot();
     });
+
+    function dismissPageBoot() {
+        document.body.classList.remove('cx-page-booting');
+        var boot = document.getElementById('cx-page-boot');
+        if (!boot || boot.classList.contains('is-done') || boot.classList.contains('is-leaving')) return;
+        boot.setAttribute('aria-busy', 'false');
+        boot.classList.add('is-leaving');
+        window.setTimeout(function () {
+            boot.hidden = true;
+            boot.setAttribute('hidden', 'hidden');
+            boot.classList.add('is-done');
+        }, 220);
+    }
+
+    // Safety: never leave the page locked if boot script stalls.
+    window.setTimeout(dismissPageBoot, 8000);
+    window.addEventListener('load', dismissPageBoot);
 })();

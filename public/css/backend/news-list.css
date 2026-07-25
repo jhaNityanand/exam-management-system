@@ -258,7 +258,8 @@
     display: none !important;
 }
 
-.dark .table-loading-overlay {
+.dark .table-loading-overlay,
+html.dark .table-loading-overlay {
     background-color: rgba(15, 23, 42, 0.65);
 }
 
@@ -270,7 +271,8 @@
     animation: ajax-skeleton-shimmer 1.2s ease-in-out infinite;
 }
 
-.dark .ajax-skeleton-bar {
+.dark .ajax-skeleton-bar,
+html.dark .ajax-skeleton-bar {
     background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
     background-size: 200% 100%;
 }

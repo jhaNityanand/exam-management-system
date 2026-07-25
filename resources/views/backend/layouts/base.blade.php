@@ -1,15 +1,26 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme-default="system">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@hasSection('title')@yield('title')@else{{ config('app.name', 'ExamMS') }}@endif</title>
+    @include('partials.theme-init', ['themeStorageKey' => 'ems.theme', 'themeResolveMode' => 'preference'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ versioned_asset('css/components/icon-buttons.css') }}">
     @stack('styles')
 </head>
 <body class="font-sans antialiased">
+    <script>
+        (function () {
+            function markThemeReady() {
+                document.documentElement.classList.add('ems-theme-ready');
+                document.documentElement.style.backgroundColor = '';
+            }
+            if (document.readyState === 'complete') markThemeReady();
+            else window.addEventListener('load', markThemeReady);
+        })();
+    </script>
     <div id="page-progress" class="page-progress" aria-hidden="true"></div>
     @yield('body')
     @include('partials.flash-toasts')

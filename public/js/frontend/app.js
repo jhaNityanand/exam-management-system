@@ -43,10 +43,23 @@
   }
 
   function applyTheme(theme) {
-    html.classList.toggle('dark', theme === 'dark');
+    var actual = theme === 'dark' ? 'dark' : 'light';
+    html.classList.toggle('dark', actual === 'dark');
+    html.dataset.theme = actual;
+    html.dataset.themeActual = actual;
+    html.style.colorScheme = actual;
+    html.style.backgroundColor = '';
+    html.classList.add('ems-theme-ready');
+    try {
+      localStorage.setItem(THEME_KEY, actual);
+      localStorage.setItem('ems.theme', actual);
+    } catch (e) {}
+    if (doc.body && doc.body.classList.contains('cx-body')) {
+      doc.body.setAttribute('data-theme', actual);
+    }
     qsa('[data-theme-toggle]').forEach(function (btn) {
-      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
-      btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+      btn.setAttribute('aria-label', actual === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      btn.setAttribute('aria-pressed', actual === 'dark' ? 'true' : 'false');
     });
   }
 

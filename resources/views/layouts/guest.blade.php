@@ -5,25 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sign in') · {{ site_setting('brand.site_name', 'Examtube.in') }}</title>
+    @include('frontend.partials.theme-init')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/app.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/icon-buttons.css') }}">
-    <script>
-        (function () {
-            try {
-                var t = localStorage.getItem('examtube-theme');
-                if (t === 'system' || !t) {
-                    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-                }
-                if (t === 'dark') document.documentElement.classList.add('dark');
-                document.documentElement.dataset.theme = t;
-            } catch (e) {}
-        })();
-    </script>
 </head>
 <body class="et-body et-auth-body">
+    <script>
+        (function () {
+            function markThemeReady() {
+                document.documentElement.classList.add('ems-theme-ready');
+                document.documentElement.style.backgroundColor = '';
+            }
+            if (document.readyState === 'complete') markThemeReady();
+            else window.addEventListener('load', markThemeReady);
+        })();
+    </script>
     <div class="et-auth">
         <aside class="et-auth__brand-panel" aria-hidden="false">
             <a href="{{ route('home') }}" class="et-auth__logo">

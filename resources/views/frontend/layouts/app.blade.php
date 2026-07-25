@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('frontend.partials.theme-init')
     @include('frontend.partials.seo')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,20 +12,18 @@
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/app.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/icon-buttons.css') }}">
     @stack('styles')
-    <script>
-        (function () {
-            try {
-                var t = localStorage.getItem('examtube-theme');
-                if (t === 'system' || !t) {
-                    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-                }
-                if (t === 'dark') document.documentElement.classList.add('dark');
-                document.documentElement.dataset.theme = t;
-            } catch (e) {}
-        })();
-    </script>
 </head>
 <body class="et-body">
+    <script>
+        (function () {
+            function markThemeReady() {
+                document.documentElement.classList.add('ems-theme-ready');
+                document.documentElement.style.backgroundColor = '';
+            }
+            if (document.readyState === 'complete') markThemeReady();
+            else window.addEventListener('load', markThemeReady);
+        })();
+    </script>
     <a class="et-skip-link" href="#main-content">Skip to content</a>
     @include('frontend.partials.announcement-bar')
     @include('frontend.layouts.header')

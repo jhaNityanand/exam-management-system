@@ -20,6 +20,9 @@ export function readThemePreference() {
 export function writeThemePreference(theme) {
     try {
         localStorage.setItem(THEME_KEY, theme);
+        // Keep candidate/public theme in sync (resolved light|dark).
+        const actual = resolveActualTheme(theme);
+        localStorage.setItem('examtube-theme', actual);
     } catch (error) {
         //
     }
@@ -40,7 +43,10 @@ export function applyTheme(theme = readThemePreference()) {
 
     root.classList.toggle('dark', actualTheme === 'dark');
     root.dataset.theme = theme;
+    root.dataset.themeActual = actualTheme;
     root.style.colorScheme = actualTheme;
+    root.style.backgroundColor = '';
+    root.classList.add('ems-theme-ready');
 
     document.querySelectorAll('[data-theme-trigger]').forEach((trigger) => {
         trigger.dataset.activeTheme = theme;

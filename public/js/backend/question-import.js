@@ -166,7 +166,7 @@
             source[normalizeHeader(key)] = value == null ? '' : String(value).trim();
         });
 
-        const row = { _row: rowNumber, _removed: false, _errors: [] };
+        const row = { _row: rowNumber, _removed: false, _errors: [], _serverErrors: [] };
         Object.entries(HEADER_ALIASES).forEach(([key, aliases]) => {
             row[key] = String(findValue(source, aliases) ?? '').trim();
         });
@@ -240,8 +240,9 @@
             }
         }
 
-        row._errors = errors;
-        return errors.length === 0;
+        const serverErrors = Array.isArray(row._serverErrors) ? row._serverErrors : [];
+        row._errors = [...errors, ...serverErrors];
+        return row._errors.length === 0;
     };
 
     const buildDuplicateMap = (rows) => {
@@ -584,9 +585,27 @@
 
             importing = false;
             importBtn.textContent = 'Import questions';
-            importBtn.disabled = true;
             setProcessing(false);
             const failedCount = invalidRows.length + failures.length;
+
+            const applyServerFailures = () => {
+                const byRow = new Map();
+                failures.forEach((item) => {
+                    const rowNumber = Number(item.row || 0);
+                    if (!rowNumber) return;
+                    const messages = (item.errors || [])
+                        .map((message) => String(message || '').trim())
+                        .filter(Boolean);
+                    if (!messages.length) return;
+                    byRow.set(rowNumber, [...(byRow.get(rowNumber) || []), ...messages]);
+                });
+
+                rows.forEach((row) => {
+                    row._serverErrors = byRow.has(row._row)
+                        ? [...new Set(byRow.get(row._row))]
+                        : [];
+                });
+            };
 
             if (imported > 0) {
                 global.EmsToast?.success?.(
@@ -602,8 +621,15 @@
                 return;
             }
 
+            applyServerFailures();
+            if (filterSelect.value === 'all' && failures.length) {
+                filterSelect.value = 'invalid';
+            }
+            page = 1;
             setProgress(100, `Completed: 0 imported, ${failedCount} failed`);
             setStep(2);
+
+            const sampleError = failures[0]?.errors?.[0] || 'Validation failed on the server.';
             results.hidden = false;
             results.classList.add('has-errors');
             results.classList.remove('is-success');
@@ -612,10 +638,10 @@
             </div>
             <div>
                 <strong>No questions were imported.</strong>
-                <p>${failedCount} rows failed validation or import. Fix the errors and try again.</p>
+                <p>${escapeHtml(sampleError)}${failedCount > 1 ? ` (${failedCount} rows failed — see Validation column.)` : ''}</p>
             </div>`;
-            global.EmsToast?.error?.('No questions were imported. Fix the errors and try again.');
-            refreshSummary();
+            global.EmsToast?.error?.(sampleError);
+            render();
         };
 
         const downloadCsvSample = () => {
@@ -828,7 +854,10 @@
         tbody.addEventListener('change', (event) => {
             const field = event.target.closest('[data-row-index][data-key]');
             if (!field) return;
-            rows[Number(field.dataset.rowIndex)][field.dataset.key] = field.value.trim();
+            const row = rows[Number(field.dataset.rowIndex)];
+            if (!row) return;
+            row[field.dataset.key] = field.value.trim();
+            row._serverErrors = [];
             render();
         });
         tbody.addEventListener('click', (event) => {

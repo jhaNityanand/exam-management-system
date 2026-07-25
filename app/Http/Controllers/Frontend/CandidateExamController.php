@@ -14,7 +14,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -91,6 +90,7 @@ class CandidateExamController extends Controller
             'completed_checks' => ['nullable', 'array'],
             'completed_checks.*' => ['string', 'max:64'],
             'selfie' => ['nullable', 'image', 'max:5120'],
+            'clear_selfie' => ['nullable', 'boolean'],
         ]);
 
         $challenge = ExamVerificationChallenge::query()
@@ -110,17 +110,29 @@ class CandidateExamController extends Controller
             $data['completed_checks'] ?? []
         )));
 
-        if ($request->hasFile('selfie')) {
-            if ($challenge->selfie_path) {
-                Storage::disk($challenge->selfie_disk ?: 'local')->delete($challenge->selfie_path);
-            }
+        if ($request->boolean('clear_selfie')) {
+            $this->proctoring->clearChallengeSelfie($challenge);
+            $completed = array_values(array_filter(
+                $completed,
+                static fn (string $check): bool => $check !== 'selfie'
+            ));
+            $challenge->completed_checks = $completed;
+            $challenge->save();
 
-            $path = $request->file('selfie')->store(
-                'exam-verification/'.$exam->id.'/'.$user->id,
-                'local'
+            return response()->json([
+                'ok' => true,
+                'completed_checks' => $challenge->completed_checks,
+                'has_selfie' => false,
+            ]);
+        }
+
+        if ($request->hasFile('selfie')) {
+            $this->proctoring->storeChallengeSelfie(
+                $challenge,
+                $request->file('selfie'),
+                $exam,
+                $user
             );
-            $challenge->selfie_path = $path;
-            $challenge->selfie_disk = 'local';
             $completed[] = 'selfie';
             $completed[] = 'webcam';
         }
@@ -178,13 +190,13 @@ class CandidateExamController extends Controller
             $this->assertReadyToStart($policyArray, $data, $challenge, $request);
 
             $attempt = DB::transaction(function () use ($exam, $user, $data, $request, $policyArray, $challenge) {
-                if ($request->hasFile('selfie') && ! $challenge->selfie_path) {
-                    $challenge->selfie_path = $request->file('selfie')->store(
-                        'exam-verification/'.$exam->id.'/'.$user->id,
-                        'local'
+                if ($request->hasFile('selfie')) {
+                    $this->proctoring->storeChallengeSelfie(
+                        $challenge,
+                        $request->file('selfie'),
+                        $exam,
+                        $user
                     );
-                    $challenge->selfie_disk = 'local';
-                    $challenge->save();
                 }
 
                 $sessionToken = (string) ($data['device']['session_token'] ?? Str::random(40));

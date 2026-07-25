@@ -14,6 +14,40 @@
 @endphp
 
 @section('content')
+<div class="cx-page-boot" id="cx-page-boot" role="status" aria-live="polite" aria-busy="true" aria-label="Loading exam readiness">
+    <span class="cx-visually-hidden">Loading exam readiness</span>
+    <div class="cx-page-boot__skeleton" aria-hidden="true">
+        <div class="cx-skel cx-skel--eyebrow"></div>
+        <div class="cx-skel cx-skel--title"></div>
+        <div class="cx-skel cx-skel--line"></div>
+        <div class="cx-skel-row">
+            <div class="cx-skel cx-skel--chip"></div>
+            <div class="cx-skel cx-skel--chip"></div>
+            <div class="cx-skel cx-skel--chip"></div>
+            <div class="cx-skel cx-skel--chip"></div>
+        </div>
+        <div class="cx-skel-panel">
+            <div class="cx-skel cx-skel--heading"></div>
+            <div class="cx-skel cx-skel--line cx-skel--short"></div>
+            <div class="cx-skel cx-skel--row"></div>
+            <div class="cx-skel cx-skel--row"></div>
+            <div class="cx-skel cx-skel--row"></div>
+            <div class="cx-skel cx-skel--row"></div>
+            <div class="cx-skel-row cx-skel-row--actions">
+                <div class="cx-skel cx-skel--btn"></div>
+                <div class="cx-skel cx-skel--btn"></div>
+                <div class="cx-skel cx-skel--btn"></div>
+            </div>
+            <div class="cx-skel-media">
+                <div class="cx-skel cx-skel--media"></div>
+                <div class="cx-skel cx-skel--media"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.body.classList.add('cx-page-booting');
+</script>
 <div class="cx-prepare" id="cx-prepare"
      data-start-url="{{ route('frontend.exams.attempts.start', $exam) }}"
      data-verify-url="{{ route('frontend.exams.verification', $exam) }}"
@@ -112,15 +146,38 @@
                 @endif
             </div>
 
-            <div class="cx-prepare__media">
-                <video id="cx-preview" autoplay muted playsinline class="cx-preview" hidden></video>
-                <img id="cx-photo-preview" alt="Captured selfie" class="cx-photo" hidden>
+            <div class="cx-prepare__media{{ ($requireWebcam || $requireSelfie) ? ' is-visible' : '' }}" id="cx-prepare-media" @if(!($requireWebcam || $requireSelfie)) hidden @endif>
+                <figure class="cx-prepare__media-slot" data-slot="live">
+                    <div class="cx-prepare__media-frame">
+                        <video id="cx-preview" autoplay muted playsinline class="cx-preview" hidden></video>
+                        <div class="cx-prepare__media-placeholder" id="cx-preview-placeholder">
+                            <span>Live camera</span>
+                            <small>Allow camera to show preview</small>
+                        </div>
+                    </div>
+                    <figcaption>Live recording</figcaption>
+                </figure>
+                @if($requireSelfie)
+                    <figure class="cx-prepare__media-slot" data-slot="selfie">
+                        <div class="cx-prepare__media-frame">
+                            <img id="cx-photo-preview" alt="Captured selfie" class="cx-photo" hidden>
+                            <div class="cx-prepare__media-placeholder" id="cx-photo-placeholder">
+                                <span>Selfie</span>
+                                <small>Capture to preview here</small>
+                            </div>
+                        </div>
+                        <figcaption>Captured selfie</figcaption>
+                    </figure>
+                @endif
                 <canvas id="cx-snapshot-canvas" hidden></canvas>
             </div>
             <p id="cx-mic-level" class="cx-prepare__hint" hidden>Listening for microphone…</p>
             <p id="cx-ready-msg" class="cx-ready-msg" data-state="blocked" role="status" aria-live="polite">
                 Start is disabled until required checks are complete.
             </p>
+            @if($requireSelfie)
+                <p class="cx-prepare__hint">Tip: Selfies must be captured live from your webcam. File uploads are not accepted.</p>
+            @endif
         </section>
 
         <div class="cx-prepare__footer">
@@ -135,7 +192,6 @@
             </button>
         </div>
         <p id="cx-prepare-error" class="cx-error" hidden role="alert"></p>
-        <p class="cx-prepare__hint">Tip: Selfies must be captured live from your webcam. File uploads are not accepted.</p>
     </div>
 
     <div class="cx-loading" id="cx-loading" hidden>
