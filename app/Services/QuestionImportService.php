@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ImportQuestion;
+use App\Models\Question;
 use App\Models\QuestionCategory;
 use App\Support\ExamFormats;
 use App\Support\UniqueOrgSlug;
@@ -16,8 +17,20 @@ use Throwable;
 
 class QuestionImportService
 {
+    /** Defaults mirror the Question Create page. */
+    public const DEFAULT_DIFFICULTY = 'medium';
+
+    public const DEFAULT_MARKS_TYPE = 'single';
+
+    public const DEFAULT_MARKS = 1;
+
+    public const DEFAULT_STATUS = 'active';
+
     /** @var array<string, int> */
     protected array $categoryCache = [];
+
+    /** @var array<string, true> */
+    protected array $seenBodies = [];
 
     public function __construct(protected QuestionService $questions) {}
 
@@ -82,8 +95,7 @@ class QuestionImportService
         ImportQuestion $import,
         int $orgId,
         ?int $actorId,
-    ): array
-    {
+    ): array {
         $results = [];
         $imported = 0;
 
@@ -93,6 +105,8 @@ class QuestionImportService
             try {
                 $question = DB::transaction(function () use ($row, $import, $orgId, $actorId) {
                     $payload = $this->normalizeRow($row, $orgId, $actorId);
+                    $this->assertNotDuplicate($payload['body'], $orgId);
+
                     $validator = Validator::make($payload, $this->rules());
 
                     $validator->after(function ($validator) use ($payload) {
@@ -103,7 +117,10 @@ class QuestionImportService
                     $validated['organization_id'] = $orgId;
                     $validated['import_question_id'] = $import->id;
 
-                    return $this->questions->create($validated, $actorId);
+                    $created = $this->questions->create($validated, $actorId);
+                    $this->rememberBody($payload['body']);
+
+                    return $created;
                 }, 3);
 
                 $imported++;
@@ -217,12 +234,29 @@ class QuestionImportService
      */
     protected function normalizeRow(array $row, int $orgId, ?int $actorId): array
     {
-        $type = strtolower(trim((string) ($row['type'] ?? '')));
-        $difficulty = strtolower(trim((string) ($row['difficulty'] ?? 'medium')));
-        $marksType = strtolower(trim((string) ($row['marks_type'] ?? 'single'))) ?: 'single';
-        $status = strtolower(trim((string) ($row['status'] ?? 'active'))) ?: 'active';
-        $options = [];
+        $type = $this->normalizeType((string) ($row['type'] ?? $row['question_type'] ?? ''));
+        $difficulty = strtolower(trim((string) ($row['difficulty'] ?? '')));
+        if (! in_array($difficulty, ['easy', 'medium', 'hard', 'very_hard'], true)) {
+            $difficulty = self::DEFAULT_DIFFICULTY;
+        }
 
+        $status = strtolower(trim((string) ($row['status'] ?? '')));
+        if (! in_array($status, ['active', 'inactive', 'suspended'], true)) {
+            $status = self::DEFAULT_STATUS;
+        }
+
+        $marksRaw = trim((string) ($row['marks'] ?? ''));
+        $marksList = $this->integerList($marksRaw);
+        $marksType = strtolower(trim((string) ($row['marks_type'] ?? '')));
+        if (! in_array($marksType, ['single', 'multiple'], true)) {
+            $marksType = count($marksList) > 1 ? 'multiple' : self::DEFAULT_MARKS_TYPE;
+        }
+
+        if ($marksList === []) {
+            $marksList = [self::DEFAULT_MARKS];
+        }
+
+        $options = [];
         foreach (range('a', 'f') as $letter) {
             $text = trim((string) ($row['option_'.$letter] ?? ''));
             if ($text !== '') {
@@ -230,22 +264,11 @@ class QuestionImportService
             }
         }
 
-        $allowsMultiple = $type === 'mcq'
-            && trim((string) ($row['correct_answers'] ?? '')) !== '';
-        $correctAnswer = trim((string) ($row['correct_answer'] ?? ''));
-        $correctAnswers = $allowsMultiple
-            ? $this->answerLabels((string) $row['correct_answers'], $options)
-            : null;
+        [$correctAnswer, $correctAnswers, $allowsMultiple] = $this->resolveCorrectAnswers($row, $type, $options);
 
-        if ($type === 'mcq' && ! $allowsMultiple) {
-            $correctAnswer = $this->answerValue($correctAnswer, $options);
-        }
-
-        if ($type === 'true_false') {
+        if ($type === 'true_false' && $correctAnswer !== null) {
             $correctAnswer = ucfirst(strtolower($correctAnswer));
         }
-
-        $marks = filter_var($row['marks'] ?? null, FILTER_VALIDATE_INT);
 
         return [
             'category_id' => $this->resolveCategoryPath(
@@ -257,20 +280,95 @@ class QuestionImportService
             'type' => $type,
             'difficulty' => $difficulty,
             'marks_type' => $marksType,
-            'marks' => $marks === false ? null : $marks,
-            'marks_list' => $marksType === 'multiple'
-                ? $this->integerList((string) ($row['marks'] ?? ''))
-                : null,
+            'marks' => $marksType === 'single' ? ($marksList[0] ?? self::DEFAULT_MARKS) : null,
+            'marks_list' => $marksType === 'multiple' ? $marksList : null,
             'allows_multiple' => $allowsMultiple,
             'options' => $type === 'mcq'
                 ? array_map(static fn (string $text) => ['text' => $text], array_values($options))
                 : null,
-            'correct_answer' => $correctAnswer !== '' ? $correctAnswer : null,
+            'correct_answer' => $correctAnswer,
             'correct_answers' => $correctAnswers,
             'explanation' => $this->nullableString($row['explanation'] ?? null),
             'reference' => $this->nullableString($row['reference'] ?? null),
             'status' => $status,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array<string, string>  $options
+     * @return array{0: ?string, 1: ?list<string>, 2: bool}
+     */
+    protected function resolveCorrectAnswers(array $row, string $type, array $options): array
+    {
+        $combined = trim((string) (
+            $row['correct_options']
+            ?? $row['correct_option']
+            ?? ''
+        ));
+        $legacyMulti = trim((string) ($row['correct_answers'] ?? ''));
+        $legacySingle = trim((string) ($row['correct_answer'] ?? ''));
+
+        if ($type === 'mcq') {
+            $raw = $combined !== '' ? $combined : ($legacyMulti !== '' ? $legacyMulti : $legacySingle);
+            $labels = collect(preg_split('/[\s,;|]+/', strtoupper($raw)) ?: [])
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $allowsMultiple = count($labels) > 1 || $legacyMulti !== '';
+
+            if ($allowsMultiple) {
+                return [null, $this->answerLabels(implode(',', $labels), $options), true];
+            }
+
+            $label = $labels[0] ?? '';
+
+            return [$label !== '' ? $this->answerValue($label, $options) : null, null, false];
+        }
+
+        $answer = $combined !== '' ? $combined : $legacySingle;
+
+        return [$answer !== '' ? $answer : null, null, false];
+    }
+
+    protected function normalizeType(string $type): string
+    {
+        return strtolower(trim((string) preg_replace('/\s+/', '_', trim($type))));
+    }
+
+    protected function assertNotDuplicate(string $body, int $orgId): void
+    {
+        $key = mb_strtolower(trim($body));
+        if ($key === '') {
+            return;
+        }
+
+        if (isset($this->seenBodies[$key])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'body' => ['Duplicate question in this import file. Each question text must be unique.'],
+            ]);
+        }
+
+        $exists = Question::query()
+            ->forOrg($orgId)
+            ->whereRaw('LOWER(TRIM(body)) = ?', [$key])
+            ->exists();
+
+        if ($exists) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'body' => ['A question with this text already exists in your question bank.'],
+            ]);
+        }
+    }
+
+    protected function rememberBody(string $body): void
+    {
+        $key = mb_strtolower(trim($body));
+        if ($key !== '') {
+            $this->seenBodies[$key] = true;
+        }
     }
 
     /** @return array<string, mixed> */
@@ -313,7 +411,10 @@ class QuestionImportService
 
             foreach ($answers as $answer) {
                 if (! in_array($answer, $options, true)) {
-                    $validator->errors()->add('correct_answer', 'Each correct answer must match an option label (for example A or A,C).');
+                    $validator->errors()->add(
+                        'correct_answer',
+                        'Each correct option must match an option label (for example A or A,C).',
+                    );
                     break;
                 }
             }
@@ -400,6 +501,7 @@ class QuestionImportService
         return collect(preg_split('/[\s,;|]+/', trim($value)) ?: [])
             ->filter(static fn ($item) => is_numeric($item))
             ->map(static fn ($item) => (int) $item)
+            ->filter(static fn (int $item) => $item >= 1 && $item <= 10)
             ->unique()
             ->values()
             ->all();

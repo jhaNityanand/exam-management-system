@@ -6,100 +6,95 @@
     const CHUNK_SIZE = 100;
     const PAGE_SIZE = 50;
     const TYPES = ['mcq', 'true_false', 'fill_blank', 'short_answer', 'long_answer'];
-    const DIFFICULTIES = ['easy', 'medium', 'hard', 'very_hard'];
-    const MARKS_TYPES = ['single', 'multiple'];
-    const STATUSES = ['active', 'inactive', 'suspended'];
+    const DEFAULT_DIFFICULTY = 'medium';
+    const DEFAULT_MARKS_TYPE = 'single';
+    const DEFAULT_MARKS = '1';
+    const DEFAULT_STATUS = 'active';
+
     const EDITABLE_KEYS = [
-        'question', 'type', 'category', 'difficulty', 'marks_type', 'marks',
-        'option_a', 'option_b', 'option_c', 'option_d',
-        'correct_answer', 'correct_answers', 'explanation',
+        'question', 'option_a', 'option_b', 'option_c', 'option_d',
+        'correct_options', 'explanation', 'marks', 'category', 'type', 'reference',
+    ];
+
+    const SAMPLE_HEADERS = [
+        'Question',
+        'Option A',
+        'Option B',
+        'Option C',
+        'Option D',
+        'Correct Option(s)',
+        'Explanation',
+        'Marks',
+        'Category',
+        'Question Type',
+        'Reference',
     ];
 
     const SAMPLE_ROWS = [
         {
             Question: 'Which language is primarily used by Laravel?',
-            Type: 'mcq',
-            Category: 'Development > PHP > Laravel',
-            Difficulty: 'easy',
-            'Marks Type': 'single',
-            Marks: '1',
             'Option A': 'PHP',
             'Option B': 'Python',
             'Option C': 'Ruby',
             'Option D': 'Java',
-            'Correct Answer': 'A',
-            'Correct Answers': '',
+            'Correct Option(s)': 'A',
             Explanation: 'Laravel is a PHP framework.',
+            Marks: '1',
+            Category: 'Development > PHP > Laravel',
+            'Question Type': 'mcq',
             Reference: 'Laravel basics',
-            Status: 'active',
         },
         {
             Question: 'Which items are JavaScript frameworks or libraries?',
-            Type: 'mcq',
-            Category: 'Development > JavaScript',
-            Difficulty: 'medium',
-            'Marks Type': 'single',
-            Marks: '2',
             'Option A': 'React',
             'Option B': 'Vue',
             'Option C': 'Laravel',
             'Option D': 'Angular',
-            'Correct Answer': '',
-            'Correct Answers': 'A,B,D',
+            'Correct Option(s)': 'A,B,D',
             Explanation: 'React, Vue, and Angular belong to the JavaScript ecosystem.',
+            Marks: '2',
+            Category: 'Development > JavaScript',
+            'Question Type': 'mcq',
             Reference: '',
-            Status: 'active',
         },
         {
             Question: 'True or False: HTTP is a stateless protocol.',
-            Type: 'true_false',
-            Category: 'Web Fundamentals',
-            Difficulty: 'easy',
-            'Marks Type': 'single',
-            Marks: '1',
             'Option A': '',
             'Option B': '',
             'Option C': '',
             'Option D': '',
-            'Correct Answer': 'True',
-            'Correct Answers': '',
-            Explanation: '',
+            'Correct Option(s)': 'True',
+            Explanation: 'Each HTTP request is independent of previous requests.',
+            Marks: '1',
+            Category: 'Web Fundamentals',
+            'Question Type': 'true_false',
             Reference: '',
-            Status: 'active',
         },
         {
             Question: 'Fill in the blank: The command used to create a Laravel migration is ____.',
-            Type: 'fill_blank',
-            Category: 'Development > PHP > Laravel',
-            Difficulty: 'medium',
-            'Marks Type': 'single',
-            Marks: '2',
             'Option A': '',
             'Option B': '',
             'Option C': '',
             'Option D': '',
-            'Correct Answer': 'php artisan make:migration',
-            'Correct Answers': '',
+            'Correct Option(s)': 'php artisan make:migration',
             Explanation: '',
-            Reference: '',
-            Status: 'active',
+            Marks: '2',
+            Category: 'Development > PHP > Laravel',
+            'Question Type': 'fill_blank',
+            Reference: 'Artisan CLI',
         },
         {
             Question: 'Explain dependency injection and give one practical benefit.',
-            Type: 'long_answer',
-            Category: 'Software Engineering > Architecture',
-            Difficulty: 'hard',
-            'Marks Type': 'single',
-            Marks: '5',
             'Option A': '',
             'Option B': '',
             'Option C': '',
             'Option D': '',
-            'Correct Answer': 'Answers should explain supplying dependencies externally and improved testability.',
-            'Correct Answers': '',
+            'Correct Option(s)': 'Answers should explain supplying dependencies externally and improved testability.',
             Explanation: 'Review descriptive answers manually.',
+            Marks: '5',
+            Category: 'Software Engineering > Architecture',
+            'Question Type': 'long_answer',
             Reference: '',
-            Status: 'active',
         },
     ];
 
@@ -116,11 +111,24 @@
         option_d: ['option_d', 'optiond', 'd'],
         option_e: ['option_e', 'optione', 'e'],
         option_f: ['option_f', 'optionf', 'f'],
-        correct_answer: ['correct_answer', 'answer'],
-        correct_answers: ['correct_answers', 'answers'],
+        correct_options: ['correct_options', 'correct_option', 'correct_option_s', 'correct_answers', 'correct_answer', 'answer', 'answers'],
         explanation: ['explanation'],
         reference: ['reference'],
         status: ['status'],
+    };
+
+    const COLUMN_WIDTHS = {
+        Question: 48,
+        'Option A': 18,
+        'Option B': 18,
+        'Option C': 18,
+        'Option D': 18,
+        'Correct Option(s)': 22,
+        Explanation: 36,
+        Marks: 10,
+        Category: 32,
+        'Question Type': 16,
+        Reference: 20,
     };
 
     const normalizeHeader = (value) => String(value || '')
@@ -137,11 +145,20 @@
         .replace(/'/g, '&#039;');
 
     const findValue = (source, aliases) => {
+        let fallback = '';
         for (const alias of aliases) {
-            if (Object.prototype.hasOwnProperty.call(source, alias)) return source[alias];
+            if (!Object.prototype.hasOwnProperty.call(source, alias)) continue;
+            const value = source[alias];
+            if (String(value ?? '').trim() !== '') return value;
+            fallback = value;
         }
-        return '';
+        return fallback;
     };
+
+    const parseMarks = (value) => String(value || '')
+        .split(/[,;|]/)
+        .map((item) => Number(item.trim()))
+        .filter((item) => Number.isInteger(item) && item >= 1 && item <= 10);
 
     const normalizeRow = (raw, rowNumber) => {
         const source = {};
@@ -153,52 +170,88 @@
         Object.entries(HEADER_ALIASES).forEach(([key, aliases]) => {
             row[key] = String(findValue(source, aliases) ?? '').trim();
         });
+
         row.type = row.type.toLowerCase().replace(/\s+/g, '_');
-        row.difficulty = row.difficulty.toLowerCase().replace(/\s+/g, '_');
-        row.marks_type = (row.marks_type || 'single').toLowerCase().replace(/\s+/g, '_');
-        row.status = (row.status || 'active').toLowerCase();
+        row.difficulty = (row.difficulty || DEFAULT_DIFFICULTY).toLowerCase().replace(/\s+/g, '_');
+        if (!['easy', 'medium', 'hard', 'very_hard'].includes(row.difficulty)) {
+            row.difficulty = DEFAULT_DIFFICULTY;
+        }
+
+        const marksValues = parseMarks(row.marks);
+        row.marks_type = (row.marks_type || (marksValues.length > 1 ? 'multiple' : DEFAULT_MARKS_TYPE))
+            .toLowerCase()
+            .replace(/\s+/g, '_');
+        if (!['single', 'multiple'].includes(row.marks_type)) {
+            row.marks_type = marksValues.length > 1 ? 'multiple' : DEFAULT_MARKS_TYPE;
+        }
+        if (!row.marks) row.marks = DEFAULT_MARKS;
+
+        row.status = (row.status || DEFAULT_STATUS).toLowerCase();
+        if (!['active', 'inactive', 'suspended'].includes(row.status)) {
+            row.status = DEFAULT_STATUS;
+        }
 
         return row;
     };
 
-    const validateRow = (row) => {
+    const validateRow = (row, duplicateKeys = null) => {
         const errors = [];
         if (!row.question) errors.push('Question is required');
-        if (!TYPES.includes(row.type)) errors.push('Invalid type');
-        if (!row.category) errors.push('Category is required');
-        if (row.category && row.category.split('>').some((part) => !part.trim())) errors.push('Invalid category path');
-        if (!DIFFICULTIES.includes(row.difficulty)) errors.push('Invalid difficulty');
-        if (!MARKS_TYPES.includes(row.marks_type)) errors.push('Invalid marks type');
-        if (!STATUSES.includes(row.status)) errors.push('Invalid status');
-
-        const marks = String(row.marks || '').split(/[,;|]/).map((v) => Number(v.trim())).filter(Number.isFinite);
-        if (!marks.length || marks.some((value) => !Number.isInteger(value) || value < 1 || value > 10)) {
-            errors.push('Marks must be 1–10');
+        if (!TYPES.includes(row.type)) {
+            errors.push('Invalid question type (use mcq, true_false, fill_blank, short_answer, or long_answer)');
         }
-        if (row.marks_type === 'single' && marks.length !== 1) errors.push('Single marks requires one value');
+        if (!row.category) errors.push('Category is required');
+        if (row.category && row.category.split('>').some((part) => !part.trim())) {
+            errors.push('Invalid category path — use Parent > Child');
+        }
 
+        const marks = parseMarks(row.marks);
+        if (!marks.length) errors.push('Marks must be whole numbers from 1 to 10');
+        if (row.marks_type === 'single' && marks.length !== 1) {
+            errors.push('Single marks requires one value between 1 and 10');
+        }
+
+        const answer = String(row.correct_options || '').trim();
         if (row.type === 'mcq') {
             const options = ['A', 'B', 'C', 'D', 'E', 'F']
                 .filter((letter) => row[`option_${letter.toLowerCase()}`]);
-            if (options.length < 2) errors.push('MCQ needs at least two options');
+            if (options.length < 2) errors.push('MCQ needs at least two options (A–D)');
 
-            const multi = String(row.correct_answers || '').trim();
-            const labels = (multi || row.correct_answer || '')
+            const labels = answer
                 .toUpperCase()
                 .split(/[\s,;|]+/)
                 .filter(Boolean);
-            if (!labels.length) errors.push('Correct answer is required');
-            if (labels.some((label) => !options.includes(label))) errors.push('Answer must match an option label');
-        } else if (!row.correct_answer) {
-            errors.push('Correct answer is required');
+            if (!labels.length) errors.push('Correct Option(s) is required');
+            if (labels.some((label) => !options.includes(label))) {
+                errors.push('Correct Option(s) must match filled option labels (e.g. A or A,C)');
+            }
+        } else if (!answer) {
+            errors.push('Correct Option(s) is required');
         }
 
-        if (row.type === 'true_false' && !['true', 'false'].includes(row.correct_answer.toLowerCase())) {
-            errors.push('Answer must be True or False');
+        if (row.type === 'true_false' && answer && !['true', 'false'].includes(answer.toLowerCase())) {
+            errors.push('True/False Correct Option(s) must be True or False');
+        }
+
+        if (duplicateKeys) {
+            const key = row.question.trim().toLowerCase();
+            if (key && duplicateKeys.has(key) && duplicateKeys.get(key) !== row._row) {
+                errors.push('Duplicate question text in this file');
+            }
         }
 
         row._errors = errors;
         return errors.length === 0;
+    };
+
+    const buildDuplicateMap = (rows) => {
+        const map = new Map();
+        rows.filter((row) => !row._removed).forEach((row) => {
+            const key = String(row.question || '').trim().toLowerCase();
+            if (!key) return;
+            if (!map.has(key)) map.set(key, row._row);
+        });
+        return map;
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -222,6 +275,14 @@
         let importing = false;
         let lastFocused = null;
 
+        const setStep = (step) => {
+            modal.querySelectorAll('[data-step-indicator]').forEach((item) => {
+                const value = Number(item.dataset.stepIndicator);
+                item.classList.toggle('is-active', value === step);
+                item.classList.toggle('is-complete', value < step);
+            });
+        };
+
         const setProgress = (percent, text) => {
             document.getElementById('qimport-progress-bar').style.width = `${Math.max(0, Math.min(100, percent))}%`;
             document.getElementById('qimport-progress-text').textContent = text;
@@ -236,13 +297,15 @@
         const activeRows = () => rows.filter((row) => !row._removed);
 
         const refreshSummary = () => {
-            activeRows().forEach(validateRow);
+            const duplicates = buildDuplicateMap(rows);
+            activeRows().forEach((row) => validateRow(row, duplicates));
             const valid = activeRows().filter((row) => row._errors.length === 0).length;
             const invalid = activeRows().length - valid;
             document.getElementById('qimport-total').textContent = activeRows().length;
             document.getElementById('qimport-valid').textContent = valid;
             document.getElementById('qimport-invalid').textContent = invalid;
             importBtn.disabled = importing || valid === 0;
+            if (activeRows().length) setStep(importing ? 3 : 2);
         };
 
         const filteredRows = () => {
@@ -250,7 +313,7 @@
             const filter = filterSelect.value;
             return activeRows().filter((row) => {
                 const matchesQuery = !query || [
-                    row.question, row.category, row.type, row.difficulty,
+                    row.question, row.category, row.type, row.correct_options, row.reference,
                 ].some((value) => String(value).toLowerCase().includes(query));
                 const matchesFilter = filter === 'all'
                     || (filter === 'valid' && row._errors.length === 0)
@@ -285,7 +348,7 @@
                 const status = row._errors.length
                     ? `<span class="qimport-validation is-error" title="${escapeHtml(row._errors.join('; '))}">${escapeHtml(row._errors[0])}${row._errors.length > 1 ? ` +${row._errors.length - 1}` : ''}</span>`
                     : '<span class="qimport-validation">Ready</span>';
-                return `<tr>
+                return `<tr class="${row._errors.length ? 'is-invalid' : 'is-valid'}">
                     <td class="qimport-col-row">${row._row}</td>
                     <td>${status}</td>
                     <td>${input(index, 'question', row.question, true)}</td>
@@ -293,14 +356,12 @@
                     <td>${input(index, 'option_b', row.option_b)}</td>
                     <td>${input(index, 'option_c', row.option_c)}</td>
                     <td>${input(index, 'option_d', row.option_d)}</td>
-                    <td>${input(index, 'correct_answer', row.correct_answer)}</td>
-                    <td>${input(index, 'correct_answers', row.correct_answers)}</td>
+                    <td>${input(index, 'correct_options', row.correct_options)}</td>
                     <td>${input(index, 'explanation', row.explanation, true)}</td>
-                    <td>${select(index, 'type', row.type, TYPES)}</td>
-                    <td>${input(index, 'category', row.category, true)}</td>
-                    <td>${select(index, 'difficulty', row.difficulty, DIFFICULTIES)}</td>
-                    <td>${select(index, 'marks_type', row.marks_type, MARKS_TYPES)}</td>
                     <td>${input(index, 'marks', row.marks)}</td>
+                    <td>${input(index, 'category', row.category, true)}</td>
+                    <td>${select(index, 'type', row.type, TYPES)}</td>
+                    <td>${input(index, 'reference', row.reference)}</td>
                     <td class="qimport-col-action">
                         <button type="button" class="qimport-remove-btn" data-remove-row="${index}" aria-label="Remove row ${row._row}" title="Remove row">
                             ${removeIcon}
@@ -329,6 +390,7 @@
             setProgress(0, 'No file selected');
             importBtn.disabled = true;
             importBtn.textContent = 'Import questions';
+            setStep(1);
         };
 
         const open = () => {
@@ -361,13 +423,15 @@
             setProcessing(true, 'Reading spreadsheet…', 'Parsing happens in your browser before anything is saved.');
             setProgress(5, 'Reading file');
             results.hidden = true;
+            setStep(2);
 
             try {
                 await new Promise((resolve) => setTimeout(resolve, 30));
                 const data = await file.arrayBuffer();
                 setProgress(25, 'Parsing worksheet');
                 const workbook = global.XLSX.read(data, { type: 'array', cellDates: false });
-                const sheetName = workbook.SheetNames[0];
+                const sheetName = workbook.SheetNames.find((name) => normalizeHeader(name) === 'questions')
+                    || workbook.SheetNames[0];
                 if (!sheetName) throw new Error('The workbook has no worksheets.');
                 const rawRows = global.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
                     defval: '',
@@ -389,7 +453,7 @@
                 rules?.classList.add('is-collapsed');
                 if (toggle) {
                     toggle.setAttribute('aria-expanded', 'false');
-                    toggle.textContent = 'Show instructions';
+                    toggle.textContent = 'Show guide';
                 }
                 setProcessing(false);
                 setProgress(100, 'File parsed — review validation results');
@@ -397,21 +461,32 @@
             } catch (error) {
                 rows = [];
                 review.hidden = true;
+                setStep(1);
                 fail(error.message || 'Unable to parse this file.');
             }
         };
 
+        const toPayloadRow = (row) => {
+            const payload = { _row: row._row };
+            [...EDITABLE_KEYS, 'option_e', 'option_f', 'difficulty', 'marks_type', 'status'].forEach((key) => {
+                payload[key] = row[key] || '';
+            });
+            return payload;
+        };
+
         const importRows = async () => {
-            const importRows = activeRows();
-            importRows.forEach(validateRow);
-            const validRows = importRows.filter((row) => row._errors.length === 0);
-            const invalidRows = importRows.filter((row) => row._errors.length > 0);
+            const currentRows = activeRows();
+            const duplicates = buildDuplicateMap(rows);
+            currentRows.forEach((row) => validateRow(row, duplicates));
+            const validRows = currentRows.filter((row) => row._errors.length === 0);
+            const invalidRows = currentRows.filter((row) => row._errors.length > 0);
             if (!validRows.length || !sourceFile || importing) return;
 
             importing = true;
             refreshSummary();
             importBtn.textContent = 'Importing…';
-            setProcessing(true, 'Importing questions…', 'The import continues in small AJAX batches. Keep this window open.');
+            setStep(3);
+            setProcessing(true, 'Importing questions…', 'The import continues in small batches. Keep this window open.');
             results.hidden = true;
 
             let imported = 0;
@@ -424,7 +499,7 @@
             try {
                 const startData = new FormData();
                 startData.append('file', sourceFile, sourceFile.name);
-                startData.append('total_rows', String(importRows.length));
+                startData.append('total_rows', String(currentRows.length));
                 startData.append('failed_rows', String(invalidRows.length));
                 startData.append('initial_errors_json', JSON.stringify(invalidRows.map((row) => ({
                     row: row._row,
@@ -450,13 +525,14 @@
                 importing = false;
                 importBtn.textContent = 'Import questions';
                 setProcessing(false);
+                setStep(2);
                 fail(error.message || 'Unable to start the import.');
                 refreshSummary();
                 return;
             }
 
             for (let i = 0; i < chunks.length; i++) {
-                setProgress((i / chunks.length) * 100, `Processing batch ${i + 1} of ${chunks.length}`);
+                setProgress(((i + 0.35) / chunks.length) * 100, `Processing batch ${i + 1} of ${chunks.length}`);
                 try {
                     const response = await fetch(global.questionImportUrl, {
                         method: 'POST',
@@ -469,13 +545,7 @@
                         },
                         body: JSON.stringify({
                             import_question_id: importQuestionId,
-                            rows: chunks[i].map((row) => {
-                                const payload = { _row: row._row };
-                                [...EDITABLE_KEYS, 'option_e', 'option_f', 'reference', 'status'].forEach((key) => {
-                                    payload[key] = row[key] || '';
-                                });
-                                return payload;
-                            }),
+                            rows: chunks[i].map(toPayloadRow),
                         }),
                     });
                     const payload = await response.json();
@@ -517,39 +587,196 @@
             importBtn.disabled = true;
             setProcessing(false);
             const failedCount = invalidRows.length + failures.length;
-            setProgress(100, `Completed: ${imported} imported, ${failedCount} failed`);
-            results.hidden = false;
-            results.classList.toggle('has-errors', failedCount > 0);
-            results.innerHTML = `<strong>${imported.toLocaleString()} questions imported.</strong>`
-                + (failedCount
-                    ? `<p>${failedCount} rows failed validation or import. View the import badge in the question list for details.</p>`
-                    : '<p>The question bank has been refreshed.</p>');
 
             if (imported > 0) {
-                global.EmsToast?.success?.(`${imported} questions imported.`);
+                global.EmsToast?.success?.(
+                    failedCount > 0
+                        ? `${imported} questions imported (${failedCount} failed).`
+                        : `${imported} questions imported.`,
+                );
                 document.dispatchEvent(new CustomEvent('questions:imported', {
                     detail: { imported, importQuestionId },
                 }));
+                reset();
+                close();
+                return;
             }
+
+            setProgress(100, `Completed: 0 imported, ${failedCount} failed`);
+            setStep(2);
+            results.hidden = false;
+            results.classList.add('has-errors');
+            results.classList.remove('is-success');
+            results.innerHTML = `<div class="qimport-results__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M12 5a7 7 0 100 14 7 7 0 000-14z"/></svg>
+            </div>
+            <div>
+                <strong>No questions were imported.</strong>
+                <p>${failedCount} rows failed validation or import. Fix the errors and try again.</p>
+            </div>`;
+            global.EmsToast?.error?.('No questions were imported. Fix the errors and try again.');
+            refreshSummary();
+        };
+
+        const downloadCsvSample = () => {
+            if (!global.XLSX) return fail('Spreadsheet library is unavailable.');
+            const worksheet = global.XLSX.utils.json_to_sheet(SAMPLE_ROWS, { header: SAMPLE_HEADERS });
+            const csv = global.XLSX.utils.sheet_to_csv(worksheet);
+            const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = 'question-import-sample.csv';
+            anchor.click();
+            URL.revokeObjectURL(url);
+        };
+
+        const downloadXlsxSample = async () => {
+            if (!global.ExcelJS) return fail('Excel template library is unavailable. Refresh and try again.');
+
+            const workbook = new global.ExcelJS.Workbook();
+            workbook.creator = 'Exam Management System';
+            workbook.created = new Date();
+
+            const sheet = workbook.addWorksheet('Questions', {
+                views: [{ state: 'frozen', ySplit: 1, showGridLines: true }],
+                properties: { defaultRowHeight: 22 },
+            });
+
+            sheet.columns = SAMPLE_HEADERS.map((header) => ({
+                header,
+                key: header,
+                width: COLUMN_WIDTHS[header] || 16,
+                style: {
+                    alignment: { vertical: 'middle', wrapText: true },
+                    font: { name: 'Calibri', size: 11, color: { argb: 'FF0F172A' } },
+                },
+            }));
+
+            const headerRow = sheet.getRow(1);
+            headerRow.height = 28;
+            headerRow.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF1E3A5F' },
+                };
+                cell.font = {
+                    name: 'Calibri',
+                    size: 11,
+                    bold: true,
+                    color: { argb: 'FFFFFFFF' },
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FF16324F' } },
+                    left: { style: 'thin', color: { argb: 'FF16324F' } },
+                    bottom: { style: 'thin', color: { argb: 'FF16324F' } },
+                    right: { style: 'thin', color: { argb: 'FF16324F' } },
+                };
+            });
+
+            SAMPLE_ROWS.forEach((sample, index) => {
+                const row = sheet.addRow(SAMPLE_HEADERS.map((header) => sample[header] ?? ''));
+                row.height = 36;
+                row.eachCell((cell, colNumber) => {
+                    const isAlt = index % 2 === 1;
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: isAlt ? 'FFF1F5F9' : 'FFFFFFFF' },
+                    };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    };
+                    cell.alignment = {
+                        vertical: 'middle',
+                        horizontal: SAMPLE_HEADERS[colNumber - 1] === 'Marks' ? 'center' : 'left',
+                        wrapText: true,
+                    };
+                });
+            });
+
+            sheet.autoFilter = {
+                from: { row: 1, column: 1 },
+                to: { row: 1, column: SAMPLE_HEADERS.length },
+            };
+
+            const typeCol = SAMPLE_HEADERS.indexOf('Question Type') + 1;
+            sheet.dataValidations.add(`${colLetter(typeCol)}2:${colLetter(typeCol)}1001`, {
+                type: 'list',
+                allowBlank: true,
+                formulae: [`"${TYPES.join(',')}"`],
+                showErrorMessage: true,
+                errorTitle: 'Invalid question type',
+                error: 'Choose one of: mcq, true_false, fill_blank, short_answer, long_answer',
+            });
+
+            const marksCol = SAMPLE_HEADERS.indexOf('Marks') + 1;
+            sheet.dataValidations.add(`${colLetter(marksCol)}2:${colLetter(marksCol)}1001`, {
+                type: 'whole',
+                operator: 'between',
+                formulae: [1, 10],
+                allowBlank: true,
+                showErrorMessage: true,
+                errorTitle: 'Invalid marks',
+                error: 'Marks must be a whole number from 1 to 10.',
+            });
+
+            const guide = workbook.addWorksheet('Instructions', {
+                properties: { defaultRowHeight: 20 },
+            });
+            guide.getColumn(1).width = 28;
+            guide.getColumn(2).width = 72;
+            guide.addRow(['Question Import Guide', '']);
+            guide.mergeCells('A1:B1');
+            guide.getRow(1).font = { bold: true, size: 14, color: { argb: 'FF1E3A5F' } };
+            guide.getRow(1).height = 28;
+
+            const guideRows = [
+                ['Columns', 'Only the Questions sheet columns are imported. Other fields use Create Question defaults.'],
+                ['Defaults applied', 'Difficulty = medium · Status = active · Marks type = single · Marks = 1 when blank'],
+                ['Correct Option(s)', 'MCQ: A or A,B,D · True/False: True or False · Other types: answer text'],
+                ['Category', 'Use Parent > Child. Missing categories are created automatically.'],
+                ['Question Type', 'Use the dropdown: mcq, true_false, fill_blank, short_answer, long_answer'],
+                ['Duplicates', 'Repeated question text in the file or question bank will be skipped.'],
+            ];
+            guideRows.forEach((item) => {
+                const row = guide.addRow(item);
+                row.getCell(1).font = { bold: true, color: { argb: 'FF1E3A5F' } };
+                row.getCell(2).alignment = { wrapText: true, vertical: 'middle' };
+                row.height = 30;
+            });
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = 'question-import-sample.xlsx';
+            anchor.click();
+            URL.revokeObjectURL(url);
+        };
+
+        const colLetter = (index) => {
+            let n = index;
+            let letter = '';
+            while (n > 0) {
+                const rem = (n - 1) % 26;
+                letter = String.fromCharCode(65 + rem) + letter;
+                n = Math.floor((n - 1) / 26);
+            }
+            return letter;
         };
 
         const downloadSample = (format) => {
-            if (!global.XLSX) return fail('Spreadsheet library is unavailable.');
-            const worksheet = global.XLSX.utils.json_to_sheet(SAMPLE_ROWS);
-            if (format === 'csv') {
-                const csv = global.XLSX.utils.sheet_to_csv(worksheet);
-                const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = 'question-import-sample.csv';
-                anchor.click();
-                URL.revokeObjectURL(url);
-                return;
-            }
-            const workbook = global.XLSX.utils.book_new();
-            global.XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions');
-            global.XLSX.writeFile(workbook, 'question-import-sample.xlsx');
+            if (format === 'csv') return downloadCsvSample();
+            return downloadXlsxSample();
         };
 
         openBtn.addEventListener('click', open);
@@ -575,7 +802,7 @@
         rulesToggle?.addEventListener('click', () => {
             const collapsed = rulesPanel.classList.toggle('is-collapsed');
             rulesToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-            rulesToggle.textContent = collapsed ? 'Show instructions' : 'Hide instructions';
+            rulesToggle.textContent = collapsed ? 'Show guide' : 'Hide guide';
         });
 
         dropzone.addEventListener('click', () => fileInput.click());

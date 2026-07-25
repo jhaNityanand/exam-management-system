@@ -57,62 +57,46 @@ test('question import creates supported types and nested categories', function (
             'question' => 'Which language powers Laravel?',
             'type' => 'mcq',
             'category' => 'Development > PHP > Laravel',
-            'difficulty' => 'easy',
-            'marks_type' => 'single',
             'marks' => '1',
             'option_a' => 'PHP',
             'option_b' => 'Python',
-            'correct_answer' => 'A',
-            'correct_answers' => '',
-            'status' => 'active',
+            'correct_options' => 'A',
         ],
         [
             '_row' => 3,
             'question' => 'Select JavaScript libraries.',
             'type' => 'mcq',
             'category' => 'Development > JavaScript',
-            'difficulty' => 'medium',
-            'marks_type' => 'single',
             'marks' => '2',
             'option_a' => 'React',
             'option_b' => 'Vue',
             'option_c' => 'Laravel',
-            'correct_answer' => '',
-            'correct_answers' => 'A,B',
-            'status' => 'active',
+            'correct_options' => 'A,B',
         ],
         [
             '_row' => 4,
             'question' => 'HTTP is stateless.',
             'type' => 'true_false',
             'category' => 'Web Fundamentals',
-            'difficulty' => 'easy',
-            'marks_type' => 'single',
-            'marks' => '1',
-            'correct_answer' => 'True',
-            'status' => 'active',
+            'correct_options' => 'True',
         ],
         [
             '_row' => 5,
             'question' => 'The Laravel CLI is called ____.',
             'type' => 'fill_blank',
             'category' => 'Development > PHP > Laravel',
-            'difficulty' => 'easy',
-            'marks_type' => 'single',
             'marks' => '1',
-            'correct_answer' => 'Artisan',
-            'status' => 'active',
+            'correct_options' => 'Artisan',
         ],
         [
             '_row' => 6,
             'question' => 'Explain dependency injection.',
             'type' => 'long_answer',
             'category' => 'Software Engineering > Architecture',
-            'difficulty' => 'hard',
-            'marks_type' => 'single',
             'marks' => '5',
-            'correct_answer' => 'A descriptive answer.',
-            'status' => 'active',
+            'correct_options' => 'A descriptive answer.',
+            'explanation' => 'Review manually.',
+            'reference' => 'Architecture notes',
         ],
     ];
 
@@ -149,9 +133,25 @@ test('question import creates supported types and nested categories', function (
         ->assertOk()
         ->assertDownload('questions.xlsx');
 
+    $single = Question::query()->where('body', 'Which language powers Laravel?')->firstOrFail();
+    expect($single->difficulty)->toBe('medium')
+        ->and($single->status)->toBe('active')
+        ->and($single->marks_type)->toBe('single')
+        ->and($single->marks)->toBe(1)
+        ->and($single->allows_multiple)->toBeFalse()
+        ->and($single->correct_answer)->toBe('PHP');
+
     $multiple = Question::query()->where('body', 'Select JavaScript libraries.')->firstOrFail();
     expect($multiple->allows_multiple)->toBeTrue()
         ->and($multiple->correct_answers)->toBe(['React', 'Vue']);
+
+    $trueFalse = Question::query()->where('body', 'HTTP is stateless.')->firstOrFail();
+    expect($trueFalse->marks)->toBe(1)
+        ->and($trueFalse->correct_answer)->toBe('True');
+
+    $long = Question::query()->where('body', 'Explain dependency injection.')->firstOrFail();
+    expect($long->explanation)->toBe('Review manually.')
+        ->and($long->reference)->toBe('Architecture notes');
 
     $laravel = QuestionCategory::query()
         ->forOrg($this->organization->id)
@@ -171,12 +171,9 @@ test('question import reports invalid rows without importing them', function () 
                 'question' => 'Broken MCQ',
                 'type' => 'mcq',
                 'category' => 'Testing',
-                'difficulty' => 'easy',
-                'marks_type' => 'single',
                 'marks' => '1',
                 'option_a' => 'Only one option',
-                'correct_answer' => 'B',
-                'status' => 'active',
+                'correct_options' => 'B',
             ]],
         ])
         ->assertUnprocessable()
@@ -185,6 +182,41 @@ test('question import reports invalid rows without importing them', function () 
         ->assertJsonPath('results.0.status', 'failed');
 
     expect(Question::query()->forOrg($this->organization->id)->count())->toBe(0);
+});
+
+test('question import skips duplicate questions already in the bank', function () {
+    $service = app(QuestionService::class);
+    $service->create([
+        'organization_id' => $this->organization->id,
+        'body' => 'Existing question text',
+        'type' => 'short_answer',
+        'difficulty' => 'medium',
+        'marks_type' => 'single',
+        'marks' => 1,
+        'correct_answer' => 'Answer',
+        'status' => 'active',
+    ], $this->user->id);
+
+    $importId = beginTrackedQuestionImport($this, 1);
+
+    $this->actingAs($this->user)
+        ->postJson(route('admin.questions.import'), [
+            'import_question_id' => $importId,
+            'rows' => [[
+                '_row' => 2,
+                'question' => 'Existing question text',
+                'type' => 'short_answer',
+                'category' => 'General',
+                'marks' => '1',
+                'correct_options' => 'Answer',
+            ]],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('imported', 0)
+        ->assertJsonPath('failed', 1)
+        ->assertJsonPath('results.0.status', 'failed');
+
+    expect(Question::query()->forOrg($this->organization->id)->count())->toBe(1);
 });
 
 test('question import is scoped to the authenticated users organization', function () {
@@ -210,16 +242,17 @@ test('question import is scoped to the authenticated users organization', functi
                 'question' => 'Organization-scoped question',
                 'type' => 'short_answer',
                 'category' => 'Shared Name',
-                'difficulty' => 'medium',
-                'marks_type' => 'single',
-                'marks' => '2',
-                'correct_answer' => 'Answer',
-                'status' => 'active',
+                'correct_options' => 'Answer',
             ]],
         ])
         ->assertCreated();
 
     expect(QuestionCategory::query()->forOrg($this->organization->id)->where('name', 'Shared Name')->exists())->toBeTrue();
+
+    $question = Question::query()->forOrg($this->organization->id)->firstOrFail();
+    expect($question->difficulty)->toBe('medium')
+        ->and($question->status)->toBe('active')
+        ->and($question->marks)->toBe(1);
 });
 
 test('question list can filter imported and manually created questions', function () {

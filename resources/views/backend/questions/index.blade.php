@@ -305,6 +305,7 @@
     <script src="{{ versioned_asset('js/components/filter-drawer.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script>
         window.questionsApiUrl = @json(route('admin.internal-api.questions-table'));
         window.questionsIndexUrl = @json(route('admin.questions.index'));
