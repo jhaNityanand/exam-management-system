@@ -202,7 +202,7 @@
                                 :value="old('correct_answer', $question->correct_answer)"
                                 placeholder="Provide a reference answer for graders…"
                                 :height="320"
-                                preset="standard"
+                                preset="full"
                                 module="question"
                                 help="Text answer grading is typically manual, but you can provide a reference answer here for graders."
                             />
@@ -252,18 +252,18 @@
 <!-- Option Template -->
 <template id="option-template">
     <div class="option-item relative p-4 bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700 rounded-xl">
-        <div class="flex items-center gap-4">
-            <div class="flex-shrink-0">
+        <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 pt-2">
                 <label class="flex items-center justify-center p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer" title="Mark as correct">
                     <input type="radio" class="correct-answer-input w-5 h-5 text-emerald-500 border-slate-300 focus:ring-emerald-500 focus:ring-2 disabled:opacity-50">
                 </label>
             </div>
 
             <div class="flex-grow min-w-0 relative z-0">
-                <textarea class="option-editor-textarea panel-input min-h-[100px]" rows="3" data-option-editor placeholder="Enter option text…"></textarea>
+                <textarea class="option-editor-textarea panel-input min-h-[100px]" rows="4" data-option-editor placeholder="Enter option text…"></textarea>
             </div>
 
-            <div class="flex-shrink-0">
+            <div class="flex-shrink-0 pt-2">
                 <button type="button" class="btn-remove-option p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-800 rounded-full transition" title="Remove Option">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>

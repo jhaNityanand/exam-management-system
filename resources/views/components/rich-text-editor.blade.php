@@ -20,10 +20,7 @@
 @php
     $inputId = $inputId ?: str_replace(['[', ']'], ['_', ''], $name) . '_field';
     $resolvedValue = old($name, $value);
-    $uiMode = $mode ?: config('editor.ui_mode', 'header');
-    // Leave blank unless explicitly overridden — the JS side already knows
-    // the right toolbar for each mode/preset (config/editor.php stays in
-    // sync for reference, but isn't the runtime source of truth here).
+    // One shared UI everywhere — legacy compact/standard/full all map to header.
     $resolvedToolbar = $toolbar ?? '';
     $uploadUrl = route('admin.editor.media.store');
     $cdnBase = rtrim((string) config('editor.cdn.base_url'), '/');
@@ -31,14 +28,14 @@
 @endphp
 
 <div
-    class="ems-rich-editor ems-rich-editor--{{ $uiMode }} {{ $wrapperClass }}"
+    class="ems-rich-editor ems-rich-editor--header {{ $wrapperClass }}"
     data-ems-rich-editor
     data-editor-input="{{ $inputId }}"
     data-editor-placeholder="{{ $resolvedPlaceholder }}"
     data-editor-height="{{ (int) $height }}"
     data-editor-required="{{ $required ? '1' : '0' }}"
     data-editor-preset="{{ $preset }}"
-    data-editor-mode="{{ $uiMode }}"
+    data-editor-mode="header"
     data-editor-toolbar="{{ $resolvedToolbar }}"
     data-editor-upload-url="{{ $uploadUrl }}"
     data-editor-cdn-base="{{ $cdnBase }}"

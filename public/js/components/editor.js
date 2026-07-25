@@ -8,9 +8,8 @@
         'codesample', 'nonbreaking', 'directionality', 'noneditable',
     ];
 
-    // Full action set — toolbar_mode "wrap" keeps every control visible
-    // on 1–2 rows depending on screen width.
-    const HEADER_TOOLBAR = [
+    // Single shared toolbar everywhere — compact/standard/full all resolve here.
+    const SHARED_TOOLBAR = [
         'undo', 'redo', '|',
         'bold', 'italic', 'underline', 'strikethrough', '|',
         'fontfamily', 'fontsize', 'emslinespace', '|',
@@ -23,21 +22,13 @@
         'removeformat', 'emscodeview', 'emsfullscreen',
     ].join(' ');
 
-    const COMPACT_TOOLBAR = [
-        'undo', 'redo', '|',
-        'bold', 'italic', 'underline', 'strikethrough', '|',
-        'emslinespace', '|',
-        'forecolor', 'backcolor', '|',
-        'bullist', 'numlist', '|',
-        'link', 'emsimage', '|',
-        'removeformat', 'emscodeview', 'emsfullscreen',
-    ].join(' ');
+    const HEADER_TOOLBAR = SHARED_TOOLBAR;
 
     const PRESET_TOOLBARS = {
-        header: HEADER_TOOLBAR,
-        compact: COMPACT_TOOLBAR,
-        full: HEADER_TOOLBAR,
-        standard: 'undo redo | bold italic underline strikethrough | blocks | forecolor | bullist numlist | link emsimage table emslinespace | removeformat emscodeview emsfullscreen',
+        header: SHARED_TOOLBAR,
+        compact: SHARED_TOOLBAR,
+        full: SHARED_TOOLBAR,
+        standard: SHARED_TOOLBAR,
     };
 
     const FONT_FAMILY_FORMATS = [
@@ -91,13 +82,14 @@
         { text: 'Star', value: 'star' },
     ];
 
-    // Legacy mode names are mapped onto the current header/compact UI.
+    // All legacy mode names map to the single shared header UI.
     const MODE_ALIASES = {
         linear: 'header',
         bubble: 'header',
         classic: 'header',
         full: 'header',
         standard: 'header',
+        compact: 'header',
     };
 
     const registry = new Map();
@@ -129,7 +121,7 @@
         }
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = href + '?v=15';
+        link.href = href + '?v=16';
         document.head.appendChild(link);
         cssInjected = true;
     }
@@ -1648,7 +1640,8 @@
             || wrapper?.getAttribute('data-editor-mode')
             || wrapper?.getAttribute('data-editor-preset')
             || 'header';
-        return MODE_ALIASES[raw] || (raw === 'compact' ? 'compact' : 'header');
+        // One shared UI everywhere — legacy aliases all resolve to header.
+        return MODE_ALIASES[raw] || 'header';
     }
 
     function resolveToolbar(wrapper, options = {}) {
@@ -1657,8 +1650,7 @@
             : (wrapper?.getAttribute('data-editor-toolbar') || '').trim();
         if (custom && custom !== 'false') return custom;
 
-        const mode = resolveUiMode(wrapper, options);
-        return PRESET_TOOLBARS[mode] || HEADER_TOOLBAR;
+        return SHARED_TOOLBAR;
     }
 
     async function mountTextarea(textarea, options = {}) {
@@ -1696,7 +1688,6 @@
 
         const readonly = Boolean(options.readonly || wrapper?.getAttribute('data-editor-readonly') === '1');
         const uiMode = resolveUiMode(wrapper, options);
-        const isCompact = uiMode === 'compact';
         const toolbar = resolveToolbar(wrapper, options);
         const placeholder = options.placeholder
             || wrapper?.getAttribute('data-editor-placeholder')
@@ -1708,11 +1699,18 @@
         const contentCssName = dark ? 'dark' : 'default';
         const base = cdnBase.replace(/\/$/, '');
         const menubar = options.menubar !== undefined ? options.menubar : false;
+        const configuredHeight = Math.max(height, 260);
 
         hideProgress(wrapper);
-        wrapper?.classList.toggle('ems-rich-editor--header', !isCompact);
-        wrapper?.classList.toggle('ems-rich-editor--compact', isCompact);
-        wrapper?.classList.remove('ems-rich-editor--linear', 'ems-rich-editor--classic', 'ems-rich-editor--bubble');
+        wrapper?.classList.add('ems-rich-editor--header');
+        wrapper?.classList.remove(
+            'ems-rich-editor--compact',
+            'ems-rich-editor--linear',
+            'ems-rich-editor--classic',
+            'ems-rich-editor--bubble'
+        );
+        wrapper?.setAttribute('data-editor-mode', 'header');
+        wrapper?.setAttribute('data-editor-preset', options.preset || wrapper?.getAttribute('data-editor-preset') || 'full');
 
         return new Promise((resolve) => {
             tinymce.init({
@@ -1732,8 +1730,8 @@
                 fixed_toolbar_container: false,
                 quickbars_selection_toolbar: false,
                 quickbars_insert_toolbar: false,
-                height: Math.max(height, isCompact ? 220 : 360),
-                min_height: Math.max(height, isCompact ? 200 : 300),
+                height: configuredHeight,
+                min_height: Math.max(configuredHeight - 40, 220),
                 placeholder,
                 readonly,
                 skin,
@@ -1805,7 +1803,7 @@
                     registerSlashCommands(editor);
 
                     const surfaceEl = wrapper?.querySelector('.ems-rich-editor__surface') || null;
-                    const configuredHeight = Math.max(height, isCompact ? 220 : 360);
+                    // configuredHeight already computed above for this instance
                     let fullscreenResizeHandler = null;
                     let fullscreenChangeHandler = null;
                     let surfaceResizeObserver = null;

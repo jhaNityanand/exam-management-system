@@ -48,8 +48,18 @@
 }
 
 .ems-rich-editor--compact .ems-rich-editor__surface {
-    min-height: 13.5rem;
-    height: 13.5rem;
+    min-height: 16rem;
+    height: 16rem;
+}
+
+.ems-rich-editor--option .ems-rich-editor__surface {
+    min-height: 16rem;
+    height: 16rem;
+}
+
+/* Compact chrome matches the shared header toolbar styling */
+.ems-rich-editor--compact .tox .tox-editor-header {
+    padding: 0.35rem 0.45rem !important;
 }
 
 .ems-rich-editor.is-focused .ems-rich-editor__surface,

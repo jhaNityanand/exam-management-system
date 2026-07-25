@@ -3,14 +3,14 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Rich Text Editor - modern document-style writing surface
+    | Rich Text Editor — single shared TinyMCE surface
     |--------------------------------------------------------------------------
     |
-    | Shared Blade contract: <x-rich-text-editor>. Default UI is "header":
-    | full toolbar actions stay visible and wrap to additional rows on
-    | narrower screens. Use mode="compact" for small inline editors
-    | (e.g. question options). Uploads go through GalleryService via
-    | POST admin/editor/media.
+    | Shared Blade contract: <x-rich-text-editor>.
+    | Runtime source of truth: public/js/components/editor.js
+    | (EmsRichTextEditor). Every module — questions (body, options,
+    | explanation), exams, blogs, news — mounts the same header toolbar.
+    | Uploads go through GalleryService via POST admin/editor/media.
     |
     */
     'ui_mode' => env('EDITOR_UI_MODE', 'header'),
@@ -45,19 +45,19 @@ return [
     */
     'orphan_ttl_hours' => (int) env('EDITOR_ORPHAN_TTL_HOURS', 24),
 
-    // Full toolbar presets. Actions wrap onto extra rows — nothing is hidden
-    // behind an overflow / "More" menu.
+    // Shared toolbar (actions wrap onto extra rows — nothing hidden).
+    // Kept in sync with SHARED_TOOLBAR in public/js/components/editor.js.
     'toolbar_presets' => [
-        'header' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize lineheight | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat emsfullscreen',
-        'full' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize lineheight | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample | link emsimage table media attachment | removeformat emsfullscreen',
-        'standard' => 'undo redo | bold italic underline strikethrough | blocks | forecolor | bullist numlist | link emsimage table | removeformat emsfullscreen',
-        'compact' => 'undo redo | bold italic underline strikethrough | forecolor backcolor | bullist numlist | link emsimage | removeformat emsfullscreen',
+        'header' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize emslinespace | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample hr | link emsimage table emstabledesign emsshapes emsmedia attachment | removeformat emscodeview emsfullscreen',
+        'full' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize emslinespace | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample hr | link emsimage table emstabledesign emsshapes emsmedia attachment | removeformat emscodeview emsfullscreen',
+        'standard' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize emslinespace | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample hr | link emsimage table emstabledesign emsshapes emsmedia attachment | removeformat emscodeview emsfullscreen',
+        'compact' => 'undo redo | bold italic underline strikethrough | fontfamily fontsize emslinespace | blocks | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | blockquote codesample hr | link emsimage table emstabledesign emsshapes emsmedia attachment | removeformat emscodeview emsfullscreen',
     ],
 
     'plugins' => [
         'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
         'anchor', 'searchreplace', 'visualblocks', 'code',
         'insertdatetime', 'media', 'table',
-        'codesample', 'nonbreaking', 'directionality',
+        'codesample', 'nonbreaking', 'directionality', 'noneditable',
     ],
 ];

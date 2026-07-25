@@ -233,29 +233,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Reuse the same shared editor contract as Question Content / Explanation.
+                const prototype = document.querySelector('[data-ems-rich-editor][data-editor-upload-url]')
+                    || document.querySelector('[data-ems-rich-editor]');
                 const wrapper = document.createElement('div');
-                wrapper.className = 'ems-rich-editor ems-rich-editor--compact';
+                wrapper.className = 'ems-rich-editor ems-rich-editor--header ems-rich-editor--option';
                 wrapper.setAttribute('data-ems-rich-editor', '');
                 wrapper.setAttribute('data-editor-input', textarea.id);
-                wrapper.setAttribute('data-editor-height', '220');
-                wrapper.setAttribute('data-editor-preset', 'compact');
-                wrapper.setAttribute('data-editor-mode', 'compact');
+                wrapper.setAttribute('data-editor-height', '280');
+                wrapper.setAttribute('data-editor-preset', 'full');
+                wrapper.setAttribute('data-editor-mode', 'header');
+                wrapper.setAttribute('data-editor-module', prototype?.getAttribute('data-editor-module') || 'question');
                 wrapper.setAttribute(
                     'data-editor-upload-url',
-                    document.querySelector('[data-editor-upload-url]')?.getAttribute('data-editor-upload-url') || '/admin/editor/media'
+                    prototype?.getAttribute('data-editor-upload-url') || '/admin/editor/media'
                 );
                 wrapper.setAttribute(
                     'data-editor-cdn-base',
-                    document.querySelector('[data-editor-cdn-base]')?.getAttribute('data-editor-cdn-base') || 'https://cdn.jsdelivr.net/npm/tinymce@7.6.1'
+                    prototype?.getAttribute('data-editor-cdn-base') || 'https://cdn.jsdelivr.net/npm/tinymce@7.6.1'
                 );
+                ['data-editor-max-image-kb', 'data-editor-max-video-kb', 'data-editor-max-file-kb'].forEach((attr) => {
+                    const value = prototype?.getAttribute(attr);
+                    if (value) wrapper.setAttribute(attr, value);
+                });
+
+                const surface = document.createElement('div');
+                surface.className = 'ems-rich-editor__surface';
                 textarea.parentNode.insertBefore(wrapper, textarea);
-                wrapper.appendChild(textarea);
+                wrapper.appendChild(surface);
+                surface.appendChild(textarea);
 
                 const adapter = await window.EmsRichTextEditor.mount(textarea, {
                     wrapper,
-                    height: 220,
-                    mode: 'compact',
-                    preset: 'compact',
+                    height: 280,
+                    mode: 'header',
+                    preset: 'full',
                     menubar: false,
                     placeholder: 'Enter option text…',
                 });
