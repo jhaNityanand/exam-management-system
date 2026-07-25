@@ -475,7 +475,23 @@
                         type="hidden"
                         name="predefined_instruction_rules"
                         id="predefined_instruction_rules"
-                        value="{{ json_encode(old('predefined_instruction_rules', $exam?->predefined_instruction_rules ?: collect($formOptions['instructionRules'] ?? [])->where(fn ($r) => !empty($r['is_default']) || !empty($r['is_required']))->pluck('id')->values()->all())) }}"
+                        @php
+                            if (old('predefined_instruction_rules') !== null) {
+                                $instructionRulesSeed = old('predefined_instruction_rules');
+                            } elseif ($exam !== null) {
+                                $instructionRulesSeed = $exam->predefined_instruction_rules ?? [];
+                            } else {
+                                $instructionRulesSeed = collect($formOptions['instructionRules'] ?? [])
+                                    ->where(fn ($r) => ! empty($r['is_default']) || ! empty($r['is_required']))
+                                    ->pluck('id')
+                                    ->values()
+                                    ->all();
+                            }
+                            if (! is_array($instructionRulesSeed)) {
+                                $instructionRulesSeed = [];
+                            }
+                        @endphp
+                        value="{{ json_encode(array_values($instructionRulesSeed)) }}"
                     >
                 </div>
             </section>

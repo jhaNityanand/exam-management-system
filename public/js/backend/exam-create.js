@@ -738,6 +738,21 @@ document.addEventListener('DOMContentLoaded', () => {
             state.selectedPricing = String(cfg.pricing_option);
         }
 
+        if (Array.isArray(cfg.exam_format) && cfg.exam_format.length) {
+            state.selectedExamFormat = new Set(cfg.exam_format.map((f) => normalizeExamFormat(f)));
+        }
+
+        if (cfg.schedule_type) {
+            state.selectedScheduleType = normalizeScheduleType(cfg.schedule_type);
+        }
+        if (cfg.attempt_limit_type) {
+            state.selectedAttemptLimitType = normalizeAttemptLimitType(cfg.attempt_limit_type);
+        }
+
+        if (Array.isArray(cfg.tags)) {
+            state.tags = cfg.tags.map((tag) => cleanText(String(tag))).filter(Boolean);
+        }
+
         if (Array.isArray(cfg.selected_discounts) && cfg.selected_discounts.length) {
             cfg.selected_discounts.forEach((discount) => {
                 const id = typeof discount === 'object' && discount ? discount.id : discount;
@@ -754,16 +769,28 @@ document.addEventListener('DOMContentLoaded', () => {
             state.customDiscounts = cfg.custom_discounts;
         }
 
-        if (Array.isArray(cfg.imported_candidates) && cfg.imported_candidates.length) {
+        if (Array.isArray(cfg.imported_candidates)) {
             state.importedCandidates = cfg.imported_candidates;
         }
-
-        if (Array.isArray(cfg.free_imported_candidates) && cfg.free_imported_candidates.length) {
+        if (Array.isArray(cfg.manual_candidate_emails)) {
+            state.manualEmails = cfg.manual_candidate_emails
+                .map((email) => cleanText(String(email).toLowerCase()))
+                .filter(Boolean);
+        }
+        if (Array.isArray(cfg.free_imported_candidates)) {
             state.freeImportedCandidates = cfg.free_imported_candidates;
         }
+        if (Array.isArray(cfg.free_manual_candidate_emails)) {
+            state.freeManualEmails = cfg.free_manual_candidate_emails
+                .map((email) => cleanText(String(email).toLowerCase()))
+                .filter(Boolean);
+        }
 
-        if (Array.isArray(cfg.predefined_instruction_rules) && cfg.predefined_instruction_rules.length) {
-            state.selectedInstructionRules = new Set(cfg.predefined_instruction_rules);
+        // Preserve empty arrays on edit — do not fall back to default rules.
+        if (Array.isArray(cfg.predefined_instruction_rules)) {
+            state.selectedInstructionRules = new Set(
+                normalizeInstructionRuleSelection(cfg.predefined_instruction_rules)
+            );
         }
     }
 
@@ -779,6 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setSelectValueIfAvailable(refs.mode, cfg.exam_mode);
         setSelectValueIfAvailable(refs.visibility, cfg.visibility);
         setSelectValueIfAvailable(refs.examCurrency, cfg.exam_currency);
+        setSelectValueIfAvailable(refs.negativeMarkingType, cfg.negative_marking_type);
 
         if (refs.enableExamTimer && cfg.enable_exam_timer !== undefined) {
             refs.enableExamTimer.checked = Boolean(cfg.enable_exam_timer);
@@ -788,6 +816,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (refs.examDurationMinutes && cfg.exam_duration_minutes !== undefined && cfg.exam_duration_minutes !== null) {
             refs.examDurationMinutes.value = String(toInt(cfg.exam_duration_minutes, 60));
+        }
+        if (refs.passingMarks && cfg.passing_marks !== undefined && cfg.passing_marks !== null) {
+            refs.passingMarks.value = String(toInt(cfg.passing_marks, 0));
+        }
+        if (refs.enableNegativeMarking && cfg.enable_negative_marking !== undefined) {
+            refs.enableNegativeMarking.checked = Boolean(cfg.enable_negative_marking);
+            if (refs.negativeMarkingConfig) {
+                refs.negativeMarkingConfig.hidden = !refs.enableNegativeMarking.checked;
+            }
+        }
+
+        if (refs.scheduleTypeHidden && cfg.schedule_type) {
+            refs.scheduleTypeHidden.value = normalizeScheduleType(cfg.schedule_type);
+            state.selectedScheduleType = normalizeScheduleType(cfg.schedule_type);
+        }
+        if (refs.attemptLimitTypeHidden && cfg.attempt_limit_type) {
+            refs.attemptLimitTypeHidden.value = normalizeAttemptLimitType(cfg.attempt_limit_type);
+            state.selectedAttemptLimitType = normalizeAttemptLimitType(cfg.attempt_limit_type);
+        }
+        if (refs.scheduleStartAt && cfg.schedule_start_at) {
+            refs.scheduleStartAt.value = normalizeScheduleDateTimeValue(cfg.schedule_start_at);
+        }
+        if (refs.scheduleEndAt && cfg.schedule_end_at) {
+            refs.scheduleEndAt.value = normalizeScheduleDateTimeValue(cfg.schedule_end_at);
+        }
+        if (refs.attemptLimitCount && cfg.attempt_limit_count !== undefined && cfg.attempt_limit_count !== null) {
+            refs.attemptLimitCount.value = String(Math.max(2, toInt(cfg.attempt_limit_count, 2)));
+        }
+
+        const amountInput = document.getElementById('exam_amount');
+        if (amountInput && cfg.exam_amount !== undefined && cfg.exam_amount !== null && cfg.exam_amount !== '') {
+            amountInput.value = String(cfg.exam_amount);
+        }
+
+        if (refs.examFormatHidden && Array.isArray(cfg.exam_format)) {
+            refs.examFormatHidden.value = JSON.stringify(cfg.exam_format);
+            state.selectedExamFormat = new Set(cfg.exam_format.map((f) => normalizeExamFormat(f)));
+        }
+
+        if (refs.tagsHidden && Array.isArray(cfg.tags)) {
+            refs.tagsHidden.value = JSON.stringify(cfg.tags);
+        }
+        if (refs.manualEmailsHidden && Array.isArray(cfg.manual_candidate_emails)) {
+            refs.manualEmailsHidden.value = JSON.stringify(cfg.manual_candidate_emails);
+        }
+        if (refs.freeManualEmailsHidden && Array.isArray(cfg.free_manual_candidate_emails)) {
+            refs.freeManualEmailsHidden.value = JSON.stringify(cfg.free_manual_candidate_emails);
+        }
+        if (refs.instructionRulesHidden && Array.isArray(cfg.predefined_instruction_rules)) {
+            refs.instructionRulesHidden.value = JSON.stringify(cfg.predefined_instruction_rules);
+        }
+
+        // Exam category (Tom Select may already be initialized).
+        if (refs.examCategory && cfg.exam_category_id) {
+            const categoryId = String(cfg.exam_category_id);
+            if (refs.examCategory.tomselect) {
+                refs.examCategory.tomselect.setValue(categoryId, true);
+            } else {
+                refs.examCategory.value = categoryId;
+            }
         }
 
         state.selectedMode = refs.mode ? refs.mode.value : state.selectedMode;
@@ -973,7 +1061,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCustomDiscounts();
 
         let initialFormats = ['mcq'];
-        if (refs.examFormatHidden && refs.examFormatHidden.value) {
+        if (state.isEditMode && state.selectedExamFormat instanceof Set && state.selectedExamFormat.size > 0) {
+            initialFormats = [...state.selectedExamFormat];
+        } else if (refs.examFormatHidden && refs.examFormatHidden.value) {
             try {
                 const parsed = JSON.parse(refs.examFormatHidden.value);
                 if (Array.isArray(parsed) && parsed.length) {
@@ -988,8 +1078,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         state.selectedExamFormat = new Set(initialFormats.map((f) => normalizeExamFormat(f)));
         renderExamFormatOptions();
-        state.selectedScheduleType = normalizeScheduleType(refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time');
-        state.selectedAttemptLimitType = normalizeAttemptLimitType(refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'unlimited');
+        if (!state.selectedScheduleType) {
+            state.selectedScheduleType = normalizeScheduleType(refs.scheduleTypeHidden ? refs.scheduleTypeHidden.value : 'any_time');
+        } else {
+            state.selectedScheduleType = normalizeScheduleType(state.selectedScheduleType);
+        }
+        if (!state.selectedAttemptLimitType) {
+            state.selectedAttemptLimitType = normalizeAttemptLimitType(refs.attemptLimitTypeHidden ? refs.attemptLimitTypeHidden.value : 'unlimited');
+        } else {
+            state.selectedAttemptLimitType = normalizeAttemptLimitType(state.selectedAttemptLimitType);
+        }
         renderScheduleTypeOptions();
         renderAttemptLimitOptions();
         updateScheduleConfigState();
@@ -1001,24 +1099,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderInstructionTemplates();
         const parsedRules = jsonSafeParse(refs.instructionRulesHidden ? refs.instructionRulesHidden.value : '[]');
-        const seedRules = Array.isArray(parsedRules) && parsedRules.length ? parsedRules : defaultInstructionRuleIds();
+        let seedRules;
+        if (state.isEditMode && Array.isArray(state.examConfig?.predefined_instruction_rules)) {
+            seedRules = state.examConfig.predefined_instruction_rules;
+        } else if (Array.isArray(parsedRules) && parsedRules.length) {
+            seedRules = parsedRules;
+        } else if (state.isEditMode && Array.isArray(parsedRules)) {
+            seedRules = parsedRules;
+        } else {
+            seedRules = defaultInstructionRuleIds();
+        }
         state.selectedInstructionRules = new Set(normalizeInstructionRuleSelection(seedRules));
         renderInstructionRules();
 
         refs.manualEmailFeedback.textContent = 'Type email and press Enter to add.';
 
-        const defaultTags = jsonSafeParse(refs.tagsHidden.value);
+        const defaultTags = Array.isArray(state.tags) && state.tags.length
+            ? state.tags
+            : jsonSafeParse(refs.tagsHidden.value);
         if (Array.isArray(defaultTags) && defaultTags.length) {
             tagInput.setValues(defaultTags);
         }
 
-        const defaultEmails = jsonSafeParse(refs.manualEmailsHidden.value);
+        const defaultEmails = Array.isArray(state.manualEmails) && state.manualEmails.length
+            ? state.manualEmails
+            : jsonSafeParse(refs.manualEmailsHidden.value);
         if (Array.isArray(defaultEmails) && defaultEmails.length) {
             emailInput.setValues(defaultEmails);
         }
 
         refs.freeManualEmailFeedback.textContent = 'Type email and press Enter to add.';
-        const defaultFreeEmails = jsonSafeParse(refs.freeManualEmailsHidden.value);
+        const defaultFreeEmails = Array.isArray(state.freeManualEmails) && state.freeManualEmails.length
+            ? state.freeManualEmails
+            : jsonSafeParse(refs.freeManualEmailsHidden.value);
         if (Array.isArray(defaultFreeEmails) && defaultFreeEmails.length) {
             freeEmailInput.setValues(defaultFreeEmails);
         }
@@ -1858,9 +1971,12 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedCategories,
             selectedMarks: new Set(selectedMarksSeed),
             selectedDistributionType: seed.distributionType || 'mixed',
-            extraQuestionsCategoryIds: [...selectedCategories],
+            extraQuestionsCategoryIds: Array.isArray(seed.extraQuestionsCategoryIds) && seed.extraQuestionsCategoryIds.length
+                ? seed.extraQuestionsCategoryIds.map(String)
+                : [...selectedCategories],
             extraQuestionsAllocations: { ...(seed.extraQuestionsAllocations || {}) },
             extraMarksAllocations: { ...(seed.extraMarksAllocations || {}) },
+            categoryQuestionRules: Array.isArray(seed.categoryQuestionRules) ? seed.categoryQuestionRules : [],
             categoryQuestionCountsKey: '',
             categoryMarksCountsKey: '',
             questionBank: [],
@@ -1899,16 +2015,16 @@ document.addEventListener('DOMContentLoaded', () => {
         setFieldValue(root, 'id', seed.id ?? '');
         setFieldValue(root, 'total_questions', toInt(seed.total_questions, 30));
         setFieldValue(root, 'total_marks', toInt(seed.total_marks, 50));
-        setCheckbox(root, 'use_question_pool', seed.use_question_pool !== false);
+        setCheckbox(root, 'use_question_pool', Boolean(seed.use_question_pool));
         setFieldValue(root, 'maximum_questions', seed.maximum_questions ?? 50);
         setCheckbox(root, 'fixed_questions', Boolean(seed.fixed_questions));
         setCheckbox(root, 'fixed_paper_set', Boolean(seed.fixed_paper_set));
         setFieldValue(root, 'paper_sets', toInt(seed.paper_sets, 1));
         setCheckbox(root, 'fix_category_questions', Boolean(seed.fix_category_questions));
         setCheckbox(root, 'fix_category_marks', Boolean(seed.fix_category_marks));
-        setCheckbox(root, 'shuffle_questions', seed.shuffle_questions !== false);
-        setCheckbox(root, 'shuffle_categories', seed.shuffle_categories !== false);
-        setCheckbox(root, 'shuffle_options', seed.shuffle_options !== false);
+        setCheckbox(root, 'shuffle_questions', Boolean(seed.shuffle_questions));
+        setCheckbox(root, 'shuffle_categories', Boolean(seed.shuffle_categories));
+        setCheckbox(root, 'shuffle_options', Boolean(seed.shuffle_options));
         setCheckbox(root, 'fix_marks_each_question', Boolean(seed.fix_marks_each_question));
     }
 
@@ -2061,7 +2177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     id: partCfg.id ?? null,
                     isDefault,
                     name: partCfg.name || (isDefault ? 'Default Part' : nextPartLetterNameForIndex(idx)),
-                    expanded: idx === 0,
+                    expanded: true,
                     total_questions: toInt(partCfg.total_questions, 50),
                     total_marks: toInt(partCfg.total_marks, 100),
                     use_question_pool: Boolean(partCfg.use_question_pool),
@@ -2080,12 +2196,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     selectedMarks: Array.isArray(partCfg.question_marks_filter)
                         ? partCfg.question_marks_filter.map(Number).filter((n) => Number.isFinite(n) && n > 0)
                         : [],
+                    extraQuestionsCategoryIds: Array.isArray(partCfg.extra_questions_categories)
+                        ? partCfg.extra_questions_categories.map(String)
+                        : (Array.isArray(partCfg.selected_categories) ? partCfg.selected_categories.map(String) : []),
                     extraQuestionsAllocations: (partCfg.extra_questions_allocations && typeof partCfg.extra_questions_allocations === 'object')
                         ? { ...partCfg.extra_questions_allocations }
                         : {},
                     extraMarksAllocations: (partCfg.extra_marks_allocations && typeof partCfg.extra_marks_allocations === 'object')
                         ? { ...partCfg.extra_marks_allocations }
                         : {},
+                    categoryQuestionRules: Array.isArray(partCfg.category_question_rules)
+                        ? partCfg.category_question_rules
+                        : [],
                     questionIds: Array.isArray(partCfg.question_ids) ? partCfg.question_ids : [],
                 };
                 const partState = createPartState(overrides);

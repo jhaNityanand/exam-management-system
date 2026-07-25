@@ -117,13 +117,17 @@
                     <tr>
                         <th scope="col" class="list-table__heading w-10"><input type="checkbox" id="exams-select-all" class="list-select-all" aria-label="Select all exams"></th>
                         <x-list-sort-header key="title" label="Exam" />
-                        <x-list-sort-header key="created_at" label="Schedule" />
-                        <x-list-sort-header key="questions_count" label="Question Setup" />
-                        <th scope="col" class="px-6 py-4 font-semibold text-right">Actions</th>
+                        <x-list-sort-header key="status" label="Status" />
+                        <x-list-sort-header key="parts_count" label="Parts" />
+                        <x-list-sort-header key="questions_count" label="Questions" />
+                        <x-list-sort-header key="total_marks" label="Marks" />
+                        <x-list-sort-header key="duration" label="Duration" />
+                        <x-list-sort-header key="scheduled_start" label="Schedule" />
+                        <th scope="col" class="px-4 py-3 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="exams-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
-                    <x-ajax-table-skeleton :rows="10" :columns="5" />
+                    <x-ajax-table-skeleton :rows="10" :columns="9" />
                 </tbody>
             </table>
 
@@ -137,12 +141,15 @@
             <div id="exams-empty" class="hidden py-12 text-center">
                 <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
                 </div>
-                <h3 class="mt-4 text-sm font-semibold text-slate-900 dark:text-white">No exams found</h3>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Try adjusting your filters or create a new exam.</p>
-                <div class="mt-5">
+                <h3 id="exams-empty-title" class="mt-4 text-sm font-semibold text-slate-900 dark:text-white">No exams found</h3>
+                <p id="exams-empty-copy" class="mt-1 text-sm text-slate-500 dark:text-slate-400">Try adjusting your filters or create a new exam.</p>
+                <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+                    <button type="button" id="exams-empty-clear" class="hidden inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                        Clear filters
+                    </button>
                     <a href="{{ route('admin.exams.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-sm">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -164,100 +171,146 @@
 {{-- Right-Side Filter Drawer --}}
 <x-filter-drawer
     title="Filter Exams"
-    subtitle="Narrow results by category, status, format, mode, difficulty, and date"
+    subtitle="Filter by identity, parts structure, scoring, schedule, and sorting"
 >
-            <div class="filter-group">
-                <label for="drawer-category-filter" class="filter-label">Category</label>
-                <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
-                    @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}"
-                            data-level="{{ $cat->depth }}"
-                            data-category-name="{{ $cat->name }}"
-                            class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
-                            {{ $cat->name }}
-                        </option>
-                    @endforeach
-                </select>
-                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more exam categories.</p>
-            </div>
-
-            <div class="filter-group">
-                <label for="drawer-status-filter" class="filter-label">Status</label>
-                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="suspended">Suspended</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="drawer-format-filter" class="filter-label">Exam Format</label>
-                <select id="drawer-format-filter" name="filters[exam_format][]" multiple data-filter-multiple data-placeholder="All exam formats">
-                    @foreach (\App\Support\ExamFormOptions::formatLabels() as $val => $label)
-                        <option value="{{ $val }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="drawer-mode-filter" class="filter-label">Exam Mode</label>
-                <select id="drawer-mode-filter" name="filters[exam_mode][]" multiple data-filter-multiple data-placeholder="All exam modes">
-                    <option value="standard">Standard</option>
-                    <option value="practice">Practice</option>
-                    <option value="proctored">Proctored</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="drawer-difficulty-filter" class="filter-label">Difficulty</label>
-                <select id="drawer-difficulty-filter" name="filters[difficulty_level][]" multiple data-filter-multiple data-placeholder="All difficulties">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-            </div>
-
-            <div class="filter-group grid grid-cols-2 gap-3">
-                <div>
-                    <label for="drawer-duration-min" class="filter-label">Duration Min</label>
-                    <input id="drawer-duration-min" type="number" min="1" name="filters[duration_min]" class="panel-input w-full text-sm" placeholder="Min">
+            <div class="filter-section">
+                <h4 class="filter-section__title">Identity</h4>
+                <div class="filter-group">
+                    <label for="drawer-category-filter" class="filter-label">Category</label>
+                    <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}"
+                                data-level="{{ $cat->depth }}"
+                                data-category-name="{{ $cat->name }}"
+                                class="{{ $cat->depth === 0 ? 'font-semibold text-slate-900' : '' }}">
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
-                <div>
-                    <label for="drawer-duration-max" class="filter-label">Duration Max</label>
-                    <input id="drawer-duration-max" type="number" min="1" name="filters[duration_max]" class="panel-input w-full text-sm" placeholder="Max">
-                </div>
-            </div>
 
-            <div class="filter-group grid grid-cols-2 gap-3">
-                <div>
-                    <label for="drawer-questions-min" class="filter-label">Questions Min</label>
-                    <input id="drawer-questions-min" type="number" min="0" name="filters[questions_min]" class="panel-input w-full text-sm" placeholder="Min">
+                <div class="filter-group">
+                    <label for="drawer-status-filter" class="filter-label">Status</label>
+                    <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
                 </div>
-                <div>
-                    <label for="drawer-questions-max" class="filter-label">Questions Max</label>
-                    <input id="drawer-questions-max" type="number" min="0" name="filters[questions_max]" class="panel-input w-full text-sm" placeholder="Max">
+
+                <div class="filter-group">
+                    <label for="drawer-mode-filter" class="filter-label">Exam Mode</label>
+                    <select id="drawer-mode-filter" name="filters[exam_mode][]" multiple data-filter-multiple data-placeholder="All exam modes">
+                        <option value="standard">Standard</option>
+                        <option value="practice">Practice</option>
+                        <option value="proctored">Proctored</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="drawer-format-filter" class="filter-label">Exam Format</label>
+                    <select id="drawer-format-filter" name="filters[exam_format][]" multiple data-filter-multiple data-placeholder="All exam formats">
+                        @foreach (\App\Support\ExamFormOptions::formatLabels() as $val => $label)
+                            <option value="{{ $val }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="drawer-difficulty-filter" class="filter-label">Difficulty</label>
+                    <select id="drawer-difficulty-filter" name="filters[difficulty_level][]" multiple data-filter-multiple data-placeholder="All difficulties">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="drawer-visibility-filter" class="filter-label">Visibility</label>
+                    <select id="drawer-visibility-filter" name="filters[visibility][]" multiple data-filter-multiple data-placeholder="All visibility">
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                        <option value="invite_only">Invite Only</option>
+                    </select>
                 </div>
             </div>
 
-            <x-filter-date-range
-                id="drawer-created"
-                label="Created date"
-                from-name="filters[created_from]"
-                to-name="filters[created_to]"
-            />
+            <div class="filter-section">
+                <h4 class="filter-section__title">Structure / Parts</h4>
+                <div class="filter-group grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="drawer-parts-min" class="filter-label">Parts Min</label>
+                        <input id="drawer-parts-min" type="number" min="0" name="filters[parts_min]" class="panel-input w-full text-sm" placeholder="Min">
+                    </div>
+                    <div>
+                        <label for="drawer-parts-max" class="filter-label">Parts Max</label>
+                        <input id="drawer-parts-max" type="number" min="0" name="filters[parts_max]" class="panel-input w-full text-sm" placeholder="Max">
+                    </div>
+                </div>
+                <div class="filter-group grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="drawer-questions-min" class="filter-label">Questions Min</label>
+                        <input id="drawer-questions-min" type="number" min="0" name="filters[questions_min]" class="panel-input w-full text-sm" placeholder="Min">
+                    </div>
+                    <div>
+                        <label for="drawer-questions-max" class="filter-label">Questions Max</label>
+                        <input id="drawer-questions-max" type="number" min="0" name="filters[questions_max]" class="panel-input w-full text-sm" placeholder="Max">
+                    </div>
+                </div>
+            </div>
 
-            <div class="filter-group">
-                <label for="drawer-sort" class="filter-label">Sort By</label>
-                <select id="drawer-sort" name="sort" class="panel-input w-full text-sm">
-                    <option value="updated_at:desc" selected>Recently Updated</option>
-                    <option value="title:asc">Title A → Z</option>
-                    <option value="title:desc">Title Z → A</option>
-                    <option value="duration:desc">Longest Duration</option>
-                    <option value="questions_count:desc">Most Questions</option>
-                    <option value="pass_percentage:asc">Lowest Pass %</option>
-                </select>
+            <div class="filter-section">
+                <h4 class="filter-section__title">Scoring</h4>
+                <div class="filter-group grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="drawer-marks-min" class="filter-label">Marks Min</label>
+                        <input id="drawer-marks-min" type="number" min="0" name="filters[marks_min]" class="panel-input w-full text-sm" placeholder="Min">
+                    </div>
+                    <div>
+                        <label for="drawer-marks-max" class="filter-label">Marks Max</label>
+                        <input id="drawer-marks-max" type="number" min="0" name="filters[marks_max]" class="panel-input w-full text-sm" placeholder="Max">
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h4 class="filter-section__title">Schedule</h4>
+                <div class="filter-group grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="drawer-duration-min" class="filter-label">Duration Min</label>
+                        <input id="drawer-duration-min" type="number" min="1" name="filters[duration_min]" class="panel-input w-full text-sm" placeholder="Min">
+                    </div>
+                    <div>
+                        <label for="drawer-duration-max" class="filter-label">Duration Max</label>
+                        <input id="drawer-duration-max" type="number" min="1" name="filters[duration_max]" class="panel-input w-full text-sm" placeholder="Max">
+                    </div>
+                </div>
+                <x-filter-date-range
+                    id="drawer-created"
+                    label="Created date"
+                    from-name="filters[created_from]"
+                    to-name="filters[created_to]"
+                />
+            </div>
+
+            <div class="filter-section">
+                <h4 class="filter-section__title">Meta</h4>
+                <div class="filter-group">
+                    <label for="drawer-sort" class="filter-label">Sort By</label>
+                    <select id="drawer-sort" name="sort" class="panel-input w-full text-sm">
+                        <option value="updated_at:desc" selected>Recently Updated</option>
+                        <option value="title:asc">Title A → Z</option>
+                        <option value="title:desc">Title Z → A</option>
+                        <option value="parts_count:desc">Most Parts</option>
+                        <option value="questions_count:desc">Most Questions</option>
+                        <option value="total_marks:desc">Highest Marks</option>
+                        <option value="duration:desc">Longest Duration</option>
+                        <option value="pass_percentage:asc">Lowest Pass %</option>
+                        <option value="scheduled_start:asc">Earliest Schedule</option>
+                    </select>
+                </div>
             </div>
 </x-filter-drawer>
 

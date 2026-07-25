@@ -176,7 +176,15 @@ class ExamController extends Controller
         $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
         $formOptions = ExamFormOptions::all($orgId);
 
-        $exam->load(['parts.questions:id']);
+        $exam->load([
+            'parts' => function ($query) {
+                $query->orderBy('sort_order')
+                    ->with([
+                        'questions:id',
+                        'selectedQuestionCategories:id',
+                    ]);
+            },
+        ]);
 
         return view('backend.exams.edit', compact('exam', 'categories', 'formOptions'));
     }
@@ -307,7 +315,15 @@ class ExamController extends Controller
     protected function findExamOrFail(int $id): Exam
     {
         return Exam::query()
-            ->with(['questions', 'category', 'createdBy', 'ogImage'])
+            ->with([
+                'parts' => fn ($query) => $query->orderBy('sort_order')->with([
+                    'questions.category:id,name',
+                    'selectedQuestionCategories:id,name',
+                ]),
+                'category',
+                'createdBy',
+                'ogImage',
+            ])
             ->findOrFail($id);
     }
 

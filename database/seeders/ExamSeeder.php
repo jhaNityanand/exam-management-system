@@ -350,16 +350,55 @@ HTML,
                 'exam_category' => 'round-aptitude-reasoning',
                 'question_categories' => ['aptitude', 'general-knowledge'],
                 'selection_mode' => 'dynamic',
-                'total_questions' => 25,
-                'total_marks' => 35,
-                'passing_marks' => 18,
+                'total_questions' => 48,
+                'total_marks' => 48,
+                'passing_marks' => 29,
                 'formats' => ['mcq', 'true_false', 'fill_blank'],
-                'difficulty' => null,
+                'difficulty' => 'medium',
                 'visibility' => 'public',
-                'duration' => 35,
-                'fix_marks_each_question' => true,
-                'question_marks_filter' => [1, 2],
-                'shuffle_questions' => true,
+                'duration' => 30,
+                'enable_exam_timer' => true,
+                'auto_submit_on_timer_end' => true,
+                'tags' => ['aptitude', 'reasoning', 'pre-screen', 'multi-part'],
+                'parts' => [
+                    [
+                        'name' => 'Quantitative Aptitude',
+                        'is_default' => true,
+                        'question_categories' => ['aptitude'],
+                        'selection_mode' => 'dynamic',
+                        'total_questions' => 18,
+                        'total_marks' => 18,
+                        // Keep multi-mark filter usable: fix-each collapses the filter to one mark and the 1-mark pool is too small.
+                        'fix_marks_each_question' => false,
+                        'question_marks_filter' => [1, 2],
+                        'distribution_type' => 'mixed',
+                        'shuffle_questions' => true,
+                        'shuffle_options' => true,
+                    ],
+                    [
+                        'name' => 'Logical Reasoning',
+                        'question_categories' => ['aptitude'],
+                        'selection_mode' => 'dynamic',
+                        'total_questions' => 15,
+                        'total_marks' => 15,
+                        'fix_marks_each_question' => false,
+                        'question_marks_filter' => [1, 2],
+                        'distribution_type' => 'mixed',
+                        'shuffle_questions' => true,
+                        'shuffle_categories' => true,
+                    ],
+                    [
+                        'name' => 'General Knowledge',
+                        'question_categories' => ['general-knowledge'],
+                        'selection_mode' => 'dynamic',
+                        'total_questions' => 15,
+                        'total_marks' => 15,
+                        'fix_marks_each_question' => false,
+                        'question_marks_filter' => [1, 2],
+                        'distribution_type' => 'category_wise',
+                        'shuffle_questions' => true,
+                    ],
+                ],
             ],
             [
                 'title' => 'BCA Campus Placement Interview',
@@ -635,47 +674,14 @@ HTML,
      */
     private function createExam(array $scenario, int $organizationId, int $adminId, int $position): void
     {
-        $questionCategoryIds = collect($scenario['question_categories'])
-            ->map(function (string $slug) {
-                $category = $this->questionCategories->get($slug);
-                if (! $category) {
-                    throw new RuntimeException("ExamSeeder: question category [{$slug}] not found.");
-                }
-
-                return (int) $category->id;
-            })
-            ->values()
-            ->all();
-
         $examCategory = $this->examCategories->get($scenario['exam_category']);
         if (! $examCategory) {
             throw new RuntimeException("ExamSeeder: exam category [{$scenario['exam_category']}] not found.");
         }
 
-        $mode = $scenario['selection_mode'];
-        $totalQuestions = (int) $scenario['total_questions'];
-        $poolSize = $mode === 'pool' ? (int) ($scenario['pool_size'] ?? 0) : null;
-        $questionIds = [];
-
-        if ($mode === 'fixed') {
-            $questionIds = $this->selectQuestionIds($scenario, $totalQuestions);
-        } elseif ($mode === 'pool') {
-            if ($poolSize <= $totalQuestions) {
-                throw new RuntimeException("ExamSeeder: pool must exceed total questions for [{$scenario['title']}].");
-            }
-            $questionIds = $this->selectQuestionIds($scenario, $poolSize);
-        } elseif ($mode !== 'dynamic') {
-            throw new RuntimeException("ExamSeeder: unsupported selection mode [{$mode}].");
-        }
-
-        $extraQuestionAllocations = $this->allocationMap(
-            $questionCategoryIds,
-            $scenario['category_question_allocations'] ?? []
-        );
-        $extraMarksAllocations = $this->allocationMap(
-            $questionCategoryIds,
-            $scenario['category_marks_allocations'] ?? []
-        );
+        $partDefinitions = $this->normalizePartDefinitions($scenario);
+        $totalQuestions = (int) collect($partDefinitions)->sum('total_questions');
+        $totalMarks = (int) collect($partDefinitions)->sum('total_marks');
 
         $defaults = [
             'status' => 'published',
@@ -726,6 +732,8 @@ HTML,
             'instructions' => '<p>Read each question carefully. Use only permitted resources and submit the assessment before the allotted time ends.</p>',
         ];
         $config = array_merge($defaults, $scenario);
+        $config['total_questions'] = $totalQuestions;
+        $config['total_marks'] = $totalMarks;
 
         $negativeType = $config['negative_marking_type'];
         $negativePerQuestion = match ((string) $negativeType) {
@@ -736,7 +744,7 @@ HTML,
             default => 0,
         };
         $slug = UniqueOrgSlug::forModel(Exam::class, $scenario['title'], $organizationId);
-        $passPercentage = round(((int) $scenario['passing_marks'] / (int) $scenario['total_marks']) * 100, 2);
+        $passPercentage = round(((int) $scenario['passing_marks'] / max(1, $totalMarks)) * 100, 2);
 
         $exam = Exam::query()->create([
             'organization_id' => $organizationId,
@@ -769,7 +777,7 @@ HTML,
             'attempt_limit_type' => $config['attempt_limit_type'],
             'max_attempts' => (int) $config['max_attempts'],
             'pass_percentage' => $passPercentage,
-            'total_marks' => (int) $scenario['total_marks'],
+            'total_marks' => $totalMarks,
             'passing_marks' => (int) $scenario['passing_marks'],
             'result_release_mode' => (string) $config['result_release_mode'],
             'result_release_at' => $config['result_release_at'],
@@ -811,46 +819,148 @@ HTML,
             $proctoring->fill($config['proctoring'])->save();
         }
 
-        $part = $exam->parts()->create([
+        foreach ($partDefinitions as $index => $partDefinition) {
+            $this->createExamPart($exam, $partDefinition, $adminId, $index);
+        }
+
+        $this->assertExamContract($exam->fresh(['parts.questions']), $position);
+    }
+
+    /**
+     * @param  array<string, mixed>  $scenario
+     * @return list<array<string, mixed>>
+     */
+    private function normalizePartDefinitions(array $scenario): array
+    {
+        if (! empty($scenario['parts']) && is_array($scenario['parts'])) {
+            return array_values($scenario['parts']);
+        }
+
+        return [[
             'name' => 'Default Part',
-            'sort_order' => 0,
             'is_default' => true,
+            'question_categories' => $scenario['question_categories'] ?? [],
+            'selection_mode' => $scenario['selection_mode'] ?? 'dynamic',
+            'total_questions' => (int) ($scenario['total_questions'] ?? 1),
+            'total_marks' => (int) ($scenario['total_marks'] ?? 1),
+            'pool_size' => $scenario['pool_size'] ?? null,
+            'fixed_paper_set' => $scenario['fixed_paper_set'] ?? false,
+            'paper_sets' => $scenario['paper_sets'] ?? 1,
+            'fix_category_questions' => $scenario['fix_category_questions'] ?? false,
+            'fix_category_marks' => $scenario['fix_category_marks'] ?? false,
+            'distribution_type' => $scenario['distribution_type'] ?? 'mixed',
+            'fix_marks_each_question' => $scenario['fix_marks_each_question'] ?? false,
+            'question_marks_filter' => $scenario['question_marks_filter'] ?? [1, 2, 3],
+            'category_question_allocations' => $scenario['category_question_allocations'] ?? [],
+            'category_marks_allocations' => $scenario['category_marks_allocations'] ?? [],
+            'shuffle_questions' => $scenario['shuffle_questions'] ?? false,
+            'shuffle_categories' => $scenario['shuffle_categories'] ?? false,
+            'shuffle_options' => $scenario['shuffle_options'] ?? false,
+            'formats' => $scenario['formats'] ?? ['mcq'],
+        ]];
+    }
+
+    /**
+     * @param  list<string>  $slugs
+     * @return list<int>
+     */
+    private function resolveQuestionCategoryIds(array $slugs): array
+    {
+        return collect($slugs)
+            ->map(function (string $slug) {
+                $category = $this->questionCategories->get($slug);
+                if (! $category) {
+                    throw new RuntimeException("ExamSeeder: question category [{$slug}] not found.");
+                }
+
+                return (int) $category->id;
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $partDefinition
+     */
+    private function createExamPart(Exam $exam, array $partDefinition, int $adminId, int $index): void
+    {
+        $mode = (string) ($partDefinition['selection_mode'] ?? 'dynamic');
+        $totalQuestions = max(1, (int) ($partDefinition['total_questions'] ?? 1));
+        $totalMarks = max(1, (int) ($partDefinition['total_marks'] ?? 1));
+        $poolSize = $mode === 'pool' ? (int) ($partDefinition['pool_size'] ?? 0) : null;
+        $categorySlugs = $partDefinition['question_categories'] ?? [];
+        $questionCategoryIds = $this->resolveQuestionCategoryIds($categorySlugs);
+        $formats = $partDefinition['formats'] ?? $exam->exam_format ?? ['mcq'];
+        $marksFilter = $partDefinition['question_marks_filter'] ?? [1, 2, 3];
+
+        $selectionScenario = [
+            'title' => $exam->title.' / '.($partDefinition['name'] ?? 'Part'),
+            'question_categories' => $categorySlugs,
+            'formats' => $formats,
+            'question_marks_filter' => $marksFilter,
+        ];
+
+        $questionIds = [];
+        if ($mode === 'fixed') {
+            $questionIds = $this->selectQuestionIds($selectionScenario, $totalQuestions);
+        } elseif ($mode === 'pool') {
+            if ($poolSize <= $totalQuestions) {
+                throw new RuntimeException("ExamSeeder: pool must exceed total questions for [{$selectionScenario['title']}].");
+            }
+            $questionIds = $this->selectQuestionIds($selectionScenario, $poolSize);
+        } elseif ($mode !== 'dynamic') {
+            throw new RuntimeException("ExamSeeder: unsupported selection mode [{$mode}].");
+        }
+
+        $extraQuestionAllocations = $this->allocationMap(
+            $questionCategoryIds,
+            $partDefinition['category_question_allocations'] ?? []
+        );
+        $extraMarksAllocations = $this->allocationMap(
+            $questionCategoryIds,
+            $partDefinition['category_marks_allocations'] ?? []
+        );
+
+        $part = $exam->parts()->create([
+            'name' => (string) ($partDefinition['name'] ?? ($index === 0 ? 'Default Part' : 'Part '.($index + 1))),
+            'sort_order' => $index,
+            'is_default' => (bool) ($partDefinition['is_default'] ?? ($index === 0)),
             'total_questions' => $totalQuestions,
-            'total_marks' => (int) $scenario['total_marks'],
+            'total_marks' => $totalMarks,
             'use_question_pool' => $mode === 'pool',
             'maximum_questions' => $poolSize,
             'fixed_questions' => $mode === 'fixed',
-            'fixed_paper_set' => (bool) $config['fixed_paper_set'],
-            'paper_sets' => (bool) $config['fixed_paper_set'] ? (int) $config['paper_sets'] : 1,
-            'fix_category_questions' => (bool) $config['fix_category_questions'],
-            'fix_category_marks' => (bool) $config['fix_category_marks'],
-            'distribution_type' => $config['distribution_type'],
-            'fix_marks_each_question' => (bool) $config['fix_marks_each_question'],
+            'fixed_paper_set' => (bool) ($partDefinition['fixed_paper_set'] ?? false),
+            'paper_sets' => (bool) ($partDefinition['fixed_paper_set'] ?? false)
+                ? max(1, (int) ($partDefinition['paper_sets'] ?? 1))
+                : 1,
+            'fix_category_questions' => (bool) ($partDefinition['fix_category_questions'] ?? false),
+            'fix_category_marks' => (bool) ($partDefinition['fix_category_marks'] ?? false),
+            'distribution_type' => (string) ($partDefinition['distribution_type'] ?? 'mixed'),
+            'fix_marks_each_question' => (bool) ($partDefinition['fix_marks_each_question'] ?? false),
             'selected_categories' => $questionCategoryIds,
-            'extra_questions_categories' => (bool) $config['fix_category_questions'] ? $questionCategoryIds : [],
+            'extra_questions_categories' => (bool) ($partDefinition['fix_category_questions'] ?? false) ? $questionCategoryIds : [],
             'extra_questions_allocations' => $extraQuestionAllocations,
             'extra_marks_allocations' => $extraMarksAllocations,
-            'question_marks_filter' => $config['question_marks_filter'],
+            'question_marks_filter' => $marksFilter,
             'category_question_rules' => [],
-            'shuffle_questions' => (bool) $config['shuffle_questions'],
-            'shuffle_categories' => (bool) $config['shuffle_categories'],
-            'shuffle_options' => (bool) $config['shuffle_options'],
+            'shuffle_questions' => (bool) ($partDefinition['shuffle_questions'] ?? false),
+            'shuffle_categories' => (bool) ($partDefinition['shuffle_categories'] ?? false),
+            'shuffle_options' => (bool) ($partDefinition['shuffle_options'] ?? false),
         ]);
 
         $part->selectedQuestionCategories()->sync($questionCategoryIds);
 
         $questionSync = [];
-        foreach ($questionIds as $index => $questionId) {
+        foreach ($questionIds as $qIndex => $questionId) {
             $questionSync[$questionId] = [
-                'sort_order' => $index,
+                'sort_order' => $qIndex,
                 'status' => 'active',
                 'created_by' => $adminId,
                 'updated_by' => $adminId,
             ];
         }
         $part->questions()->sync($questionSync);
-
-        $this->assertExamContract($exam->fresh(['parts.questions']), $mode, count($questionIds), $position);
     }
 
     /**
@@ -970,40 +1080,51 @@ HTML,
         );
     }
 
-    private function assertExamContract(Exam $exam, string $mode, int $persistedCount, int $position): void
+    private function assertExamContract(Exam $exam, int $position): void
     {
-        $part = $exam->parts->first();
-        if (! $part) {
-            throw new RuntimeException("ExamSeeder: missing default part at scenario {$position}.");
+        if ($exam->parts->isEmpty()) {
+            throw new RuntimeException("ExamSeeder: missing parts at scenario {$position}.");
         }
         if ($exam->passing_marks > $exam->total_marks) {
             throw new RuntimeException("ExamSeeder: passing marks exceed total marks at scenario {$position}.");
         }
-        if (empty($part->selected_categories) || empty($part->question_marks_filter)) {
-            throw new RuntimeException("ExamSeeder: categories/marks missing at scenario {$position}.");
+
+        $rolledQuestions = (int) $exam->parts->sum('total_questions');
+        $rolledMarks = (int) $exam->parts->sum('total_marks');
+        if ((int) $exam->total_questions !== $rolledQuestions || (int) $exam->total_marks !== $rolledMarks) {
+            throw new RuntimeException("ExamSeeder: exam totals do not match parts roll-up at scenario {$position}.");
         }
-        if ($mode === 'fixed' && $persistedCount !== (int) $part->total_questions) {
-            throw new RuntimeException("ExamSeeder: fixed question count mismatch at scenario {$position}.");
-        }
-        if ($mode === 'pool' && (
-            $persistedCount < (int) $part->total_questions
-            || $persistedCount > (int) $part->maximum_questions
-        )) {
-            throw new RuntimeException("ExamSeeder: question pool count mismatch at scenario {$position}.");
-        }
-        if ($mode === 'dynamic' && $persistedCount !== 0) {
-            throw new RuntimeException("ExamSeeder: dynamic scenario {$position} persisted question ids.");
-        }
-        if ($part->fix_category_questions) {
-            $allocated = collect($part->extra_questions_allocations)->sum();
-            if ($allocated !== (int) $part->total_questions) {
-                throw new RuntimeException("ExamSeeder: question allocation mismatch at scenario {$position}.");
+
+        foreach ($exam->parts as $partIndex => $part) {
+            $persistedCount = $part->questions->count();
+            $mode = $part->use_question_pool ? 'pool' : ($part->fixed_questions ? 'fixed' : 'dynamic');
+
+            if (empty($part->selected_categories) || empty($part->question_marks_filter)) {
+                throw new RuntimeException("ExamSeeder: categories/marks missing at scenario {$position} part {$partIndex}.");
             }
-        }
-        if ($part->fix_category_marks) {
-            $allocated = collect($part->extra_marks_allocations)->sum();
-            if ($allocated !== (int) $part->total_marks) {
-                throw new RuntimeException("ExamSeeder: marks allocation mismatch at scenario {$position}.");
+            if ($mode === 'fixed' && $persistedCount !== (int) $part->total_questions) {
+                throw new RuntimeException("ExamSeeder: fixed question count mismatch at scenario {$position} part {$partIndex}.");
+            }
+            if ($mode === 'pool' && (
+                $persistedCount < (int) $part->total_questions
+                || $persistedCount > (int) $part->maximum_questions
+            )) {
+                throw new RuntimeException("ExamSeeder: question pool count mismatch at scenario {$position} part {$partIndex}.");
+            }
+            if ($mode === 'dynamic' && $persistedCount !== 0) {
+                throw new RuntimeException("ExamSeeder: dynamic scenario {$position} part {$partIndex} persisted question ids.");
+            }
+            if ($part->fix_category_questions) {
+                $allocated = collect($part->extra_questions_allocations)->sum();
+                if ($allocated !== (int) $part->total_questions) {
+                    throw new RuntimeException("ExamSeeder: question allocation mismatch at scenario {$position} part {$partIndex}.");
+                }
+            }
+            if ($part->fix_category_marks) {
+                $allocated = collect($part->extra_marks_allocations)->sum();
+                if ($allocated !== (int) $part->total_marks) {
+                    throw new RuntimeException("ExamSeeder: marks allocation mismatch at scenario {$position} part {$partIndex}.");
+                }
             }
         }
     }

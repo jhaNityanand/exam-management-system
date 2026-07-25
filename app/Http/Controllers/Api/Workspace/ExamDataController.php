@@ -21,7 +21,10 @@ class ExamDataController extends Controller
         'duration',
         'pass_percentage',
         'questions_count',
+        'total_marks',
+        'parts_count',
         'status',
+        'scheduled_start',
     ];
 
     private const ALLOWED_FILTERS = [
@@ -34,6 +37,10 @@ class ExamDataController extends Controller
         'created_by',
         'questions_min',
         'questions_max',
+        'parts_min',
+        'parts_max',
+        'marks_min',
+        'marks_max',
         'duration_min',
         'duration_max',
         'created_from',
@@ -55,7 +62,12 @@ class ExamDataController extends Controller
             $query->onlyTrashed();
         }
         $query->forOrg($orgId)
-            ->with(['category', 'createdBy', 'parts:id,exam_id,name']);
+            ->withCount('parts')
+            ->with([
+                'category:id,name',
+                'createdBy:id,name',
+                'parts:id,exam_id,name',
+            ]);
 
         $this->applySearch($query, $request);
         $this->applySpecialFilters($query, $specialFilters);
@@ -89,11 +101,24 @@ class ExamDataController extends Controller
             ->pluck('count', 'status');
 
         $avgDuration = (clone $baseStatsQuery)->avg('duration') ?? 0;
+        $avgQuestions = (clone $baseStatsQuery)->avg('total_questions') ?? 0;
+        $partsAggregate = (clone $baseStatsQuery)
+            ->leftJoin('exam_parts', function ($join) {
+                $join->on('exam_parts.exam_id', '=', 'exams.id')
+                    ->whereNull('exam_parts.deleted_at');
+            })
+            ->selectRaw('COUNT(DISTINCT exams.id) as exam_total, COUNT(exam_parts.id) as parts_total')
+            ->first();
+        $examTotalForParts = (int) ($partsAggregate->exam_total ?? 0);
+        $avgParts = $examTotalForParts > 0
+            ? round(((int) ($partsAggregate->parts_total ?? 0)) / $examTotalForParts, 1)
+            : 0;
 
         $paginator = $query->paginate(DatatableQuery::perPage($request));
         $paginator->getCollection()->transform(function (Exam $exam) {
             $exam->setAttribute('questions_count', (int) ($exam->total_questions ?? 0));
-            $exam->setAttribute('parts_count', $exam->parts->count());
+            $exam->setAttribute('parts_count', (int) ($exam->parts_count ?? $exam->parts->count()));
+            $exam->setAttribute('part_names', $exam->parts->pluck('name')->filter()->values()->all());
 
             return $exam;
         });
@@ -111,7 +136,9 @@ class ExamDataController extends Controller
                 'published' => $statusCounts->get('published', 0),
                 'draft' => $statusCounts->get('draft', 0),
                 'active' => $statusCounts->get('active', 0),
-                'avg_duration' => round($avgDuration),
+                'avg_duration' => round((float) $avgDuration),
+                'avg_questions' => round((float) $avgQuestions),
+                'avg_parts' => round((float) $avgParts, 1),
             ],
         ]);
     }
@@ -121,6 +148,12 @@ class ExamDataController extends Controller
         $sort = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $request->query('sort', 'updated_at'));
         if ($sort === 'questions_count') {
             $sort = 'total_questions';
+        }
+        if ($sort === 'parts_count') {
+            // withCount alias — DatatableQuery sorts by column name on the query.
+            $request->query->set('sort', 'parts_count');
+
+            return;
         }
         if (! in_array($sort, self::ALLOWED_SORTS, true) && $sort !== 'total_questions') {
             $request->query->set('sort', 'updated_at');
@@ -144,7 +177,20 @@ class ExamDataController extends Controller
         $filters = array_intersect_key($filters, array_flip(self::ALLOWED_FILTERS));
         $special = [];
 
-        foreach (['exam_format', 'questions_min', 'questions_max', 'duration_min', 'duration_max', 'created_from', 'created_to', 'created_by'] as $key) {
+        foreach ([
+            'exam_format',
+            'questions_min',
+            'questions_max',
+            'parts_min',
+            'parts_max',
+            'marks_min',
+            'marks_max',
+            'duration_min',
+            'duration_max',
+            'created_from',
+            'created_to',
+            'created_by',
+        ] as $key) {
             if (array_key_exists($key, $filters)) {
                 $special[$key] = $filters[$key];
                 unset($filters[$key]);
@@ -189,12 +235,29 @@ class ExamDataController extends Controller
             $query->where('created_by', (int) $special['created_by']);
         }
 
+        // Parts architecture: filter on rolled-up exam totals, not a missing questions() relation.
         if (isset($special['questions_min']) && $special['questions_min'] !== '') {
-            $query->has('questions', '>=', (int) $special['questions_min']);
+            $query->where('total_questions', '>=', (int) $special['questions_min']);
         }
 
         if (isset($special['questions_max']) && $special['questions_max'] !== '') {
-            $query->has('questions', '<=', (int) $special['questions_max']);
+            $query->where('total_questions', '<=', (int) $special['questions_max']);
+        }
+
+        if (isset($special['marks_min']) && $special['marks_min'] !== '') {
+            $query->where('total_marks', '>=', (int) $special['marks_min']);
+        }
+
+        if (isset($special['marks_max']) && $special['marks_max'] !== '') {
+            $query->where('total_marks', '<=', (int) $special['marks_max']);
+        }
+
+        if (isset($special['parts_min']) && $special['parts_min'] !== '') {
+            $query->has('parts', '>=', (int) $special['parts_min']);
+        }
+
+        if (isset($special['parts_max']) && $special['parts_max'] !== '') {
+            $query->has('parts', '<=', (int) $special['parts_max']);
         }
 
         if (isset($special['duration_min']) && $special['duration_min'] !== '') {
@@ -225,7 +288,8 @@ class ExamDataController extends Controller
                 ->orWhere('description', 'like', '%'.$search.'%')
                 ->orWhere('status', 'like', '%'.$search.'%')
                 ->orWhereHas('category', fn (Builder $c) => $c->where('name', 'like', '%'.$search.'%'))
-                ->orWhereHas('createdBy', fn (Builder $u) => $u->where('name', 'like', '%'.$search.'%'));
+                ->orWhereHas('createdBy', fn (Builder $u) => $u->where('name', 'like', '%'.$search.'%'))
+                ->orWhereHas('parts', fn (Builder $p) => $p->where('name', 'like', '%'.$search.'%'));
         });
     }
 }

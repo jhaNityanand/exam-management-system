@@ -2,6 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('exams-table-body');
     const statGridEl = document.getElementById('exam-stat-grid');
     const activeChipsEl = document.getElementById('active-filter-chips');
+    const emptyTitleEl = document.getElementById('exams-empty-title');
+    const emptyCopyEl = document.getElementById('exams-empty-copy');
+    const emptyClearBtn = document.getElementById('exams-empty-clear');
     let currentTrash = 'active';
     const selection = new window.EmsListUi.ListSelection({
         bodySelector: '#exams-table-body',
@@ -24,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chipLabels = {
         category_id: { label: 'Category' },
         exam_format: { label: 'Format' },
+        visibility: {
+            label: 'Visibility',
+            map: { public: 'Public', private: 'Private', invite_only: 'Invite Only' },
+        },
         status: {
             label: 'Status',
             map: {
@@ -42,15 +49,28 @@ document.addEventListener('DOMContentLoaded', () => {
             label: 'Difficulty',
             map: { easy: 'Easy', medium: 'Medium', hard: 'Hard' },
         },
+        duration_min: { label: 'Duration ≥' },
+        duration_max: { label: 'Duration ≤' },
+        questions_min: { label: 'Questions ≥' },
+        questions_max: { label: 'Questions ≤' },
+        parts_min: { label: 'Parts ≥' },
+        parts_max: { label: 'Parts ≤' },
+        marks_min: { label: 'Marks ≥' },
+        marks_max: { label: 'Marks ≤' },
+        created_from: { label: 'Created from' },
+        created_to: { label: 'Created to' },
         sort: {
             label: 'Sort',
             map: {
                 'updated_at:desc': 'Recently Updated',
                 'title:asc': 'Title A→Z',
                 'title:desc': 'Title Z→A',
+                'parts_count:desc': 'Most Parts',
+                'questions_count:desc': 'Most Questions',
+                'total_marks:desc': 'Highest Marks',
                 'duration:desc': 'Longest',
-                'questions_count:desc': 'Most Qs',
                 'pass_percentage:asc': 'Lowest Pass%',
+                'scheduled_start:asc': 'Earliest Schedule',
             },
         },
     };
@@ -90,12 +110,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const formatDate = (value) => {
-        if (!value) return 'Not scheduled';
+        if (!value) return '—';
         const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return 'Not scheduled';
+        if (Number.isNaN(date.getTime())) return '—';
         return new Intl.DateTimeFormat(undefined, {
             month: 'short', day: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit',
+        }).format(date);
+    };
+
+    const formatDateShort = (value) => {
+        if (!value) return 'Any time';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Any time';
+        return new Intl.DateTimeFormat(undefined, {
+            month: 'short', day: '2-digit', year: 'numeric',
         }).format(date);
     };
 
@@ -107,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formatSelect = document.getElementById('drawer-format-filter');
 
         Object.entries(filters).forEach(([key, val]) => {
-            if (!hasFilterValue(val)) return;
+            if (key === 'trash' || !hasFilterValue(val)) return;
 
             const values = Array.isArray(val) ? val.filter(hasFilterValue) : [val];
             let display;
@@ -149,13 +178,32 @@ document.addEventListener('DOMContentLoaded', () => {
         activeChipsEl.classList.toggle('hidden', chips.length === 0);
     };
 
+    const updateEmptyState = (response = {}) => {
+        const total = Number(response?.meta?.total ?? 0);
+        const filters = { ...(examsTable?.filters || {}) };
+        delete filters.trash;
+        const hasFilters = Object.values(filters).some(hasFilterValue)
+            || Boolean(examsTable?.search)
+            || (examsTable?.sort && `${examsTable.sort}:${examsTable.direction}` !== 'updated_at:desc');
+
+        if (emptyTitleEl) {
+            emptyTitleEl.textContent = hasFilters ? 'No matching exams' : 'No exams yet';
+        }
+        if (emptyCopyEl) {
+            emptyCopyEl.textContent = hasFilters
+                ? 'Try clearing filters or refining your search.'
+                : 'Create your first exam to get started.';
+        }
+        emptyClearBtn?.classList.toggle('hidden', !hasFilters || total > 0);
+    };
+
     const renderStats = (stats = {}) => {
         if (!statGridEl) return;
         statGridEl.removeAttribute('aria-busy');
         statGridEl.innerHTML = [
             { title: 'Visible Exams', value: stats.total || 0 },
-            { title: 'Published', value: stats.published || 0 },
-            { title: 'Draft / Active', value: `${stats.draft || 0} / ${stats.active || 0}` },
+            { title: 'Published / Active', value: `${stats.published || 0} / ${stats.active || 0}` },
+            { title: 'Avg Parts', value: stats.avg_parts ?? 0 },
             { title: 'Avg Duration', value: `${stats.avg_duration || 0} min` },
         ].map((s) => `
             <article class="exam-stat-card">
@@ -179,9 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
         emptySelector: '#exams-empty',
         defaultSort: 'updated_at',
         defaultDirection: 'desc',
-        skeletonColumns: 5,
+        skeletonColumns: 9,
         onFetchSuccess: (response) => {
             renderStats(response.stats || {});
+            updateEmptyState(response);
             selection.clear();
             window.EmsListUi.syncSortButtons(examsTable);
         },
@@ -192,77 +241,67 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusCls = statusClassMap[row.status] || 'exam-status-draft';
             const categoryName = row.category ? row.category.name : 'Uncategorized';
             const ownerName = row.created_by ? row.created_by.name : 'System';
-            const descriptionPreview = truncate(stripHtml(row.description), 140) || 'No description';
-            const tagsHtml = Array.isArray(row.tags)
-                ? row.tags.map((t) => `<span class="exam-meta-chip">${escapeHtml(t)}</span>`).join('')
-                : '';
-
+            const descriptionPreview = truncate(stripHtml(row.description), 90);
+            const partsCount = Number(row.parts_count ?? 0);
+            const partNames = Array.isArray(row.part_names) ? row.part_names.filter(Boolean) : [];
+            const partsTitle = partNames.length ? escapeHtml(partNames.join(', ')) : '';
+            const questionsCount = Number(row.questions_count ?? row.total_questions ?? 0);
+            const totalMarks = Number(row.total_marks ?? 0);
+            const duration = Number(row.duration ?? 0);
+            const passPct = row.pass_percentage != null ? `${row.pass_percentage}%` : '—';
             const isBin = currentTrash === 'bin';
+            const scheduleLabel = row.scheduled_start || row.scheduled_end
+                ? `${formatDateShort(row.scheduled_start)} → ${formatDateShort(row.scheduled_end)}`
+                : 'Any time';
+
             return `
                 <tr class="exam-list-row list-row">
-                    <td class="px-3 py-4 align-top">
+                    <td class="px-3 py-2.5 align-middle">
                         <input type="checkbox" class="list-row-check" data-id="${escapeHtml(row.id)}" value="${escapeHtml(row.id)}" aria-label="Select exam ${escapeHtml(row.title)}">
                     </td>
-                    <td class="px-6 py-4 align-top">
-                        <div class="space-y-2">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="exam-title-preview text-sm font-semibold text-slate-900 dark:text-white">${escapeHtml(row.title)}</h3>
-                                <span class="exam-status-badge ${statusCls}">${escapeHtml(row.status)}</span>
-                            </div>
-                            <p class="exam-description-preview text-xs leading-relaxed text-slate-500 dark:text-slate-400">${escapeHtml(descriptionPreview)}</p>
-                            <div class="flex flex-wrap gap-1.5">
+                    <td class="px-4 py-2.5 align-middle">
+                        <div class="exam-list-exam-cell">
+                            <a href="${showUrl}" class="exam-title-preview exam-list-title-link">${escapeHtml(row.title)}</a>
+                            ${descriptionPreview ? `<p class="exam-description-preview text-xs text-slate-500 dark:text-slate-400">${escapeHtml(descriptionPreview)}</p>` : ''}
+                            <div class="exam-list-meta-row">
                                 <span class="exam-meta-chip">${escapeHtml(categoryName)}</span>
-                                <span class="exam-meta-chip">${escapeHtml(row.exam_mode)}</span>
-                                <span class="exam-meta-chip">${escapeHtml(row.duration)} min</span>
-                                <span class="exam-meta-chip">Pass ${escapeHtml(row.pass_percentage)}%</span>
+                                <span class="exam-meta-chip">${escapeHtml(row.exam_mode || '—')}</span>
                                 ${row.difficulty_level ? `<span class="exam-meta-chip">${escapeHtml(row.difficulty_level)}</span>` : ''}
+                                <span class="exam-meta-chip">Pass ${escapeHtml(passPct)}</span>
                             </div>
-                            ${tagsHtml ? `<div class="flex flex-wrap gap-1">${tagsHtml}</div>` : ''}
-                            <p class="text-xs text-slate-400 dark:text-slate-500">Owner: ${escapeHtml(ownerName)}</p>
+                            <p class="exam-list-owner">Owner: ${escapeHtml(ownerName)}</p>
                         </div>
                     </td>
-                    <td class="px-6 py-4 align-top">
-                        <div class="space-y-1 text-xs text-slate-600 dark:text-slate-300">
-                            <p><span class="font-semibold text-slate-700 dark:text-slate-200">Starts:</span> ${escapeHtml(formatDate(row.scheduled_start))}</p>
-                            <p><span class="font-semibold text-slate-700 dark:text-slate-200">Ends:</span> ${escapeHtml(formatDate(row.scheduled_end))}</p>
-                            <p class="pt-1 text-slate-400 dark:text-slate-500">Updated ${escapeHtml(formatDate(row.updated_at))}</p>
+                    <td class="px-4 py-2.5 align-middle">
+                        <span class="exam-status-badge ${statusCls}">${escapeHtml(row.status || 'draft')}</span>
+                    </td>
+                    <td class="px-4 py-2.5 align-middle">
+                        <span class="exam-parts-badge" ${partsTitle ? `title="${partsTitle}"` : ''}>${escapeHtml(partsCount)} part${partsCount === 1 ? '' : 's'}</span>
+                    </td>
+                    <td class="px-4 py-2.5 align-middle text-sm font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(questionsCount)}</td>
+                    <td class="px-4 py-2.5 align-middle text-sm font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(totalMarks)}</td>
+                    <td class="px-4 py-2.5 align-middle text-sm text-slate-700 dark:text-slate-200">${escapeHtml(duration)} min</td>
+                    <td class="px-4 py-2.5 align-middle">
+                        <div class="exam-list-schedule">
+                            <span>${escapeHtml(scheduleLabel)}</span>
+                            <span class="exam-list-schedule__updated">Updated ${escapeHtml(formatDateShort(row.updated_at))}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4 align-top">
-                        <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                            <p><span class="font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(row.questions_count ?? 0)}</span> questions</p>
-                            <p>Max attempts: <span class="font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(row.max_attempts)}</span></p>
-                            <div class="flex flex-wrap gap-1.5">
-                                ${row.shuffle_questions ? '<span class="exam-meta-chip">Shuffle Q</span>' : ''}
-                                ${row.shuffle_options ? '<span class="exam-meta-chip">Shuffle Opt</span>' : ''}
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 align-top whitespace-nowrap text-right text-sm">
-                        <div class="flex items-center justify-end gap-2">
-                            ${isBin ? '' : `<a href="${showUrl}"
-                               class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-200"
-                               title="View Details"
-                               aria-label="View exam details">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <td class="px-4 py-2.5 align-middle whitespace-nowrap text-right text-sm">
+                        <div class="flex items-center justify-end gap-1.5">
+                            ${isBin ? '' : `<a href="${showUrl}" class="list-action-btn" title="View Details" aria-label="View exam details">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
                             </a>
-                            <a href="${editUrl}"
-                               class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:border-sky-500/40 dark:hover:bg-sky-500/20 dark:hover:text-sky-200"
-                               title="Edit"
-                               aria-label="Edit exam">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <a href="${editUrl}" class="list-action-btn" title="Edit" aria-label="Edit exam">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                 </svg>
                             </a>
-                            <button type="button"
-                                    class="js-delete-exam inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:border-rose-500/40 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
-                                    data-id="${escapeHtml(row.id)}"
-                                    title="Delete"
-                                    aria-label="Delete exam">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <button type="button" class="js-delete-exam list-action-btn list-action-btn--danger" data-id="${escapeHtml(row.id)}" title="Move to Bin" aria-label="Move exam to bin">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
                             </button>`}
@@ -324,6 +363,18 @@ document.addEventListener('DOMContentLoaded', () => {
         examsTable.clearFilter(btn.dataset.chipKey);
     });
 
+    emptyClearBtn?.addEventListener('click', () => {
+        Object.keys(examsTable.filters || {}).forEach((key) => {
+            if (key !== 'trash') examsTable.clearFilter(key);
+        });
+        if (examsTable.elements?.search) examsTable.elements.search.value = '';
+        examsTable.search = '';
+        examsTable.page = 1;
+        examsTable.sort = examsTable.defaultSort;
+        examsTable.direction = examsTable.defaultDirection;
+        examsTable.fetch();
+    });
+
     if (tableBody) {
         tableBody.addEventListener('click', (e) => {
             const restoreBtn = e.target.closest('.js-restore-exam');
@@ -337,13 +388,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!btn) return;
             const id = btn.dataset.id;
             Swal.fire({
-                title: 'Delete Exam?',
-                text: 'This action cannot be undone.',
+                title: 'Move exam to Bin?',
+                text: 'You can restore it later from the Bin tab.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: 'Yes, delete it!',
+                confirmButtonText: 'Move to Bin',
             }).then((result) => {
                 if (result.isConfirmed) {
                     const form = document.getElementById('delete-exam-form');

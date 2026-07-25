@@ -105,12 +105,12 @@
     {{-- Snapshot metrics --}}
     <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
         @foreach ([
+            ['label' => 'Parts', 'value' => $exam->parts->count()],
             ['label' => 'Duration', 'value' => $exam->enable_exam_timer ? ((int) $exam->duration).' min' : 'No timer'],
             ['label' => 'Pass Marks', 'value' => (int) $exam->passing_marks.' / '.(int) $exam->total_marks],
             ['label' => 'Pass %', 'value' => rtrim(rtrim(number_format((float) $exam->pass_percentage, 2, '.', ''), '0'), '.').'%'],
             ['label' => 'Attempts', 'value' => ($exam->attempt_limit_type === 'unlimited' || (int) $exam->max_attempts === 0) ? 'Unlimited' : ((int) $exam->max_attempts)],
             ['label' => 'Linked Qs', 'value' => $questions->count()],
-            ['label' => 'Linked Marks', 'value' => rtrim(rtrim(number_format($linkedMarks, 2, '.', ''), '0'), '.')],
         ] as $metric)
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ $metric['label'] }}</p>
@@ -382,12 +382,15 @@
                                 </div>
 
                                 @if (count($partQuestionAllocations))
+                                    @php
+                                        $categoryNameLookup = $part->selectedQuestionCategories->pluck('name', 'id');
+                                    @endphp
                                     <div>
                                         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Category Question Allocations</p>
                                         <ul class="space-y-1.5 text-sm">
                                             @foreach ($partQuestionAllocations as $key => $count)
                                                 <li class="flex justify-between gap-3 rounded-lg bg-white/70 dark:bg-slate-900/40 px-3 py-2">
-                                                    <span class="text-slate-600 dark:text-slate-300">{{ is_numeric($key) ? 'Category #'.$key : $key }}</span>
+                                                    <span class="text-slate-600 dark:text-slate-300">{{ $categoryNameLookup[(int) $key] ?? (is_numeric($key) ? 'Category #'.$key : $key) }}</span>
                                                     <span class="font-semibold text-slate-900 dark:text-white">{{ $count }}</span>
                                                 </li>
                                             @endforeach
@@ -396,12 +399,15 @@
                                 @endif
 
                                 @if (count($partMarksAllocations))
+                                    @php
+                                        $categoryNameLookup = $part->selectedQuestionCategories->pluck('name', 'id');
+                                    @endphp
                                     <div>
                                         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Category Marks Allocations</p>
                                         <ul class="space-y-1.5 text-sm">
                                             @foreach ($partMarksAllocations as $key => $count)
                                                 <li class="flex justify-between gap-3 rounded-lg bg-white/70 dark:bg-slate-900/40 px-3 py-2">
-                                                    <span class="text-slate-600 dark:text-slate-300">{{ is_numeric($key) ? 'Category #'.$key : $key }}</span>
+                                                    <span class="text-slate-600 dark:text-slate-300">{{ $categoryNameLookup[(int) $key] ?? (is_numeric($key) ? 'Category #'.$key : $key) }}</span>
                                                     <span class="font-semibold text-slate-900 dark:text-white">{{ $count }} pts</span>
                                                 </li>
                                             @endforeach
@@ -667,6 +673,47 @@
 
         {{-- Sidebar --}}
         <aside class="xl:col-span-4 space-y-6">
+            <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                    Overall Exam Summary
+                </h2>
+                <dl class="space-y-3 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500 dark:text-slate-400">Parts</dt>
+                        <dd class="font-semibold text-slate-900 dark:text-white">{{ $exam->parts->count() }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500 dark:text-slate-400">Questions</dt>
+                        <dd class="font-semibold text-slate-900 dark:text-white">{{ (int) $exam->total_questions }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500 dark:text-slate-400">Marks</dt>
+                        <dd class="font-semibold text-slate-900 dark:text-white">{{ (int) $exam->total_marks }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500 dark:text-slate-400">Passing</dt>
+                        <dd class="font-semibold text-slate-900 dark:text-white">{{ (int) $exam->passing_marks }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500 dark:text-slate-400">Duration</dt>
+                        <dd class="font-semibold text-slate-900 dark:text-white">{{ $exam->enable_exam_timer ? ((int) $exam->duration).' min' : 'Off' }}</dd>
+                    </div>
+                </dl>
+                @if ($exam->parts->isNotEmpty())
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        @foreach ($exam->parts as $summaryPart)
+                            <div class="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/30 px-3 py-2.5">
+                                <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ $summaryPart->name ?: 'Part #'.($summaryPart->sort_order + 1) }}</p>
+                                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                    {{ (int) $summaryPart->total_questions }} Q · {{ (int) $summaryPart->total_marks }} marks
+                                    · {{ $summaryPart->selectedQuestionCategories->count() }} categor{{ $summaryPart->selectedQuestionCategories->count() === 1 ? 'y' : 'ies' }}
+                                </p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
+
             <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
                 <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800">
                     Attempt Statistics

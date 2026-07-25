@@ -70,7 +70,10 @@
             : (json_decode($exam->exam_format ?? '[]', true) ?: []);
 
         $exam->loadMissing(['parts' => function ($query) {
-            $query->orderBy('sort_order')->with('questions:id');
+            $query->orderBy('sort_order')->with([
+                'questions:id',
+                'selectedQuestionCategories:id',
+            ]);
         }]);
 
         $examConfig = [
@@ -106,6 +109,25 @@
 
             // Exam parts — each part carries its own configuration, rules, and question bank.
             'parts' => $exam->parts->map(function (\App\Models\ExamPart $part) {
+                $jsonCategories = collect($part->selected_categories ?? [])
+                    ->map(fn ($id) => (int) $id)
+                    ->filter(fn ($id) => $id > 0)
+                    ->values()
+                    ->all();
+                $pivotCategories = $part->relationLoaded('selectedQuestionCategories')
+                    ? $part->selectedQuestionCategories->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
+                    : [];
+                $selectedCategories = $jsonCategories !== [] ? $jsonCategories : $pivotCategories;
+
+                $extraQuestionCategories = collect($part->extra_questions_categories ?? [])
+                    ->map(fn ($id) => (int) $id)
+                    ->filter(fn ($id) => $id > 0)
+                    ->values()
+                    ->all();
+                if ($extraQuestionCategories === [] && (bool) $part->fix_category_questions) {
+                    $extraQuestionCategories = $selectedCategories;
+                }
+
                 return [
                     'id' => $part->id,
                     'name' => $part->name,
@@ -121,11 +143,12 @@
                     'fix_category_marks' => (bool) $part->fix_category_marks,
                     'distribution_type' => $part->distribution_type,
                     'fix_marks_each_question' => (bool) $part->fix_marks_each_question,
-                    'selected_categories' => $part->selected_categories ?? [],
-                    'extra_questions_categories' => $part->extra_questions_categories ?? [],
+                    'selected_categories' => $selectedCategories,
+                    'extra_questions_categories' => $extraQuestionCategories,
                     'extra_questions_allocations' => $part->extra_questions_allocations ?? [],
                     'extra_marks_allocations' => $part->extra_marks_allocations ?? [],
                     'question_marks_filter' => $part->question_marks_filter ?? [],
+                    'category_question_rules' => $part->category_question_rules ?? [],
                     'shuffle_questions' => (bool) $part->shuffle_questions,
                     'shuffle_categories' => (bool) $part->shuffle_categories,
                     'shuffle_options' => (bool) $part->shuffle_options,
@@ -146,7 +169,7 @@
             'free_imported_candidates' => $exam->free_imported_candidates ?? [],
             'free_manual_candidate_emails' => $exam->free_manual_candidate_emails ?? [],
 
-            // Instructions & rules
+            // Instructions & rules — preserve empty arrays (do not fall back to defaults)
             'predefined_instruction_rules' => $exam->predefined_instruction_rules ?? [],
 
             // SEO / metadata
