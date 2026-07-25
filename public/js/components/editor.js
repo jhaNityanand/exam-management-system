@@ -17,7 +17,7 @@
         'forecolor', 'backcolor', '|',
         'alignleft', 'aligncenter', 'alignright', 'alignjustify', '|',
         'bullist', 'numlist', 'checklist', 'outdent', 'indent', '|',
-        'blockquote', 'codesample', 'hr', '|',
+        'emsquote', 'codesample', 'hr', '|',
         'link', 'emsimage', 'table', 'emstabledesign', 'emsshapes', 'emsmedia', 'attachment', '|',
         'removeformat', 'emscodeview', 'emsfullscreen',
     ].join(' ');
@@ -121,7 +121,7 @@
         }
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = href + '?v=16';
+        link.href = href + '?v=18';
         document.head.appendChild(link);
         cssInjected = true;
     }
@@ -382,35 +382,268 @@
         return `<img class="ems-img-inline" src="${src}" alt="${alt}"${dims} style="vertical-align:middle;display:inline;margin:0 0.4em;" />`;
     }
 
+    function escapeHtmlText(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function plainTextToShapeHtml(text) {
+        const normalized = String(text ?? '').replace(/\r\n|\r/g, '\n');
+        if (!normalized.trim()) return '&nbsp;';
+        return escapeHtmlText(normalized).replace(/\n/g, '<br>');
+    }
+
+    function shapeTextToPlain(el) {
+        if (!el) return '';
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll('br').forEach((br) => {
+            br.replaceWith(document.createTextNode('\n'));
+        });
+        return String(clone.textContent || '')
+            .replace(/\u00a0/g, ' ')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    function toHexColor(value, fallback = '#000000') {
+        const raw = String(value || '').trim();
+        if (!raw) return fallback;
+
+        if (/^#[0-9a-f]{3}$/i.test(raw)) {
+            return `#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`.toUpperCase();
+        }
+        if (/^#[0-9a-f]{6}$/i.test(raw)) {
+            return raw.toUpperCase();
+        }
+        if (/^#[0-9a-f]{8}$/i.test(raw)) {
+            return raw.slice(0, 7).toUpperCase();
+        }
+
+        const rgb = raw.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+        if (rgb) {
+            const hex = [rgb[1], rgb[2], rgb[3]]
+                .map((part) => Number(part).toString(16).padStart(2, '0'))
+                .join('');
+            return `#${hex}`.toUpperCase();
+        }
+
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.fillStyle = '#000000';
+                ctx.fillStyle = raw;
+                const computed = String(ctx.fillStyle || '');
+                if (/^#[0-9a-f]{6}$/i.test(computed)) return computed.toUpperCase();
+                const computedRgb = computed.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+                if (computedRgb) {
+                    return `#${[computedRgb[1], computedRgb[2], computedRgb[3]]
+                        .map((part) => Number(part).toString(16).padStart(2, '0'))
+                        .join('')}`.toUpperCase();
+                }
+            }
+        } catch {
+            // ignore
+        }
+
+        return fallback;
+    }
+
+    function shapeAlignStyles(align) {
+        const safe = ['left', 'center', 'right', 'justify'].includes(align) ? align : 'center';
+        const justify = safe === 'left'
+            ? 'flex-start'
+            : safe === 'right'
+                ? 'flex-end'
+                : safe === 'justify'
+                    ? 'stretch'
+                    : 'center';
+        return {
+            align: safe,
+            textAlign: safe,
+            justifyContent: justify,
+        };
+    }
+
+    function parseShapeSize(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        if (/^\d+(\.\d+)?px$/i.test(raw)) return raw;
+        if (/^\d+(\.\d+)?$/i.test(raw)) return `${raw}px`;
+        return '';
+    }
+
+    function getShapeTextTarget(box) {
+        return box?.querySelector?.('.ems-shape-box__text') || box || null;
+    }
+
     function shapeHtml(kind, options = {}) {
-        const text = String(options.text ?? 'Text').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const fill = options.fill || '#0d9488';
-        const border = options.border || '#0f766e';
+        const textHtml = options.textHtml != null
+            ? String(options.textHtml)
+            : plainTextToShapeHtml(options.text ?? 'Text');
+        const fill = toHexColor(options.fill, '#0D9488');
+        const border = toHexColor(options.border, '#0F766E');
         const borderWidth = String(options.borderWidth || '2').replace(/[^\d.]/g, '') || '2';
-        const textColor = options.textColor || '#ffffff';
+        const textColor = toHexColor(options.textColor, '#FFFFFF');
+        const alignInfo = shapeAlignStyles(options.align || 'center');
+        const lineHeight = options.lineHeight || '';
+        const width = parseShapeSize(options.width);
+        const height = parseShapeSize(options.height);
         const safeKind = SHAPE_OPTIONS.some((o) => o.value === kind) ? kind : 'rectangle';
+        const sizeStyles = `${width ? `width:${width};` : ''}${height ? `height:${height};` : ''}`
+            + `${width ? `min-width:${width};` : ''}${height ? `min-height:${height};` : ''}`;
+        const textLineHeight = lineHeight ? `line-height:${lineHeight};` : '';
 
         return (
             `<span class="mceNonEditable ems-shape-box ems-shape-box--${safeKind}" contenteditable="false" data-ems-shape="${safeKind}" `
-            + `data-ems-fill="${fill}" data-ems-border="${border}" data-ems-border-width="${borderWidth}" data-ems-text-color="${textColor}" `
-            + `style="background-color:${fill};border:${borderWidth}px solid ${border};color:${textColor};">`
-            + `<span class="mceEditable ems-shape-box__text" contenteditable="true">${text || '&nbsp;'}</span>`
+            + `data-ems-fill="${fill}" data-ems-border="${border}" data-ems-border-width="${borderWidth}" `
+            + `data-ems-text-color="${textColor}" data-ems-align="${alignInfo.align}"`
+            + `${lineHeight ? ` data-ems-line-height="${lineHeight}"` : ''}`
+            + `${width ? ` data-ems-width="${width}"` : ''}${height ? ` data-ems-height="${height}"` : ''} `
+            + `style="background-color:${fill};border:${borderWidth}px solid ${border};color:${textColor};`
+            + `text-align:${alignInfo.textAlign};justify-content:${alignInfo.justifyContent};${sizeStyles}">`
+            + `<span class="mceEditable ems-shape-box__text" contenteditable="true" `
+            + `style="text-align:${alignInfo.textAlign};color:${textColor};${textLineHeight}white-space:pre-wrap;">`
+            + `${textHtml || '&nbsp;'}</span>`
             + `</span>&nbsp;`
         );
     }
 
     function readShapeOptions(node) {
         if (!node) {
-            return { text: 'Text', fill: '#0d9488', border: '#0f766e', borderWidth: '2', textColor: '#ffffff' };
+            return {
+                text: 'Text',
+                fill: '#0D9488',
+                border: '#0F766E',
+                borderWidth: '2',
+                textColor: '#FFFFFF',
+                align: 'center',
+                lineHeight: '',
+                width: '',
+                height: '',
+            };
         }
-        const textEl = node.querySelector?.('.ems-shape-box__text');
+        const textEl = getShapeTextTarget(node);
+        const computedFill = node.style?.backgroundColor || '';
+        const computedText = textEl?.style?.color || node.style?.color || '';
         return {
-            text: (textEl?.textContent || '').trim() || 'Text',
-            fill: node.getAttribute('data-ems-fill') || node.style.backgroundColor || '#0d9488',
-            border: node.getAttribute('data-ems-border') || '#0f766e',
+            text: shapeTextToPlain(textEl) || 'Text',
+            fill: toHexColor(node.getAttribute('data-ems-fill') || computedFill, '#0D9488'),
+            border: toHexColor(node.getAttribute('data-ems-border') || '#0F766E', '#0F766E'),
             borderWidth: node.getAttribute('data-ems-border-width') || '2',
-            textColor: node.getAttribute('data-ems-text-color') || node.style.color || '#ffffff',
+            textColor: toHexColor(node.getAttribute('data-ems-text-color') || computedText, '#FFFFFF'),
+            align: node.getAttribute('data-ems-align') || shapeAlignStyles(node.style?.textAlign || 'center').align,
+            lineHeight: node.getAttribute('data-ems-line-height')
+                || textEl?.style?.lineHeight
+                || '',
+            width: node.getAttribute('data-ems-width') || parseShapeSize(node.style?.width) || '',
+            height: node.getAttribute('data-ems-height') || parseShapeSize(node.style?.height) || '',
         };
+    }
+
+    function applyShapeBoxStyles(editor, box, options = {}) {
+        if (!box) return;
+        const textEl = getShapeTextTarget(box);
+        const fill = toHexColor(options.fill ?? box.getAttribute('data-ems-fill'), '#0D9488');
+        const border = toHexColor(options.border ?? box.getAttribute('data-ems-border'), '#0F766E');
+        const borderWidth = String(options.borderWidth ?? box.getAttribute('data-ems-border-width') ?? '2').replace(/[^\d.]/g, '') || '2';
+        const textColor = toHexColor(options.textColor ?? box.getAttribute('data-ems-text-color'), '#FFFFFF');
+        const alignInfo = shapeAlignStyles(options.align ?? box.getAttribute('data-ems-align') ?? 'center');
+        const lineHeight = options.lineHeight != null
+            ? options.lineHeight
+            : (box.getAttribute('data-ems-line-height') || '');
+        const width = parseShapeSize(options.width != null ? options.width : box.getAttribute('data-ems-width'));
+        const height = parseShapeSize(options.height != null ? options.height : box.getAttribute('data-ems-height'));
+
+        box.setAttribute('data-ems-fill', fill);
+        box.setAttribute('data-ems-border', border);
+        box.setAttribute('data-ems-border-width', borderWidth);
+        box.setAttribute('data-ems-text-color', textColor);
+        box.setAttribute('data-ems-align', alignInfo.align);
+        if (lineHeight) box.setAttribute('data-ems-line-height', lineHeight);
+        else box.removeAttribute('data-ems-line-height');
+        if (width) box.setAttribute('data-ems-width', width);
+        else box.removeAttribute('data-ems-width');
+        if (height) box.setAttribute('data-ems-height', height);
+        else box.removeAttribute('data-ems-height');
+
+        const styles = {
+            'background-color': fill,
+            border: `${borderWidth}px solid ${border}`,
+            color: textColor,
+            'text-align': alignInfo.textAlign,
+            'justify-content': alignInfo.justifyContent,
+        };
+        if (width) {
+            styles.width = width;
+            styles['min-width'] = width;
+        } else if (options.width != null) {
+            styles.width = '';
+            styles['min-width'] = '';
+        }
+        if (height) {
+            styles.height = height;
+            styles['min-height'] = height;
+        } else if (options.height != null) {
+            styles.height = '';
+            styles['min-height'] = '';
+        }
+        editor.dom.setStyles(box, styles);
+
+        if (textEl) {
+            const textStyles = {
+                'text-align': alignInfo.textAlign,
+                color: textColor,
+                'white-space': 'pre-wrap',
+            };
+            if (lineHeight) textStyles['line-height'] = lineHeight;
+            editor.dom.setStyles(textEl, textStyles);
+        }
+    }
+
+    function applyShapeAlign(editor, box, align) {
+        applyShapeBoxStyles(editor, box, { align });
+        editor.nodeChanged();
+    }
+
+    function applyShapeTextColor(editor, box, color) {
+        applyShapeBoxStyles(editor, box, { textColor: color });
+        editor.nodeChanged();
+    }
+
+    function applyShapeFillColor(editor, box, color) {
+        applyShapeBoxStyles(editor, box, { fill: color });
+        editor.nodeChanged();
+    }
+
+    function applyShapeLineHeight(editor, box, value) {
+        applyShapeBoxStyles(editor, box, { lineHeight: value });
+        editor.nodeChanged();
+    }
+
+    function applyShapeTextStyle(editor, box, styles = {}) {
+        const textEl = getShapeTextTarget(box);
+        if (!textEl) return;
+        editor.dom.setStyles(textEl, styles);
+        editor.nodeChanged();
+    }
+
+    function updateShapeNode(editor, box, kind, data) {
+        if (!box) return;
+        const safeKind = SHAPE_OPTIONS.some((o) => o.value === kind) ? kind : (box.getAttribute('data-ems-shape') || 'rectangle');
+        box.setAttribute('data-ems-shape', safeKind);
+        box.className = `mceNonEditable ems-shape-box ems-shape-box--${safeKind}`;
+        applyShapeBoxStyles(editor, box, data);
+        const textEl = getShapeTextTarget(box);
+        if (textEl) {
+            textEl.innerHTML = plainTextToShapeHtml(data.text || 'Text');
+        }
+        editor.nodeChanged();
     }
 
     function openShapeDialog(editor, kind, existingNode = null) {
@@ -419,10 +652,30 @@
 
         editor.windowManager.open({
             title: existingNode ? `Edit ${titleKind}` : `Insert ${titleKind}`,
+            size: 'medium',
             body: {
                 type: 'panel',
                 items: [
-                    { type: 'input', name: 'text', label: 'Text on shape' },
+                    { type: 'textarea', name: 'text', label: 'Text on shape (Enter for new line)', maximized: true },
+                    {
+                        type: 'selectbox',
+                        name: 'align',
+                        label: 'Text alignment',
+                        items: [
+                            { text: 'Left', value: 'left' },
+                            { text: 'Center', value: 'center' },
+                            { text: 'Right', value: 'right' },
+                            { text: 'Justify', value: 'justify' },
+                        ],
+                    },
+                    {
+                        type: 'grid',
+                        columns: 2,
+                        items: [
+                            { type: 'input', name: 'width', label: 'Width (px, optional)' },
+                            { type: 'input', name: 'height', label: 'Height (px, optional)' },
+                        ],
+                    },
                     { type: 'colorinput', name: 'fill', label: 'Fill color' },
                     { type: 'colorinput', name: 'border', label: 'Border color' },
                     { type: 'input', name: 'borderWidth', label: 'Border width (px)' },
@@ -431,6 +684,9 @@
             },
             initialData: {
                 text: initial.text,
+                align: initial.align || 'center',
+                width: String(initial.width || '').replace(/px$/i, ''),
+                height: String(initial.height || '').replace(/px$/i, ''),
                 fill: initial.fill,
                 border: initial.border,
                 borderWidth: String(initial.borderWidth || '2'),
@@ -442,25 +698,98 @@
             ],
             onSubmit: (api) => {
                 const data = api.getData();
-                const html = shapeHtml(kind, {
+                const payload = {
                     text: data.text || 'Text',
-                    fill: data.fill || '#0d9488',
-                    border: data.border || '#0f766e',
+                    align: data.align || 'center',
+                    width: data.width,
+                    height: data.height,
+                    fill: toHexColor(data.fill, '#0D9488'),
+                    border: toHexColor(data.border, '#0F766E'),
                     borderWidth: data.borderWidth || '2',
-                    textColor: data.textColor || '#ffffff',
-                });
+                    textColor: toHexColor(data.textColor, '#FFFFFF'),
+                    lineHeight: initial.lineHeight || '',
+                };
                 if (existingNode) {
-                    editor.selection.select(existingNode);
-                    editor.insertContent(html);
+                    updateShapeNode(editor, existingNode, kind, payload);
                 } else {
-                    editor.insertContent(html);
+                    editor.insertContent(shapeHtml(kind, payload));
                 }
                 api.close();
             },
         });
     }
 
+    function openQuoteBgDialog(editor) {
+        const quote = editor.dom.getParent(editor.selection.getNode(), 'blockquote');
+        if (!quote) {
+            editor.execCommand('mceBlockQuote');
+        }
+        const target = editor.dom.getParent(editor.selection.getNode(), 'blockquote');
+        if (!target) {
+            notify('warning', 'Place the cursor inside a quote first.');
+            return;
+        }
+
+        const current = toHexColor(
+            target.getAttribute('data-ems-quote-bg') || target.style.backgroundColor || '#F8FAFC',
+            '#F8FAFC'
+        );
+
+        editor.windowManager.open({
+            title: 'Quote background color',
+            body: {
+                type: 'panel',
+                items: [
+                    { type: 'colorinput', name: 'background', label: 'Background color' },
+                    {
+                        type: 'selectbox',
+                        name: 'preset',
+                        label: 'Quick presets',
+                        items: [
+                            { text: 'Keep custom color', value: '' },
+                            { text: 'Soft gray', value: '#F8FAFC' },
+                            { text: 'Teal wash', value: '#CCFBF1' },
+                            { text: 'Sky wash', value: '#E0F2FE' },
+                            { text: 'Amber wash', value: '#FEF3C7' },
+                            { text: 'Rose wash', value: '#FFE4E6' },
+                            { text: 'Violet wash', value: '#EDE9FE' },
+                            { text: 'Clear background', value: 'clear' },
+                        ],
+                    },
+                ],
+            },
+            initialData: {
+                background: current,
+                preset: '',
+            },
+            buttons: [
+                { type: 'cancel', text: 'Cancel' },
+                { type: 'submit', text: 'Apply', primary: true },
+            ],
+            onSubmit: (api) => {
+                const data = api.getData();
+                let color = data.preset && data.preset !== 'clear' ? data.preset : data.background;
+                if (data.preset === 'clear') {
+                    target.removeAttribute('data-ems-quote-bg');
+                    editor.dom.setStyle(target, 'background-color', '');
+                } else {
+                    color = toHexColor(color, current);
+                    target.setAttribute('data-ems-quote-bg', color);
+                    editor.dom.setStyle(target, 'background-color', color);
+                }
+                editor.nodeChanged();
+                api.close();
+            },
+        });
+    }
+
     function applyLineSpacing(editor, value) {
+        const shape = editor.dom.getParent(editor.selection.getNode(), '.ems-shape-box');
+        if (shape) {
+            applyShapeLineHeight(editor, shape, value);
+            return;
+        }
+
         try {
             editor.execCommand('LineHeight', false, value);
             return;
@@ -470,7 +799,7 @@
         const blocks = editor.selection.getSelectedBlocks?.() || [];
         if (!blocks.length) {
             const node = editor.selection.getNode();
-            const block = editor.dom.getParent(node, 'p,h1,h2,h3,h4,h5,h6,li,td,th,div');
+            const block = editor.dom.getParent(node, 'p,h1,h2,h3,h4,h5,h6,li,td,th,div,blockquote');
             if (block) editor.dom.setStyle(block, 'line-height', value);
             return;
         }
@@ -478,10 +807,21 @@
     }
 
     function applyParagraphGap(editor, marginBottom) {
+        const shape = editor.dom.getParent(editor.selection.getNode(), '.ems-shape-box');
+        if (shape) {
+            const textEl = getShapeTextTarget(shape);
+            if (textEl) {
+                if (marginBottom === null) editor.dom.setStyle(textEl, 'margin-bottom', '');
+                else editor.dom.setStyle(textEl, 'margin-bottom', marginBottom);
+                editor.nodeChanged();
+            }
+            return;
+        }
+
         const blocks = editor.selection.getSelectedBlocks?.() || [];
         const targets = blocks.length
             ? blocks
-            : [editor.dom.getParent(editor.selection.getNode(), 'p,h1,h2,h3,h4,h5,h6,li,div')].filter(Boolean);
+            : [editor.dom.getParent(editor.selection.getNode(), 'p,h1,h2,h3,h4,h5,h6,li,div,blockquote')].filter(Boolean);
         targets.forEach((block) => {
             if (marginBottom === null) {
                 editor.dom.setStyle(block, 'margin-bottom', '');
@@ -1176,6 +1516,124 @@
     function registerCustomButtons(editor) {
         const wrapper = editor.getElement()?.closest('[data-ems-rich-editor]') || null;
 
+        const getActiveShapeBox = () => editor.dom.getParent(editor.selection.getNode(), '.ems-shape-box');
+
+        const handleShapeAlignCommand = (command) => {
+            const box = getActiveShapeBox();
+            if (!box) return false;
+            const alignMatch = String(command || '').match(/^Justify(Left|Center|Right|Full)$/i)
+                || String(command || '').match(/^align(left|center|right|justify)$/i);
+            if (!alignMatch) return false;
+            const raw = alignMatch[1].toLowerCase();
+            applyShapeAlign(editor, box, raw === 'full' ? 'justify' : raw);
+            return true;
+        };
+
+        const handleShapeColorCommand = (format, color) => {
+            const box = getActiveShapeBox();
+            if (!box || !color) return false;
+            const name = String(format || '').toLowerCase();
+            if (name.includes('hilite') || name.includes('back')) {
+                applyShapeFillColor(editor, box, color);
+            } else {
+                applyShapeTextColor(editor, box, color);
+            }
+            return true;
+        };
+
+        editor.on('BeforeExecCommand', (event) => {
+            const command = String(event.command || '');
+            if (handleShapeAlignCommand(command)) {
+                event.preventDefault();
+                return;
+            }
+
+            if (command === 'mceApplyTextcolor' || command === 'ForeColor' || command === 'HiliteColor') {
+                const format = event.ui || (command === 'HiliteColor' ? 'hilitecolor' : 'forecolor');
+                if (handleShapeColorCommand(format, event.value)) {
+                    event.preventDefault();
+                }
+                return;
+            }
+
+            if (command === 'LineHeight' || command === 'mceLineHeight') {
+                const box = getActiveShapeBox();
+                if (box) {
+                    event.preventDefault();
+                    applyShapeLineHeight(editor, box, event.value);
+                }
+                return;
+            }
+
+            if (command === 'FontName' || command === 'FontSize') {
+                const box = getActiveShapeBox();
+                if (!box || !event.value) return;
+                event.preventDefault();
+                if (command === 'FontName') {
+                    applyShapeTextStyle(editor, box, { 'font-family': event.value });
+                } else {
+                    applyShapeTextStyle(editor, box, { 'font-size': event.value });
+                }
+            }
+        });
+
+        // Enter inside shape text inserts a line break (multiline), not a new paragraph.
+        editor.on('keydown', (event) => {
+            if (event.key !== 'Enter' && event.keyCode !== 13) return;
+            const box = getActiveShapeBox();
+            if (!box) return;
+            if (event.shiftKey) return;
+            event.preventDefault();
+            event.stopPropagation();
+            editor.execCommand('InsertLineBreak');
+        });
+
+        editor.on('init', () => {
+            if (!editor.formatter?.apply) return;
+            const originalApply = editor.formatter.apply.bind(editor.formatter);
+            editor.formatter.apply = (name, vars, node) => {
+                const formatName = String(name || '').toLowerCase();
+                const box = getActiveShapeBox();
+
+                if (box && ['alignleft', 'aligncenter', 'alignright', 'alignjustify'].includes(formatName)) {
+                    if (handleShapeAlignCommand(formatName)) return;
+                }
+                if (box && (formatName === 'forecolor' || formatName === 'hilitecolor')) {
+                    const color = vars?.value;
+                    if (handleShapeColorCommand(formatName, color)) return;
+                }
+                if (box && (formatName === 'fontsize' || formatName === 'fontname' || formatName === 'lineheight')) {
+                    const textEl = getShapeTextTarget(box);
+                    if (textEl && vars?.value) {
+                        if (formatName === 'fontsize') {
+                            applyShapeTextStyle(editor, box, { 'font-size': vars.value });
+                            return;
+                        }
+                        if (formatName === 'fontname') {
+                            applyShapeTextStyle(editor, box, { 'font-family': vars.value });
+                            return;
+                        }
+                        if (formatName === 'lineheight') {
+                            applyShapeLineHeight(editor, box, vars.value);
+                            return;
+                        }
+                    }
+                }
+
+                try {
+                    return originalApply(name, vars, node);
+                } catch {
+                    if (!box) return;
+                    // Fallback for formats that fail inside nested contenteditable.
+                    if (['bold', 'italic', 'underline', 'strikethrough'].includes(formatName)) {
+                        editor.execCommand(formatName === 'strikethrough' ? 'Strikethrough' : formatName.charAt(0).toUpperCase() + formatName.slice(1));
+                    }
+                }
+            };
+
+            enableShapeResizing(editor);
+        });
+
         editor.ui.registry.addIcon(
             'ems-checklist',
             '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M9.5 16.2 5.8 12.5l1.4-1.4 2.3 2.3 6.3-6.3 1.4 1.4-7.7 7.7zM4 19h16v1.5H4V19zm0-4.5h2V16H4v-1.5zm0-4h2V12H4v-1.5zm0-4h2V8H4V6.5z"/></svg>'
@@ -1191,6 +1649,10 @@
         editor.ui.registry.addIcon(
             'ems-shape',
             '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h5A2.5 2.5 0 0 1 14 6.5v5a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 4 11.5v-5zM16.5 10a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"/></svg>'
+        );
+        editor.ui.registry.addIcon(
+            'ems-quote',
+            '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M7.2 17.5 4 14.3V9.2C4 6.4 6.2 4.2 9 4.2h.8v2.2H9c-1.5 0-2.8 1.2-2.8 2.8v1.2h3.5v7.1H7.2zm9.8 0-3.2-3.2V9.2c0-2.8 2.2-5 5-5h.8v2.2h-.8c-1.5 0-2.8 1.2-2.8 2.8v1.2H20v7.1h-3z"/></svg>'
         );
 
         editor.ui.registry.addToggleButton('checklist', {
@@ -1248,6 +1710,25 @@
             },
         });
 
+        editor.ui.registry.addMenuButton('emsquote', {
+            icon: 'ems-quote',
+            tooltip: 'Quote',
+            fetch: (callback) => {
+                callback([
+                    {
+                        type: 'menuitem',
+                        text: 'Insert / toggle quote',
+                        onAction: () => editor.execCommand('mceBlockQuote'),
+                    },
+                    {
+                        type: 'menuitem',
+                        text: 'Quote background color…',
+                        onAction: () => openQuoteBgDialog(editor),
+                    },
+                ]);
+            },
+        });
+
         editor.ui.registry.addToggleButton('emscodeview', {
             icon: 'sourcecode',
             tooltip: 'Show HTML code',
@@ -1272,7 +1753,7 @@
 
         editor.ui.registry.addButton('emsshapeedit', {
             text: 'Edit shape',
-            tooltip: 'Edit shape colors and text',
+            tooltip: 'Edit shape colors, size and text',
             onAction: () => {
                 const node = editor.selection.getNode();
                 const box = editor.dom.getParent(node, '.ems-shape-box');
@@ -1284,10 +1765,27 @@
             },
         });
 
+        editor.ui.registry.addButton('emsquotebg', {
+            text: 'Quote color',
+            tooltip: 'Change quote background color',
+            onAction: () => openQuoteBgDialog(editor),
+        });
+
+        // Keep near the caret/selection so wide shapes don't pin the bar to the far right.
         editor.ui.registry.addContextToolbar('emsshapetoolbar', {
-            predicate: (node) => Boolean(editor.dom.getParent(node, '.ems-shape-box')),
+            predicate: (node) => {
+                const box = editor.dom.getParent(node, '.ems-shape-box');
+                return Boolean(box) && box.getAttribute('data-ems-shape') !== 'line';
+            },
             items: 'emsshapeedit',
-            position: 'node',
+            position: 'selection',
+            scope: 'node',
+        });
+
+        editor.ui.registry.addContextToolbar('emsquotetoolbar', {
+            predicate: (node) => Boolean(editor.dom.getParent(node, 'blockquote')),
+            items: 'emsquotebg',
+            position: 'selection',
             scope: 'node',
         });
 
@@ -1309,6 +1807,114 @@
                 })));
             },
         });
+    }
+
+    function enableShapeResizing(editor) {
+        const doc = editor.getDoc();
+        const body = editor.getBody();
+        if (!doc || !body) return;
+
+        let drag = null;
+
+        const clearHandles = () => {
+            body.querySelectorAll('.ems-shape-resize-handle').forEach((handle) => handle.remove());
+            body.querySelectorAll('.ems-shape-box.is-resize-active').forEach((box) => {
+                box.classList.remove('is-resize-active');
+            });
+        };
+
+        const showHandles = (box) => {
+            clearHandles();
+            if (!box || box.getAttribute('data-ems-shape') === 'line') return;
+            box.classList.add('is-resize-active');
+            ['e', 's', 'se'].forEach((dir) => {
+                const handle = doc.createElement('span');
+                handle.className = `mceNonEditable ems-shape-resize-handle ems-shape-resize-handle--${dir}`;
+                handle.setAttribute('contenteditable', 'false');
+                handle.setAttribute('data-resize-dir', dir);
+                handle.setAttribute('title', 'Drag to resize');
+                box.appendChild(handle);
+            });
+        };
+
+        const onMouseMove = (event) => {
+            if (!drag?.box) return;
+            event.preventDefault();
+            const dx = event.clientX - drag.startX;
+            const dy = event.clientY - drag.startY;
+            let nextW = drag.startW;
+            let nextH = drag.startH;
+            if (drag.dir.includes('e')) nextW = Math.max(80, Math.round(drag.startW + dx));
+            if (drag.dir.includes('s')) nextH = Math.max(40, Math.round(drag.startH + dy));
+
+            const kind = drag.box.getAttribute('data-ems-shape');
+            if (kind === 'circle' || kind === 'star') {
+                const edge = Math.max(nextW, nextH);
+                nextW = edge;
+                nextH = edge;
+            }
+
+            applyShapeBoxStyles(editor, drag.box, {
+                width: `${nextW}px`,
+                height: `${nextH}px`,
+            });
+        };
+
+        const onMouseUp = () => {
+            if (!drag) return;
+            drag = null;
+            doc.removeEventListener('mousemove', onMouseMove);
+            doc.removeEventListener('mouseup', onMouseUp);
+            editor.nodeChanged();
+        };
+
+        body.addEventListener('mousedown', (event) => {
+            const handle = event.target?.closest?.('.ems-shape-resize-handle');
+            if (!handle) return;
+            const box = handle.closest('.ems-shape-box');
+            if (!box) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const rect = box.getBoundingClientRect();
+            drag = {
+                box,
+                dir: handle.getAttribute('data-resize-dir') || 'se',
+                startX: event.clientX,
+                startY: event.clientY,
+                startW: rect.width,
+                startH: rect.height,
+            };
+            doc.addEventListener('mousemove', onMouseMove);
+            doc.addEventListener('mouseup', onMouseUp);
+        });
+
+        editor.on('NodeChange', () => {
+            const box = editor.dom.getParent(editor.selection.getNode(), '.ems-shape-box');
+            if (box) showHandles(box);
+            else clearHandles();
+        });
+
+        const stripHandlesFromNode = (root) => {
+            if (!root?.querySelectorAll) return;
+            root.querySelectorAll('.ems-shape-resize-handle').forEach((handle) => handle.remove());
+            root.querySelectorAll('.ems-shape-box.is-resize-active').forEach((box) => {
+                box.classList.remove('is-resize-active');
+            });
+        };
+
+        editor.on('GetContent', (event) => {
+            if (!event.content || event.selection) return;
+            // Defensive strip if handles leaked into serialized HTML.
+            event.content = String(event.content)
+                .replace(/<span[^>]*class="[^"]*ems-shape-resize-handle[^"]*"[^>]*>\s*<\/span>/gi, '')
+                .replace(/\s*is-resize-active/g, '');
+        });
+
+        editor.on('PreProcess', (event) => {
+            stripHandlesFromNode(event.node);
+        });
+
+        editor.on('remove', clearHandles);
     }
 
     async function handleEditorImageDrop(editor, wrapper, uploadUrl, file) {
@@ -1427,9 +2033,7 @@
                 pointer-events: none;
                 white-space: pre-wrap;
             }
-            p, h1, h2, h3, h4, h5, h6, li, blockquote {
-                text-align: left;
-            }
+            /* Block alignment is controlled by toolbar (inline text-align styles). */
             p {
                 margin: 0 0 0.85em;
             }
@@ -1480,6 +2084,7 @@
                 display: block;
             }
             .ems-shape-box {
+                position: relative;
                 display: inline-flex !important;
                 align-items: center;
                 justify-content: center;
@@ -1491,16 +2096,76 @@
                 box-sizing: border-box;
                 text-align: center;
                 font-weight: 600;
-                line-height: 1.25;
-                cursor: pointer;
+                line-height: 1.35;
+                cursor: text;
                 user-select: text;
                 box-shadow: 0 0 0 1px rgb(15 23 42 / 0.06);
+                max-width: 100%;
+            }
+            .ems-shape-box.is-resize-active {
+                outline: 2px solid ${link};
+                outline-offset: 2px;
+            }
+            .ems-shape-box[data-ems-align="left"],
+            .ems-shape-box[style*="text-align: left"],
+            .ems-shape-box[style*="text-align:left"] {
+                text-align: left !important;
+                justify-content: flex-start !important;
+            }
+            .ems-shape-box[data-ems-align="center"],
+            .ems-shape-box[style*="text-align: center"],
+            .ems-shape-box[style*="text-align:center"] {
+                text-align: center !important;
+                justify-content: center !important;
+            }
+            .ems-shape-box[data-ems-align="right"],
+            .ems-shape-box[style*="text-align: right"],
+            .ems-shape-box[style*="text-align:right"] {
+                text-align: right !important;
+                justify-content: flex-end !important;
+            }
+            .ems-shape-box[data-ems-align="justify"],
+            .ems-shape-box[style*="text-align: justify"],
+            .ems-shape-box[style*="text-align:justify"] {
+                text-align: justify !important;
+                justify-content: stretch !important;
             }
             .ems-shape-box__text {
-                display: inline-block;
+                display: block;
+                width: 100%;
                 outline: none;
                 min-width: 1ch;
                 word-break: break-word;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+            }
+            .ems-shape-resize-handle {
+                position: absolute;
+                z-index: 6;
+                width: 10px;
+                height: 10px;
+                border: 2px solid #fff;
+                border-radius: 2px;
+                background: ${link};
+                box-shadow: 0 0 0 1px rgb(15 23 42 / 0.25);
+                pointer-events: auto;
+            }
+            .ems-shape-resize-handle--e {
+                top: 50%;
+                right: -6px;
+                transform: translateY(-50%);
+                cursor: ew-resize;
+            }
+            .ems-shape-resize-handle--s {
+                left: 50%;
+                bottom: -6px;
+                transform: translateX(-50%);
+                cursor: ns-resize;
+            }
+            .ems-shape-resize-handle--se {
+                right: -6px;
+                bottom: -6px;
+                cursor: nwse-resize;
             }
             .ems-shape-box--rectangle { border-radius: 6px; min-width: 120px; }
             .ems-shape-box--rounded { border-radius: 18px; min-width: 120px; }
@@ -1610,6 +2275,9 @@
                 background: ${quoteBg};
                 border-radius: 0 8px 8px 0;
                 color: ${muted};
+            }
+            blockquote[data-ems-quote-bg] {
+                background: var(--ems-quote-bg, ${quoteBg});
             }
             hr {
                 border: 0;
@@ -1750,6 +2418,9 @@
                 ],
                 color_cols: 5,
                 custom_colors: true,
+                color_default_foreground: '#0F172A',
+                color_default_background: '#0D9488',
+                force_hex_color: 'always',
                 image_title: true,
                 image_description: true,
                 image_dimensions: true,
@@ -1773,8 +2444,13 @@
                     'audio[*]',
                     'source[*]',
                     'a[*]',
-                    'span[class|style|contenteditable|data-ems-shape|data-ems-fill|data-ems-border|data-ems-border-width|data-ems-text-color]',
+                    'br',
+                    'span[class|style|contenteditable|title|data-resize-dir|data-ems-shape|data-ems-fill|data-ems-border|data-ems-border-width|data-ems-text-color|data-ems-align|data-ems-line-height|data-ems-width|data-ems-height]',
+                    'blockquote[class|style|data-ems-quote-bg]',
                 ].join(','),
+                valid_styles: {
+                    '*': 'text-align,color,background-color,background,font-size,font-family,font-weight,font-style,text-decoration,line-height,margin,margin-bottom,padding,border,border-radius,width,height,max-width,min-width,min-height,display,justify-content,align-items,vertical-align,float,box-shadow,clip-path,white-space,overflow-wrap,position,top,right,bottom,left,outline,outline-offset,cursor,transform',
+                },
                 noneditable_class: 'mceNonEditable',
                 editable_class: 'mceEditable',
                 table_class_list: [
