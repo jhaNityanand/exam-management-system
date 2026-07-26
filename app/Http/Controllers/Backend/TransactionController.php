@@ -9,6 +9,6 @@ class TransactionController extends Controller
 {
     public function index(): View
     {
-        return view('backend.transactions.index');
+        return view('backend.coming-soon');
     }
 }
