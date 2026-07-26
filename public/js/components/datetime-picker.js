@@ -79,6 +79,8 @@
             onReady(_, __, instance) {
                 instance.calendarContainer?.classList.toggle('ems-dtp-calendar--dark', isDark());
                 if (instance.altInput) {
+                    input.classList.remove('panel-input', 'ems-dtp__input');
+                    input.classList.add('ems-dtp__raw');
                     instance.altInput.classList.add('panel-input', 'ems-dtp__input');
                 }
             },

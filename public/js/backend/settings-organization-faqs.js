@@ -67,14 +67,14 @@
         document.getElementById('faq-modal-title').textContent = faq?.id ? 'Edit FAQ' : 'Add FAQ';
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('overflow-hidden');
+        document.body.classList.add('ems-dialog-open');
     };
 
     const closeModal = () => {
         if (!modal) return;
         modal.classList.add('hidden');
         modal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('overflow-hidden');
+        document.body.classList.remove('ems-dialog-open');
     };
 
     const renderRows = (rows) => {
@@ -83,7 +83,13 @@
         rows.forEach((faq) => { state.rowsById[faq.id] = faq; });
 
         if (!rows.length) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No FAQs found.</td></tr>`;
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="faq-table__empty">
+                        <p style="margin:0;font-weight:600;color:inherit">No FAQs found</p>
+                        <p style="margin:0.35rem 0 0;font-size:0.75rem;opacity:0.85">Try adjusting filters or add a new FAQ.</p>
+                    </td>
+                </tr>`;
             return;
         }
 
@@ -91,20 +97,22 @@
             const active = faq.status === 'active';
             return `
                 <tr data-faq-id="${faq.id}">
-                    <td class="px-4 py-3">
-                        <p class="font-medium text-slate-900 dark:text-white">${escapeHtml(faq.question)}</p>
-                        ${faq.is_featured ? '<span class="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Featured</span>' : ''}
+                    <td>
+                        <p class="faq-table__question">${escapeHtml(faq.question)}</p>
+                        <div class="faq-table__meta">
+                            ${faq.is_featured ? '<span class="faq-table__badge faq-table__badge--featured">Featured</span>' : ''}
+                        </div>
                     </td>
-                    <td class="px-4 py-3 text-slate-600 dark:text-slate-300">${escapeHtml(faq.category_name || '—')}</td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${active
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300'
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}">${escapeHtml(faq.status)}</span>
+                    <td>${escapeHtml(faq.category_name || '—')}</td>
+                    <td>
+                        <span class="faq-table__badge faq-table__badge--status ${active ? 'faq-table__badge--active' : 'faq-table__badge--inactive'}">${escapeHtml(faq.status)}</span>
                     </td>
-                    <td class="px-4 py-3">${escapeHtml(faq.sort_order)}</td>
-                    <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-                        <button type="button" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline faq-edit-btn" data-id="${faq.id}">Edit</button>
-                        <button type="button" class="text-red-600 dark:text-red-400 font-medium hover:underline faq-delete-btn" data-id="${faq.id}">Delete</button>
+                    <td><span class="faq-table__order">${escapeHtml(faq.sort_order)}</span></td>
+                    <td>
+                        <div class="faq-table__actions">
+                            <button type="button" class="faq-table__action faq-table__action--edit faq-edit-btn" data-id="${faq.id}">Edit</button>
+                            <button type="button" class="faq-table__action faq-table__action--delete faq-delete-btn" data-id="${faq.id}">Delete</button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -122,11 +130,11 @@
         const nextDisabled = meta.current_page >= meta.last_page;
 
         paginationEl.innerHTML = `
-            <p>Showing ${meta.from ?? 0}–${meta.to ?? 0} of ${meta.total}</p>
-            <div class="flex gap-2">
-                <button type="button" class="panel-button-secondary text-xs faq-page-btn" data-page="${meta.current_page - 1}" ${prevDisabled ? 'disabled' : ''}>Previous</button>
-                <span class="inline-flex items-center px-2 text-xs">Page ${meta.current_page} / ${meta.last_page}</span>
-                <button type="button" class="panel-button-secondary text-xs faq-page-btn" data-page="${meta.current_page + 1}" ${nextDisabled ? 'disabled' : ''}>Next</button>
+            <p class="faq-pagination__meta">Showing <strong>${meta.from ?? 0}–${meta.to ?? 0}</strong> of <strong>${meta.total}</strong></p>
+            <div class="faq-pagination__controls">
+                <button type="button" class="faq-pagination__btn faq-page-btn" data-page="${meta.current_page - 1}" ${prevDisabled ? 'disabled' : ''}>Previous</button>
+                <span class="faq-pagination__page">Page ${meta.current_page} / ${meta.last_page}</span>
+                <button type="button" class="faq-pagination__btn faq-page-btn" data-page="${meta.current_page + 1}" ${nextDisabled ? 'disabled' : ''}>Next</button>
             </div>
         `;
     };
@@ -134,7 +142,7 @@
     const loadFaqs = async (page = state.page) => {
         state.page = page;
         if (tableBody) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading FAQs…</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="5" class="faq-table__empty">Loading FAQs…</td></tr>`;
         }
 
         const params = new URLSearchParams({
@@ -154,23 +162,55 @@
             state.loadedOnce = true;
         } catch (error) {
             if (tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">${escapeHtml(error.message)}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="faq-table__empty" style="color:#ef4444">${escapeHtml(error.message)}</td></tr>`;
             }
         }
     };
 
+    const syncFiltersFromForm = () => {
+        state.search = filtersForm?.querySelector('#faq_filter_search')?.value?.trim() || '';
+        state.status = filtersForm?.querySelector('#faq_filter_status')?.value || '';
+        state.category_id = filtersForm?.querySelector('#faq_filter_category')?.value || '';
+    };
+
+    let searchTimer = null;
+    const scheduleSearch = () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            syncFiltersFromForm();
+            loadFaqs(1);
+        }, 350);
+    };
+
     document.getElementById('faq-add-btn')?.addEventListener('click', () => openModal());
     modal?.querySelectorAll('[data-faq-modal-close]').forEach((el) => el.addEventListener('click', closeModal));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
 
     filtersForm?.addEventListener('submit', (e) => {
         e.preventDefault();
-        state.search = filtersForm.querySelector('#faq_filter_search')?.value?.trim() || '';
-        state.status = filtersForm.querySelector('#faq_filter_status')?.value || '';
-        state.category_id = filtersForm.querySelector('#faq_filter_category')?.value || '';
+        clearTimeout(searchTimer);
+        syncFiltersFromForm();
+        loadFaqs(1);
+    });
+
+    filtersForm?.querySelector('#faq_filter_search')?.addEventListener('input', scheduleSearch);
+    filtersForm?.querySelector('#faq_filter_status')?.addEventListener('change', () => {
+        clearTimeout(searchTimer);
+        syncFiltersFromForm();
+        loadFaqs(1);
+    });
+    filtersForm?.querySelector('#faq_filter_category')?.addEventListener('change', () => {
+        clearTimeout(searchTimer);
+        syncFiltersFromForm();
         loadFaqs(1);
     });
 
     document.getElementById('faq-filters-reset')?.addEventListener('click', () => {
+        clearTimeout(searchTimer);
         filtersForm?.reset();
         state.search = '';
         state.status = '';

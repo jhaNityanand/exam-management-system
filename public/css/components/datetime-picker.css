@@ -4,6 +4,28 @@
     position: relative;
 }
 
+/* Flatpickr keeps a raw input for form value; only the alt input should be visible */
+.ems-dtp__control > input.ems-dtp__raw,
+.ems-dtp__control > input.flatpickr-input:not(.ems-dtp__input) {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.ems-dtp__control > input.ems-dtp__input,
+.ems-dtp__control > input.flatpickr-input.ems-dtp__input {
+    display: block;
+    width: 100%;
+}
+
 .ems-dtp__input {
     padding-right: 2.5rem !important;
 }

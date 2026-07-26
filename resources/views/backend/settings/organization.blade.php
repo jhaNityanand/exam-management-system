@@ -74,8 +74,8 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div>
+                <div class="org-branding-media-grid">
+                    <div class="min-w-0">
                         @include('backend.partials.gallery-picker', [
                             'name' => 'logo_gallery_id',
                             'label' => 'Logo',
@@ -86,7 +86,7 @@
                         <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Recommended <strong>400×120</strong> px transparent PNG/WebP.</p>
                         <p class="qcat-field-error" data-error-for="logo_gallery_id" hidden></p>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         @include('backend.partials.gallery-picker', [
                             'name' => 'favicon_gallery_id',
                             'label' => 'Favicon',
@@ -97,7 +97,7 @@
                         <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Recommended <strong>512×512</strong> px square PNG.</p>
                         <p class="qcat-field-error" data-error-for="favicon_gallery_id" hidden></p>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         @include('backend.partials.gallery-picker', [
                             'name' => 'og_image_gallery_id',
                             'label' => 'Default social share image',
@@ -335,235 +335,84 @@
     {{-- FAQs tab --}}
     <div x-show="tab === 'faqs'" x-cloak>
         <x-page-card>
-            <div class="px-4 py-5 sm:p-6 space-y-4">
-                <div class="flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
-                    <div>
+            <div class="px-4 py-5 sm:p-6 space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div class="min-w-0">
                         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Frequently asked questions</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Manage homepage FAQ content. Create and edit entries in a modal.</p>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            Manage homepage FAQ content. Create and edit entries in a modal.
+                        </p>
                     </div>
-                    <button type="button" id="faq-add-btn" class="panel-button-primary text-sm self-start">Add FAQ</button>
+                    <button type="button" id="faq-add-btn"
+                            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add FAQ
+                    </button>
                 </div>
 
-                <form id="faq-filters" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 items-end">
-                    <div class="xl:col-span-2">
-                        <label for="faq_filter_search" class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-                        <input type="search" id="faq_filter_search" name="search" class="panel-input text-sm w-full" placeholder="Question or answer…">
+                <form id="faq-filters" class="faq-toolbar">
+                    <div class="faq-toolbar__search">
+                        <label for="faq_filter_search" class="faq-toolbar__label">Search</label>
+                        <div class="faq-toolbar__search-wrap">
+                            <svg class="faq-toolbar__search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/>
+                            </svg>
+                            <input type="search" id="faq_filter_search" name="search" class="faq-toolbar__input" placeholder="Search question or answer…">
+                        </div>
                     </div>
-                    <div>
-                        <label for="faq_filter_status" class="block text-xs font-medium text-slate-500 mb-1">Status</label>
-                        <select id="faq_filter_status" name="status" class="panel-input text-sm w-full">
-                            <option value="">All</option>
+                    <div class="faq-toolbar__field">
+                        <label for="faq_filter_status" class="faq-toolbar__label">Status</label>
+                        <select id="faq_filter_status" name="status" class="faq-toolbar__select">
+                            <option value="">All statuses</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
                     </div>
-                    <div>
-                        <label for="faq_filter_category" class="block text-xs font-medium text-slate-500 mb-1">Category</label>
-                        <select id="faq_filter_category" name="category_id" class="panel-input text-sm w-full">
+                    <div class="faq-toolbar__field faq-toolbar__field--category">
+                        <label for="faq_filter_category" class="faq-toolbar__label">Category</label>
+                        <select id="faq_filter_category" name="category_id" class="faq-toolbar__select">
                             <option value="">All categories</option>
                             @foreach($faqCategories as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="panel-button-secondary text-sm">Filter</button>
-                        <button type="button" id="faq-filters-reset" class="panel-button-secondary text-sm">Reset</button>
+                    <div class="faq-toolbar__actions">
+                        <button type="submit" class="faq-toolbar__btn faq-toolbar__btn--primary">Filter</button>
+                        <button type="button" id="faq-filters-reset" class="faq-toolbar__btn">Reset</button>
                     </div>
                 </form>
 
-                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                    <table class="min-w-full text-sm">
-                        <thead class="bg-slate-50 dark:bg-slate-900/60 text-left text-slate-500">
-                            <tr>
-                                <th class="px-4 py-3 font-medium">Question</th>
-                                <th class="px-4 py-3 font-medium">Category</th>
-                                <th class="px-4 py-3 font-medium">Status</th>
-                                <th class="px-4 py-3 font-medium">Order</th>
-                                <th class="px-4 py-3 font-medium text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="faq-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading FAQs…</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="faq-table-wrap">
+                    <div class="overflow-x-auto">
+                        <table class="faq-table">
+                            <thead>
+                                <tr>
+                                    <th class="faq-table__col-question">Question</th>
+                                    <th class="faq-table__col-category">Category</th>
+                                    <th class="faq-table__col-status">Status</th>
+                                    <th class="faq-table__col-order">Order</th>
+                                    <th class="faq-table__col-actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faq-table-body">
+                                <tr>
+                                    <td colspan="5" class="faq-table__empty">Loading FAQs…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <div id="faq-pagination" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-slate-500 dark:text-slate-400"></div>
+                <div id="faq-pagination" class="faq-pagination"></div>
             </div>
         </x-page-card>
     </div>
 </div>
 
-{{-- Hero modal --}}
-<div id="hero-modal" class="fixed inset-0 z-[80] hidden" aria-hidden="true">
-    <div class="absolute inset-0 bg-slate-950/50" data-hero-modal-close></div>
-    <div class="relative mx-auto mt-8 mb-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl">
-        <form id="hero-form" class="p-5 sm:p-6 space-y-4">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <h3 id="hero-modal-title" class="text-lg font-semibold text-slate-900 dark:text-white">Add hero banner</h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Desktop and mobile images support crop via Gallery.</p>
-                </div>
-                <button type="button" class="panel-button-secondary text-sm" data-hero-modal-close>Close</button>
-            </div>
-            <input type="hidden" id="hero_id" name="id" value="">
-
-            <div>
-                <label for="hero_title" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title <span class="text-red-500">*</span></label>
-                <input type="text" id="hero_title" name="title" required class="panel-input mt-1 block w-full" placeholder="Master every competitive exam">
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="hero_subtitle" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Subtitle</label>
-                    <input type="text" id="hero_subtitle" name="subtitle" class="panel-input mt-1 block w-full">
-                </div>
-                <div>
-                    <label for="hero_badge_text" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Badge text</label>
-                    <input type="text" id="hero_badge_text" name="badge_text" class="panel-input mt-1 block w-full">
-                </div>
-            </div>
-            <div>
-                <label for="hero_description" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
-                <textarea id="hero_description" name="description" rows="3" class="panel-input mt-1 block w-full"></textarea>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="hero_primary_cta_label" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Primary CTA label</label>
-                    <input type="text" id="hero_primary_cta_label" name="primary_cta_label" class="panel-input mt-1 block w-full">
-                </div>
-                <div>
-                    <label for="hero_primary_cta_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Primary CTA URL</label>
-                    <input type="text" id="hero_primary_cta_url" name="primary_cta_url" class="panel-input mt-1 block w-full" placeholder="/exams">
-                </div>
-                <div>
-                    <label for="hero_secondary_cta_label" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Secondary CTA label</label>
-                    <input type="text" id="hero_secondary_cta_label" name="secondary_cta_label" class="panel-input mt-1 block w-full">
-                </div>
-                <div>
-                    <label for="hero_secondary_cta_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Secondary CTA URL</label>
-                    <input type="text" id="hero_secondary_cta_url" name="secondary_cta_url" class="panel-input mt-1 block w-full">
-                </div>
-                <div>
-                    <label for="hero_status" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
-                    <select id="hero_status" name="status" class="panel-input mt-1 block w-full">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="draft">Draft</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="hero_sort_order" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sort order</label>
-                    <input type="number" id="hero_sort_order" name="sort_order" min="0" class="panel-input mt-1 block w-full" value="1">
-                </div>
-                <div>
-                    <x-date-time-picker
-                        name="starts_at"
-                        id="hero_starts_at"
-                        mode="datetime"
-                        label="Starts at"
-                    />
-                </div>
-                <div>
-                    <x-date-time-picker
-                        name="ends_at"
-                        id="hero_ends_at"
-                        mode="datetime"
-                        label="Ends at"
-                    />
-                </div>
-            </div>
-            <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <input type="checkbox" id="hero_show_search" name="show_search" value="1" class="rounded border-slate-300 text-indigo-600" checked>
-                Show search in hero
-            </label>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6" id="hero-gallery-pickers">
-                @include('backend.partials.gallery-picker', [
-                    'name' => 'image_id',
-                    'label' => 'Desktop image',
-                    'value' => null,
-                    'kind' => 'image',
-                ])
-                @include('backend.partials.gallery-picker', [
-                    'name' => 'mobile_image_id',
-                    'label' => 'Mobile image',
-                    'value' => null,
-                    'kind' => 'image',
-                ])
-            </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Desktop recommended <strong>1920×800</strong>. Mobile recommended <strong>1080×1350</strong>.</p>
-
-            <div class="flex justify-end gap-2 pt-2">
-                <button type="button" class="panel-button-secondary" data-hero-modal-close>Cancel</button>
-                <button type="submit" class="panel-button-primary" id="hero-save-btn">Save banner</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- FAQ modal --}}
-<div id="faq-modal" class="fixed inset-0 z-[80] hidden" aria-hidden="true">
-    <div class="absolute inset-0 bg-slate-950/50" data-faq-modal-close></div>
-    <div class="relative mx-auto mt-8 mb-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl">
-        <form id="faq-form" class="p-5 sm:p-6 space-y-4">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <h3 id="faq-modal-title" class="text-lg font-semibold text-slate-900 dark:text-white">Add FAQ</h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Shown on the public homepage when status is active.</p>
-                </div>
-                <button type="button" class="panel-button-secondary text-sm" data-faq-modal-close>Close</button>
-            </div>
-            <input type="hidden" id="faq_id" name="id" value="">
-
-            <div>
-                <label for="faq_question" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question <span class="text-red-500">*</span></label>
-                <input type="text" id="faq_question" name="question" required maxlength="500" class="panel-input mt-1 block w-full" placeholder="How do I begin practicing?">
-                <p class="qcat-field-error" data-error-for="question" hidden></p>
-            </div>
-            <div>
-                <label for="faq_answer" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Answer <span class="text-red-500">*</span></label>
-                <textarea id="faq_answer" name="answer" required rows="5" maxlength="10000" class="panel-input mt-1 block w-full" placeholder="Write a clear answer…"></textarea>
-                <p class="qcat-field-error" data-error-for="answer" hidden></p>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="faq_category_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
-                    <select id="faq_category_id" name="faq_category_id" class="panel-input mt-1 block w-full">
-                        <option value="">Uncategorized</option>
-                        @foreach($faqCategories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label for="faq_status" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
-                    <select id="faq_status" name="status" required class="panel-input mt-1 block w-full">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="faq_sort_order" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sort order</label>
-                    <input type="number" id="faq_sort_order" name="sort_order" min="0" max="9999" value="0" class="panel-input mt-1 block w-full">
-                </div>
-                <div class="flex items-end pb-1">
-                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                        <input type="checkbox" id="faq_is_featured" name="is_featured" value="1" class="rounded border-slate-300 text-indigo-600">
-                        Featured on homepage
-                    </label>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-2 pt-2">
-                <button type="button" class="panel-button-secondary" data-faq-modal-close>Cancel</button>
-                <button type="submit" class="panel-button-primary" id="faq-save-btn">Save FAQ</button>
-            </div>
-        </form>
-    </div>
-</div>
+@include('backend.settings.partials.org-modals')
 
 @include('backend.partials.image-editor-modal')
 @endsection
@@ -574,7 +423,365 @@
     <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ filemtime(public_path('css/backend/gallery.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
-    <style>[x-cloak]{display:none!important}</style>
+    <link rel="stylesheet" href="{{ asset('css/components/ems-dialog.css') }}?v={{ filemtime(public_path('css/components/ems-dialog.css')) }}">
+    <style>
+        [x-cloak]{display:none!important}
+        .org-branding-media-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.75rem;
+        }
+        @media (min-width: 1024px) {
+            .org-branding-media-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                column-gap: 2.25rem;
+            }
+        }
+        .hero-gallery-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 640px) {
+            .hero-gallery-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                column-gap: 1.75rem;
+            }
+        }
+
+        /* FAQ toolbar */
+        .faq-toolbar {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.85rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            background: #f8fafc;
+        }
+        .dark .faq-toolbar {
+            border-color: #334155;
+            background: rgb(15 23 42 / 0.45);
+        }
+        @media (min-width: 1024px) {
+            .faq-toolbar {
+                grid-template-columns: minmax(0, 1.6fr) 10rem minmax(11rem, 1fr) auto;
+                align-items: end;
+                gap: 0.75rem 1rem;
+            }
+        }
+        .faq-toolbar__label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+        .dark .faq-toolbar__label { color: #94a3b8; }
+        .faq-toolbar__search-wrap { position: relative; }
+        .faq-toolbar__search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            width: 1rem;
+            height: 1rem;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+        .faq-toolbar__input,
+        .faq-toolbar__select {
+            width: 100%;
+            min-height: 2.6rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.75rem;
+            background: #fff;
+            color: #0f172a;
+            font-size: 0.875rem;
+            padding: 0.55rem 0.85rem;
+        }
+        .faq-toolbar__input { padding-left: 2.35rem; }
+        .dark .faq-toolbar__input,
+        .dark .faq-toolbar__select {
+            border-color: #475569;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .faq-toolbar__input:focus,
+        .faq-toolbar__select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgb(99 102 241 / 0.18);
+        }
+        .faq-toolbar__actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        @media (max-width: 1023px) {
+            .faq-toolbar__actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+            .faq-toolbar__btn { width: 100%; }
+        }
+        .faq-toolbar__btn {
+            min-height: 2.6rem;
+            padding: 0 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.75rem;
+            background: #fff;
+            color: #334155;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .dark .faq-toolbar__btn {
+            border-color: #475569;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .faq-toolbar__btn:hover { background: #f1f5f9; }
+        .dark .faq-toolbar__btn:hover { background: #334155; }
+        .faq-toolbar__btn--primary {
+            border-color: #4f46e5;
+            background: #4f46e5;
+            color: #fff;
+        }
+        .faq-toolbar__btn--primary:hover {
+            border-color: #4338ca;
+            background: #4338ca;
+            color: #fff;
+        }
+
+        /* FAQ table */
+        .faq-table-wrap {
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            background: #fff;
+        }
+        .dark .faq-table-wrap {
+            border-color: #334155;
+            background: rgb(2 6 23 / 0.35);
+        }
+        .faq-table {
+            width: 100%;
+            min-width: 44rem;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .faq-table thead th {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        .dark .faq-table thead th {
+            color: #94a3b8;
+            background: rgb(15 23 42 / 0.85);
+            border-bottom-color: #334155;
+        }
+        .faq-table tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.12s ease;
+        }
+        .dark .faq-table tbody tr { border-bottom-color: #1e293b; }
+        .faq-table tbody tr:last-child { border-bottom: 0; }
+        .faq-table tbody tr:hover { background: #f8fafc; }
+        .dark .faq-table tbody tr:hover { background: rgb(30 41 59 / 0.45); }
+        .faq-table td {
+            padding: 0.95rem 1rem;
+            vertical-align: middle;
+            color: #475569;
+        }
+        .dark .faq-table td { color: #cbd5e1; }
+        .faq-table__col-question { width: 42%; }
+        .faq-table__col-category { width: 18%; }
+        .faq-table__col-status { width: 12%; }
+        .faq-table__col-order { width: 8%; }
+        .faq-table__col-actions { width: 20%; text-align: right !important; }
+        .faq-table__question {
+            margin: 0;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.4;
+        }
+        .dark .faq-table__question { color: #f8fafc; }
+        .faq-table__meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.45rem;
+        }
+        .faq-table__badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.15rem 0.55rem;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .faq-table__badge--featured {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .dark .faq-table__badge--featured {
+            background: rgb(245 158 11 / 0.15);
+            color: #fbbf24;
+        }
+        .faq-table__badge--active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .dark .faq-table__badge--active {
+            background: rgb(16 185 129 / 0.15);
+            color: #34d399;
+        }
+        .faq-table__badge--inactive {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .dark .faq-table__badge--inactive {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+        .faq-table__actions {
+            display: inline-flex;
+            justify-content: flex-end;
+            gap: 0.45rem;
+            width: 100%;
+        }
+        .faq-table__action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2rem;
+            padding: 0 0.7rem;
+            border-radius: 0.55rem;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .dark .faq-table__action {
+            border-color: #334155;
+            background: #0f172a;
+        }
+        .faq-table__action--edit { color: #4338ca; }
+        .faq-table__action--edit:hover {
+            border-color: #a5b4fc;
+            background: #eef2ff;
+        }
+        .dark .faq-table__action--edit { color: #a5b4fc; }
+        .dark .faq-table__action--edit:hover {
+            border-color: rgb(99 102 241 / 0.45);
+            background: rgb(99 102 241 / 0.12);
+        }
+        .faq-table__action--delete { color: #e11d48; }
+        .faq-table__action--delete:hover {
+            border-color: #fecdd3;
+            background: #fff1f2;
+        }
+        .dark .faq-table__action--delete { color: #fb7185; }
+        .dark .faq-table__action--delete:hover {
+            border-color: rgb(244 63 94 / 0.35);
+            background: rgb(244 63 94 / 0.12);
+        }
+        .faq-table__empty {
+            padding: 2.75rem 1rem !important;
+            text-align: center;
+            color: #64748b;
+        }
+        .dark .faq-table__empty { color: #94a3b8; }
+        .faq-table__badge--status { text-transform: capitalize; }
+        .faq-table__order {
+            display: inline-flex;
+            min-width: 1.75rem;
+            justify-content: center;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: #334155;
+        }
+        .dark .faq-table__order { color: #e2e8f0; }
+        .faq-pagination {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: stretch;
+            font-size: 0.8125rem;
+            color: #64748b;
+        }
+        .dark .faq-pagination { color: #94a3b8; }
+        @media (min-width: 640px) {
+            .faq-pagination {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+        .faq-pagination__meta strong {
+            font-weight: 600;
+            color: #334155;
+        }
+        .dark .faq-pagination__meta strong { color: #e2e8f0; }
+        .faq-pagination__controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .faq-pagination__btn {
+            min-height: 2rem;
+            padding: 0 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.55rem;
+            background: #fff;
+            color: #334155;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .dark .faq-pagination__btn {
+            border-color: #475569;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .faq-pagination__btn:hover:not(:disabled) { background: #f1f5f9; }
+        .dark .faq-pagination__btn:hover:not(:disabled) { background: #334155; }
+        .faq-pagination__btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .faq-pagination__page {
+            display: inline-flex;
+            min-width: 4.75rem;
+            min-height: 2rem;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.55rem;
+            padding: 0 0.55rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #475569;
+        }
+        .dark .faq-pagination__page {
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+    </style>
 @endpush
 
 @push('scripts')

@@ -178,12 +178,14 @@
 
         heroModal.classList.remove('hidden');
         heroModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('ems-dialog-open');
         window.EmsDateTimePicker?.initAll?.(heroModal);
     };
 
     const closeHeroModal = () => {
         heroModal?.classList.add('hidden');
         heroModal?.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('ems-dialog-open');
     };
 
     const renderHeroes = (heroes) => {
@@ -254,6 +256,11 @@
 
     document.getElementById('hero-add-btn')?.addEventListener('click', () => openHeroModal(null));
     heroModal?.querySelectorAll('[data-hero-modal-close]').forEach((el) => el.addEventListener('click', closeHeroModal));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && heroModal && !heroModal.classList.contains('hidden')) {
+            closeHeroModal();
+        }
+    });
 
     document.querySelectorAll('.hero-edit-btn').forEach((btn) => {
         btn.addEventListener('click', () => {

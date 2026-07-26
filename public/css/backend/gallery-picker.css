@@ -143,6 +143,10 @@
     margin-top: 0.35rem;
 }
 
+.gallery-picker-field {
+    min-width: 0;
+}
+
 .gallery-picker-dropzone {
     margin-top: 0.35rem;
     border: 1.5px dashed #c7d2fe;
