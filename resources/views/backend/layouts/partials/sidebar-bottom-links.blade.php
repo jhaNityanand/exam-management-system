@@ -11,6 +11,7 @@
                 ['route' => 'admin.settings.email', 'label' => 'Email Configuration'],
                 ['route' => 'admin.settings.integrations', 'label' => 'Integrations & Privacy'],
                 ['route' => 'admin.settings.security', 'label' => 'Security'],
+                ['route' => 'admin.advertisements.index', 'label' => 'Advertisements', 'match' => 'admin.advertisements.*'],
                 ['route' => 'admin.settings.maintenance', 'label' => 'Maintenance Mode'],
                 ['route' => 'admin.settings.seo', 'label' => 'SEO & Search'],
             ],
@@ -40,16 +41,18 @@
             } elseif (isset($link['children'])) {
                 foreach ($link['children'] as $child) {
                     try {
-                        if (($child['route'] !== '#') && request()->routeIs(rtrim($child['route'], '.*') . '*')) {
+                        $match = $child['match'] ?? (rtrim($child['route'], '.*') . '*');
+                        if (($child['route'] !== '#') && request()->routeIs($match)) {
                             $childActive = true;
                             break;
                         }
                     } catch (\Throwable) {}
                 }
-                // Keep Settings open for any settings.* route
+                // Keep Settings open for settings.* and advertisements
                 if (! $childActive) {
                     try {
-                        $childActive = request()->routeIs('admin.settings.*');
+                        $childActive = request()->routeIs('admin.settings.*')
+                            || request()->routeIs('admin.advertisements.*');
                     } catch (\Throwable) {}
                 }
             }
@@ -77,7 +80,8 @@
                         @php
                             $isChildActive = false;
                             try {
-                                $isChildActive = ($child['route'] !== '#') && request()->routeIs($child['route']);
+                                $match = $child['match'] ?? $child['route'];
+                                $isChildActive = ($child['route'] !== '#') && request()->routeIs($match);
                             } catch (\Throwable) {}
                         @endphp
                         <a href="{{ $child['route'] !== '#' ? route($child['route']) : '#' }}"

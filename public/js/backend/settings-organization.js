@@ -143,10 +143,19 @@
         heroForm.querySelector('#hero_secondary_cta_url').value = hero?.secondary_cta_url || '';
         heroForm.querySelector('#hero_status').value = hero?.status || 'active';
         heroForm.querySelector('#hero_sort_order').value = hero?.sort_order ?? 1;
-        heroForm.querySelector('#hero_starts_at').value = hero?.starts_at || '';
-        heroForm.querySelector('#hero_ends_at').value = hero?.ends_at || '';
         heroForm.querySelector('#hero_show_search').checked = hero?.show_search !== false;
         document.getElementById('hero-modal-title').textContent = hero?.id ? 'Edit hero banner' : 'Add hero banner';
+
+        const setDt = (id, value) => {
+            if (window.EmsDateTimePicker?.setValue) {
+                window.EmsDateTimePicker.setValue(id, value || '');
+            } else {
+                const input = heroForm.querySelector('#' + id);
+                if (input) input.value = value || '';
+            }
+        };
+        setDt('hero_starts_at', hero?.starts_at || '');
+        setDt('hero_ends_at', hero?.ends_at || '');
 
         const setPicker = (name, id, url) => {
             const field = heroForm.querySelector(`[data-gallery-picker][data-name="${name}"]`);
@@ -169,6 +178,7 @@
 
         heroModal.classList.remove('hidden');
         heroModal.setAttribute('aria-hidden', 'false');
+        window.EmsDateTimePicker?.initAll?.(heroModal);
     };
 
     const closeHeroModal = () => {

@@ -69,9 +69,12 @@
                 if (confirm && !confirm.isConfirmed) return;
             }
 
-            const original = btn.textContent;
+            const original = btn.querySelector('.cache-action-btn__label')?.textContent || btn.textContent;
+            const labelEl = btn.querySelector('.cache-action-btn__label');
             btn.disabled = true;
-            btn.textContent = 'Running…';
+            btn.classList.add('opacity-70', 'cursor-wait');
+            if (labelEl) labelEl.textContent = 'Running…';
+            else btn.textContent = 'Running…';
 
             try {
                 const response = await fetch(config.runUrl, {
@@ -119,7 +122,9 @@
                 });
             } finally {
                 btn.disabled = false;
-                btn.textContent = original || 'Run';
+                btn.classList.remove('opacity-70', 'cursor-wait');
+                if (labelEl) labelEl.textContent = original || 'Run';
+                else btn.textContent = original || 'Run';
             }
         });
     });

@@ -27,6 +27,7 @@ use App\Http\Controllers\Backend\Settings\EmailSettingController;
 use App\Http\Controllers\Backend\Settings\IntegrationsSettingController;
 use App\Http\Controllers\Backend\Settings\MaintenanceSettingController;
 use App\Http\Controllers\Backend\Settings\OrganizationSettingController;
+use App\Http\Controllers\Backend\Settings\OrganizationFaqController;
 use App\Http\Controllers\Backend\Settings\SecuritySettingController;
 use App\Http\Controllers\Backend\Settings\SeoSettingController;
 use App\Http\Controllers\Frontend\AuthorController;
@@ -278,6 +279,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::put('organization/heroes/{hero}', [OrganizationSettingController::class, 'updateHero'])->name('organization.heroes.update')->whereNumber('hero');
         Route::delete('organization/heroes/{hero}', [OrganizationSettingController::class, 'destroyHero'])->name('organization.heroes.destroy')->whereNumber('hero');
         Route::post('organization/heroes/reorder', [OrganizationSettingController::class, 'reorderHeroes'])->name('organization.heroes.reorder');
+        Route::get('organization/faqs', [OrganizationFaqController::class, 'index'])->name('organization.faqs.index');
+        Route::post('organization/faqs', [OrganizationFaqController::class, 'store'])->name('organization.faqs.store');
+        Route::put('organization/faqs/{faq}', [OrganizationFaqController::class, 'update'])->name('organization.faqs.update')->whereNumber('faq');
+        Route::delete('organization/faqs/{faq}', [OrganizationFaqController::class, 'destroy'])->name('organization.faqs.destroy')->whereNumber('faq');
         Route::get('seo', [SeoSettingController::class, 'edit'])->name('seo');
         Route::put('seo', [SeoSettingController::class, 'update'])->name('seo.update');
         Route::post('seo/regenerate', [SeoSettingController::class, 'regenerate'])->name('seo.regenerate');

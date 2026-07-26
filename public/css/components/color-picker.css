@@ -1,0 +1,42 @@
+/* Color picker — text + native swatch, dark/light friendly */
+
+.ems-color-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.ems-color-picker__swatch {
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.ems-color-picker__swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.ems-color-picker__swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: 0.55rem;
+}
+
+.ems-color-picker__swatch::-moz-color-swatch {
+  border: 0;
+  border-radius: 0.55rem;
+}
+
+.dark .ems-color-picker__swatch {
+  border-color: #475569;
+}
+
+.ems-color-picker__input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+}

@@ -2,7 +2,7 @@
 
 @section('title', 'Organization Settings')
 @section('page-title', 'Organization Settings')
-@section('content-container-class', 'max-w-6xl')
+@section('content-container-class', 'max-w-none')
 
 @section('breadcrumbs')
     <x-breadcrumb :items="[
@@ -19,7 +19,9 @@
     $heroes = $payload['heroes'];
 @endphp
 
-<div x-data="{ tab: 'branding' }" class="space-y-6">
+<div x-data="{ tab: (window.location.hash === '#faqs' ? 'faqs' : 'branding') }"
+     x-effect="if (tab === 'faqs' && window.__emsLoadFaqs) window.__emsLoadFaqs()"
+     class="space-y-6">
     <x-page-card>
         <div class="px-4 py-5 sm:px-6 border-b border-slate-100 dark:border-slate-800">
             <h1 class="text-lg font-semibold text-slate-900 dark:text-white">Organization Settings</h1>
@@ -32,6 +34,7 @@
                     'contact' => 'Contact',
                     'social' => 'Social media',
                     'homepage' => 'Homepage',
+                    'faqs' => 'FAQs',
                 ] as $id => $label)
                     <button type="button"
                             @click="tab = '{{ $id }}'"
@@ -257,7 +260,8 @@
                 </div>
             </div>
 
-            <div class="category-builder__footer px-4 py-4 sm:px-6 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 rounded-b-2xl">
+            <div class="category-builder__footer px-4 py-4 sm:px-6 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 rounded-b-2xl"
+                 x-show="tab !== 'faqs'" x-cloak>
                 <button type="submit" class="panel-button-primary" id="org-settings-save-btn">Save organization settings</button>
             </div>
         </form>
@@ -295,8 +299,8 @@
                                 'show_search' => (bool) $hero->show_search,
                                 'sort_order' => (int) $hero->sort_order,
                                 'status' => $hero->status,
-                                'starts_at' => optional($hero->starts_at)->format('Y-m-d\TH:i'),
-                                'ends_at' => optional($hero->ends_at)->format('Y-m-d\TH:i'),
+                                'starts_at' => optional($hero->starts_at)->format('Y-m-d H:i'),
+                                'ends_at' => optional($hero->ends_at)->format('Y-m-d H:i'),
                             ];
                         @endphp
                         <div class="hero-row rounded-xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
@@ -324,6 +328,70 @@
                         <p class="text-sm text-slate-500 dark:text-slate-400" id="hero-empty">No hero banners yet. Add your first slide.</p>
                     @endforelse
                 </div>
+            </div>
+        </x-page-card>
+    </div>
+
+    {{-- FAQs tab --}}
+    <div x-show="tab === 'faqs'" x-cloak>
+        <x-page-card>
+            <div class="px-4 py-5 sm:p-6 space-y-4">
+                <div class="flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Frequently asked questions</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Manage homepage FAQ content. Create and edit entries in a modal.</p>
+                    </div>
+                    <button type="button" id="faq-add-btn" class="panel-button-primary text-sm self-start">Add FAQ</button>
+                </div>
+
+                <form id="faq-filters" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 items-end">
+                    <div class="xl:col-span-2">
+                        <label for="faq_filter_search" class="block text-xs font-medium text-slate-500 mb-1">Search</label>
+                        <input type="search" id="faq_filter_search" name="search" class="panel-input text-sm w-full" placeholder="Question or answer…">
+                    </div>
+                    <div>
+                        <label for="faq_filter_status" class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <select id="faq_filter_status" name="status" class="panel-input text-sm w-full">
+                            <option value="">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="faq_filter_category" class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+                        <select id="faq_filter_category" name="category_id" class="panel-input text-sm w-full">
+                            <option value="">All categories</option>
+                            @foreach($faqCategories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="panel-button-secondary text-sm">Filter</button>
+                        <button type="button" id="faq-filters-reset" class="panel-button-secondary text-sm">Reset</button>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-50 dark:bg-slate-900/60 text-left text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3 font-medium">Question</th>
+                                <th class="px-4 py-3 font-medium">Category</th>
+                                <th class="px-4 py-3 font-medium">Status</th>
+                                <th class="px-4 py-3 font-medium">Order</th>
+                                <th class="px-4 py-3 font-medium text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="faq-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading FAQs…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="faq-pagination" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-slate-500 dark:text-slate-400"></div>
             </div>
         </x-page-card>
     </div>
@@ -391,12 +459,20 @@
                     <input type="number" id="hero_sort_order" name="sort_order" min="0" class="panel-input mt-1 block w-full" value="1">
                 </div>
                 <div>
-                    <label for="hero_starts_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starts at</label>
-                    <input type="datetime-local" id="hero_starts_at" name="starts_at" class="panel-input mt-1 block w-full">
+                    <x-date-time-picker
+                        name="starts_at"
+                        id="hero_starts_at"
+                        mode="datetime"
+                        label="Starts at"
+                    />
                 </div>
                 <div>
-                    <label for="hero_ends_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ends at</label>
-                    <input type="datetime-local" id="hero_ends_at" name="ends_at" class="panel-input mt-1 block w-full">
+                    <x-date-time-picker
+                        name="ends_at"
+                        id="hero_ends_at"
+                        mode="datetime"
+                        label="Ends at"
+                    />
                 </div>
             </div>
             <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
@@ -428,6 +504,67 @@
     </div>
 </div>
 
+{{-- FAQ modal --}}
+<div id="faq-modal" class="fixed inset-0 z-[80] hidden" aria-hidden="true">
+    <div class="absolute inset-0 bg-slate-950/50" data-faq-modal-close></div>
+    <div class="relative mx-auto mt-8 mb-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl">
+        <form id="faq-form" class="p-5 sm:p-6 space-y-4">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 id="faq-modal-title" class="text-lg font-semibold text-slate-900 dark:text-white">Add FAQ</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Shown on the public homepage when status is active.</p>
+                </div>
+                <button type="button" class="panel-button-secondary text-sm" data-faq-modal-close>Close</button>
+            </div>
+            <input type="hidden" id="faq_id" name="id" value="">
+
+            <div>
+                <label for="faq_question" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Question <span class="text-red-500">*</span></label>
+                <input type="text" id="faq_question" name="question" required maxlength="500" class="panel-input mt-1 block w-full" placeholder="How do I begin practicing?">
+                <p class="qcat-field-error" data-error-for="question" hidden></p>
+            </div>
+            <div>
+                <label for="faq_answer" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Answer <span class="text-red-500">*</span></label>
+                <textarea id="faq_answer" name="answer" required rows="5" maxlength="10000" class="panel-input mt-1 block w-full" placeholder="Write a clear answer…"></textarea>
+                <p class="qcat-field-error" data-error-for="answer" hidden></p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="faq_category_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                    <select id="faq_category_id" name="faq_category_id" class="panel-input mt-1 block w-full">
+                        <option value="">Uncategorized</option>
+                        @foreach($faqCategories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="faq_status" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
+                    <select id="faq_status" name="status" required class="panel-input mt-1 block w-full">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="faq_sort_order" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sort order</label>
+                    <input type="number" id="faq_sort_order" name="sort_order" min="0" max="9999" value="0" class="panel-input mt-1 block w-full">
+                </div>
+                <div class="flex items-end pb-1">
+                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                        <input type="checkbox" id="faq_is_featured" name="is_featured" value="1" class="rounded border-slate-300 text-indigo-600">
+                        Featured on homepage
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" class="panel-button-secondary" data-faq-modal-close>Cancel</button>
+                <button type="submit" class="panel-button-primary" id="faq-save-btn">Save FAQ</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @include('backend.partials.image-editor-modal')
 @endsection
 
@@ -436,6 +573,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
     <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ filemtime(public_path('css/backend/gallery.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
     <style>[x-cloak]{display:none!important}</style>
 @endpush
 
@@ -462,7 +600,16 @@
             csrf: @json(csrf_token()),
             platforms: @json(array_keys($platforms)),
         };
+        window.orgFaqConfig = {
+            indexUrl: @json(route('admin.settings.organization.faqs.index')),
+            storeUrl: @json(route('admin.settings.organization.faqs.store')),
+            updateUrl: @json(url('/admin/settings/organization/faqs')),
+            deleteUrl: @json(url('/admin/settings/organization/faqs')),
+            csrf: @json(csrf_token()),
+        };
     </script>
+    <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/backend/content-form-shared.js') }}?v={{ filemtime(public_path('js/backend/content-form-shared.js')) }}"></script>
     <script src="{{ asset('js/backend/settings-organization.js') }}?v={{ @filemtime(public_path('js/backend/settings-organization.js')) ?: time() }}"></script>
+    <script src="{{ asset('js/backend/settings-organization-faqs.js') }}?v={{ @filemtime(public_path('js/backend/settings-organization-faqs.js')) ?: time() }}"></script>
 @endpush

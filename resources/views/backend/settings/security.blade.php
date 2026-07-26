@@ -2,7 +2,7 @@
 
 @section('title', 'Security')
 @section('page-title', 'Security')
-@section('content-container-class', 'max-w-5xl')
+@section('content-container-class', 'max-w-none')
 
 @section('breadcrumbs')
     <x-breadcrumb :items="[

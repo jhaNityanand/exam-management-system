@@ -1,6 +1,7 @@
 /**
  * Shared Flatpickr-based date / time / datetime picker.
  * Marks: [data-ems-datetime] wrappers with [data-ems-datetime-input].
+ * Supports light/dark themes and modal hosts (calendar appends to body).
  */
 (function (global) {
     'use strict';
@@ -36,8 +37,11 @@
     }
 
     function isDark() {
-        return document.documentElement.classList.contains('dark')
-            || document.body.classList.contains('dark');
+        const html = document.documentElement;
+        const body = document.body;
+        if (html.classList.contains('dark') || (body && body.classList.contains('dark'))) return true;
+        if ((html.dataset.theme || (body && body.dataset.theme)) === 'dark') return true;
+        return false;
     }
 
     function mountInput(input) {
@@ -57,8 +61,9 @@
             time_24hr: false,
             allowInput: true,
             clickOpens: true,
-            disableMobile: false,
+            disableMobile: true,
             animate: true,
+            appendTo: document.body,
             minDate: (() => {
                 if (input.dataset.minDate !== 'future' && input.dataset.minDate !== 'now') {
                     return undefined;
@@ -73,6 +78,9 @@
             })(),
             onReady(_, __, instance) {
                 instance.calendarContainer?.classList.toggle('ems-dtp-calendar--dark', isDark());
+                if (instance.altInput) {
+                    instance.altInput.classList.add('panel-input', 'ems-dtp__input');
+                }
             },
             onOpen(_, __, instance) {
                 instance.calendarContainer?.classList.toggle('ems-dtp-calendar--dark', isDark());
@@ -83,6 +91,19 @@
         wrap?.querySelector('[data-ems-datetime-toggle]')?.addEventListener('click', () => fp.open());
 
         return fp;
+    }
+
+    function setValue(inputOrId, value) {
+        const input = typeof inputOrId === 'string'
+            ? document.getElementById(inputOrId)
+            : inputOrId;
+        if (!input) return;
+        if (input._flatpickr) {
+            if (value) input._flatpickr.setDate(String(value).replace('T', ' '), true);
+            else input._flatpickr.clear();
+            return;
+        }
+        input.value = value || '';
     }
 
     async function initAll(root = document) {
@@ -98,9 +119,12 @@
             cal.classList.toggle('ems-dtp-calendar--dark', isDark());
         });
     });
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'data-theme'],
+    });
 
-    global.EmsDateTimePicker = { initAll, mountInput, ensureAssets };
+    global.EmsDateTimePicker = { initAll, mountInput, ensureAssets, setValue };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => initAll());

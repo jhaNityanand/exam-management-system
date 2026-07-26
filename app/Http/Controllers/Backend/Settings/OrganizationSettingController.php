@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Settings\StoreHeroBannerRequest;
 use App\Http\Requests\Backend\Settings\UpdateOrganizationSettingRequest;
+use App\Services\Settings\FaqSettingsService;
 use App\Services\Settings\OrganizationSettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class OrganizationSettingController extends Controller
 
     public function __construct(
         protected OrganizationSettingsService $settings,
+        protected FaqSettingsService $faqs,
     ) {}
 
     public function edit(): View
@@ -27,6 +29,7 @@ class OrganizationSettingController extends Controller
         return view('backend.settings.organization', [
             'payload' => $payload,
             'platforms' => OrganizationSettingsService::SOCIAL_PLATFORMS,
+            'faqCategories' => $this->faqs->categories($orgId),
         ]);
     }
 

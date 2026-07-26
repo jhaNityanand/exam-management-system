@@ -28,3 +28,12 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+
+# Generated SEO / sitemap artifacts (created by seo:generate)
+/public/sitemap.xml
+/public/robots.txt
+/public/humans.txt
+/public/manifest.json
+/public/sitemaps/
+/public/feeds/
+/public/.well-known/security.txt

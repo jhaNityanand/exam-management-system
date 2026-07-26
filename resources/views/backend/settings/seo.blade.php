@@ -2,7 +2,7 @@
 
 @section('title', 'SEO & Search Engines')
 @section('page-title', 'SEO & Search Engines')
-@section('content-container-class', 'max-w-5xl')
+@section('content-container-class', 'max-w-none')
 
 @section('breadcrumbs')
     <x-breadcrumb :items="[
@@ -129,15 +129,25 @@
                         <p class="qcat-field-error" data-error-for="manifest_short_name" hidden></p>
                     </div>
                     <div>
-                        <label for="manifest_theme_color" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Theme color <span class="text-red-500">*</span></label>
-                        <input type="text" id="manifest_theme_color" name="manifest_theme_color" required
-                               value="{{ old('manifest_theme_color', $s['manifest_theme_color']) }}" class="panel-input mt-1 block w-full" placeholder="#0f766e">
+                        <x-color-picker
+                            name="manifest_theme_color"
+                            id="manifest_theme_color"
+                            label="Theme color"
+                            :required="true"
+                            :value="old('manifest_theme_color', $s['manifest_theme_color'])"
+                            placeholder="#0f766e"
+                        />
                         <p class="qcat-field-error" data-error-for="manifest_theme_color" hidden></p>
                     </div>
                     <div>
-                        <label for="manifest_background_color" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Background color <span class="text-red-500">*</span></label>
-                        <input type="text" id="manifest_background_color" name="manifest_background_color" required
-                               value="{{ old('manifest_background_color', $s['manifest_background_color']) }}" class="panel-input mt-1 block w-full" placeholder="#0b1220">
+                        <x-color-picker
+                            name="manifest_background_color"
+                            id="manifest_background_color"
+                            label="Background color"
+                            :required="true"
+                            :value="old('manifest_background_color', $s['manifest_background_color'])"
+                            placeholder="#0b1220"
+                        />
                         <p class="qcat-field-error" data-error-for="manifest_background_color" hidden></p>
                     </div>
                 </div>
@@ -151,6 +161,10 @@
 </x-page-card>
 @endsection
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/components/color-picker.css') }}?v={{ filemtime(public_path('css/components/color-picker.css')) }}">
+@endpush
+
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -160,5 +174,6 @@
             csrf: @json(csrf_token()),
         };
     </script>
+    <script src="{{ asset('js/components/color-picker.js') }}?v={{ filemtime(public_path('js/components/color-picker.js')) }}"></script>
     <script src="{{ asset('js/backend/settings-seo.js') }}?v={{ filemtime(public_path('js/backend/settings-seo.js')) }}"></script>
 @endpush

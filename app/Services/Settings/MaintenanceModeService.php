@@ -72,7 +72,7 @@ class MaintenanceModeService
             try {
                 $config['estimated_at'] = Carbon::parse((string) $config['estimated_at'])
                     ->timezone(config('app.timezone'))
-                    ->format('Y-m-d\TH:i');
+                    ->format('Y-m-d H:i');
             } catch (\Throwable) {
                 // keep raw value for the form
             }

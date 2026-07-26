@@ -49,7 +49,9 @@ class OrganizationSettingsTest extends TestCase
             ->get(route('admin.settings.organization'))
             ->assertOk()
             ->assertSee('Organization Settings')
-            ->assertSee('Hero banners');
+            ->assertSee('Hero banners')
+            ->assertSee('FAQs')
+            ->assertSee('Frequently asked questions');
     }
 
     public function test_admin_can_update_organization_settings(): void
@@ -159,5 +161,65 @@ class OrganizationSettingsTest extends TestCase
             ->assertJsonPath('success', true);
 
         $this->assertSoftDeleted('hero_banners', ['id' => $heroId]);
+    }
+
+    public function test_admin_can_manage_faqs_via_modal_api(): void
+    {
+        $category = \App\Models\Cms\FaqCategory::query()->create([
+            'organization_id' => $this->organization->id,
+            'name' => 'General',
+            'slug' => 'general',
+            'status' => 'active',
+            'sort_order' => 1,
+        ]);
+
+        $create = $this->actingAs($this->admin)
+            ->postJson(route('admin.settings.organization.faqs.store'), [
+                'question' => 'How do I start?',
+                'answer' => 'Create an account and browse exams.',
+                'faq_category_id' => $category->id,
+                'status' => 'active',
+                'sort_order' => 1,
+                'is_featured' => true,
+            ]);
+
+        $create->assertCreated()->assertJsonPath('success', true);
+        $faqId = (int) $create->json('faq.id');
+
+        $this->assertDatabaseHas('faqs', [
+            'id' => $faqId,
+            'question' => 'How do I start?',
+            'status' => 'active',
+            'organization_id' => $this->organization->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.settings.organization.faqs.index', [
+                'search' => 'start',
+                'status' => 'active',
+                'category_id' => $category->id,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data');
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.settings.organization.faqs.update', $faqId), [
+                'question' => 'How do I begin?',
+                'answer' => 'Updated answer.',
+                'faq_category_id' => $category->id,
+                'status' => 'inactive',
+                'sort_order' => 2,
+                'is_featured' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('faq.status', 'inactive');
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('admin.settings.organization.faqs.destroy', $faqId))
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSoftDeleted('faqs', ['id' => $faqId]);
     }
 }

@@ -2,17 +2,14 @@
 
 @section('title', 'Advertisements')
 @section('page-title', 'Advertisements')
-@section('content-container-class', 'max-w-7xl')
+@section('content-container-class', 'max-w-none')
 
 @section('breadcrumbs')
     <x-breadcrumb :items="[
         ['label' => 'Admin', 'url' => route('admin.dashboard')],
+        ['label' => 'Settings', 'url' => route('admin.settings.index')],
         ['label' => 'Advertisements'],
     ]" />
-@endsection
-
-@section('header-actions')
-    <a href="{{ route('admin.advertisements.create') }}" class="panel-button-primary text-sm">Create advertisement</a>
 @endsection
 
 @section('content')
@@ -26,6 +23,8 @@
                         Manage Google Ads, custom HTML, iframes, and image banners with visual placement slots.
                     </p>
                 </div>
+                <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <a href="{{ route('admin.advertisements.create') }}" class="panel-button-primary text-sm whitespace-nowrap self-start sm:self-auto">Create advertisement</a>
                 <form method="get" class="flex flex-wrap gap-2 items-end">
                     <div>
                         <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
@@ -51,6 +50,7 @@
                     </div>
                     <button type="submit" class="panel-button-secondary text-sm">Filter</button>
                 </form>
+                </div>
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">

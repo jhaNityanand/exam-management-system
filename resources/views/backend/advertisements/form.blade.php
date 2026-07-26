@@ -6,7 +6,7 @@
 
 @section('title', $isEdit ? 'Edit advertisement' : 'Create advertisement')
 @section('page-title', $isEdit ? 'Edit advertisement' : 'Create advertisement')
-@section('content-container-class', 'max-w-5xl')
+@section('content-container-class', 'max-w-none')
 
 @section('breadcrumbs')
     <x-breadcrumb :items="[
@@ -135,14 +135,22 @@
                     <input type="number" id="sort_order" name="sort_order" min="0" class="panel-input mt-1 block w-full" value="{{ old('sort_order', $ad->sort_order ?? 1) }}">
                 </div>
                 <div>
-                    <label for="starts_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starts at</label>
-                    <input type="datetime-local" id="starts_at" name="starts_at" class="panel-input mt-1 block w-full"
-                           value="{{ old('starts_at', optional($ad->starts_at ?? null)->format('Y-m-d\TH:i')) }}">
+                    <x-date-time-picker
+                        name="starts_at"
+                        id="starts_at"
+                        mode="datetime"
+                        label="Starts at"
+                        :value="old('starts_at', optional($ad->starts_at ?? null)->format('Y-m-d H:i'))"
+                    />
                 </div>
                 <div>
-                    <label for="ends_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ends at</label>
-                    <input type="datetime-local" id="ends_at" name="ends_at" class="panel-input mt-1 block w-full"
-                           value="{{ old('ends_at', optional($ad->ends_at ?? null)->format('Y-m-d\TH:i')) }}">
+                    <x-date-time-picker
+                        name="ends_at"
+                        id="ends_at"
+                        mode="datetime"
+                        label="Ends at"
+                        :value="old('ends_at', optional($ad->ends_at ?? null)->format('Y-m-d H:i'))"
+                    />
                 </div>
             </div>
         </div>
@@ -161,6 +169,7 @@
     <link rel="stylesheet" href="{{ asset('css/backend/gallery-picker.css') }}?v={{ filemtime(public_path('css/backend/gallery-picker.css')) }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
     <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ filemtime(public_path('css/backend/gallery.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
     <style>[x-cloak]{display:none!important}</style>
 @endpush
 
@@ -174,6 +183,7 @@
         window.galleryCsrf = @json(csrf_token());
         window.contentFormConfig = { formId: 'advertisement-form', module: 'advertisement', existingMedia: {}, skipFormSubmitHook: true };
     </script>
+    <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/backend/content-form-shared.js') }}?v={{ filemtime(public_path('js/backend/content-form-shared.js')) }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => window.EmsContentForm?.initGalleryPickers?.({}));

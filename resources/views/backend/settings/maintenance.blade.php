@@ -2,7 +2,7 @@
 
 @section('title', 'Maintenance Mode')
 @section('page-title', 'Maintenance Mode')
-@section('content-container-class', 'max-w-5xl')
+@section('content-container-class', 'max-w-none')
 
 @section('breadcrumbs')
     <x-breadcrumb :items="[
@@ -93,13 +93,14 @@
                     </div>
 
                     <div>
-                        <label for="estimated_at" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Estimated availability
-                        </label>
-                        <input type="datetime-local" id="estimated_at" name="estimated_at"
-                               value="{{ old('estimated_at', $s['estimated_at'] ?? '') }}"
-                               class="panel-input mt-1 block w-full max-w-sm">
-                        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Optional. Displayed as “Expected back” when set.</p>
+                        <x-date-time-picker
+                            name="estimated_at"
+                            id="estimated_at"
+                            mode="datetime"
+                            label="Estimated availability"
+                            :value="old('estimated_at', $s['estimated_at'] ?? '')"
+                            help="Optional. Displayed as “Expected back” when set."
+                        />
                         <p class="qcat-field-error" data-error-for="estimated_at" hidden></p>
                     </div>
                 </div>
@@ -204,6 +205,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
     <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ filemtime(public_path('css/backend/gallery.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
 @endpush
 
 @push('scripts')
@@ -232,6 +234,7 @@
             csrf: @json(csrf_token()),
         };
     </script>
+    <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/backend/content-form-shared.js') }}?v={{ filemtime(public_path('js/backend/content-form-shared.js')) }}"></script>
     <script src="{{ asset('js/backend/settings-maintenance.js') }}?v={{ filemtime(public_path('js/backend/settings-maintenance.js')) }}"></script>
 @endpush
