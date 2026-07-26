@@ -1,0 +1,728 @@
+/* ============================================================
+   candidate-show.css — Candidate details page
+   ============================================================ */
+
+.cand-show-avatar {
+    width: 4.25rem;
+    height: 4.25rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, rgb(99 102 241 / 0.14), rgb(14 165 233 / 0.12));
+    border: 1px solid rgb(226 232 240 / 0.95);
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.dark .cand-show-avatar {
+    background: linear-gradient(145deg, rgb(99 102 241 / 0.22), rgb(16 185 129 / 0.14));
+    border-color: rgb(51 65 85);
+    color: #fff;
+}
+
+.cand-show-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cand-card {
+    background: #fff;
+    border: 1px solid rgb(226 232 240 / 0.8);
+    border-radius: 1rem;
+    padding: 1.35rem 1.4rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.03);
+}
+
+.dark .cand-card {
+    background: rgb(15 23 42);
+    border-color: rgb(30 41 59);
+}
+
+.cand-card__title {
+    margin: 0 0 1.1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid rgb(241 245 249);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(148 163 184);
+}
+
+.dark .cand-card__title {
+    border-color: rgb(30 41 59);
+    color: rgb(100 116 139);
+}
+
+.cand-meta-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(148 163 184);
+}
+
+.cand-meta-value {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgb(30 41 59);
+}
+
+.dark .cand-meta-value {
+    color: rgb(226 232 240);
+}
+
+.cand-stat {
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240 / 0.9);
+    background: rgb(248 250 252 / 0.85);
+    padding: 0.85rem 0.95rem;
+}
+
+.dark .cand-stat {
+    border-color: rgb(51 65 85);
+    background: rgb(2 6 23 / 0.45);
+}
+
+.cand-stat__label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(148 163 184);
+}
+
+.cand-stat__value {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: rgb(15 23 42);
+}
+
+.dark .cand-stat__value {
+    color: rgb(248 250 252);
+}
+
+.cand-gallery {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+@media (min-width: 640px) {
+    .cand-gallery {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cand-gallery__item {
+    border: 1px solid rgb(226 232 240 / 0.9);
+    border-radius: 1rem;
+    overflow: hidden;
+    background: rgb(248 250 252 / 0.7);
+}
+
+.dark .cand-gallery__item {
+    border-color: rgb(51 65 85);
+    background: rgb(2 6 23 / 0.4);
+}
+
+.cand-gallery__thumb {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: rgb(226 232 240 / 0.5);
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    display: block;
+    width: 100%;
+    text-align: left;
+}
+
+.dark .cand-gallery__thumb {
+    background: rgb(15 23 42);
+}
+
+.cand-gallery__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cand-gallery__badge {
+    position: absolute;
+    top: 0.55rem;
+    left: 0.55rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgb(255 255 255 / 0.92);
+    color: rgb(51 65 85);
+}
+
+.dark .cand-gallery__badge {
+    background: rgb(15 23 42 / 0.9);
+    color: rgb(203 213 225);
+}
+
+.cand-gallery__body {
+    padding: 0.8rem 0.9rem 0.95rem;
+}
+
+.cand-gallery__title {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgb(30 41 59);
+}
+
+.dark .cand-gallery__title {
+    color: rgb(226 232 240);
+}
+
+.cand-gallery__meta {
+    margin: 0.25rem 0 0;
+    font-size: 0.72rem;
+    color: rgb(148 163 184);
+}
+
+.cand-gallery__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+}
+
+.cand-link-btn {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgb(79 70 229);
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+.cand-link-btn:hover {
+    color: rgb(67 56 202);
+}
+
+.dark .cand-link-btn {
+    color: rgb(165 180 252);
+}
+
+.cand-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.78rem;
+}
+
+.cand-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid rgb(226 232 240 / 0.95);
+    border-radius: 0.85rem;
+    background: rgb(248 250 252 / 0.35);
+}
+
+.dark .cand-table-scroll {
+    border-color: rgb(51 65 85);
+    background: rgb(2 6 23 / 0.25);
+}
+
+.cand-table-scroll::-webkit-scrollbar {
+    height: 0.55rem;
+}
+
+.cand-table-scroll::-webkit-scrollbar-thumb {
+    background: rgb(148 163 184 / 0.55);
+    border-radius: 999px;
+}
+
+.dark .cand-table-scroll::-webkit-scrollbar-thumb {
+    background: rgb(71 85 105);
+}
+
+.cand-table--history {
+    min-width: 78rem;
+}
+
+.cand-table th {
+    text-align: left;
+    padding: 0.7rem 0.65rem;
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(100 116 139);
+    border-bottom: 1px solid rgb(226 232 240);
+    white-space: nowrap;
+    background: rgb(248 250 252);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.dark .cand-table th {
+    border-color: rgb(51 65 85);
+    background: rgb(15 23 42);
+    color: rgb(148 163 184);
+}
+
+.cand-table td {
+    padding: 0.7rem 0.65rem;
+    border-bottom: 1px solid rgb(241 245 249);
+    color: rgb(51 65 85);
+    vertical-align: middle;
+    white-space: nowrap;
+    background: #fff;
+}
+
+.dark .cand-table td {
+    border-color: rgb(30 41 59);
+    color: rgb(203 213 225);
+    background: rgb(15 23 42);
+}
+
+.cand-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.cand-table tbody tr:hover td {
+    background: rgb(238 242 255 / 0.45);
+}
+
+.dark .cand-table tbody tr:hover td {
+    background: rgb(49 46 129 / 0.18);
+}
+
+.cand-th-sticky,
+.cand-td-sticky {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    min-width: 12rem;
+    max-width: 14rem;
+    box-shadow: 4px 0 10px -8px rgb(15 23 42 / 0.28);
+}
+
+.cand-th-sticky {
+    z-index: 3;
+}
+
+.cand-exam-title {
+    display: inline-block;
+    max-width: 11.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+    font-weight: 700;
+    color: rgb(79 70 229);
+    text-decoration: none;
+}
+
+.cand-exam-title:hover {
+    text-decoration: underline;
+    color: rgb(67 56 202);
+}
+
+.dark .cand-exam-title {
+    color: rgb(165 180 252);
+}
+
+.dark .cand-exam-title:hover {
+    color: rgb(199 210 254);
+}
+
+span.cand-exam-title {
+    color: rgb(30 41 59);
+    font-weight: 650;
+}
+
+.dark span.cand-exam-title {
+    color: rgb(226 232 240);
+}
+
+.cand-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.cand-badge--success {
+    background: rgb(236 253 245);
+    color: rgb(4 120 87);
+}
+
+.dark .cand-badge--success {
+    background: rgb(16 185 129 / 0.12);
+    color: rgb(52 211 153);
+}
+
+.cand-badge--info {
+    background: rgb(239 246 255);
+    color: rgb(29 78 216);
+}
+
+.dark .cand-badge--info {
+    background: rgb(59 130 246 / 0.15);
+    color: rgb(147 197 253);
+}
+
+.cand-badge--warning {
+    background: rgb(255 251 235);
+    color: rgb(180 83 9);
+}
+
+.dark .cand-badge--warning {
+    background: rgb(245 158 11 / 0.15);
+    color: rgb(252 211 77);
+}
+
+.cand-badge--muted {
+    background: rgb(241 245 249);
+    color: rgb(71 85 105);
+}
+
+.dark .cand-badge--muted {
+    background: rgb(51 65 85);
+    color: rgb(203 213 225);
+}
+
+.cand-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.cand-modal[hidden] {
+    display: none !important;
+}
+
+.cand-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(15 23 42 / 0.55);
+}
+
+.cand-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 28rem);
+    border-radius: 1.15rem;
+    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid rgb(226 232 240);
+    box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.35);
+}
+
+.dark .cand-modal__panel {
+    background: rgb(15 23 42);
+    border-color: rgb(51 65 85);
+}
+
+.cand-modal__panel--media {
+    width: min(100%, 56rem);
+    max-height: min(92vh, 48rem);
+    overflow: auto;
+}
+
+.cand-modal__image {
+    width: 100%;
+    max-height: min(62vh, 28rem);
+    object-fit: contain;
+    border-radius: 0.85rem;
+    background: rgb(15 23 42 / 0.04);
+}
+
+.dark .cand-modal__image {
+    background: rgb(2 6 23 / 0.55);
+}
+
+.cand-preview-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+}
+
+.cand-preview-eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(99 102 241);
+}
+
+.dark .cand-preview-eyebrow {
+    color: rgb(165 180 252);
+}
+
+.cand-preview-title {
+    margin: 0.15rem 0 0;
+    font-size: 1rem;
+    font-weight: 750;
+    color: rgb(15 23 42);
+    line-height: 1.35;
+}
+
+.dark .cand-preview-title {
+    color: #fff;
+}
+
+.cand-preview-layout {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .cand-preview-layout {
+        grid-template-columns: minmax(0, 1.45fr) minmax(12rem, 0.75fr);
+        align-items: start;
+    }
+}
+
+.cand-preview-media {
+    min-width: 0;
+}
+
+.cand-preview-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.cand-preview-meta {
+    margin: 0;
+    padding: 0.85rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgb(226 232 240);
+    background: rgb(248 250 252);
+}
+
+.dark .cand-preview-meta {
+    border-color: rgb(51 65 85);
+    background: rgb(2 6 23 / 0.45);
+}
+
+.cand-preview-meta__row {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgb(226 232 240 / 0.8);
+}
+
+.cand-preview-meta__row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.cand-preview-meta__row:first-child {
+    padding-top: 0;
+}
+
+.dark .cand-preview-meta__row {
+    border-bottom-color: rgb(51 65 85 / 0.8);
+}
+
+.cand-preview-meta dt {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(148 163 184);
+}
+
+.cand-preview-meta dd {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: rgb(30 41 59);
+    word-break: break-word;
+}
+
+.dark .cand-preview-meta dd {
+    color: rgb(226 232 240);
+}
+
+.cand-td-verify {
+    white-space: normal !important;
+    min-width: 7.5rem;
+}
+
+.cand-verify-thumbs {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.cand-verify-thumb {
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    border-radius: 0.45rem;
+    overflow: hidden;
+    border: 1px solid rgb(226 232 240);
+    background: rgb(241 245 249);
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cand-verify-thumb:hover {
+    transform: translateY(-1px);
+    border-color: rgb(129 140 248);
+    box-shadow: 0 6px 14px -8px rgb(79 70 229 / 0.55);
+}
+
+.dark .cand-verify-thumb {
+    border-color: rgb(51 65 85);
+    background: rgb(30 41 59);
+}
+
+.cand-verify-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cand-verify-more {
+    font-size: 0.68rem;
+    font-weight: 750;
+    color: rgb(100 116 139);
+}
+
+.cand-feedback-card {
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240 / 0.9);
+    background: rgb(248 250 252 / 0.75);
+    padding: 0.95rem 1rem;
+}
+
+.dark .cand-feedback-card {
+    border-color: rgb(51 65 85);
+    background: rgb(2 6 23 / 0.4);
+}
+
+.cand-feedback-card__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.65rem 1rem;
+}
+
+.cand-feedback-card__title {
+    font-size: 0.9rem;
+    font-weight: 750;
+    color: rgb(30 41 59);
+    line-height: 1.35;
+}
+
+.dark .cand-feedback-card__title {
+    color: rgb(241 245 249);
+}
+
+.cand-feedback-card__exam {
+    margin-top: 0.15rem;
+    font-size: 0.72rem;
+    color: rgb(100 116 139);
+}
+
+.dark .cand-feedback-card__exam {
+    color: rgb(148 163 184);
+}
+
+.cand-feedback-card__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+}
+
+.cand-feedback-card__date {
+    font-size: 0.72rem;
+    color: rgb(148 163 184);
+}
+
+.cand-feedback-card__message {
+    margin: 0.65rem 0 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: rgb(71 85 105);
+}
+
+.dark .cand-feedback-card__message {
+    color: rgb(203 213 225);
+}
+
+.cand-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.12rem;
+}
+
+.cand-star {
+    width: 1rem;
+    height: 1rem;
+    fill: rgb(226 232 240);
+}
+
+.cand-star.is-filled {
+    fill: rgb(245 158 11);
+}
+
+.dark .cand-star {
+    fill: rgb(51 65 85);
+}
+
+.dark .cand-star.is-filled {
+    fill: rgb(251 191 36);
+}
+
+.cand-stars__value {
+    margin-left: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 750;
+    color: rgb(100 116 139);
+}
+
+.dark .cand-stars__value {
+    color: rgb(203 213 225);
+}
+
+body.cand-modal-open {
+    overflow: hidden;
+}

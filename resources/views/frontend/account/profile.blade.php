@@ -43,7 +43,7 @@
             <form id="ca-profile-form" class="ca-form" novalidate>
                 <div class="ca-avatar">
                     <div class="ca-avatar__preview" id="ca-avatar-preview">
-                        <span id="ca-avatar-initials">{{ strtoupper(mb_substr($user->name ?? 'U', 0, 1)) }}</span>
+                        <span id="ca-avatar-initials">{{ user_initials($user->name ?? 'User', 'U') }}</span>
                     </div>
                     <div>
                         <strong>Profile picture</strong>
@@ -170,6 +170,7 @@
 @endsection
 
 @push('account-scripts')
+<script src="{{ versioned_asset('js/components/user-avatar.js') }}"></script>
 <script src="{{ versioned_asset('js/components/dob-datepicker.js') }}"></script>
 <script src="{{ versioned_asset('js/frontend/account-profile.js') }}"></script>
 @endpush

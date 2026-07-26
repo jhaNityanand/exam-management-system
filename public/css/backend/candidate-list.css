@@ -1,0 +1,257 @@
+/* ============================================================
+   candidate-list.css — Candidates index
+   ============================================================ */
+
+.cand-list-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.cand-list-avatar {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: linear-gradient(145deg, rgb(99 102 241 / 0.14), rgb(14 165 233 / 0.12));
+    border: 1px solid rgb(226 232 240);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.dark .cand-list-avatar {
+    background: linear-gradient(145deg, rgb(99 102 241 / 0.22), rgb(16 185 129 / 0.14));
+    border-color: rgb(51 65 85);
+}
+
+.cand-list-avatar__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cand-list-avatar__initials {
+    line-height: 1;
+}
+
+.cand-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.cand-status-badge--active {
+    background: rgb(236 253 245);
+    color: rgb(4 120 87);
+}
+
+.dark .cand-status-badge--active {
+    background: rgb(16 185 129 / 0.12);
+    color: rgb(52 211 153);
+}
+
+.cand-status-badge--inactive {
+    background: rgb(241 245 249);
+    color: rgb(71 85 105);
+}
+
+.dark .cand-status-badge--inactive {
+    background: rgb(51 65 85);
+    color: rgb(203 213 225);
+}
+
+.cand-verified-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgb(239 246 255);
+    color: rgb(29 78 216);
+}
+
+.dark .cand-verified-badge {
+    background: rgb(59 130 246 / 0.15);
+    color: rgb(147 197 253);
+}
+
+.cand-verified-badge--no {
+    background: rgb(255 251 235);
+    color: rgb(180 83 9);
+}
+
+.dark .cand-verified-badge--no {
+    background: rgb(245 158 11 / 0.15);
+    color: rgb(252 211 77);
+}
+
+.cand-role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    background: rgb(238 242 255);
+    color: rgb(67 56 202);
+    white-space: nowrap;
+}
+
+.dark .cand-role-badge {
+    background: rgb(99 102 241 / 0.15);
+    color: rgb(165 180 252);
+}
+
+.cand-attempts-pill {
+    display: inline-flex;
+    min-width: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    background: rgb(241 245 249);
+    color: rgb(30 41 59);
+}
+
+.dark .cand-attempts-pill {
+    background: rgb(51 65 85);
+    color: rgb(248 250 252);
+}
+
+.cand-refresh-btn.is-spinning .cand-refresh-btn__icon {
+    animation: cand-spin 0.7s linear infinite;
+}
+
+@keyframes cand-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Row action icon buttons — match Questions module */
+.q-action-btn {
+    display: inline-flex;
+    height: 2rem;
+    width: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.q-action-btn svg {
+    height: 0.9rem;
+    width: 0.9rem;
+    stroke-width: 2.25;
+}
+
+.q-action-btn--view {
+    border-color: #c7d2fe;
+    background-color: #eef2ff;
+    color: #4338ca;
+}
+
+.q-action-btn--view:hover {
+    border-color: #a5b4fc;
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.q-action-btn--edit {
+    border-color: #bae6fd;
+    background-color: #f0f9ff;
+    color: #0369a1;
+}
+
+.q-action-btn--edit:hover {
+    border-color: #7dd3fc;
+    background-color: #e0f2fe;
+    color: #075985;
+}
+
+.q-action-btn--delete {
+    border-color: #fecdd3;
+    background-color: #fff1f2;
+    color: #e11d48;
+}
+
+.q-action-btn--delete:hover {
+    border-color: #fda4af;
+    background-color: #ffe4e6;
+    color: #be123c;
+}
+
+.q-action-btn--invoice {
+    border-color: #fde68a;
+    background-color: #fffbeb;
+    color: #b45309;
+}
+
+.q-action-btn--invoice:hover {
+    border-color: #fcd34d;
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.dark .q-action-btn--view {
+    border-color: rgba(129, 140, 248, 0.55);
+    background-color: rgba(79, 70, 229, 0.28);
+    color: #c7d2fe;
+}
+
+.dark .q-action-btn--view:hover {
+    border-color: rgba(165, 180, 252, 0.75);
+    background-color: rgba(79, 70, 229, 0.42);
+    color: #e0e7ff;
+}
+
+.dark .q-action-btn--edit {
+    border-color: rgba(56, 189, 248, 0.55);
+    background-color: rgba(14, 165, 233, 0.28);
+    color: #7dd3fc;
+}
+
+.dark .q-action-btn--edit:hover {
+    border-color: rgba(125, 211, 252, 0.75);
+    background-color: rgba(14, 165, 233, 0.42);
+    color: #e0f2fe;
+}
+
+.dark .q-action-btn--delete {
+    border-color: rgba(251, 113, 133, 0.55);
+    background-color: rgba(244, 63, 94, 0.28);
+    color: #fda4af;
+}
+
+.dark .q-action-btn--delete:hover {
+    border-color: rgba(253, 164, 175, 0.75);
+    background-color: rgba(244, 63, 94, 0.42);
+    color: #ffe4e6;
+}
+
+.dark .q-action-btn--invoice {
+    border-color: rgba(251, 191, 36, 0.55);
+    background-color: rgba(245, 158, 11, 0.22);
+    color: #fcd34d;
+}
+
+.dark .q-action-btn--invoice:hover {
+    border-color: rgba(252, 211, 77, 0.75);
+    background-color: rgba(245, 158, 11, 0.35);
+    color: #fde68a;
+}

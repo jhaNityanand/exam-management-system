@@ -29,8 +29,20 @@
         if (url) {
             box.innerHTML = '<img src="' + url + '" alt="Profile photo">';
         } else {
-            box.innerHTML = '<span>' + (initials || 'U') + '</span>';
+            box.innerHTML = '<span id="ca-avatar-initials">' + (initials || 'U') + '</span>';
         }
+    }
+
+    function nameInitials(name) {
+        if (window.EmsUserAvatar && typeof window.EmsUserAvatar.initials === 'function') {
+            return window.EmsUserAvatar.initials(name, 'U');
+        }
+        var cleaned = String(name || 'U').replace(/\s+/g, ' ').trim();
+        var parts = cleaned.split(' ').filter(Boolean);
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+        return cleaned.slice(0, 2).toUpperCase() || 'U';
     }
 
     function renderStats(stats) {
@@ -90,7 +102,7 @@
         setVal('ca-twitter', social.twitter);
         setVal('ca-github', social.github);
         setVal('ca-facebook', social.facebook);
-        setAvatarPreview(data.avatar_url, (user.name || 'U').charAt(0).toUpperCase());
+        setAvatarPreview(data.avatar_url, nameInitials(user.name || 'U'));
         applyCompletion(data.completion || {});
         renderStats(data.stats || {});
     }
@@ -166,7 +178,7 @@
             removeBtn.addEventListener('click', function () {
                 document.getElementById('ca-cropped-avatar').value = '';
                 document.getElementById('ca-remove-avatar').value = '1';
-                setAvatarPreview(null, (document.getElementById('ca-name').value || 'U').charAt(0).toUpperCase());
+                setAvatarPreview(null, nameInitials((document.getElementById('ca-name') || {}).value || 'U'));
             });
         }
 

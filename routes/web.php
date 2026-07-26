@@ -5,11 +5,14 @@ use App\Http\Controllers\Api\Workspace\BlogDataController;
 use App\Http\Controllers\Api\Workspace\ExamDataController;
 use App\Http\Controllers\Api\Workspace\NewsDataController;
 use App\Http\Controllers\Api\Workspace\QuestionDataController;
+use App\Http\Controllers\Api\Workspace\CandidateDataController;
+use App\Http\Controllers\Api\Workspace\ExamAttempterDataController;
 use App\Http\Controllers\Backend\BlogController;
 use App\Http\Controllers\Backend\BlogCategoryController;
 use App\Http\Controllers\Backend\NewsController;
 use App\Http\Controllers\Backend\NewsCategoryController;
 use App\Http\Controllers\Backend\CandidateController;
+use App\Http\Controllers\Backend\TransactionController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\ExamController;
 use App\Http\Controllers\Backend\LogController;
@@ -167,6 +170,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('internal-api/questions-table', QuestionDataController::class)->name('internal-api.questions-table');
     Route::get('internal-api/blogs-table',     BlogDataController::class)->name('internal-api.blogs-table');
     Route::get('internal-api/news-table',      NewsDataController::class)->name('internal-api.news-table');
+    Route::get('internal-api/candidates-table', CandidateDataController::class)->name('internal-api.candidates-table');
+    Route::get('internal-api/exams/{exam}/attempters', [ExamAttempterDataController::class, 'index'])->name('internal-api.exam-attempters')->whereNumber('exam');
+    Route::get('internal-api/exams/{exam}/attempters/{user}/attempts', [ExamAttempterDataController::class, 'attempts'])->name('internal-api.exam-attempter-attempts')->whereNumber(['exam', 'user']);
+    Route::get('internal-api/exams/{exam}/attempters/{user}/verification', [ExamAttempterDataController::class, 'verification'])->name('internal-api.exam-attempter-verification')->whereNumber(['exam', 'user']);
     Route::get('slug/resolve', [SlugController::class, 'resolve'])->name('slug.resolve');
 
     // ── Questions Module ──────────────────────────────────────────────────────
@@ -245,8 +252,23 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('settings',  [SettingController::class, 'edit'])->name('settings.index');
     Route::put('settings',  [SettingController::class, 'update'])->name('settings.update');
 
+    // ── Candidates ────────────────────────────────────────────────────────────
+    Route::prefix('candidates')->name('candidates.')->group(function () {
+        Route::post('bulk-destroy', [CandidateController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('bulk-restore', [CandidateController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::patch('bulk-status', [CandidateController::class, 'bulkUpdateStatus'])->name('bulk-status');
+        Route::patch('{candidate}/restore', [CandidateController::class, 'restore'])->name('restore')->whereNumber('candidate');
+        Route::patch('{candidate}/toggle-status', [CandidateController::class, 'toggleStatus'])->name('toggle-status')->whereNumber('candidate');
+        Route::post('{candidate}/reset-password', [CandidateController::class, 'resetPassword'])->name('reset-password')->whereNumber('candidate');
+        Route::get('{candidate}/snapshots/{snapshot}', [CandidateController::class, 'showSnapshot'])->name('snapshots.show')->whereNumber(['candidate', 'snapshot']);
+        Route::get('{candidate}/snapshots/{snapshot}/download', [CandidateController::class, 'downloadSnapshot'])->name('snapshots.download')->whereNumber(['candidate', 'snapshot']);
+    });
+    Route::resource('candidates', CandidateController::class);
+
+    // ── Transactions ──────────────────────────────────────────────────────────
+    Route::resource('transactions', TransactionController::class)->only(['index']);
+
     // ── Read-only resources ───────────────────────────────────────────────────
-    Route::resource('candidates',    CandidateController::class)->only(['index']);
     Route::resource('notifications', NotificationController::class)->only(['index']);
     Route::resource('logs',          LogController::class)->only(['index']);
 });

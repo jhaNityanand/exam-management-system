@@ -85,7 +85,7 @@
             class="{{ $topbarIconButtonClasses }}"
             aria-label="User menu">
             <span
-                class="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg text-xs font-bold uppercase leading-none text-white"
+                class="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold uppercase leading-none text-white"
                 style="background: {{ $userAvatarColor }}">
                 @if($userAvatarUrl)
                     <img src="{{ $userAvatarUrl }}" alt="" class="h-full w-full object-cover">

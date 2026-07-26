@@ -1,0 +1,167 @@
+/* ============================================================
+   coming-soon-modal.css — reusable Coming Soon dialog
+   ============================================================ */
+
+.ems-coming-soon-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.ems-coming-soon-modal[hidden] {
+    display: none !important;
+}
+
+.ems-coming-soon-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(15 23 42 / 0.62);
+    backdrop-filter: blur(3px);
+}
+
+.ems-coming-soon-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 26rem);
+    text-align: center;
+    padding: 1.6rem 1.35rem 1.4rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgb(226 232 240);
+    background: #fff;
+    box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.35);
+}
+
+.ems-coming-soon-modal__panel--lg {
+    width: min(100%, 40rem);
+    padding: 2.25rem 2rem 2rem;
+}
+
+.ems-coming-soon-modal__panel--xl {
+    width: min(100%, 56rem);
+    min-height: min(70vh, 28rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2.5rem 2.5rem;
+    border-radius: 1.5rem;
+}
+
+.dark .ems-coming-soon-modal__panel {
+    border-color: rgb(51 65 85);
+    background: rgb(15 23 42);
+}
+
+.ems-coming-soon-modal__icon {
+    width: 3.75rem;
+    height: 3.75rem;
+    margin: 0 auto 0.9rem;
+    display: grid;
+    place-items: center;
+    border-radius: 1rem;
+    color: rgb(79 70 229);
+    background: rgb(238 242 255);
+    border: 1px solid rgb(199 210 254);
+}
+
+.ems-coming-soon-modal__panel--lg .ems-coming-soon-modal__icon,
+.ems-coming-soon-modal__panel--xl .ems-coming-soon-modal__icon {
+    width: 5rem;
+    height: 5rem;
+    margin-bottom: 1.15rem;
+    border-radius: 1.25rem;
+}
+
+.dark .ems-coming-soon-modal__icon {
+    color: rgb(165 180 252);
+    background: rgb(79 70 229 / 0.18);
+    border-color: rgb(129 140 248 / 0.35);
+}
+
+.ems-coming-soon-modal__icon svg {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.ems-coming-soon-modal__panel--lg .ems-coming-soon-modal__icon svg,
+.ems-coming-soon-modal__panel--xl .ems-coming-soon-modal__icon svg {
+    width: 2.35rem;
+    height: 2.35rem;
+}
+
+.ems-coming-soon-modal__badge {
+    display: inline-flex;
+    margin-bottom: 0.65rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgb(67 56 202);
+    background: rgb(238 242 255);
+}
+
+.ems-coming-soon-modal__panel--xl .ems-coming-soon-modal__badge {
+    margin-bottom: 0.85rem;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.72rem;
+}
+
+.dark .ems-coming-soon-modal__badge {
+    color: rgb(165 180 252);
+    background: rgb(79 70 229 / 0.2);
+}
+
+.ems-coming-soon-modal__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgb(15 23 42);
+}
+
+.ems-coming-soon-modal__panel--lg .ems-coming-soon-modal__title {
+    font-size: 1.45rem;
+}
+
+.ems-coming-soon-modal__panel--xl .ems-coming-soon-modal__title {
+    font-size: 1.75rem;
+}
+
+.dark .ems-coming-soon-modal__title {
+    color: rgb(248 250 252);
+}
+
+.ems-coming-soon-modal__message {
+    margin: 0.55rem 0 1.2rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: rgb(100 116 139);
+}
+
+.ems-coming-soon-modal__panel--lg .ems-coming-soon-modal__message {
+    margin: 0.75rem auto 1.5rem;
+    max-width: 30rem;
+    font-size: 1rem;
+}
+
+.ems-coming-soon-modal__panel--xl .ems-coming-soon-modal__message {
+    margin: 0.9rem auto 1.75rem;
+    max-width: 34rem;
+    font-size: 1.05rem;
+    line-height: 1.65;
+}
+
+.dark .ems-coming-soon-modal__message {
+    color: rgb(148 163 184);
+}
+
+.ems-coming-soon-modal__panel--xl .panel-button-primary {
+    min-width: 8.5rem;
+    padding: 0.7rem 1.4rem;
+    font-size: 0.92rem;
+}

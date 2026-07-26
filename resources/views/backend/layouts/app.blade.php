@@ -228,7 +228,7 @@
 
         <div id="sidebar-user-section" class="shrink-0 px-3 py-4 border-t mt-4">
             <div id="sidebar-avatar-container" class="flex items-center gap-3 rounded-xl px-3 py-3 transition-all duration-300">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl text-sm font-bold uppercase text-white shadow-sm"
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-bold uppercase text-white shadow-sm"
                      style="background: {{ $userAvatarColor }}">
                     @if($userAvatarUrl)
                         <img src="{{ $userAvatarUrl }}" alt="" class="h-full w-full object-cover">
