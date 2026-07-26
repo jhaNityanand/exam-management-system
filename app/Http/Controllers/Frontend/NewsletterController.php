@@ -15,10 +15,18 @@ class NewsletterController extends Controller
 
     public function store(Request $request): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
+        if (! app(\App\Services\Settings\IntegrationsSettingsService::class)->isNewsletterEnabled()) {
+            abort(404);
+        }
+
+        $rules = [
             'email' => ['required', 'email', 'max:190'],
             'name' => ['nullable', 'string', 'max:120'],
-        ]);
+        ];
+        if (app(\App\Services\Settings\SecuritySettingsService::class)->requiresRecaptcha('newsletter')) {
+            $rules['g-recaptcha-response'] = [new \App\Rules\RecaptchaToken('newsletter')];
+        }
+        $validated = $request->validate($rules);
 
         $orgId = $this->organizationId();
 

@@ -26,9 +26,13 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $rules = [
             'email' => ['required', 'email'],
-        ]);
+        ];
+        if (app(\App\Services\Settings\SecuritySettingsService::class)->requiresRecaptcha('password_reset')) {
+            $rules['g-recaptcha-response'] = [new \App\Rules\RecaptchaToken('password_reset')];
+        }
+        $request->validate($rules);
 
         // We will send the password reset link to this user. Once we have attempted
         // to send the link, we will examine the response then see the message we

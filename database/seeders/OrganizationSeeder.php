@@ -10,7 +10,7 @@ class OrganizationSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::where('email', 'admin@examms.test')->first();
+        $admin = User::where('email', 'admin@example.in')->first();
 
         Organization::firstOrCreate(
             ['slug' => 'demo-org'],

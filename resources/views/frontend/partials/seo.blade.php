@@ -6,12 +6,17 @@
     $title = $pageTitle ? ($pageTitle.' | '.($siteSettings['site_name'] ?? 'Examtube.in')) : $defaultTitle;
     $description = $pageDesc ?: $defaultDesc;
     $canonical = $seo['canonical'] ?? url()->current();
-    $ogImage = $seo['image'] ?? ($siteSettings['seo.og_image'] ?? null);
+    $ogImage = $seo['image'] ?? ($siteBrand['og_image_url'] ?? ($siteSettings['seo.og_image'] ?? null));
     $ogTitle = $seo['og_title'] ?? $pageTitle ?? $defaultTitle;
     $ogDescription = $seo['og_description'] ?? $description;
     $keywords = $seo['keywords'] ?? ($siteSettings['seo.default_keywords'] ?? null);
+    $faviconUrl = $siteBrand['favicon_url'] ?? null;
 @endphp
 <title>{{ $title }}</title>
+@if($faviconUrl)
+    <link rel="icon" href="{{ $faviconUrl }}">
+    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+@endif
 <meta name="description" content="{{ $description }}">
 @if($keywords)
     <meta name="keywords" content="{{ is_array($keywords) ? implode(', ', $keywords) : $keywords }}">

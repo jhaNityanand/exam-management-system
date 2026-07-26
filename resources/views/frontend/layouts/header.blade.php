@@ -1,14 +1,16 @@
 @php
     $brandName = $siteBrand['name'] ?? ($siteSettings['site_name'] ?? ($siteSettings['brand.site_name'] ?? config('app.name', 'Examtube.in')));
     $logoText = $siteBrand['logo_text'] ?? ($siteSettings['logo_text'] ?? ($siteSettings['brand.logo_text'] ?? 'Examtube'));
+    $logoUrl = $siteBrand['logo_url'] ?? null;
     $logoPath = public_path('images/brand/examtube-logo.svg');
-    $hasLogoFile = is_file($logoPath);
+    $hasLogoFile = $logoUrl || is_file($logoPath);
+    $logoSrc = $logoUrl ?: asset('images/brand/examtube-logo.svg');
 @endphp
 <header class="et-header" data-sticky-header>
     <div class="et-container et-header__bar">
         <a href="{{ route('home') }}" class="et-logo" aria-label="{{ $brandName }}">
             @if($hasLogoFile)
-                <img class="et-logo__img" src="{{ asset('images/brand/examtube-logo.svg') }}" alt="{{ $brandName }}" width="160" height="34">
+                <img class="et-logo__img" src="{{ $logoSrc }}" alt="{{ $brandName }}" width="160" height="34">
             @else
                 <span class="et-logo__mark">{{ strtoupper(mb_substr(preg_replace('/\s+/', '', $logoText) ?: 'E', 0, 1)) }}</span>
                 <span class="et-logo__text">
@@ -83,7 +85,9 @@
                 </div>
             @else
                 <a href="{{ route('login') }}" class="et-btn et-btn--ghost et-btn--sm et-header__auth-btn">Login</a>
-                <a href="{{ route('register') }}" class="et-btn et-btn--primary et-btn--sm et-header__auth-btn">Register</a>
+                @if(app(\App\Services\Settings\IntegrationsSettingsService::class)->isRegistrationEnabled())
+                    <a href="{{ route('register') }}" class="et-btn et-btn--primary et-btn--sm et-header__auth-btn">Register</a>
+                @endif
             @endauth
 
             <button type="button" class="et-icon-btn et-mobile-toggle" data-mobile-nav-toggle aria-expanded="false" aria-label="Open menu">
@@ -102,7 +106,9 @@
         @guest
             <div class="et-mobile-nav__auth">
                 <a href="{{ route('login') }}" class="et-btn et-btn--ghost et-btn--sm">Login</a>
-                <a href="{{ route('register') }}" class="et-btn et-btn--primary et-btn--sm">Register</a>
+                @if(app(\App\Services\Settings\IntegrationsSettingsService::class)->isRegistrationEnabled())
+                    <a href="{{ route('register') }}" class="et-btn et-btn--primary et-btn--sm">Register</a>
+                @endif
             </div>
         @endguest
     </div>

@@ -32,10 +32,16 @@
         </div>
 
         <button type="submit" class="et-btn et-btn--primary et-btn--block et-btn--lg">{{ __('Log in') }}</button>
+
+        @include('frontend.partials.recaptcha', ['context' => 'login'])
     </form>
 
     <p class="et-auth__switch">
         New to Examtube?
-        <a href="{{ route('register') }}" class="et-link">Create an account</a>
+        @if(app(\App\Services\Settings\IntegrationsSettingsService::class)->isRegistrationEnabled())
+            <a href="{{ route('register') }}" class="et-link">Create an account</a>
+        @else
+            <span class="et-text-muted">Registration is currently closed.</span>
+        @endif
     </p>
 </x-guest-layout>

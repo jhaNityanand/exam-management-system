@@ -196,12 +196,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->nullable()->constrained('organizations')->cascadeOnDelete();
             $table->string('name');
-            $table->string('placement', 60); // home_sidebar|exam_list|blog_list|news_list|footer
+            $table->string('type', 30)->default('banner'); // banner|google_ads|custom_html|iframe
+            $table->string('placement', 80);
             $table->string('headline')->nullable();
             $table->text('body')->nullable();
+            $table->longText('code')->nullable(); // AdSense / custom HTML / iframe markup
             $table->string('cta_label')->nullable();
             $table->string('cta_url')->nullable();
-            $table->foreignId('image_id')->nullable()->constrained('galleries')->nullOnDelete();
+            $table->foreignId('image_id')->nullable()->constrained('galleries')->nullOnDelete(); // desktop banner
+            $table->foreignId('mobile_image_id')->nullable()->constrained('galleries')->nullOnDelete();
             $table->unsignedInteger('sort_order')->default(0);
             $table->string('status', 20)->default('active');
             $table->timestamp('starts_at')->nullable();

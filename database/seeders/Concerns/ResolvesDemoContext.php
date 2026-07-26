@@ -14,6 +14,7 @@ trait ResolvesDemoContext
 
     protected function demoEditor(): ?User
     {
-        return User::query()->where('email', 'editor@examms.test')->first();
+        return User::query()->where('email', 'admin@examtube.in')->first()
+            ?: User::query()->where('email', 'admin@example.in')->first();
     }
 }

@@ -107,9 +107,13 @@ class NewsController extends Controller
             ->limit(4)
             ->get();
 
+        $adService = app(\App\Services\Advertisement\AdvertisementService::class);
+        $processedContent = $adService->injectIntoContent((string) $news->content, 'news', $orgId);
+
         return view('frontend.news.show', [
             'news' => $news,
             'relatedNews' => $relatedNews,
+            'processedContent' => $processedContent,
         ]);
     }
 

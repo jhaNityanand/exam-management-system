@@ -1,6 +1,7 @@
 @php
     $brandName = $siteBrand['name'] ?? ($siteSettings['site_name'] ?? ($siteSettings['brand.site_name'] ?? config('app.name', 'Examtube.in')));
     $logoText = $siteBrand['logo_text'] ?? ($siteSettings['logo_text'] ?? ($siteSettings['brand.logo_text'] ?? 'Examtube'));
+    $logoUrl = $siteBrand['logo_url'] ?? null;
     $about = $siteSettings['footer.about'] ?? ($siteSettings['about'] ?? '');
     $copyright = $siteSettings['footer.copyright'] ?? ($siteSettings['copyright'] ?? '© {year} '.$brandName);
     $copyright = str_replace('{year}', (string) now()->year, $copyright);
@@ -12,8 +13,8 @@
     <div class="et-container et-footer__grid">
         <div class="et-footer__about">
             <a href="{{ route('home') }}" class="et-logo" aria-label="{{ $brandName }}">
-                @if(is_file(public_path('images/brand/examtube-logo.svg')))
-                    <img class="et-logo__img" src="{{ asset('images/brand/examtube-logo.svg') }}" alt="{{ $brandName }}" width="150" height="32">
+                @if($logoUrl || is_file(public_path('images/brand/examtube-logo.svg')))
+                    <img class="et-logo__img" src="{{ $logoUrl ?: asset('images/brand/examtube-logo.svg') }}" alt="{{ $brandName }}" width="150" height="32">
                 @else
                     <span class="et-logo__mark">{{ strtoupper(mb_substr($logoText, 0, 1)) }}</span>
                     <span class="et-logo__text">{{ $logoText }}</span>
@@ -60,6 +61,8 @@
             ])
         </div>
     </div>
+
+    <div class="et-container">{!! ad_slot('footer') !!}</div>
 
     <div class="et-container et-footer__bottom">
         <div>{{ $copyright }}</div>

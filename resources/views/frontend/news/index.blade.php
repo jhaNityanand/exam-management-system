@@ -33,6 +33,8 @@
             <button type="submit" class="et-btn et-btn--primary et-btn--sm">Filter</button>
         </form>
 
+        {!! ad_slot('news_list') !!}
+
         @if(($newsItems ?? $news ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No news found', 'message' => ''])
         @else

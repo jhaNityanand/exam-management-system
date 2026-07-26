@@ -13,6 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdminAccess::class,
+            'maintenance' => \App\Http\Middleware\CheckMaintenanceMode::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckMaintenanceMode::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

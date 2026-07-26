@@ -37,6 +37,7 @@
                         <span>{{ $blog->published_at->format('d M Y') }}</span>
                     @endif
                 </div>
+                {!! ad_slot('blog_detail_above_h1') !!}
                 <h1>{{ $blog->title }}</h1>
                 <p>By {{ $author }}</p>
             </div>
@@ -49,6 +50,8 @@
                 </div>
             @endif
 
+            {!! ad_slot('blog_detail_sidebar_top') !!}
+
             @if($blog->excerpt)
                 <p class="et-article__lead">{{ $blog->excerpt }}</p>
             @endif
@@ -59,6 +62,8 @@
                 {!! $processedContent ?? $blog->content !!}
             </div>
 
+            {!! ad_slot('blog_detail_sidebar_middle') !!}
+
             <div class="et-share">
                 <span>Share</span>
                 <a href="https://twitter.com/intent/tweet?url={{ $shareUrl }}&text={{ $shareText }}" target="_blank" rel="noopener">X</a>
@@ -67,6 +72,8 @@
                 <a href="https://wa.me/?text={{ $shareText }}%20{{ $shareUrl }}" target="_blank" rel="noopener">WhatsApp</a>
             </div>
 
+            {!! ad_slot('blog_detail_before_comments') !!}
+
             @if(($blog->tags ?? collect())->isNotEmpty())
                 <div class="et-tag-cloud">
                     @foreach($blog->tags as $tag)
@@ -74,6 +81,8 @@
                     @endforeach
                 </div>
             @endif
+
+            {!! ad_slot('blog_detail_sidebar_bottom') !!}
 
             @php $relatedItems = $relatedBlogs ?? $related ?? collect(); @endphp
             @if($relatedItems->isNotEmpty())

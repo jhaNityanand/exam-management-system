@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Support\UniqueUserSlug;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -10,44 +11,36 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Super admin
-        User::firstOrCreate(
-            ['email' => 'admin@examms.test'],
+        $users = [
             [
-                'name'     => 'Admin User',
-                'password' => Hash::make('password'),
-                'status'   => 'active',
-            ]
-        );
+                'email' => 'admin@example.in',
+                'name' => 'Application Admin',
+                'username' => 'app-admin',
+            ],
+            [
+                'email' => 'admin@examtube.in',
+                'name' => 'Organization Admin',
+                'username' => 'org-admin',
+            ],
+            [
+                'email' => 'candidate@examtube.in',
+                'name' => 'Candidate User',
+                'username' => 'candidate',
+            ],
+        ];
 
-        // Org admin
-        User::firstOrCreate(
-            ['email' => 'orgadmin@examms.test'],
-            [
-                'name'     => 'Org Admin User',
-                'password' => Hash::make('password'),
-                'status'   => 'active',
-            ]
-        );
+        foreach ($users as $data) {
+            $user = User::query()->updateOrCreate(
+                ['email' => $data['email']],
+                [
+                    'name' => $data['name'],
+                    'username' => $data['username'],
+                    'password' => Hash::make('password'),
+                    'status' => 'active',
+                ]
+            );
 
-        // Editor
-        User::firstOrCreate(
-            ['email' => 'editor@examms.test'],
-            [
-                'name'     => 'Editor User',
-                'password' => Hash::make('password'),
-                'status'   => 'active',
-            ]
-        );
-
-        // Viewer / Candidate
-        User::firstOrCreate(
-            ['email' => 'student@examms.test'],
-            [
-                'name'     => 'Student User',
-                'password' => Hash::make('password'),
-                'status'   => 'active',
-            ]
-        );
+            UniqueUserSlug::ensureFor($user);
+        }
     }
 }

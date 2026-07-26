@@ -42,6 +42,8 @@
             <button type="submit" class="et-btn et-btn--primary et-btn--sm">Apply</button>
         </form>
 
+        {!! ad_slot('exam_list') !!}
+
         @if(($exams ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', [
                 'title' => 'No exams found',

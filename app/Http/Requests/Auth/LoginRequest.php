@@ -27,10 +27,16 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ];
+
+        if (app(\App\Services\Settings\SecuritySettingsService::class)->requiresRecaptcha('login')) {
+            $rules['g-recaptcha-response'] = [new \App\Rules\RecaptchaToken('login')];
+        }
+
+        return $rules;
     }
 
     /**
@@ -43,7 +49,8 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+            $protection = app(\App\Services\Settings\SecuritySettingsService::class)->loginProtection();
+            RateLimiter::hit($this->throttleKey(), $protection['decay_minutes'] * 60);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
@@ -60,7 +67,12 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        $protection = app(\App\Services\Settings\SecuritySettingsService::class)->loginProtection();
+        if (! $protection['enabled']) {
+            return;
+        }
+
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), $protection['max_attempts'])) {
             return;
         }
 

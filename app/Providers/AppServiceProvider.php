@@ -18,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
+        $this->applyOrganizationEmailConfig();
+
         View::composer([
             'backend.layouts.base',
             'backend.layouts.app',
@@ -64,5 +66,38 @@ class AppServiceProvider extends ServiceProvider
             ['frontend.*'],
             \App\View\Composers\FrontendLayoutComposer::class
         );
+    }
+
+    /**
+     * Apply org-scoped SMTP / From settings over env defaults when available.
+     */
+    protected function applyOrganizationEmailConfig(): void
+    {
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return;
+            }
+
+            app(\App\Services\Settings\EmailConfigurationService::class)->applyToConfig();
+            $this->applyIntegrationsRuntime();
+        } catch (\Throwable) {
+            // Ignore during early install / migrate before tables exist.
+        }
+    }
+
+    protected function applyIntegrationsRuntime(): void
+    {
+        $integrations = app(\App\Services\Settings\IntegrationsSettingsService::class)->get();
+        $timezone = trim((string) ($integrations['default_timezone'] ?? ''));
+        $locale = trim((string) ($integrations['default_locale'] ?? ''));
+
+        if ($timezone !== '') {
+            config(['app.timezone' => $timezone]);
+            date_default_timezone_set($timezone);
+        }
+
+        if ($locale !== '') {
+            app()->setLocale($locale);
+        }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models\Cms;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Models\Gallery;
 use App\Models\Organization;
+use App\Support\AdvertisementCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,12 +20,15 @@ class Advertisement extends Model
     protected $fillable = [
         'organization_id',
         'name',
+        'type',
         'placement',
         'headline',
         'body',
+        'code',
         'cta_label',
         'cta_url',
         'image_id',
+        'mobile_image_id',
         'sort_order',
         'status',
         'starts_at',
@@ -50,6 +54,11 @@ class Advertisement extends Model
         return $this->belongsTo(Gallery::class, 'image_id');
     }
 
+    public function mobileImage(): BelongsTo
+    {
+        return $this->belongsTo(Gallery::class, 'mobile_image_id');
+    }
+
     public function scopeActive(Builder $query, ?string $placement = null): Builder
     {
         $query->where('status', 'active')
@@ -69,6 +78,30 @@ class Advertisement extends Model
 
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('sort_order');
+        return $query->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function typeLabel(): string
+    {
+        return AdvertisementCatalog::types()[$this->type] ?? ucfirst((string) $this->type);
+    }
+
+    public function placementLabel(): string
+    {
+        return AdvertisementCatalog::placements()[$this->placement] ?? (string) $this->placement;
+    }
+
+    public function isBanner(): bool
+    {
+        return $this->type === AdvertisementCatalog::TYPE_BANNER;
+    }
+
+    public function usesCode(): bool
+    {
+        return in_array($this->type, [
+            AdvertisementCatalog::TYPE_GOOGLE_ADS,
+            AdvertisementCatalog::TYPE_CUSTOM_HTML,
+            AdvertisementCatalog::TYPE_IFRAME,
+        ], true);
     }
 }

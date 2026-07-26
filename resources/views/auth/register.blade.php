@@ -32,6 +32,8 @@
         </label>
 
         <button type="submit" class="et-btn et-btn--primary et-btn--block et-btn--lg">{{ __('Create account') }}</button>
+
+        @include('frontend.partials.recaptcha', ['context' => 'register'])
     </form>
 
     <p class="et-auth__switch">

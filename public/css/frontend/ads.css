@@ -1,0 +1,88 @@
+/* Frontend advertisement slots */
+
+.et-ad {
+  margin: 1.25rem 0;
+  padding: 0.75rem;
+  border: 1px dashed var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface-2);
+}
+
+.et-ad__label {
+  margin: 0 0 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--et-text-muted);
+}
+
+.et-ad__banner {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.et-ad__img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+.et-ad__img--mobile { display: none; }
+
+.et-ad__copy {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.65rem;
+}
+
+.et-ad__copy strong {
+  font-size: 0.98rem;
+}
+
+.et-ad__copy span {
+  color: var(--et-text-muted);
+  font-size: 0.9rem;
+}
+
+.et-ad__copy em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--et-accent);
+  font-size: 0.85rem;
+}
+
+.et-ad__code {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.et-ad__code iframe {
+  max-width: 100%;
+}
+
+.et-ad--inline-card {
+  grid-column: 1 / -1;
+}
+
+.cx-ad {
+  margin: 0.75rem 0;
+  padding: 0.5rem;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.cx-ad .et-ad {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .et-ad__img--desktop { display: none; }
+  .et-ad__img--mobile { display: block; }
+}

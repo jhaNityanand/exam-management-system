@@ -91,9 +91,13 @@ class BlogController extends Controller
             ->limit(4)
             ->get();
 
+        $adService = app(\App\Services\Advertisement\AdvertisementService::class);
+        $processedContent = $adService->injectIntoContent((string) $blog->content, 'blog', $orgId);
+
         return view('frontend.blog.show', [
             'blog' => $blog,
             'relatedBlogs' => $relatedBlogs,
+            'processedContent' => $processedContent,
         ]);
     }
 

@@ -16,7 +16,8 @@ class BlogCategorySeeder extends Seeder
     public function run(): void
     {
         $org    = Organization::where('slug', 'demo-org')->firstOrFail();
-        $editor = User::where('email', 'editor@examms.test')->firstOrFail();
+        $editor = User::where('email', 'admin@examtube.in')->first()
+            ?: User::where('email', 'admin@example.in')->firstOrFail();
 
         $this->insertTree($this->tree(), $org->id, $editor->id, null, '', 0);
 

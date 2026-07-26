@@ -22,6 +22,8 @@
             <button type="submit" class="et-btn et-btn--primary et-btn--sm">Search</button>
         </form>
 
+        {!! ad_slot('blog_list') !!}
+
         @if(($blogs ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No blogs found', 'message' => 'New posts will show up here.'])
         @else

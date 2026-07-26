@@ -95,9 +95,12 @@ if (! function_exists('user_avatar')) {
     }
 }
 
-if (! function_exists('user_initials')) {
-    function user_initials(?string $name, string $fallback = 'U'): string
+if (! function_exists('ad_slot')) {
+    /**
+     * Render active advertisements for a placement slot.
+     */
+    function ad_slot(string $placement): string
     {
-        return \App\Support\UserAvatar::initials($name, $fallback);
+        return app(\App\Services\Advertisement\AdvertisementService::class)->renderSlot($placement);
     }
 }

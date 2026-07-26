@@ -35,13 +35,17 @@ class PageController extends Controller
 
     public function contact(Request $request): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:190'],
             'phone' => ['nullable', 'string', 'max:40'],
             'subject' => ['nullable', 'string', 'max:190'],
             'message' => ['required', 'string', 'max:5000'],
-        ]);
+        ];
+        if (app(\App\Services\Settings\SecuritySettingsService::class)->requiresRecaptcha('contact')) {
+            $rules['g-recaptcha-response'] = [new \App\Rules\RecaptchaToken('contact')];
+        }
+        $validated = $request->validate($rules);
 
         $message = ContactMessage::query()->create([
             ...$validated,

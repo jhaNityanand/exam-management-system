@@ -2,7 +2,9 @@
     $ctaLabel = $cta ?? ($siteSettings['newsletter.cta'] ?? 'Subscribe');
     $formAction = Route::has('frontend.newsletter.store') ? route('frontend.newsletter.store') : '#';
     $isCompact = $compact ?? false;
+    $newsletterEnabled = app(\App\Services\Settings\IntegrationsSettingsService::class)->isNewsletterEnabled();
 @endphp
+@if($newsletterEnabled)
 <form
     class="et-newsletter-form {{ $isCompact ? 'et-newsletter-form--compact' : '' }}"
     action="{{ $formAction }}"
@@ -16,5 +18,7 @@
     @endunless
     <input type="hidden" name="source" value="{{ $source ?? 'website' }}">
     <button type="submit" class="et-btn">{{ $ctaLabel }}</button>
+    @include('frontend.partials.recaptcha', ['context' => 'newsletter'])
     <div class="et-newsletter-form__msg" data-newsletter-msg role="status" aria-live="polite"></div>
 </form>
+@endif

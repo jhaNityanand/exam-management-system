@@ -335,52 +335,75 @@
         const btn = qs('button[type="submit"]', form);
         if (!action) return;
 
-        const fd = new FormData(form);
-        if (btn) btn.disabled = true;
-        if (msg) {
-          msg.textContent = '';
-          msg.className = 'et-newsletter-form__msg';
+        const run = function () {
+          const fd = new FormData(form);
+          if (btn) btn.disabled = true;
+          if (msg) {
+            msg.textContent = '';
+            msg.className = 'et-newsletter-form__msg';
+          }
+
+          fetch(action, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRF-TOKEN': fd.get('_token') || (qs('meta[name="csrf-token"]') || {}).content || '',
+            },
+            body: fd,
+          })
+            .then(function (res) {
+              return res.json().then(function (json) {
+                return { ok: res.ok, json: json };
+              });
+            })
+            .then(function (result) {
+              if (!msg) return;
+              if (result.ok) {
+                msg.textContent = (result.json && result.json.message) || 'Subscribed successfully.';
+                msg.classList.add('is-ok');
+                form.reset();
+              } else {
+                const errors = result.json && result.json.errors;
+                const first = errors ? Object.values(errors)[0] : null;
+                msg.textContent =
+                  (first && first[0]) ||
+                  (result.json && result.json.message) ||
+                  'Subscription failed. Please try again.';
+                msg.classList.add('is-error');
+              }
+            })
+            .catch(function () {
+              if (!msg) return;
+              msg.textContent = 'Subscription failed. Please try again.';
+              msg.classList.add('is-error');
+            })
+            .finally(function () {
+              if (btn) btn.disabled = false;
+            });
+        };
+
+        const cfg = window.ExamtubeRecaptcha;
+        const tokenInput = qs('[data-et-recaptcha-token]', form);
+        if (cfg && cfg.enabled && cfg.version === 'v3' && tokenInput && window.grecaptcha) {
+          window.grecaptcha.ready(function () {
+            window.grecaptcha
+              .execute(cfg.site_key, { action: 'newsletter' })
+              .then(function (token) {
+                tokenInput.value = token;
+                run();
+              })
+              .catch(function () {
+                if (msg) {
+                  msg.textContent = 'reCAPTCHA failed. Please try again.';
+                  msg.classList.add('is-error');
+                }
+              });
+          });
+          return;
         }
 
-        fetch(action, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': fd.get('_token') || (qs('meta[name="csrf-token"]') || {}).content || '',
-          },
-          body: fd,
-        })
-          .then(function (res) {
-            return res.json().then(function (json) {
-              return { ok: res.ok, json: json };
-            });
-          })
-          .then(function (result) {
-            if (!msg) return;
-            if (result.ok) {
-              msg.textContent = (result.json && result.json.message) || 'Subscribed successfully.';
-              msg.classList.add('is-ok');
-              form.reset();
-            } else {
-              const errors = result.json && result.json.errors;
-              const first = errors ? Object.values(errors)[0] : null;
-              msg.textContent =
-                (first && first[0]) ||
-                (result.json && result.json.message) ||
-                'Subscription failed. Please try again.';
-              msg.classList.add('is-error');
-            }
-          })
-          .catch(function () {
-            if (msg) {
-              msg.textContent = 'Network error. Please try again.';
-              msg.classList.add('is-error');
-            }
-          })
-          .finally(function () {
-            if (btn) btn.disabled = false;
-          });
+        run();
       });
     });
   }

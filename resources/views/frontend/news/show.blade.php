@@ -42,6 +42,7 @@
                         <span>{{ $article->published_at->format('d M Y, H:i') }}</span>
                     @endif
                 </div>
+                {!! ad_slot('news_detail_above_h1') !!}
                 <h1>{{ $article->title }}</h1>
                 <p>{{ $article->author_name ?: ($article->author->name ?? 'News Desk') }}</p>
             </div>
@@ -54,6 +55,8 @@
                 </div>
             @endif
 
+            {!! ad_slot('news_detail_sidebar_top') !!}
+
             @php $summary = $article->short_description ?? $article->excerpt; @endphp
             @if($summary)
                 <p class="et-article__lead">{{ $summary }}</p>
@@ -65,6 +68,8 @@
                 {!! $processedContent ?? $article->content !!}
             </div>
 
+            {!! ad_slot('news_detail_sidebar_middle') !!}
+
             <div class="et-share">
                 <span>Share</span>
                 <a href="https://twitter.com/intent/tweet?url={{ $shareUrl }}&text={{ $shareText }}" target="_blank" rel="noopener">X</a>
@@ -73,6 +78,8 @@
                 <a href="https://wa.me/?text={{ $shareText }}%20{{ $shareUrl }}" target="_blank" rel="noopener">WhatsApp</a>
             </div>
 
+            {!! ad_slot('news_detail_before_comments') !!}
+
             @if(($article->tags ?? collect())->isNotEmpty())
                 <div class="et-tag-cloud">
                     @foreach($article->tags as $tag)
@@ -80,6 +87,8 @@
                     @endforeach
                 </div>
             @endif
+
+            {!! ad_slot('news_detail_sidebar_bottom') !!}
 
             @php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
             @if($relatedItems->isNotEmpty())

@@ -19,6 +19,11 @@ class RegisteredUserController extends Controller
 {
     public function create(Request $request): View
     {
+        abort_unless(
+            app(\App\Services\Settings\IntegrationsSettingsService::class)->isRegistrationEnabled(),
+            404
+        );
+
         $redirect = $request->query('redirect');
         if (is_string($redirect) && str_starts_with($redirect, url('/'))) {
             $request->session()->put('url.intended', $redirect);
@@ -29,11 +34,20 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        abort_unless(
+            app(\App\Services\Settings\IntegrationsSettingsService::class)->isRegistrationEnabled(),
+            404
+        );
+
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        ];
+        if (app(\App\Services\Settings\SecuritySettingsService::class)->requiresRecaptcha('register')) {
+            $rules['g-recaptcha-response'] = [new \App\Rules\RecaptchaToken('register')];
+        }
+        $request->validate($rules);
 
         $user = DB::transaction(function () use ($request) {
             $user = User::create([

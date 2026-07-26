@@ -21,7 +21,15 @@ use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\QuestionController;
 use App\Http\Controllers\Backend\QuestionCategoryController;
 use App\Http\Controllers\Backend\ExamCategoryController;
-use App\Http\Controllers\Backend\SettingController;
+use App\Http\Controllers\Backend\AdvertisementController;
+use App\Http\Controllers\Backend\Settings\CacheOptimizationController;
+use App\Http\Controllers\Backend\Settings\EmailSettingController;
+use App\Http\Controllers\Backend\Settings\IntegrationsSettingController;
+use App\Http\Controllers\Backend\Settings\MaintenanceSettingController;
+use App\Http\Controllers\Backend\Settings\OrganizationSettingController;
+use App\Http\Controllers\Backend\Settings\SecuritySettingController;
+use App\Http\Controllers\Backend\Settings\SeoSettingController;
+use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Backend\SlugController;
 use App\Http\Controllers\Frontend\AccountController;
 use App\Http\Controllers\Frontend\BlogController as FrontendBlogController;
@@ -98,6 +106,9 @@ Route::get('/news/{news:slug}', [FrontendNewsController::class, 'show'])->name('
 
 Route::get('/categories', [CategoryController::class, 'index'])->name('frontend.categories.index');
 Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('frontend.categories.show');
+
+Route::get('/authors', [AuthorController::class, 'index'])->name('frontend.authors.index');
+Route::get('/authors/{author:slug}', [AuthorController::class, 'show'])->name('frontend.authors.show');
 
 Route::get('/search', [SearchController::class, 'index'])->name('frontend.search');
 Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('frontend.search.suggest');
@@ -251,9 +262,33 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     });
     Route::resource('news', NewsController::class);
 
+    // ── Advertisements ────────────────────────────────────────────────────────
+    Route::put('advertisements/settings', [AdvertisementController::class, 'updateSettings'])->name('advertisements.settings');
+    Route::resource('advertisements', AdvertisementController::class)->except(['show']);
+
     // ── Settings ─────────────────────────────────────────────────────────────
-    Route::get('settings',  [SettingController::class, 'edit'])->name('settings.index');
-    Route::put('settings',  [SettingController::class, 'update'])->name('settings.update');
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [CacheOptimizationController::class, 'edit'])->name('index');
+        Route::post('cache/run', [CacheOptimizationController::class, 'run'])->name('cache.run');
+        Route::get('maintenance', [MaintenanceSettingController::class, 'edit'])->name('maintenance');
+        Route::put('maintenance', [MaintenanceSettingController::class, 'update'])->name('maintenance.update');
+        Route::get('organization', [OrganizationSettingController::class, 'edit'])->name('organization');
+        Route::put('organization', [OrganizationSettingController::class, 'update'])->name('organization.update');
+        Route::post('organization/heroes', [OrganizationSettingController::class, 'storeHero'])->name('organization.heroes.store');
+        Route::put('organization/heroes/{hero}', [OrganizationSettingController::class, 'updateHero'])->name('organization.heroes.update')->whereNumber('hero');
+        Route::delete('organization/heroes/{hero}', [OrganizationSettingController::class, 'destroyHero'])->name('organization.heroes.destroy')->whereNumber('hero');
+        Route::post('organization/heroes/reorder', [OrganizationSettingController::class, 'reorderHeroes'])->name('organization.heroes.reorder');
+        Route::get('seo', [SeoSettingController::class, 'edit'])->name('seo');
+        Route::put('seo', [SeoSettingController::class, 'update'])->name('seo.update');
+        Route::post('seo/regenerate', [SeoSettingController::class, 'regenerate'])->name('seo.regenerate');
+        Route::get('email', [EmailSettingController::class, 'edit'])->name('email');
+        Route::put('email', [EmailSettingController::class, 'update'])->name('email.update');
+        Route::post('email/test', [EmailSettingController::class, 'sendTest'])->name('email.test');
+        Route::get('integrations', [IntegrationsSettingController::class, 'edit'])->name('integrations');
+        Route::put('integrations', [IntegrationsSettingController::class, 'update'])->name('integrations.update');
+        Route::get('security', [SecuritySettingController::class, 'edit'])->name('security');
+        Route::put('security', [SecuritySettingController::class, 'update'])->name('security.update');
+    });
 
     // ── Candidates ────────────────────────────────────────────────────────────
     Route::prefix('candidates')->name('candidates.')->group(function () {

@@ -16,6 +16,8 @@
         </label>
 
         <button type="submit" class="et-btn et-btn--primary et-btn--block et-btn--lg">{{ __('Email reset link') }}</button>
+
+        @include('frontend.partials.recaptcha', ['context' => 'password_reset'])
     </form>
 
     <p class="et-auth__switch">

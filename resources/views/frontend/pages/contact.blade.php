@@ -1,8 +1,13 @@
 @php
     $email = $siteSettings['contact.email'] ?? null;
     $phone = $siteSettings['contact.phone'] ?? null;
+    $whatsapp = $siteSettings['contact.whatsapp'] ?? null;
     $address = $siteSettings['contact.address'] ?? null;
     $hours = $siteSettings['contact.hours'] ?? null;
+    $mapsUrl = $siteSettings['contact.maps_url'] ?? null;
+    $whatsappHref = $whatsapp
+        ? 'https://wa.me/'.preg_replace('/\D+/', '', $whatsapp)
+        : null;
 @endphp
 
 <section class="et-contact">
@@ -47,6 +52,7 @@
                 <div class="et-form__actions">
                     <button type="submit" class="et-btn et-btn--primary et-btn--lg">Send message</button>
                 </div>
+                @include('frontend.partials.recaptcha', ['context' => 'contact'])
             </form>
         </div>
 
@@ -75,6 +81,17 @@
                         </div>
                     </li>
                 @endif
+                @if ($whatsappHref)
+                    <li>
+                        <span class="et-contact__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 19.5 6 21l.8-3.2A8 8 0 1112 20a7.8 7.8 0 01-3.5-.9z"/><path d="M9.2 10.8c.3-.5.5-.5.8-.5h.3c.2 0 .4 0 .5.4l.6 1.5c.1.3 0 .5-.2.7l-.4.4a6.5 6.5 0 003 3l.4-.3c.2-.2.4-.2.7-.1l1.5.6c.3.1.4.3.4.5v.3c0 .3 0 .5-.5.8a4.2 4.2 0 01-2 .5 6.8 6.8 0 01-5.8-5.8 4.2 4.2 0 01.5-2z"/></svg>
+                        </span>
+                        <div>
+                            <strong>WhatsApp</strong>
+                            <a href="{{ $whatsappHref }}" target="_blank" rel="noopener noreferrer">{{ $whatsapp }}</a>
+                        </div>
+                    </li>
+                @endif
                 @if ($address)
                     <li>
                         <span class="et-contact__icon" aria-hidden="true">
@@ -82,7 +99,11 @@
                         </span>
                         <div>
                             <strong>Address</strong>
-                            <span>{{ $address }}</span>
+                            @if ($mapsUrl)
+                                <a href="{{ $mapsUrl }}" target="_blank" rel="noopener noreferrer">{{ $address }}</a>
+                            @else
+                                <span>{{ $address }}</span>
+                            @endif
                         </div>
                     </li>
                 @endif

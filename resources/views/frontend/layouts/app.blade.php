@@ -10,10 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/app.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/frontend/ads.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/frontend/cookie-consent.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/icon-buttons.css') }}">
+    @include('frontend.partials.integrations-head')
     @stack('styles')
 </head>
 <body class="et-body">
+    @include('frontend.partials.integrations-body')
     <script>
         (function () {
             function markThemeReady() {
@@ -66,6 +70,7 @@
 
     <script src="{{ versioned_asset('js/frontend/app.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/load-more.js') }}" defer></script>
+    <script src="{{ versioned_asset('js/frontend/recaptcha.js') }}" defer></script>
     @stack('scripts')
 </body>
 </html>

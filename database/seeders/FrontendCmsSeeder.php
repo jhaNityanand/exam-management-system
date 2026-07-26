@@ -33,6 +33,10 @@ class FrontendCmsSeeder extends Seeder
         $this->seedSocial($orgId);
         $this->seedPartners($orgId);
         $this->seedAnnouncements($orgId);
+
+        if ($orgId) {
+            app(\App\Services\Advertisement\AdvertisementService::class)->seedDefaults($orgId);
+        }
     }
 
     protected function seedSettings(?int $orgId): void
@@ -41,10 +45,13 @@ class FrontendCmsSeeder extends Seeder
             ['group' => 'brand', 'key' => 'site_name', 'value' => 'Examtube.in', 'type' => 'string', 'label' => 'Site name'],
             ['group' => 'brand', 'key' => 'tagline', 'value' => 'Practice smarter. Score higher. Get exam-ready.', 'type' => 'string', 'label' => 'Tagline'],
             ['group' => 'brand', 'key' => 'logo_text', 'value' => 'Examtube', 'type' => 'string', 'label' => 'Logo text'],
+            ['group' => 'brand', 'key' => 'description', 'value' => 'Examtube.in helps students, job seekers, and institutes practice with structured exams, stay updated with education news, and learn from practical blogs.', 'type' => 'text', 'label' => 'Description'],
             ['group' => 'contact', 'key' => 'email', 'value' => 'hello@examtube.in', 'type' => 'string', 'label' => 'Support email'],
             ['group' => 'contact', 'key' => 'phone', 'value' => '+91 98765 43210', 'type' => 'string', 'label' => 'Support phone'],
+            ['group' => 'contact', 'key' => 'whatsapp', 'value' => '+91 98765 43210', 'type' => 'string', 'label' => 'WhatsApp'],
             ['group' => 'contact', 'key' => 'address', 'value' => 'Innov8 Workspace, Koramangala, Bengaluru, Karnataka 560034', 'type' => 'text', 'label' => 'Address'],
             ['group' => 'contact', 'key' => 'hours', 'value' => 'Mon–Sat, 9:00 AM – 7:00 PM IST', 'type' => 'string', 'label' => 'Support hours'],
+            ['group' => 'contact', 'key' => 'maps_url', 'value' => 'https://maps.google.com/?q=Koramangala+Bengaluru', 'type' => 'string', 'label' => 'Google Maps URL'],
             ['group' => 'seo', 'key' => 'default_title', 'value' => 'Examtube.in — Online Exams, Mock Tests & Learning Hub', 'type' => 'string', 'label' => 'Default SEO title'],
             ['group' => 'seo', 'key' => 'default_description', 'value' => 'Prepare for competitive exams with curated mock tests, expert blogs, campus news, and progress tracking on Examtube.in.', 'type' => 'text', 'label' => 'Default SEO description'],
             ['group' => 'seo', 'key' => 'default_keywords', 'value' => 'online exams, mock tests, competitive exams, exam preparation, Examtube', 'type' => 'string', 'label' => 'Default keywords'],
@@ -77,6 +84,30 @@ class FrontendCmsSeeder extends Seeder
                 ]
             );
         }
+
+        app(\App\Services\Settings\MaintenanceModeService::class)->seedDefaults($orgId, [
+            'enabled' => false,
+            'title' => 'We will be right back',
+            'message' => "We are currently performing scheduled maintenance to improve your experience.\nPlease check back shortly.",
+            'contact_email' => 'hello@examtube.in',
+            'contact_phone' => '+91 98765 43210',
+            'social_facebook' => 'https://facebook.com/examtube',
+            'social_instagram' => 'https://instagram.com/examtube',
+            'social_linkedin' => 'https://linkedin.com/company/examtube',
+            'social_twitter' => 'https://x.com/examtube',
+            'social_youtube' => 'https://youtube.com/@examtube',
+            'social_telegram' => 'https://t.me/examtube',
+        ]);
+
+        app(\App\Services\Seo\SeoSiteGenerator::class)->seedDefaults($orgId);
+
+        app(\App\Services\Settings\EmailConfigurationService::class)->seedDefaults($orgId, [
+            'from_address' => 'hello@examtube.in',
+            'from_name' => 'Examtube.in',
+        ]);
+
+        app(\App\Services\Settings\IntegrationsSettingsService::class)->seedDefaults($orgId);
+        app(\App\Services\Settings\SecuritySettingsService::class)->seedDefaults($orgId);
     }
 
     protected function seedMenus(?int $orgId): void
@@ -352,11 +383,12 @@ class FrontendCmsSeeder extends Seeder
         SocialLink::query()->where('organization_id', $orgId)->delete();
 
         foreach ([
-            ['platform' => 'youtube', 'label' => 'YouTube', 'url' => 'https://youtube.com/@examtube', 'sort_order' => 1],
-            ['platform' => 'linkedin', 'label' => 'LinkedIn', 'url' => 'https://linkedin.com/company/examtube', 'sort_order' => 2],
-            ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://instagram.com/examtube.in', 'sort_order' => 3],
-            ['platform' => 'telegram', 'label' => 'Telegram', 'url' => 'https://t.me/examtube', 'sort_order' => 4],
-            ['platform' => 'x', 'label' => 'X (Twitter)', 'url' => 'https://x.com/examtube', 'sort_order' => 5],
+            ['platform' => 'facebook', 'label' => 'Facebook', 'url' => 'https://facebook.com/examtube', 'sort_order' => 1],
+            ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://instagram.com/examtube.in', 'sort_order' => 2],
+            ['platform' => 'linkedin', 'label' => 'LinkedIn', 'url' => 'https://linkedin.com/company/examtube', 'sort_order' => 3],
+            ['platform' => 'x', 'label' => 'X (Twitter)', 'url' => 'https://x.com/examtube', 'sort_order' => 4],
+            ['platform' => 'youtube', 'label' => 'YouTube', 'url' => 'https://youtube.com/@examtube', 'sort_order' => 5],
+            ['platform' => 'telegram', 'label' => 'Telegram', 'url' => 'https://t.me/examtube', 'sort_order' => 6],
         ] as $row) {
             SocialLink::query()->create(array_merge($row, [
                 'organization_id' => $orgId,

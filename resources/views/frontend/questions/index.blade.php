@@ -52,9 +52,16 @@
                 'message' => 'Try another search or browse categories.',
             ])
         @else
+            @php
+                $everyN = app(\App\Services\Advertisement\AdvertisementService::class)->questionListEveryN();
+                $inlineAdHtml = $everyN > 0 ? ad_slot('question_list_inline') : '';
+            @endphp
             <div class="et-grid et-grid--3" data-load-more-list>
-                @foreach($questions as $question)
+                @foreach($questions as $index => $question)
                     @include('frontend.components.question-card', ['question' => $question])
+                    @if($inlineAdHtml !== '' && $everyN > 0 && (($index + 1) % $everyN) === 0)
+                        <div class="et-ad--inline-card">{!! $inlineAdHtml !!}</div>
+                    @endif
                 @endforeach
             </div>
             @include('frontend.partials.load-more', [

@@ -123,12 +123,11 @@ After seeding, all of these use password `password`:
 
 | Email | Role label | Typical entry point |
 |---|---|---|
-| `admin@examms.test` | Admin | `/admin` |
-| `orgadmin@examms.test` | Org Admin | `/admin` |
-| `editor@examms.test` | Editor | `/admin` |
-| `student@examms.test` | Viewer | `/account` |
+| `admin@example.in` | Application Admin | `/admin` |
+| `admin@examtube.in` | Org Admin | `/admin` |
+| `candidate@examtube.in` | Candidate | `/account` |
 
-Role labels are stored on organization memberships. Backend routes currently require authentication only; role middleware/policies are still on the roadmap. Do not treat these accounts as a production authorization model.
+Role labels are stored on organization memberships. Admin panel access is limited to Application Admin, Org Admin, and Editor roles via middleware.
 
 ---
 
@@ -141,10 +140,11 @@ Role labels are stored on organization memberships. Backend routes currently req
 - Blog and news publishing with categories, tags, banners, attachments, and public pages
 - Gallery media library (upload, edit, recycle bin, restore, permanent delete)
 - Public CMS home, pages, search, contact, newsletter
+- Backend Settings: maintenance mode, SEO file generation, organization branding, cache tools, advertisements, email/SMTP, analytics/GTM/Pixel, cookie consent, reCAPTCHA, login lockout, feature flags
 - SEO metadata and gallery-backed Open Graph images across supported modules
 - Light / dark / system theme
 
-Still unfinished (see `TODO.md`): candidate answer submission/scoring, role-based route guards, organization switching UI, candidates/notifications/logs modules, richer settings/CMS admin.
+Still unfinished (see `TODO.md`): deeper candidate scoring polish, organization switching UI, notifications/logs modules.
 
 ---
 

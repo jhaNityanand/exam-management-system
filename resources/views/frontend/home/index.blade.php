@@ -6,5 +6,8 @@
             'section' => $section,
             'page' => $page,
         ])
+        @if($key === 'hero')
+            <div class="et-container">{!! ad_slot('home_sidebar') !!}</div>
+        @endif
     @endforeach
 @endsection

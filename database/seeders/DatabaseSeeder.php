@@ -32,10 +32,9 @@ class DatabaseSeeder extends Seeder
         $this->command->table(
             ['Email', 'Role', 'Access'],
             [
-                ['admin@examms.test',    'Admin',     '/admin — super admin panel'],
-                ['orgadmin@examms.test', 'Org Admin', '/admin — org-level management'],
-                ['editor@examms.test',   'Editor',    '/admin — question & exam creation'],
-                ['student@examms.test',  'Viewer',    '/admin — exam taking & results'],
+                ['admin@example.in', 'Application Admin', '/admin — full admin panel'],
+                ['admin@examtube.in', 'Org Admin', '/admin — organization management'],
+                ['candidate@examtube.in', 'Candidate', '/account — exams & results'],
             ]
         );
     }

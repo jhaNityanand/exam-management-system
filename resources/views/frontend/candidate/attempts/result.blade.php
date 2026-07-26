@@ -33,6 +33,11 @@
             </div>
         </header>
 
+        @php $resultAdHtml = ad_slot('exam_result'); @endphp
+        @if($resultAdHtml !== '')
+            <div class="et-container" style="padding-top:0">{!! $resultAdHtml !!}</div>
+        @endif
+
         <div id="rs-error" class="rs-error" hidden role="alert"></div>
 
         @if(! $visible)

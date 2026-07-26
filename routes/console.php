@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('gallery:prune-orphans')->daily();
+
+Schedule::command('seo:generate')->dailyAt('02:15');
