@@ -109,6 +109,8 @@ class ExamReviewPresenter
             'submission_label' => $attempt->submission_reason
                 ? $attempt->submissionReasonLabel()
                 : ucwords(str_replace('_', ' ', $reason)),
+            'violations_count' => count($attempt->violationsList()),
+            'violations' => $attempt->violationsList(),
         ];
     }
 

@@ -7,10 +7,9 @@
 @php
     $profile = $user->profile;
     $socialLinks = $profile?->social_links ?? [];
-    $nameParts = explode(' ', trim($user->name ?? 'User'));
-    $initials = count($nameParts) >= 2
-        ? strtoupper(substr($nameParts[0], 0, 1).substr($nameParts[1], 0, 1))
-        : strtoupper(substr($user->name ?? 'User', 0, 2));
+    $profileAvatar = user_avatar($user);
+    $initials = $profileAvatar['initials'];
+    $avatarColor = $profileAvatar['color'];
     $activeTab = session('status') === 'password-updated'
         ? 'security'
         : ($errors->hasAny(['address_line1', 'address_line2', 'city', 'state_region', 'postal_code', 'country'])
@@ -47,7 +46,7 @@
         <aside class="profile-summary-card">
             <div class="profile-summary-card__cover"></div>
             <div class="profile-summary-card__body">
-                <div class="profile-summary-avatar">
+                <div class="profile-summary-avatar" @if(! ($avatarUrl ?? null)) style="background: {{ $avatarColor }}; color: #fff" @endif>
                     @if ($avatarUrl)
                         <img src="{{ $avatarUrl }}" alt="{{ $user->name }} profile photo">
                     @else
@@ -137,13 +136,13 @@
                     </header>
 
                     <div class="profile-avatar-editor">
-                        <div class="profile-avatar-preview" data-avatar-preview>
+                        <div class="profile-avatar-preview" data-avatar-preview @if(! $avatarUrl) style="background: {{ $avatarColor }}; color: #fff" @endif>
                             @if ($avatarUrl)
                                 <img src="{{ $avatarUrl }}" alt="Current profile avatar" data-avatar-image>
                             @else
                                 <img src="" alt="Profile avatar preview" data-avatar-image hidden>
                             @endif
-                            <span data-avatar-initials @if ($avatarUrl) hidden @endif>{{ $initials }}</span>
+                            <span data-avatar-initials @if ($avatarUrl) hidden @endif style="{{ $avatarUrl ? '' : 'color:#fff' }}">{{ $initials }}</span>
                         </div>
                         <div class="profile-avatar-editor__content">
                             <h3>Profile photo</h3>

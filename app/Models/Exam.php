@@ -166,6 +166,11 @@ class Exam extends Model
         return $this->hasMany(ExamAttempt::class);
     }
 
+    public function feedback()
+    {
+        return $this->morphMany(Feedback::class, 'feedbackable');
+    }
+
     /**
      * Flat question IDs attached via any part pivot (pool/fixed modes).
      *

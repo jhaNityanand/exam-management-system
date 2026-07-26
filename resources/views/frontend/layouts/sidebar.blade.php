@@ -1,18 +1,16 @@
 @php
     $user = $user ?? auth()->user();
     $user?->loadMissing(['profile', 'organizations']);
-    $avatarUrl = $avatarUrl ?? null;
+    $avatar = user_avatar($user);
+    $avatarUrl = $avatarUrl ?? $avatar['url'];
     $membership = $user?->activeOrganizationRole() ?: 'candidate';
     $membershipLabel = ucwords(str_replace('_', ' ', (string) $membership));
-    $nameParts = preg_split('/\s+/', trim((string) ($user->name ?? 'User'))) ?: ['U'];
-    $initials = count($nameParts) >= 2
-        ? strtoupper(mb_substr($nameParts[0], 0, 1).mb_substr($nameParts[1], 0, 1))
-        : strtoupper(mb_substr((string) ($user->name ?? 'U'), 0, 2));
+    $initials = $avatar['initials'];
 @endphp
 
 <aside class="ca-sidebar" id="ca-sidebar" aria-label="Account navigation">
     <div class="ca-sidebar__user">
-        <div class="ca-sidebar__avatar" aria-hidden="true">
+        <div class="ca-sidebar__avatar" aria-hidden="true" style="{{ $avatarUrl ? '' : '--ua-bg: '.$avatar['color'] }}">
             @if($avatarUrl)
                 <img src="{{ $avatarUrl }}" alt="">
             @else

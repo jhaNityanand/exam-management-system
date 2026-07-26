@@ -44,9 +44,16 @@
             </button>
 
             @auth
+                @php($headerAvatar = user_avatar(auth()->user()))
                 <div class="et-profile" data-profile-menu>
                     <button type="button" class="et-profile__btn" data-profile-toggle aria-haspopup="true" aria-expanded="false">
-                        <span class="et-profile__avatar">{{ strtoupper(mb_substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
+                        <span class="et-profile__avatar" style="--ua-bg: {{ $headerAvatar['color'] }}">
+                            @if($headerAvatar['url'])
+                                <img src="{{ $headerAvatar['url'] }}" alt="">
+                            @else
+                                {{ $headerAvatar['initials'] }}
+                            @endif
+                        </span>
                         <span class="et-visually-hidden">Account menu</span>
                     </button>
                     <div class="et-profile__menu" role="menu">

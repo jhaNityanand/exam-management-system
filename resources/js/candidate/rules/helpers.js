@@ -26,16 +26,18 @@ export function createEventSender({ eventsUrl, api, allowUnloadRef, onAutoSubmit
                 onAutoSubmit?.({
                     reason: data.submission_reason || null,
                     message: data.submission_message
+                        || data.message
                         || 'Your exam has been automatically submitted because you exceeded the maximum number of allowed rule violations.',
                     violationCount: data.violation_count,
                     limit,
                 });
                 return data;
             }
-            if (data?.action === 'warn' || data?.action === 'flag') {
+            if (data?.action === 'warn' || data?.action === 'flag' || data?.action === 'logged') {
                 onWarning?.({
-                    title: titleForEvent(event),
-                    message: messageForEvent(event, data?.violation_count, limit),
+                    title: data.title || titleForEvent(event),
+                    message: data.message || messageForEvent(event, data?.violation_count, limit),
+                    advice: data.advice || null,
                     event,
                     count: data?.violation_count || null,
                     limit,

@@ -285,6 +285,104 @@
   font-size: .9rem;
 }
 
+.rs-violations {
+  margin-top: .15rem;
+  padding: 1rem 1.05rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--et-border, #e2e8f0));
+  background: color-mix(in srgb, #f59e0b 8%, var(--et-surface, #fff));
+}
+
+.rs-violations__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .35rem;
+}
+
+.rs-violations__head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #92400e;
+}
+
+.rs-violations__count {
+  min-width: 1.7rem;
+  height: 1.7rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.rs-violations__lead {
+  margin: 0 0 .75rem;
+  color: var(--et-text-muted, #64748b);
+  font-size: .86rem;
+}
+
+.rs-violations__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: .65rem;
+}
+
+.rs-violation {
+  padding: .7rem .8rem;
+  border-radius: 12px;
+  background: var(--et-surface, #fff);
+  border: 1px solid var(--et-border, #e2e8f0);
+}
+
+.rs-violation__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .65rem;
+  margin-bottom: .25rem;
+}
+
+.rs-violation__head strong {
+  color: var(--et-text, #0f172a);
+  font-size: .92rem;
+}
+
+.rs-violation__action {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #b45309;
+}
+
+.rs-violation__message,
+.rs-violation__advice {
+  margin: .2rem 0 0;
+  font-size: .86rem;
+  line-height: 1.45;
+  color: var(--et-text-muted, #64748b);
+}
+
+.rs-violation__advice {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+html.dark .rs-violations {
+  background: color-mix(in srgb, #f59e0b 12%, var(--et-surface, #0f172a));
+  border-color: color-mix(in srgb, #f59e0b 28%, var(--et-border, #334155));
+}
+
+html.dark .rs-violations__head h3 { color: #fcd34d; }
+html.dark .rs-violation { background: var(--et-surface, #0f172a); }
+html.dark .rs-violation__advice { color: #5eead4; }
+
 .rs-actions {
   display: flex;
   flex-wrap: wrap;

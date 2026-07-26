@@ -161,10 +161,22 @@
                 'previousAttempts' => $previousAttempts,
             ])
         @endauth
+
+        @include('frontend.exam.partials.feedback', [
+            'exam' => $exam,
+            'feedbackSummary' => $feedbackSummary ?? null,
+            'userFeedback' => $userFeedback ?? null,
+            'canLeaveFeedback' => $canLeaveFeedback ?? false,
+        ])
     </div>
 @endsection
 
+@push('styles')
+<link rel="stylesheet" href="{{ versioned_asset('css/frontend/feedback.css') }}">
+@endpush
+
 @push('scripts')
+<script src="{{ versioned_asset('js/frontend/feedback.js') }}" defer></script>
 <script>
 (function () {
     const key = 'ems_exam_return_url';
@@ -216,6 +228,10 @@
             }
             if (label) label.textContent = open ? 'Hide details' : 'Show details';
         });
+    });
+
+    document.getElementById('exam-feedback')?.addEventListener('feedback:submitted', () => {
+        window.setTimeout(() => window.location.reload(), 800);
     });
 })();
 </script>

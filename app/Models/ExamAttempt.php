@@ -54,6 +54,7 @@ class ExamAttempt extends Model
         'preferences_snapshot',
         'policy_snapshot',
         'device_meta',
+        'violations_summary',
         'session_token',
         'rules_agreed_at',
     ];
@@ -67,6 +68,7 @@ class ExamAttempt extends Model
             'preferences_snapshot' => 'array',
             'policy_snapshot' => 'array',
             'device_meta' => 'array',
+            'violations_summary' => 'array',
             'updated_by_history' => 'array',
             'started_at' => 'datetime',
             'expires_at' => 'datetime',
@@ -140,6 +142,64 @@ class ExamAttempt extends Model
     public function submissionReasonLabel(): string
     {
         return self::labelForSubmissionReason($this->submission_reason);
+    }
+
+    /**
+     * Normalized violation messages for candidate/admin display.
+     * Prefers attempt.violations_summary JSON; falls back to relation rows.
+     *
+     * @return list<array{
+     *     type:string,
+     *     sequence:int,
+     *     action_taken:string,
+     *     title:string,
+     *     message:string,
+     *     advice:string,
+     *     occurred_at:?string
+     * }>
+     */
+    public function violationsList(): array
+    {
+        $summary = is_array($this->violations_summary) ? $this->violations_summary : [];
+        if ($summary !== []) {
+            return array_values(array_map(static function ($row): array {
+                $row = is_array($row) ? $row : [];
+                $type = (string) ($row['type'] ?? 'rule_warning');
+
+                return [
+                    'type' => $type,
+                    'sequence' => (int) ($row['sequence'] ?? 0),
+                    'action_taken' => (string) ($row['action_taken'] ?? 'warn'),
+                    'title' => (string) ($row['title'] ?? \App\Support\ProctoringViolationMessages::title($type)),
+                    'message' => (string) ($row['message'] ?? ''),
+                    'advice' => (string) ($row['advice'] ?? ''),
+                    'occurred_at' => isset($row['occurred_at']) ? (string) $row['occurred_at'] : null,
+                ];
+            }, $summary));
+        }
+
+        $this->loadMissing('violations');
+
+        return $this->violations
+            ->sortBy([
+                ['occurred_at', 'asc'],
+                ['id', 'asc'],
+            ])
+            ->values()
+            ->map(static function (ExamAttemptViolation $violation): array {
+                $type = (string) $violation->type;
+
+                return [
+                    'type' => $type,
+                    'sequence' => (int) $violation->sequence,
+                    'action_taken' => (string) ($violation->action_taken ?: 'warn'),
+                    'title' => (string) ($violation->title ?: \App\Support\ProctoringViolationMessages::title($type)),
+                    'message' => (string) ($violation->message ?: ''),
+                    'advice' => (string) ($violation->advice ?: ''),
+                    'occurred_at' => optional($violation->occurred_at)->toIso8601String(),
+                ];
+            })
+            ->all();
     }
 
     public static function labelForSubmissionReason(?string $reason): string

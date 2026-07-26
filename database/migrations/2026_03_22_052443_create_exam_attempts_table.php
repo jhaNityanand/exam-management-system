@@ -27,6 +27,7 @@ return new class extends Migration
             $table->json('preferences_snapshot')->nullable();
             $table->json('policy_snapshot')->nullable();
             $table->json('device_meta')->nullable();
+            $table->json('violations_summary')->nullable();
             $table->string('session_token', 64)->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('expires_at')->nullable();

@@ -129,6 +129,30 @@
             '  <div class="rv-progress__meta"><span>Overall score</span><span>' + formatNumber(summary.percentage, 1) + '%</span></div>',
             '  <div class="rv-progress__track"><div class="rv-progress__fill ' + (passed ? '' : 'is-fail') + '" data-width="' + pct + '%" style="width:0%"></div></div>',
             '</div>',
+            renderViolations(summary),
+        ].join('');
+    }
+
+    function renderViolations(summary) {
+        var items = Array.isArray(summary.violations) ? summary.violations : [];
+        if (!items.length) return '';
+
+        var rows = items.map(function (item, index) {
+            return [
+                '<li class="rv-violation">',
+                '  <strong>' + escapeHtml(item.title || ('Warning #' + (index + 1))) + '</strong>',
+                item.message ? ('  <p>' + escapeHtml(item.message) + '</p>') : '',
+                item.advice ? ('  <p class="rv-violation__advice">' + escapeHtml(item.advice) + '</p>') : '',
+                '</li>',
+            ].join('');
+        }).join('');
+
+        return [
+            '<section class="rv-violations">',
+            '  <h3>Rule violations <span>' + items.length + '</span></h3>',
+            '  <p class="rv-violations__lead">Remember these points for your next attempt.</p>',
+            '  <ol>' + rows + '</ol>',
+            '</section>',
         ].join('');
     }
 

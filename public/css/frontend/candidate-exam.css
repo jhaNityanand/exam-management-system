@@ -934,6 +934,21 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 }
 .cx-modal__card h2 { margin: 0 0 .35rem; font-size: 1.15rem; }
 .cx-modal__lead { margin: 0 0 .85rem; color: var(--et-text-muted, #64748b); font-size: .92rem; }
+.cx-modal__advice {
+    margin: -.45rem 0 .85rem;
+    padding: .55rem .7rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, #0f766e 10%, var(--et-surface-2, #f8fafc));
+    color: #0f766e;
+    font-size: .85rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+html.dark .cx-modal__advice,
+.cx-body[data-theme="dark"] .cx-modal__advice {
+    background: color-mix(in srgb, #14b8a6 14%, var(--et-surface, #121a2b));
+    color: #99f6e4;
+}
 .cx-modal__meta {
     margin: -.35rem 0 1rem;
     padding: .55rem .7rem;

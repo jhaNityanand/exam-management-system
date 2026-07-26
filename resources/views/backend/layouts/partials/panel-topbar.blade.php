@@ -5,12 +5,10 @@
     $notificationBadge = $notificationCount > 99 ? '99+' : (string) $notificationCount;
     $topbarIconButtonClasses = 'panel-icon-btn relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-0 text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white';
     $topbarIconShellClasses = 'pointer-events-none inline-flex h-5 w-5 items-center justify-center text-current';
-    $nameParts = explode(' ', trim($userName));
-    if (count($nameParts) >= 2) {
-        $userInitials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
-    } else {
-        $userInitials = strtoupper(substr($userName, 0, 2));
-    }
+    $adminAvatar = user_avatar($user, $userName);
+    $userInitials = $adminAvatar['initials'];
+    $userAvatarUrl = $adminAvatar['url'];
+    $userAvatarColor = $adminAvatar['color'];
 @endphp
 
 <div class="flex items-center gap-2 sm:gap-3">
@@ -87,8 +85,13 @@
             class="{{ $topbarIconButtonClasses }}"
             aria-label="User menu">
             <span
-                class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-950 text-xs font-bold uppercase leading-none text-white dark:bg-white dark:text-slate-950">
-                {{ $userInitials }}
+                class="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg text-xs font-bold uppercase leading-none text-white"
+                style="background: {{ $userAvatarColor }}">
+                @if($userAvatarUrl)
+                    <img src="{{ $userAvatarUrl }}" alt="" class="h-full w-full object-cover">
+                @else
+                    {{ $userInitials }}
+                @endif
             </span>
         </button>
 

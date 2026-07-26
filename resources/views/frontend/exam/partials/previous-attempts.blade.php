@@ -73,17 +73,32 @@
                     if (! empty($card['paper_set'])) {
                         $submissionRows[] = ['Question set', '#'.$card['paper_set']];
                     }
-                    $submissionRows[] = ['Device', $card['device_type']];
-                    $submissionRows[] = ['Browser', $card['browser']];
-                    if ((int) $card['violations_count'] > 0) {
-                        $submissionRows[] = ['Rule violations', $card['violations_count']];
-                    }
+                    $submissionRows[] = ['Device', $card['device_type'].' · '.$card['browser']];
                     $sections = [
                         ['Timing', $timingRows],
                         ['Questions', $questionRows],
                         ['Marks & performance', $marksRows],
                         ['Submission', $submissionRows],
                     ];
+
+                    $violationGroups = [];
+                    if (! empty($card['violations']) && is_array($card['violations'])) {
+                        foreach ($card['violations'] as $violation) {
+                            $type = (string) ($violation['type'] ?? $violation['title'] ?? 'rule');
+                            if (! isset($violationGroups[$type])) {
+                                $violationGroups[$type] = [
+                                    'title' => $violation['title'] ?? 'Rule warning',
+                                    'advice' => $violation['advice'] ?? '',
+                                    'message' => $violation['message'] ?? '',
+                                    'count' => 0,
+                                ];
+                            }
+                            $violationGroups[$type]['count']++;
+                            if (empty($violationGroups[$type]['advice']) && ! empty($violation['advice'])) {
+                                $violationGroups[$type]['advice'] = $violation['advice'];
+                            }
+                        }
+                    }
                 @endphp
 
                 <article class="pa-card is-collapsed{{ ! empty($card['is_latest']) ? ' is-latest' : '' }}"
@@ -180,6 +195,32 @@
                                     </dl>
                                 </section>
                             @endforeach
+
+                            @if($violationGroups !== [])
+                                <details class="pa-row-group pa-violations">
+                                    <summary class="pa-row-group__title pa-violations__summary">
+                                        <span>Rule violations &amp; learning notes</span>
+                                        <span class="pa-violations__badge">{{ array_sum(array_column($violationGroups, 'count')) }}</span>
+                                    </summary>
+                                    <ul class="pa-violations__list">
+                                        @foreach($violationGroups as $group)
+                                            <li class="pa-violation">
+                                                <div class="pa-violation__head">
+                                                    <strong>{{ $group['title'] }}</strong>
+                                                    @if((int) $group['count'] > 1)
+                                                        <span class="pa-violation__count">×{{ (int) $group['count'] }}</span>
+                                                    @endif
+                                                </div>
+                                                @if(! empty($group['advice']))
+                                                    <p class="pa-violation__advice">{{ $group['advice'] }}</p>
+                                                @elseif(! empty($group['message']))
+                                                    <p>{{ $group['message'] }}</p>
+                                                @endif
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </details>
+                            @endif
                         </div>
                     </div>
 

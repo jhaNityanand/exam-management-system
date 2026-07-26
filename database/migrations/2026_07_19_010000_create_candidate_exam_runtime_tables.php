@@ -61,6 +61,9 @@ return new class extends Migration
             $table->string('type', 64);
             $table->unsignedInteger('sequence')->default(1);
             $table->string('action_taken', 32)->nullable();
+            $table->string('title', 160)->nullable();
+            $table->text('message')->nullable();
+            $table->string('advice', 255)->nullable();
             $table->json('meta')->nullable();
             $table->timestamp('occurred_at')->useCurrent();
             $table->timestamps();

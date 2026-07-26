@@ -260,6 +260,7 @@ export function initExamRunner(root) {
     const violationModal = root.querySelector('#cx-violation-modal');
     const violationTitle = root.querySelector('#cx-violation-title');
     const violationMessage = root.querySelector('#cx-violation-message');
+    const violationAdvice = root.querySelector('#cx-violation-advice');
     const violationMeta = root.querySelector('#cx-violation-meta');
     const violationReconnectBtn = root.querySelector('#cx-violation-reconnect');
     const railTimerLabel = root.querySelector('#cx-rail-timer-label');
@@ -463,6 +464,17 @@ export function initExamRunner(root) {
         if (!violationModal || !warning) return;
         if (violationTitle) violationTitle.textContent = warning.title || 'Rule warning';
         if (violationMessage) violationMessage.textContent = warning.message || '';
+        if (violationAdvice) {
+            if (warning.advice) {
+                violationAdvice.textContent = warning.advice;
+                violationAdvice.hidden = false;
+                violationAdvice.removeAttribute('hidden');
+            } else {
+                violationAdvice.textContent = '';
+                violationAdvice.hidden = true;
+                violationAdvice.setAttribute('hidden', 'hidden');
+            }
+        }
         if (violationMeta) {
             if (warning.graceSeconds != null && warning.graceLeft != null) {
                 violationMeta.textContent = `Restore access within ${warning.graceLeft}s or the exam will be submitted automatically.`;
@@ -470,8 +482,11 @@ export function initExamRunner(root) {
             } else if (warning.graceSeconds != null && warning.canReconnect) {
                 violationMeta.textContent = `Restore access within ${warning.graceSeconds}s or the exam will be submitted automatically.`;
                 violationMeta.hidden = false;
-            } else if (warning.limit && warning.count && !['right_click'].includes(warning.event)) {
-                violationMeta.textContent = `Warning ${warning.count} of ${warning.limit}. Further violations may auto-submit your exam.`;
+            } else if (warning.limit != null && warning.count && !['right_click', 'media_lost', 'keyboard_lock_bypass', 'mouse_lock_bypass'].includes(warning.event)) {
+                const max = Math.max(0, Number(warning.limit));
+                violationMeta.textContent = max === 0
+                    ? 'No warnings are allowed for this exam. Further violations may auto-submit your exam.'
+                    : `Warning ${warning.count} of ${max}. Further violations may auto-submit your exam.`;
                 violationMeta.hidden = false;
             } else {
                 violationMeta.textContent = '';

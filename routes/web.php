@@ -68,6 +68,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/exams/{exam:slug}/attempts', [CandidateExamController::class, 'start'])->name('frontend.exams.attempts.start');
     Route::post('/exams/{exam:slug}/purchase', [CandidateExamController::class, 'purchase'])->name('frontend.exams.purchase');
 
+    Route::post('/feedback', [\App\Http\Controllers\Frontend\FeedbackController::class, 'store'])->name('frontend.feedback.store');
+    Route::post('/feedback/skip', [\App\Http\Controllers\Frontend\FeedbackController::class, 'skip'])->name('frontend.feedback.skip');
+
     Route::get('/attempts/{attempt}', [CandidateAttemptController::class, 'show'])->name('frontend.attempts.show');
     Route::match(['patch', 'post'], '/attempts/{attempt}/answers', [CandidateAttemptController::class, 'saveAnswers'])->name('frontend.attempts.answers');
     Route::post('/attempts/{attempt}/heartbeat', [CandidateAttemptController::class, 'heartbeat'])->name('frontend.attempts.heartbeat');

@@ -105,7 +105,11 @@ class PreviousAttemptPresenter
             'exam_mode' => ucfirst((string) ($exam->exam_mode ?: 'standard')),
             'device_type' => $this->deviceType($attempt),
             'browser' => $this->browser($attempt),
-            'violations_count' => (int) ($attempt->violations_count ?? 0),
+            'violations_count' => max(
+                (int) ($attempt->violations_count ?? 0),
+                count($attempt->violationsList())
+            ),
+            'violations' => $attempt->violationsList(),
             'results_visible' => $resultsVisible,
             'result_url' => route('frontend.attempts.result', $attempt),
             'review_url' => $resultsVisible ? route('frontend.attempts.review', $attempt) : null,

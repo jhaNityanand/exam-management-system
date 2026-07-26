@@ -12,6 +12,9 @@ class ExamAttemptViolation extends Model
         'type',
         'sequence',
         'action_taken',
+        'title',
+        'message',
+        'advice',
         'meta',
         'occurred_at',
     ];

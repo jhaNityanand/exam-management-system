@@ -19,7 +19,8 @@ class ExamController extends Controller
 
     public function __construct(
         protected ExamEligibilityService $eligibility,
-        protected PreviousAttemptPresenter $previousAttempts
+        protected PreviousAttemptPresenter $previousAttempts,
+        protected \App\Services\FeedbackService $feedback,
     ) {}
 
     public function index(Request $request): View|JsonResponse
@@ -164,11 +165,30 @@ class ExamController extends Controller
             ->limit(4)
             ->get();
 
+        $feedbackSummary = $this->feedback->publicSummaryFor($exam, 6);
+        $userFeedback = null;
+        $canLeaveFeedback = false;
+        if ($user) {
+            $userFeedback = \App\Models\Feedback::query()
+                ->where('user_id', $user->id)
+                ->forFeedbackable($exam)
+                ->latest('id')
+                ->first();
+            $canLeaveFeedback = ! $userFeedback && ExamAttempt::query()
+                ->where('exam_id', $exam->id)
+                ->where('user_id', $user->id)
+                ->whereIn('status', ['submitted', 'expired', 'graded', 'abandoned'])
+                ->exists();
+        }
+
         return view('frontend.exam.show', [
             'exam' => $exam,
             'evaluation' => $evaluation,
             'previousAttempts' => $previousAttempts,
             'relatedExams' => $relatedExams,
+            'feedbackSummary' => $feedbackSummary,
+            'userFeedback' => $userFeedback,
+            'canLeaveFeedback' => $canLeaveFeedback,
         ]);
     }
 }

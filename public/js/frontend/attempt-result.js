@@ -100,11 +100,46 @@
             '    <div class="rs-breakdown__item"><span>Submission</span><strong>' + escapeHtml(summary.submission_label || summary.submission_reason || '—') + '</strong></div>',
             '  </div>',
 
+            renderViolations(summary),
+
             '  <div class="rs-actions">',
             '    <a href="' + escapeHtml(reviewUrl) + '" class="et-btn et-btn--primary">Question review</a>',
             '    <a href="' + escapeHtml(examUrl) + '" class="et-btn et-btn--ghost">Back to exam</a>',
             '    <a href="' + escapeHtml(resultsUrl) + '" class="et-btn et-btn--ghost">All results</a>',
             '  </div>',
+            '</section>',
+        ].join('');
+    }
+
+    function renderViolations(summary) {
+        var items = Array.isArray(summary.violations) ? summary.violations : [];
+        if (!items.length) return '';
+
+        var rows = items.map(function (item, index) {
+            var title = escapeHtml(item.title || ('Rule warning #' + (index + 1)));
+            var message = escapeHtml(item.message || '');
+            var advice = escapeHtml(item.advice || '');
+            var action = escapeHtml(item.action_taken || 'warn');
+            return [
+                '<li class="rs-violation">',
+                '  <div class="rs-violation__head">',
+                '    <strong>' + title + '</strong>',
+                '    <span class="rs-violation__action">' + action.replace(/_/g, ' ') + '</span>',
+                '  </div>',
+                message ? ('  <p class="rs-violation__message">' + message + '</p>') : '',
+                advice ? ('  <p class="rs-violation__advice">' + advice + '</p>') : '',
+                '</li>',
+            ].join('');
+        }).join('');
+
+        return [
+            '<section class="rs-violations" aria-labelledby="rs-violations-title">',
+            '  <div class="rs-violations__head">',
+            '    <h3 id="rs-violations-title">Rule violations</h3>',
+            '    <span class="rs-violations__count">' + items.length + '</span>',
+            '  </div>',
+            '  <p class="rs-violations__lead">Review what was flagged during this attempt so you can avoid it next time.</p>',
+            '  <ol class="rs-violations__list">' + rows + '</ol>',
             '</section>',
         ].join('');
     }
@@ -169,6 +204,25 @@
     onReady(function () {
         var page = document.getElementById('rs-page');
         if (!page || page.getAttribute('data-visible') !== '1') return;
-        loadResult(page);
+
+        function start() {
+            loadResult(page);
+        }
+
+        if (page.getAttribute('data-needs-feedback') === '1') {
+            // Wait for optional feedback modal (Skip / Submit) before revealing results.
+            var done = false;
+            var finish = function () {
+                if (done) return;
+                done = true;
+                start();
+            };
+            page.addEventListener('feedback:closed', finish, { once: true });
+            // Safety: if modal script fails, never block results.
+            window.setTimeout(finish, 120000);
+            return;
+        }
+
+        start();
     });
 })();

@@ -9,6 +9,7 @@ use App\Models\ExamAttemptSnapshot;
 use App\Models\ExamAttemptViolation;
 use App\Models\ExamVerificationChallenge;
 use App\Models\User;
+use App\Support\ProctoringViolationMessages;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -22,7 +23,16 @@ class ExamProctoringService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array{violation_count:int, action:?string, auto_submitted:bool, submission_reason:?string, submission_message:?string}
+     * @return array{
+     *     violation_count:int,
+     *     action:?string,
+     *     auto_submitted:bool,
+     *     submission_reason:?string,
+     *     submission_message:?string,
+     *     title:?string,
+     *     message:?string,
+     *     advice:?string
+     * }
      */
     public function recordEvent(ExamAttempt $attempt, string $event, array $payload = []): array
     {
@@ -72,58 +82,75 @@ class ExamProctoringService
             return $this->emptyEventResult();
         }
 
-        // Soft / grace events: notify only — never auto-submit from a single accidental click.
+        $limit = max(0, (int) ($policy['focus_violation_limit'] ?? 3));
+
+        // Soft / grace events: store a learning message, but do not burn the shared budget.
         if ($this->isSoftEvent($event)) {
+            if ($this->isDuplicateSoftEvent($attempt, $event)) {
+                return array_merge($this->emptyEventResult(), [
+                    'violation_count' => $this->countingViolationCount($attempt),
+                    'action' => 'deduped',
+                ]);
+            }
+
+            $copy = ProctoringViolationMessages::describe($event, $payload);
+            $this->persistViolation(
+                $attempt,
+                $event,
+                sequence: $this->softViolationSequence($attempt, $event),
+                actionTaken: 'logged',
+                copy: $copy,
+                payload: $payload,
+            );
+
             return [
                 'violation_count' => $this->countingViolationCount($attempt),
                 'action' => 'warn',
                 'auto_submitted' => false,
                 'submission_reason' => null,
                 'submission_message' => null,
+                'title' => $copy['title'],
+                'message' => $copy['message'],
+                'advice' => $copy['advice'],
             ];
         }
 
         if ($this->isDuplicateFocusEvent($attempt, $event)) {
-            return [
+            return array_merge($this->emptyEventResult(), [
                 'violation_count' => $this->countingViolationCount($attempt),
                 'action' => 'deduped',
-                'auto_submitted' => false,
-                'submission_reason' => null,
-                'submission_message' => null,
-            ];
+            ]);
         }
 
         $forceSubmit = $this->forcesAutoSubmit($event);
         $count = $this->countingViolationCount($attempt) + 1;
-        // 0 = no warnings allowed (first counting violation auto-submits).
-        $limit = max(0, (int) ($policy['focus_violation_limit'] ?? 3));
         $action = $policy['focus_violation_action'] ?? 'warn';
         $autoSubmit = (bool) ($policy['auto_submit_on_violation'] ?? false);
 
         $applied = 'warn';
         $limitReached = $count >= $limit;
         if ($forceSubmit || $limitReached) {
-            // Reaching the configured warning budget always auto-submits.
             $applied = ($forceSubmit || $limitReached || $autoSubmit || $action === 'auto_submit')
                 ? 'auto_submit'
                 : ($action ?: 'flag');
         }
 
-        ExamAttemptViolation::query()->create([
-            'exam_attempt_id' => $attempt->id,
-            'type' => $event,
-            'sequence' => $count,
-            'action_taken' => $applied,
-            'meta' => $payload,
-            'occurred_at' => now(),
-        ]);
+        $copy = ProctoringViolationMessages::describe($event, $payload, $count, $limit);
+        $this->persistViolation(
+            $attempt,
+            $event,
+            sequence: $count,
+            actionTaken: $applied,
+            copy: $copy,
+            payload: $payload,
+        );
 
         $autoSubmitted = false;
         $submissionReason = null;
         $submissionMessage = null;
         if ($applied === 'auto_submit') {
             $submissionReason = $this->resolveViolationSubmissionReason($attempt, $event, $payload);
-            $this->grading->submit($attempt, reason: $submissionReason, auto: true);
+            $this->grading->submit($attempt->fresh(), reason: $submissionReason, auto: true);
             $autoSubmitted = true;
             $submissionMessage = ExamAttempt::labelForSubmissionReason($submissionReason);
         }
@@ -134,11 +161,80 @@ class ExamProctoringService
             'auto_submitted' => $autoSubmitted,
             'submission_reason' => $submissionReason,
             'submission_message' => $submissionMessage,
+            'title' => $copy['title'],
+            'message' => $copy['message'],
+            'advice' => $copy['advice'],
         ];
     }
 
     /**
-     * @return array{violation_count:int, action:?string, auto_submitted:bool, submission_reason:?string, submission_message:?string}
+     * @param  array{title:string, message:string, advice:string}  $copy
+     * @param  array<string, mixed>  $payload
+     */
+    protected function persistViolation(
+        ExamAttempt $attempt,
+        string $event,
+        int $sequence,
+        string $actionTaken,
+        array $copy,
+        array $payload,
+    ): ExamAttemptViolation {
+        $violation = ExamAttemptViolation::query()->create([
+            'exam_attempt_id' => $attempt->id,
+            'type' => $event,
+            'sequence' => max(0, $sequence),
+            'action_taken' => $actionTaken,
+            'title' => $copy['title'],
+            'message' => $copy['message'],
+            'advice' => $copy['advice'],
+            'meta' => array_merge($payload, [
+                'title' => $copy['title'],
+                'message' => $copy['message'],
+                'advice' => $copy['advice'],
+            ]),
+            'occurred_at' => now(),
+        ]);
+
+        $this->refreshViolationsSummary($attempt);
+
+        return $violation;
+    }
+
+    protected function refreshViolationsSummary(ExamAttempt $attempt): void
+    {
+        $rows = ExamAttemptViolation::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get()
+            ->map(static function (ExamAttemptViolation $violation): array {
+                return [
+                    'type' => (string) $violation->type,
+                    'sequence' => (int) $violation->sequence,
+                    'action_taken' => (string) ($violation->action_taken ?: 'warn'),
+                    'title' => (string) ($violation->title ?: ProctoringViolationMessages::title((string) $violation->type)),
+                    'message' => (string) ($violation->message ?: ''),
+                    'advice' => (string) ($violation->advice ?: ''),
+                    'occurred_at' => optional($violation->occurred_at)->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $attempt->forceFill(['violations_summary' => $rows])->save();
+    }
+
+    /**
+     * @return array{
+     *     violation_count:int,
+     *     action:?string,
+     *     auto_submitted:bool,
+     *     submission_reason:?string,
+     *     submission_message:?string,
+     *     title:?string,
+     *     message:?string,
+     *     advice:?string
+     * }
      */
     protected function emptyEventResult(): array
     {
@@ -148,19 +244,15 @@ class ExamProctoringService
             'auto_submitted' => false,
             'submission_reason' => null,
             'submission_message' => null,
+            'title' => null,
+            'message' => null,
+            'advice' => null,
         ];
     }
 
     protected function isSoftEvent(string $event): bool
     {
-        // Soft events are blocked/logged client-side but must not burn the shared violation budget.
-        return in_array($event, [
-            'right_click',
-            'media_lost',
-            'session_warning',
-            'keyboard_lock_bypass',
-            'mouse_lock_bypass',
-        ], true);
+        return in_array($event, $this->softEventTypes(), true);
     }
 
     protected function forcesAutoSubmit(string $event): bool
@@ -172,14 +264,30 @@ class ExamProctoringService
     {
         return ExamAttemptViolation::query()
             ->where('exam_attempt_id', $attempt->id)
-            ->whereNotIn('type', [
-                'right_click',
-                'media_lost',
-                'session_warning',
-                'keyboard_lock_bypass',
-                'mouse_lock_bypass',
-            ])
+            ->whereNotIn('type', $this->softEventTypes())
             ->count();
+    }
+
+    protected function softViolationSequence(ExamAttempt $attempt, string $event): int
+    {
+        return ExamAttemptViolation::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->where('type', $event)
+            ->count() + 1;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function softEventTypes(): array
+    {
+        return [
+            'right_click',
+            'media_lost',
+            'session_warning',
+            'keyboard_lock_bypass',
+            'mouse_lock_bypass',
+        ];
     }
 
     /**
@@ -201,13 +309,7 @@ class ExamProctoringService
 
         $types = ExamAttemptViolation::query()
             ->where('exam_attempt_id', $attempt->id)
-            ->whereNotIn('type', [
-                'right_click',
-                'media_lost',
-                'session_warning',
-                'keyboard_lock_bypass',
-                'mouse_lock_bypass',
-            ])
+            ->whereNotIn('type', $this->softEventTypes())
             ->pluck('type')
             ->unique()
             ->values();
@@ -355,12 +457,21 @@ class ExamProctoringService
             return false;
         }
 
-        $recent = ExamAttemptViolation::query()
+        return ExamAttemptViolation::query()
             ->where('exam_attempt_id', $attempt->id)
             ->whereIn('type', ['tab_switch', 'window_blur'])
             ->where('occurred_at', '>=', now()->subSeconds(2))
             ->exists();
+    }
 
-        return $recent;
+    protected function isDuplicateSoftEvent(ExamAttempt $attempt, string $event): bool
+    {
+        $windowSeconds = in_array($event, ['right_click', 'keyboard_lock_bypass', 'mouse_lock_bypass'], true) ? 4 : 2;
+
+        return ExamAttemptViolation::query()
+            ->where('exam_attempt_id', $attempt->id)
+            ->where('type', $event)
+            ->where('occurred_at', '>=', now()->subSeconds($windowSeconds))
+            ->exists();
     }
 }

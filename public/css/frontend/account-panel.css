@@ -105,7 +105,7 @@
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: var(--et-accent, #0f766e);
+  background: var(--ua-bg, var(--et-accent, #0f766e));
   color: #fff;
   font-weight: 800;
   flex-shrink: 0;

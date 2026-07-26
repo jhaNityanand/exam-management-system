@@ -122,6 +122,7 @@
         <div class="cx-modal__card" role="dialog" aria-modal="true" aria-labelledby="cx-violation-title">
             <h2 id="cx-violation-title">Rule warning</h2>
             <p class="cx-modal__lead" id="cx-violation-message">A monitoring event was recorded.</p>
+            <p class="cx-modal__advice" id="cx-violation-advice" hidden></p>
             <p class="cx-modal__meta" id="cx-violation-meta"></p>
             <div class="cx-modal__actions">
                 <button type="button" class="cx-btn cx-btn--ghost" id="cx-violation-reconnect" hidden>Reconnect camera</button>

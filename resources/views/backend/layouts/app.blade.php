@@ -10,12 +10,10 @@
         ->join('');
 
     $userName = auth()->user()->name ?? 'User';
-    $nameParts = explode(' ', trim($userName));
-    if (count($nameParts) >= 2) {
-        $userInitials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
-    } else {
-        $userInitials = strtoupper(substr($userName, 0, 2));
-    }
+    $adminAvatar = user_avatar(auth()->user(), $userName);
+    $userInitials = $adminAvatar['initials'];
+    $userAvatarUrl = $adminAvatar['url'];
+    $userAvatarColor = $adminAvatar['color'];
 
     $sidebarCollapsed = ($sidebarCollapsedSetting ?? false) ? '1' : '0';
 @endphp
@@ -230,8 +228,13 @@
 
         <div id="sidebar-user-section" class="shrink-0 px-3 py-4 border-t mt-4">
             <div id="sidebar-avatar-container" class="flex items-center gap-3 rounded-xl px-3 py-3 transition-all duration-300">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold uppercase text-white shadow-sm">
-                    {{ $userInitials }}
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl text-sm font-bold uppercase text-white shadow-sm"
+                     style="background: {{ $userAvatarColor }}">
+                    @if($userAvatarUrl)
+                        <img src="{{ $userAvatarUrl }}" alt="" class="h-full w-full object-cover">
+                    @else
+                        {{ $userInitials }}
+                    @endif
                 </div>
                 <div class="min-w-0 flex-1" data-sidebar-avatar-details>
                     <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ auth()->user()->name }}</p>

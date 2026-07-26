@@ -2,17 +2,24 @@
 
 @php
     $seo = ['title' => 'Result — '.$exam->title];
+    $needsFeedback = ! empty($needsFeedback);
 @endphp
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('css/frontend/attempt-result.css') }}">
+<link rel="stylesheet" href="{{ versioned_asset('css/frontend/feedback.css') }}">
 @endpush
 
 @section('content')
 <div class="rs-page" id="rs-page"
      data-url="{{ $dataUrl }}"
      data-visible="{{ $visible ? '1' : '0' }}"
-     data-exam-title="{{ $exam->title }}">
+     data-exam-title="{{ $exam->title }}"
+     data-exam-id="{{ $exam->id }}"
+     data-attempt-id="{{ $attempt->id }}"
+     data-needs-feedback="{{ $needsFeedback ? '1' : '0' }}"
+     data-feedback-store-url="{{ $feedbackStoreUrl ?? route('frontend.feedback.store') }}"
+     data-feedback-skip-url="{{ $feedbackSkipUrl ?? route('frontend.feedback.skip') }}">
     <div class="et-container rs-shell">
         <header class="rs-hero">
             <div class="rs-hero__copy">
@@ -55,10 +62,31 @@
             <section id="rs-content" class="rs-content" hidden></section>
         @endif
     </div>
+
+    @if($needsFeedback)
+        <div class="fb-modal" id="fb-result-modal" role="dialog" aria-modal="true" aria-labelledby="fb-result-title" hidden>
+            <div class="fb-modal__backdrop" data-fb-skip></div>
+            <div class="fb-modal__card">
+                <h2 id="fb-result-title">How was your exam?</h2>
+                <p class="fb-modal__lead">Optional feedback helps improve future sessions. You can skip anytime.</p>
+                <x-feedback-form
+                    :exam="$exam"
+                    :attempt-id="$attempt->id"
+                    :store-url="$feedbackStoreUrl ?? route('frontend.feedback.store')"
+                    source="result_modal"
+                >
+                    <x-slot:actions>
+                        <button type="button" class="et-btn et-btn--ghost" data-fb-skip>Skip</button>
+                    </x-slot:actions>
+                </x-feedback-form>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection
 
 @push('scripts')
+<script src="{{ versioned_asset('js/frontend/feedback.js') }}" defer></script>
 @if($visible)
 <script src="{{ versioned_asset('js/frontend/attempt-result.js') }}" defer></script>
 @endif

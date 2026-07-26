@@ -84,3 +84,20 @@ if (! function_exists('versioned_asset')) {
         return $url;
     }
 }
+
+if (! function_exists('user_avatar')) {
+    /**
+     * @return array{url:?string, initials:string, color:string, name:string}
+     */
+    function user_avatar(?\App\Models\User $user, ?string $nameFallback = null): array
+    {
+        return \App\Support\UserAvatar::resolve($user, $nameFallback);
+    }
+}
+
+if (! function_exists('user_initials')) {
+    function user_initials(?string $name, string $fallback = 'U'): string
+    {
+        return \App\Support\UserAvatar::initials($name, $fallback);
+    }
+}

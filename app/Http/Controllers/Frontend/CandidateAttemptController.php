@@ -22,6 +22,7 @@ class CandidateAttemptController extends Controller
         protected ExamProctoringService $proctoring,
         protected ExamGradingService $grading,
         protected ExamReviewPresenter $reviewPresenter,
+        protected \App\Services\FeedbackService $feedback,
     ) {}
 
     public function show(Request $request, ExamAttempt $attempt): View|RedirectResponse
@@ -143,12 +144,16 @@ class CandidateAttemptController extends Controller
     {
         $this->authorizeAttempt($request, $attempt);
         $attempt->loadMissing(['exam']);
+        $user = $request->user();
 
         return view('frontend.candidate.attempts.result', [
             'attempt' => $attempt,
             'exam' => $attempt->exam,
             'visible' => $this->grading->resultsVisible($attempt),
             'dataUrl' => route('frontend.attempts.result.data', $attempt),
+            'needsFeedback' => $user ? $this->feedback->shouldPromptAfterAttempt($user, $attempt) : false,
+            'feedbackStoreUrl' => route('frontend.feedback.store'),
+            'feedbackSkipUrl' => route('frontend.feedback.skip'),
         ]);
     }
 
