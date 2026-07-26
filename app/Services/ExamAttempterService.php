@@ -100,13 +100,18 @@ class ExamAttempterService
 
         $userIds = collect($paginator->items())->pluck('id')->all();
         $latestByUser = $this->latestAttemptsForUsers($exam->id, $userIds);
+        $attemptsByUser = $this->attemptsForUsers($exam, $userIds);
         $violationCounts = $this->violationCountsForUsers($exam->id, $userIds);
 
         $paginator->setCollection(
-            collect($paginator->items())->map(function (User $user) use ($latestByUser, $violationCounts) {
+            collect($paginator->items())->map(function (User $user) use ($latestByUser, $attemptsByUser, $violationCounts, $exam) {
                 $latest = $latestByUser->get($user->id);
                 $avatar = UserAvatar::resolve($user);
                 $display = $latest ? $this->displayStatus($latest) : null;
+                $attempts = $attemptsByUser->get($user->id, collect())
+                    ->map(fn (ExamAttempt $a) => $this->serializeAttemptDetailed($a, $exam, $this->displayStatus($a)))
+                    ->values()
+                    ->all();
 
                 return [
                     'id' => $user->id,
@@ -127,12 +132,251 @@ class ExamAttempterService
                     'violation_count' => (int) ($violationCounts['counts'][$user->id] ?? 0),
                     'has_verification_docs' => ($violationCounts['has_docs'][$user->id] ?? false),
                     'profile_url' => route('admin.candidates.show', $user->id),
-                    'latest_attempt' => $latest ? $this->serializeAttempt($latest, $display) : null,
+                    'latest_attempt' => $latest ? $this->serializeAttemptDetailed($latest, $exam, $display) : null,
+                    'attempts' => $attempts,
                 ];
             })
         );
 
         return $paginator;
+    }
+
+    /**
+     * All attempts for export: grouped by candidate, each candidate's attempts by started_at ASC.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function exportRows(Exam $exam): array
+    {
+        $attempts = ExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->with(['user.profile'])
+            ->get()
+            ->sortBy(function (ExamAttempt $a) {
+                return sprintf(
+                    '%s|%020d|%010d',
+                    mb_strtolower((string) ($a->user?->name ?? 'zzz')),
+                    $a->started_at?->timestamp ?? PHP_INT_MAX,
+                    $a->id
+                );
+            })
+            ->values();
+
+        $zero = static fn (mixed $value): int|float => is_numeric($value) ? 0 + $value : 0;
+
+        $rows = [];
+        foreach ($attempts as $attempt) {
+            $user = $attempt->user;
+            if (! $user) {
+                continue;
+            }
+            $detail = $this->serializeAttemptDetailed($attempt, $exam, $this->displayStatus($attempt));
+            $rows[] = [
+                'candidate_name' => $user->name,
+                'candidate_email' => $user->email,
+                'candidate_id' => $user->id,
+                'attempt_no' => $zero($detail['attempt_no']),
+                'status' => $detail['status_label'] ?: '—',
+                'total_questions' => $zero($detail['total_questions']),
+                'attempted' => $zero($detail['attempted']),
+                'right' => $zero($detail['right']),
+                'wrong' => $zero($detail['wrong']),
+                'unanswered' => $zero($detail['unanswered']),
+                'total_marks' => $zero($detail['total_marks']),
+                'neg_marks' => filled($detail['neg_marks_label']) ? $detail['neg_marks_label'] : '0',
+                'scored' => $zero($detail['score']),
+                'percentage' => $zero($detail['percentage']),
+                'result' => ($detail['result_label'] && $detail['result_label'] !== '—') ? $detail['result_label'] : '—',
+                'started_at' => $detail['started_at_label'] ?: '—',
+                'ended_at' => $detail['ended_at_label'] ?: '—',
+                'duration' => $detail['time_taken'] ?: '0',
+                'exam_duration' => ($detail['exam_duration_label'] && $detail['exam_duration_label'] !== '—')
+                    ? $detail['exam_duration_label']
+                    : '0',
+            ];
+        }
+
+        return $rows;
+    }
+
+    public function exportAttemptsExcel(Exam $exam): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $rows = $this->exportRows($exam);
+        $filename = 'exam-'.$exam->id.'-attempts-'.now()->format('Ymd-His').'.xlsx';
+        $lastCol = 'R';
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Exam Attempts');
+
+        $durationLabel = $exam->enable_exam_timer
+            ? ((int) $exam->duration).' min'
+            : 'No timer';
+        $attemptsLimit = ($exam->attempt_limit_type === 'unlimited' || (int) $exam->max_attempts === 0)
+            ? 'Unlimited'
+            : (string) (int) $exam->max_attempts;
+        $details = sprintf(
+            'Duration: %s  ·  Total Marks: %s  ·  Pass Marks: %s  ·  Questions: %s  ·  Attempt Limit: %s  ·  Candidates: %s  ·  Attempts: %s  ·  Exported: %s',
+            $durationLabel,
+            (int) ($exam->total_marks ?? 0),
+            (int) ($exam->passing_marks ?? 0),
+            (int) ($exam->total_questions ?? 0),
+            $attemptsLimit,
+            collect($rows)->pluck('candidate_id')->unique()->count(),
+            count($rows),
+            now()->format('d M Y H:i')
+        );
+
+        $sheet->mergeCells('A1:'.$lastCol.'1');
+        $sheet->setCellValue('A1', (string) $exam->title);
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => '1E1B4B'], 'size' => 18],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'EEF2FF'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(32);
+
+        $sheet->mergeCells('A2:'.$lastCol.'2');
+        $sheet->setCellValue('A2', $details);
+        $sheet->getStyle('A2')->applyFromArray([
+            'font' => ['color' => ['rgb' => '475569'], 'size' => 10],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'F8FAFC'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(28);
+
+        $headers = [
+            'A3' => 'Candidate Name',
+            'B3' => 'Email',
+            'C3' => 'Attempt #',
+            'D3' => 'Status',
+            'E3' => 'Total Qs',
+            'F3' => 'Attempted',
+            'G3' => 'Right',
+            'H3' => 'Wrong',
+            'I3' => 'Unanswered',
+            'J3' => 'Total Marks',
+            'K3' => 'Neg. Marks',
+            'L3' => 'Scored',
+            'M3' => 'Percentage',
+            'N3' => 'Result',
+            'O3' => 'Start',
+            'P3' => 'End',
+            'Q3' => 'Duration',
+            'R3' => 'Exam Duration',
+        ];
+
+        foreach ($headers as $cell => $label) {
+            $sheet->setCellValue($cell, $label);
+        }
+
+        $headerRange = 'A3:'.$lastCol.'3';
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '4F46E5'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sheet->getRowDimension(3)->setRowHeight(22);
+
+        $r = 4;
+        $prevCandidate = null;
+        $groupIndex = -1;
+        foreach ($rows as $row) {
+            if ($prevCandidate !== $row['candidate_id']) {
+                $groupIndex++;
+                $prevCandidate = $row['candidate_id'];
+            }
+
+            $sheet->fromArray([
+                $row['candidate_name'],
+                $row['candidate_email'],
+                $row['attempt_no'],
+                $row['status'],
+                $row['total_questions'],
+                $row['attempted'],
+                $row['right'],
+                $row['wrong'],
+                $row['unanswered'],
+                $row['total_marks'],
+                $row['neg_marks'],
+                $row['scored'],
+                $row['percentage'].'%',
+                $row['result'],
+                $row['started_at'],
+                $row['ended_at'],
+                $row['duration'],
+                $row['exam_duration'],
+            ], null, 'A'.$r, true);
+
+            $groupFill = $groupIndex % 2 === 0 ? 'EEF2FF' : 'F8FAFC';
+            $sheet->getStyle('A'.$r.':'.$lastCol.$r)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB($groupFill);
+
+            $result = (string) $row['result'];
+            if ($result === 'Pass') {
+                $sheet->getStyle('N'.$r)->getFont()->getColor()->setRGB('059669');
+                $sheet->getStyle('N'.$r)->getFont()->setBold(true);
+            } elseif ($result === 'Fail') {
+                $sheet->getStyle('N'.$r)->getFont()->getColor()->setRGB('E11D48');
+                $sheet->getStyle('N'.$r)->getFont()->setBold(true);
+            }
+
+            $r++;
+        }
+
+        foreach (range('A', $lastCol) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet->freezePane('A4');
+        $sheet->setAutoFilter('A3:'.$lastCol.'3');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * @param  list<int>  $userIds
+     * @return Collection<int, Collection<int, ExamAttempt>>
+     */
+    protected function attemptsForUsers(Exam $exam, array $userIds): Collection
+    {
+        if ($userIds === []) {
+            return collect();
+        }
+
+        return ExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->whereIn('user_id', $userIds)
+            ->with(['snapshots' => fn ($q) => $q->orderByDesc('id')])
+            ->orderBy('started_at')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('user_id');
     }
 
     /**
@@ -240,6 +484,7 @@ class ExamAttempterService
         return ExamAttempt::query()
             ->where('exam_id', $examId)
             ->whereIn('user_id', $userIds)
+            ->with(['snapshots' => fn ($q) => $q->orderByDesc('id')])
             ->orderByDesc('id')
             ->get()
             ->groupBy('user_id')
@@ -425,7 +670,55 @@ class ExamAttempterService
      */
     protected function serializeAttempt(ExamAttempt $attempt, ?array $display = null): array
     {
+        return $this->serializeAttemptDetailed($attempt, $attempt->exam, $display);
+    }
+
+    /**
+     * @param  array{key:string,label:string,badge:string}|null  $display
+     * @return array<string, mixed>
+     */
+    public function serializeAttemptDetailed(ExamAttempt $attempt, ?Exam $exam = null, ?array $display = null): array
+    {
         $display ??= $this->displayStatus($attempt);
+        $exam ??= $attempt->relationLoaded('exam') ? $attempt->exam : Exam::query()->find($attempt->exam_id);
+        $config = is_array($attempt->exam_config_snapshot) ? $attempt->exam_config_snapshot : [];
+
+        $totalQuestions = (int) ($config['total_questions'] ?? $exam?->total_questions ?? 0);
+        $totalMarks = $config['total_marks'] ?? $exam?->total_marks;
+        $examDurationMin = (int) ($config['duration'] ?? $exam?->duration ?? 0);
+        $negEnabled = (bool) ($config['enable_negative_marking'] ?? $exam?->enable_negative_marking);
+        $negPerQ = $config['negative_mark_per_question'] ?? $exam?->negative_mark_per_question;
+        $negLabel = $negEnabled
+            ? (filled($negPerQ) ? rtrim(rtrim(number_format((float) $negPerQ, 2, '.', ''), '0'), '.').'/Q' : 'On')
+            : 'Off';
+
+        $right = $attempt->correct_count;
+        $wrong = $attempt->wrong_count;
+        $unanswered = $attempt->unanswered_count;
+        $attemptedQs = ($right !== null || $wrong !== null)
+            ? (int) $right + (int) $wrong
+            : (($totalQuestions > 0 && $unanswered !== null) ? max(0, $totalQuestions - (int) $unanswered) : null);
+
+        $verification = [];
+        if ($attempt->relationLoaded('snapshots')) {
+            foreach ($attempt->snapshots as $snap) {
+                $typeLabel = match ($snap->type) {
+                    'selfie' => 'Selfie',
+                    'webcam' => 'Webcam',
+                    'identity' => 'Identity',
+                    default => ucfirst((string) $snap->type),
+                };
+                $verification[] = [
+                    'id' => $snap->id,
+                    'type' => $snap->type,
+                    'type_label' => $typeLabel,
+                    'status' => $snap->verification_status ?: 'captured',
+                    'url' => route('admin.candidates.snapshots.show', [$attempt->user_id, $snap->id]),
+                    'download_url' => route('admin.candidates.snapshots.download', [$attempt->user_id, $snap->id]),
+                    'captured_at' => optional($snap->created_at)->format('d M Y H:i'),
+                ];
+            }
+        }
 
         return [
             'id' => $attempt->id,
@@ -445,6 +738,16 @@ class ExamAttempterService
             'time_taken' => $this->formatDuration($attempt->time_spent_seconds),
             'time_spent_seconds' => $attempt->time_spent_seconds,
             'last_attempt_at_label' => optional($attempt->submitted_at ?? $attempt->started_at ?? $attempt->created_at)->format('d M Y H:i'),
+            'total_questions' => $totalQuestions > 0 ? $totalQuestions : null,
+            'attempted' => $attemptedQs,
+            'right' => $right,
+            'wrong' => $wrong,
+            'unanswered' => $unanswered,
+            'total_marks' => $totalMarks,
+            'neg_marks_label' => $negLabel,
+            'exam_duration_min' => $examDurationMin > 0 ? $examDurationMin : null,
+            'exam_duration_label' => $examDurationMin > 0 ? $examDurationMin.' min' : '—',
+            'verification' => $verification,
         ];
     }
 }

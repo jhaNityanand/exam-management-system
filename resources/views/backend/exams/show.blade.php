@@ -92,17 +92,12 @@
                     </button>
                 </form>
             @endif
-            <button
-                type="button"
-                class="panel-button-secondary"
-                data-exam-attempts="{{ $exam->id }}"
-                data-exam-title="{{ $exam->title }}"
-            >
+            <a href="{{ route('admin.exams.attempts.index', $exam) }}" class="panel-button-secondary">
                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87M12 11a4 4 0 100-8 4 4 0 000 8zm6 3a3 3 0 100-6 3 3 0 000 6z" />
                 </svg>
                 Exam Attempts
-            </button>
+            </a>
             <a href="{{ route('admin.exams.edit', $exam) }}" class="panel-button-primary">
                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -843,19 +838,8 @@
     </div>
 </div>
 
-@include('backend.exams.partials.attempts-modals')
 @endsection
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
-    <link rel="stylesheet" href="{{ versioned_asset('css/backend/exam-attempts.css') }}">
-@endpush
-
-@push('scripts')
-    <script>
-        window.examAttemptsConfig = {
-            baseUrlTemplate: @json(url('/admin/internal-api/exams/__EXAM__/attempters')),
-        };
-    </script>
-    <script src="{{ versioned_asset('js/backend/exam-attempts.js') }}"></script>
 @endpush

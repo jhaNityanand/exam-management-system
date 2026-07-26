@@ -15,6 +15,7 @@ use App\Http\Controllers\Backend\CandidateController;
 use App\Http\Controllers\Backend\TransactionController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\ExamController;
+use App\Http\Controllers\Backend\ExamAttemptListController;
 use App\Http\Controllers\Backend\LogController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\QuestionController;
@@ -216,6 +217,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('exams/bulk-restore', [ExamController::class, 'bulkRestore'])->name('exams.bulk-restore');
     Route::patch('exams/bulk-status', [ExamController::class, 'bulkUpdateStatus'])->name('exams.bulk-status');
     Route::patch('exams/{id}/restore', [ExamController::class, 'restore'])->name('exams.restore')->whereNumber('id');
+    Route::get('exams/{exam}/attempts/export', [ExamAttemptListController::class, 'export'])->name('exams.attempts.export')->whereNumber('exam');
+    Route::get('exams/{exam}/attempts', [ExamAttemptListController::class, 'index'])->name('exams.attempts.index')->whereNumber('exam');
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
     Route::post('exams/{exam}/attempts/start', [ExamController::class, 'startAttempt'])->name('exams.attempts.start');

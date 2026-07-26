@@ -323,7 +323,6 @@
 <form id="bulk-restore-exam-form" action="{{ route('admin.exams.bulk-restore') }}" method="POST" class="hidden">@csrf</form>
 <form id="bulk-status-exam-form" action="{{ route('admin.exams.bulk-status') }}" method="POST" class="hidden">@csrf @method('PATCH')<input type="hidden" name="status"></form>
 
-@include('backend.exams.partials.attempts-modals')
 @endsection
 
 @push('styles')
@@ -334,7 +333,6 @@
     <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
-    <link rel="stylesheet" href="{{ versioned_asset('css/backend/exam-attempts.css') }}">
 @endpush
 
 @push('scripts')
@@ -348,13 +346,9 @@
         window.examsApiUrl = @json(route('admin.internal-api.exams-table'));
         window.examsIndexUrl = @json(route('admin.exams.index'));
         window.examsRestoreUrl = @json(url('/admin/exams'));
-        window.examAttemptsConfig = {
-            baseUrlTemplate: @json(url('/admin/internal-api/exams/__EXAM__/attempters')),
-        };
     </script>
     <script src="{{ versioned_asset('js/core/dom-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/ajax-table.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/list-ui.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/exam-list.js') }}"></script>
-    <script src="{{ versioned_asset('js/backend/exam-attempts.js') }}"></script>
 @endpush
