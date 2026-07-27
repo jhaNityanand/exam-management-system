@@ -21,7 +21,8 @@ class FrontendCmsSeeder extends Seeder
 {
     public function run(): void
     {
-        $orgId = Organization::query()->value('id');
+        $orgId = Organization::query()->where('slug', 'demo-org')->value('id')
+            ?? Organization::query()->value('id');
 
         $this->seedSettings($orgId);
         $this->seedMenus($orgId);
@@ -34,6 +35,7 @@ class FrontendCmsSeeder extends Seeder
         $this->seedPartners($orgId);
         $this->seedAnnouncements($orgId);
 
+        // Active banner ads with images are created by DemoMediaSeeder.
         if ($orgId) {
             app(\App\Services\Advertisement\AdvertisementService::class)->seedDefaults($orgId);
         }
@@ -43,6 +45,7 @@ class FrontendCmsSeeder extends Seeder
     {
         $settings = [
             ['group' => 'brand', 'key' => 'site_name', 'value' => 'Examtube.in', 'type' => 'string', 'label' => 'Site name'],
+            ['group' => 'brand', 'key' => 'application_url', 'value' => 'https://examtube.in', 'type' => 'string', 'label' => 'Application URL'],
             ['group' => 'brand', 'key' => 'tagline', 'value' => 'Practice smarter. Score higher. Get exam-ready.', 'type' => 'string', 'label' => 'Tagline'],
             ['group' => 'brand', 'key' => 'logo_text', 'value' => 'Examtube', 'type' => 'string', 'label' => 'Logo text'],
             ['group' => 'brand', 'key' => 'description', 'value' => 'Examtube.in helps students, job seekers, and institutes practice with structured exams, stay updated with education news, and learn from practical blogs.', 'type' => 'text', 'label' => 'Description'],
@@ -50,7 +53,15 @@ class FrontendCmsSeeder extends Seeder
             ['group' => 'contact', 'key' => 'phone', 'value' => '+91 98765 43210', 'type' => 'string', 'label' => 'Support phone'],
             ['group' => 'contact', 'key' => 'whatsapp', 'value' => '+91 98765 43210', 'type' => 'string', 'label' => 'WhatsApp'],
             ['group' => 'contact', 'key' => 'address', 'value' => 'Innov8 Workspace, Koramangala, Bengaluru, Karnataka 560034', 'type' => 'text', 'label' => 'Address'],
-            ['group' => 'contact', 'key' => 'hours', 'value' => 'Mon–Sat, 9:00 AM – 7:00 PM IST', 'type' => 'string', 'label' => 'Support hours'],
+            ['group' => 'contact', 'key' => 'hours', 'value' => 'Monday 10:00 AM – 4:00 PM (IST); Tuesday 10:00 AM – 4:00 PM (IST); Wednesday 10:00 AM – 4:00 PM (IST); Thursday 10:00 AM – 4:00 PM (IST); Friday 10:00 AM – 4:00 PM (IST); Saturday 10:00 AM – 4:00 PM (IST)', 'type' => 'string', 'label' => 'Support hours'],
+            ['group' => 'contact', 'key' => 'support_hours', 'value' => json_encode([
+                ['day' => 'monday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
+                ['day' => 'tuesday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
+                ['day' => 'wednesday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
+                ['day' => 'thursday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
+                ['day' => 'friday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
+                ['day' => 'saturday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 'type' => 'json', 'label' => 'Support hours schedule'],
             ['group' => 'contact', 'key' => 'maps_url', 'value' => 'https://maps.google.com/?q=Koramangala+Bengaluru', 'type' => 'string', 'label' => 'Google Maps URL'],
             ['group' => 'seo', 'key' => 'default_title', 'value' => 'Examtube.in — Online Exams, Mock Tests & Learning Hub', 'type' => 'string', 'label' => 'Default SEO title'],
             ['group' => 'seo', 'key' => 'default_description', 'value' => 'Prepare for competitive exams with curated mock tests, expert blogs, campus news, and progress tracking on Examtube.in.', 'type' => 'text', 'label' => 'Default SEO description'],
@@ -164,10 +175,18 @@ class FrontendCmsSeeder extends Seeder
             SiteMenuItem::query()->create(array_merge($item, ['menu_id' => $legal->id, 'is_visible' => true, 'target' => '_self']));
         }
 
-        SiteMenu::query()->updateOrCreate(
+        $mobile = SiteMenu::query()->updateOrCreate(
             ['organization_id' => $orgId, 'location' => 'mobile'],
             ['name' => 'Mobile Nav', 'status' => 'active']
         );
+        $mobile->items()->delete();
+        foreach ($headerItems as $item) {
+            SiteMenuItem::query()->create(array_merge($item, [
+                'menu_id' => $mobile->id,
+                'is_visible' => true,
+                'target' => '_self',
+            ]));
+        }
     }
 
     protected function seedHero(?int $orgId): void
@@ -389,6 +408,9 @@ class FrontendCmsSeeder extends Seeder
             ['platform' => 'x', 'label' => 'X (Twitter)', 'url' => 'https://x.com/examtube', 'sort_order' => 4],
             ['platform' => 'youtube', 'label' => 'YouTube', 'url' => 'https://youtube.com/@examtube', 'sort_order' => 5],
             ['platform' => 'telegram', 'label' => 'Telegram', 'url' => 'https://t.me/examtube', 'sort_order' => 6],
+            ['platform' => 'whatsapp', 'label' => 'WhatsApp', 'url' => 'https://wa.me/919876543210', 'sort_order' => 7],
+            ['platform' => 'github', 'label' => 'GitHub', 'url' => 'https://github.com/examtube', 'sort_order' => 8],
+            ['platform' => 'discord', 'label' => 'Discord', 'url' => 'https://discord.gg/examtube', 'sort_order' => 9],
         ] as $row) {
             SocialLink::query()->create(array_merge($row, [
                 'organization_id' => $orgId,

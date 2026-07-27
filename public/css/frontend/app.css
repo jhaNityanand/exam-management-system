@@ -999,6 +999,10 @@ html.dark .et-hero__dot { background: var(--et-slate-600); }
   font-size: 0.72rem;
   font-weight: 800;
   color: var(--et-text-muted);
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.et-social a svg {
+  display: block;
 }
 .et-social a:hover { border-color: var(--et-accent); color: var(--et-accent); }
 .et-footer__bottom {
@@ -1449,6 +1453,31 @@ html.dark .et-hero__dot { background: var(--et-slate-600); }
   width: 1.15rem;
   height: 1.15rem;
   display: block;
+}
+.et-contact__hours {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.et-contact__hours li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: baseline;
+  font-size: 0.92rem;
+  color: var(--et-text);
+  font-weight: 500;
+}
+.et-contact__hours-day {
+  min-width: 5.5rem;
+  font-weight: 600;
+}
+.et-contact__hours-tz {
+  color: var(--et-muted, #64748b);
+  font-weight: 500;
+  font-size: 0.85em;
 }
 
 

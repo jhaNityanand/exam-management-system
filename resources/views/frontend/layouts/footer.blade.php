@@ -25,8 +25,13 @@
             @endif
             <div class="et-social" aria-label="Social links">
                 @foreach(($socialLinks ?? collect()) as $link)
-                    <a href="{{ $link->url }}" target="_blank" rel="noopener noreferrer" title="{{ $link->label }}">
-                        {{ strtoupper(mb_substr($link->platform ?? $link->label, 0, 2)) }}
+                    <a href="{{ $link->url }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       title="{{ $link->label }}"
+                       class="et-social__link et-social__link--{{ $link->platform }}">
+                        <span class="et-visually-hidden">{{ $link->label }}</span>
+                        @include('backend.partials.social-platform-icon', ['platform' => $link->platform, 'size' => 16])
                     </a>
                 @endforeach
             </div>

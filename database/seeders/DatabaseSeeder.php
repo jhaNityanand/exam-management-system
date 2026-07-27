@@ -12,9 +12,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ClearUploadedMediaSeeder::class,
             UserSeeder::class,
-            ProfileSeeder::class,
             OrganizationSeeder::class,
             UserOrganizationSeeder::class,
+            ProfileSeeder::class,
             QuestionCategorySeeder::class,
             QuestionSeeder::class,
             ExamCategorySeeder::class,
@@ -26,6 +26,9 @@ class DatabaseSeeder extends Seeder
             BlogSeeder::class,
             NewsSeeder::class,
             FrontendCmsSeeder::class,
+            DemoMediaSeeder::class,
+            DemoEngagementSeeder::class,
+            ExamAttemptSeeder::class,
         ]);
 
         $this->command->info('Demo logins (password: password):');

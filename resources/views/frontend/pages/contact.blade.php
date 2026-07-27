@@ -4,6 +4,17 @@
     $whatsapp = $siteSettings['contact.whatsapp'] ?? null;
     $address = $siteSettings['contact.address'] ?? null;
     $hours = $siteSettings['contact.hours'] ?? null;
+    $supportHoursRaw = $siteSettings['contact.support_hours'] ?? null;
+    $supportHours = is_array($supportHoursRaw)
+        ? $supportHoursRaw
+        : (is_string($supportHoursRaw) ? (json_decode($supportHoursRaw, true) ?: []) : []);
+    $supportHours = \App\Services\Settings\OrganizationSettingsService::normalizeSupportHours(
+        is_array($supportHours) ? $supportHours : []
+    );
+    if ($supportHours === []) {
+        $supportHours = \App\Services\Settings\OrganizationSettingsService::defaultSupportHours();
+    }
+    $dayLabels = \App\Services\Settings\OrganizationSettingsService::supportHourDays();
     $mapsUrl = $siteSettings['contact.maps_url'] ?? null;
     $whatsappHref = $whatsapp
         ? 'https://wa.me/'.preg_replace('/\D+/', '', $whatsapp)
@@ -107,14 +118,30 @@
                         </div>
                     </li>
                 @endif
-                @if ($hours)
+                @if ($supportHours !== [] || $hours)
                     <li>
                         <span class="et-contact__icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                         </span>
                         <div>
                             <strong>Hours</strong>
-                            <span>{{ $hours }}</span>
+                            @if ($supportHours !== [])
+                                <ul class="et-contact__hours">
+                                    @foreach ($supportHours as $row)
+                                        <li>
+                                            <span class="et-contact__hours-day">{{ $dayLabels[$row['day']] ?? ucfirst($row['day']) }}</span>
+                                            <span class="et-contact__hours-time">
+                                                {{ \App\Services\Settings\OrganizationSettingsService::formatClockAmPm($row['from']) }}
+                                                –
+                                                {{ \App\Services\Settings\OrganizationSettingsService::formatClockAmPm($row['to']) }}
+                                            </span>
+                                            <span class="et-contact__hours-tz">({{ $row['timezone'] === 'Asia/Kolkata' ? 'IST' : $row['timezone'] }})</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <span>{{ $hours }}</span>
+                            @endif
                         </div>
                     </li>
                 @endif

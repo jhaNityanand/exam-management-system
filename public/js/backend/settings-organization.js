@@ -22,13 +22,30 @@
         root.querySelectorAll('.is-invalid').forEach((el) => el.classList.remove('is-invalid'));
     };
 
+    const resolveFieldName = (name) => {
+        if (!name || !name.includes('.')) return name;
+        if (name.startsWith('support_hours.')) {
+            const parts = name.split('.');
+            if (parts.length === 3) {
+                return `support_hours[${parts[1]}][${parts[2]}]`;
+            }
+        }
+        if (name.startsWith('social.') && name.endsWith('.url')) {
+            const platform = name.split('.')[1];
+            return `social[${platform}][url]`;
+        }
+        return name;
+    };
+
     const showFieldError = (name, message, root = form) => {
-        const field = root.querySelector(`[name="${name}"]`) || root.querySelector(`[name="${name.replace(/\./g, '][')}"]`);
-        const errorEl = root.querySelector(`[data-error-for="${name}"]`);
-        const input = root.querySelector(`[name="${name}"]`)
-            || root.querySelector(`#${CSS.escape(name.replace(/\./g, '_'))}`)
-            || root.querySelector(`[name="social[${name.split('.')[1]}][url]"]`);
-        (input || field)?.classList?.add('is-invalid');
+        const resolved = resolveFieldName(name);
+        const errorEl = root.querySelector(`[data-error-for="${name}"]`)
+            || root.querySelector(`[data-error-for="${resolved}"]`);
+        const input = root.querySelector(`[name="${resolved}"]`)
+            || root.querySelector(`[name="${name}"]`)
+            || root.querySelector(`#${CSS.escape(name.replace(/\./g, '_'))}`);
+        input?.classList?.add('is-invalid');
+        input?._flatpickr?.altInput?.classList?.add('is-invalid');
         if (errorEl) {
             errorEl.textContent = message;
             errorEl.hidden = false;
@@ -40,6 +57,7 @@
         const fd = new FormData(form);
         const payload = {
             site_name: (fd.get('site_name') || '').toString().trim(),
+            application_url: (fd.get('application_url') || '').toString().trim(),
             tagline: (fd.get('tagline') || '').toString().trim(),
             description: (fd.get('description') || '').toString().trim(),
             logo_text: (fd.get('logo_text') || '').toString().trim(),
@@ -51,6 +69,7 @@
             whatsapp: (fd.get('whatsapp') || '').toString().trim(),
             address: (fd.get('address') || '').toString().trim(),
             hours: (fd.get('hours') || '').toString().trim(),
+            support_hours: [],
             maps_url: (fd.get('maps_url') || '').toString().trim(),
             footer_about: (fd.get('footer_about') || '').toString().trim(),
             footer_copyright: (fd.get('footer_copyright') || '').toString().trim(),
@@ -69,6 +88,17 @@
             social: {},
         };
 
+        for (let index = 0; index < 7; index += 1) {
+            const day = (fd.get(`support_hours[${index}][day]`) || '').toString().trim();
+            const from = (fd.get(`support_hours[${index}][from]`) || '').toString().trim();
+            const to = (fd.get(`support_hours[${index}][to]`) || '').toString().trim();
+            const timezone = (fd.get(`support_hours[${index}][timezone]`) || '').toString().trim();
+            if (!day && !from && !to) {
+                continue;
+            }
+            payload.support_hours.push({ day, from, to, timezone: timezone || 'Asia/Kolkata' });
+        }
+
         (config.platforms || []).forEach((platform) => {
             const url = (fd.get(`social[${platform}][url]`) || '').toString().trim();
             const visible = form.querySelector(`[name="social[${platform}][is_visible]"]`)?.checked;
@@ -81,6 +111,188 @@
         return payload;
     };
 
+    const isValidHttpUrl = (value) => {
+        try {
+            const parsed = new URL(value);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch (error) {
+            return false;
+        }
+    };
+
+    const normalizeApplicationUrl = (value) => {
+        const raw = (value || '').toString().trim();
+        if (!raw) return '';
+        const withScheme = /^https?:\/\//i.test(raw) ? raw : (`https://${raw.replace(/^\/+/, '')}`);
+        try {
+            const parsed = new URL(withScheme);
+            if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) {
+                return '';
+            }
+            const path = parsed.pathname === '/' ? '' : parsed.pathname.replace(/\/$/, '');
+            return `${parsed.protocol}//${parsed.host}${path}`;
+        } catch (error) {
+            return '';
+        }
+    };
+
+    const validateApplicationUrl = () => {
+        const input = form.querySelector('#application_url');
+        const raw = (input?.value || '').toString().trim();
+        if (!raw) {
+            return null;
+        }
+        const normalized = normalizeApplicationUrl(raw);
+        if (!normalized || !isValidHttpUrl(normalized)) {
+            showFieldError('application_url', 'Enter a valid domain or URL (e.g. examtube.in or https://examtube.in).');
+            return input;
+        }
+        if (input) {
+            input.value = normalized;
+        }
+        return null;
+    };
+
+    const validateSupportHours = () => {
+        const rows = [];
+        for (let index = 0; index < 7; index += 1) {
+            const day = form.querySelector(`[name="support_hours[${index}][day]"]`)?.value?.trim();
+            const fromInput = form.querySelector(`[name="support_hours[${index}][from]"]`);
+            const toInput = form.querySelector(`[name="support_hours[${index}][to]"]`);
+            const from = (fromInput?.value || '').toString().trim();
+            const to = (toInput?.value || '').toString().trim();
+            const timezone = form.querySelector(`[name="support_hours[${index}][timezone]"]`)?.value?.trim();
+            if (!day && !from && !to) continue;
+            rows.push({ index, day, from, to, timezone, fromInput, toInput });
+        }
+
+        if (!rows.length) {
+            showFieldError('support_hours', 'Add at least one support-hours day.');
+            return form.querySelector('#org-support-hours');
+        }
+        if (rows.length > 7) {
+            showFieldError('support_hours', 'You can add a maximum of 7 days.');
+            return form.querySelector('#org-support-hours');
+        }
+
+        let firstInvalid = null;
+        const toMinutes = (value) => {
+            const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+            if (!match) return null;
+            let hour = Number(match[1]);
+            const minute = Number(match[2]);
+            const meridiem = match[3] ? match[3].toUpperCase() : null;
+            if (meridiem) {
+                if (hour < 1 || hour > 12 || minute > 59) return null;
+                if (meridiem === 'AM') hour = hour === 12 ? 0 : hour;
+                else hour = hour === 12 ? 12 : hour + 12;
+            } else if (hour > 23 || minute > 59) {
+                return null;
+            }
+            return (hour * 60) + minute;
+        };
+
+        rows.forEach((row) => {
+            const markTimeInvalid = (input) => {
+                input?.classList?.add('is-invalid');
+                input?._flatpickr?.altInput?.classList?.add('is-invalid');
+            };
+            const focusTarget = (input) => input?._flatpickr?.altInput || input;
+
+            const fromMins = toMinutes(row.from);
+            const toMins = toMinutes(row.to);
+            if (fromMins === null) {
+                showFieldError(`support_hours.${row.index}.from`, 'Enter a valid start time.');
+                markTimeInvalid(row.fromInput);
+                firstInvalid = firstInvalid || focusTarget(row.fromInput);
+            }
+            if (toMins === null) {
+                showFieldError(`support_hours.${row.index}.to`, 'Enter a valid end time.');
+                markTimeInvalid(row.toInput);
+                firstInvalid = firstInvalid || focusTarget(row.toInput);
+            }
+            if (fromMins !== null && toMins !== null && fromMins >= toMins) {
+                showFieldError(`support_hours.${row.index}.to`, 'End time must be after start time.');
+                markTimeInvalid(row.toInput);
+                firstInvalid = firstInvalid || focusTarget(row.toInput);
+            }
+            if (!row.day) {
+                showFieldError(`support_hours.${row.index}.day`, 'Select a day.');
+                firstInvalid = firstInvalid || form.querySelector(`[name="support_hours[${row.index}][day]"]`);
+            }
+            if (!row.timezone) {
+                showFieldError(`support_hours.${row.index}.timezone`, 'Select a timezone.');
+                firstInvalid = firstInvalid || form.querySelector(`[name="support_hours[${row.index}][timezone]"]`);
+            }
+        });
+
+        return firstInvalid;
+    };
+
+    const validateSocialUrls = () => {
+        let firstInvalid = null;
+        (config.platforms || []).forEach((platform) => {
+            const input = form.querySelector(`[name="social[${platform}][url]"]`);
+            const url = (input?.value || '').toString().trim();
+            if (url === '') {
+                return;
+            }
+            if (!isValidHttpUrl(url)) {
+                showFieldError(`social.${platform}.url`, 'Enter a valid URL starting with http:// or https://.');
+                if (!firstInvalid) {
+                    firstInvalid = input;
+                }
+            }
+        });
+        return firstInvalid;
+    };
+
+    const bindSocialFieldUx = () => {
+        form.querySelectorAll('[data-social-url]').forEach((input) => {
+            const platform = input.getAttribute('data-social-url');
+            const row = input.closest('[data-social-platform]');
+            const toggle = row?.querySelector(`[name="social[${platform}][is_visible]"]`);
+
+            input.addEventListener('input', () => {
+                input.classList.remove('is-invalid');
+                const errorEl = form.querySelector(`[data-error-for="social.${platform}.url"]`);
+                if (errorEl) {
+                    errorEl.hidden = true;
+                    errorEl.textContent = '';
+                    errorEl.classList.remove('is-visible');
+                }
+                if (toggle && input.value.trim() !== '' && !toggle.checked) {
+                    toggle.checked = true;
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                const url = input.value.trim();
+                if (url === '') {
+                    return;
+                }
+                if (!isValidHttpUrl(url)) {
+                    showFieldError(`social.${platform}.url`, 'Enter a valid URL starting with http:// or https://.');
+                }
+            });
+        });
+    };
+
+    bindSocialFieldUx();
+
+    const appUrlInput = form.querySelector('#application_url');
+    appUrlInput?.addEventListener('blur', () => {
+        const raw = (appUrlInput.value || '').toString().trim();
+        if (!raw) {
+            return;
+        }
+        const normalized = normalizeApplicationUrl(raw);
+        if (normalized) {
+            appUrlInput.value = normalized.replace(/^https?:\/\//i, '');
+            appUrlInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         clearErrors();
@@ -88,6 +300,39 @@
         if (!form.querySelector('#site_name')?.value?.trim()) {
             showFieldError('site_name', 'Organization name is required.');
             window.Swal?.fire?.({ icon: 'warning', title: 'Check the form', text: 'Organization name is required.' });
+            return;
+        }
+
+        const invalidAppUrl = validateApplicationUrl();
+        if (invalidAppUrl) {
+            invalidAppUrl.focus();
+            window.Swal?.fire?.({
+                icon: 'warning',
+                title: 'Check application URL',
+                text: 'Enter a valid domain or full URL, for example examtube.in.',
+            });
+            return;
+        }
+
+        const invalidHours = validateSupportHours();
+        if (invalidHours) {
+            invalidHours.focus?.();
+            window.Swal?.fire?.({
+                icon: 'warning',
+                title: 'Check support hours',
+                text: 'Each day needs a valid from/to time, and end time must be after start time. Add 1–7 days.',
+            });
+            return;
+        }
+
+        const invalidSocial = validateSocialUrls();
+        if (invalidSocial) {
+            invalidSocial.focus();
+            window.Swal?.fire?.({
+                icon: 'warning',
+                title: 'Check social URLs',
+                text: 'One or more social profile links are invalid. Use a full http:// or https:// URL.',
+            });
             return;
         }
 

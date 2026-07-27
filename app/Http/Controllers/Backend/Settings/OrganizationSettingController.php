@@ -29,6 +29,9 @@ class OrganizationSettingController extends Controller
         return view('backend.settings.organization', [
             'payload' => $payload,
             'platforms' => OrganizationSettingsService::SOCIAL_PLATFORMS,
+            'platformMeta' => OrganizationSettingsService::SOCIAL_PLATFORM_META,
+            'supportHourDays' => OrganizationSettingsService::supportHourDays(),
+            'supportHourTimezones' => OrganizationSettingsService::supportHourTimezones(),
             'faqCategories' => $this->faqs->categories($orgId),
         ]);
     }

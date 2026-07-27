@@ -615,7 +615,7 @@ HTML,
                 'exam_mode' => 'practice',
                 'attempt_limit_type' => 'unlimited',
                 'max_attempts' => 0,
-                'status' => 'active',
+                'status' => 'published',
                 'shuffle_questions' => true,
             ],
             [

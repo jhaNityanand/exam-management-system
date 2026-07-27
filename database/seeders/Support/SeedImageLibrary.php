@@ -10,8 +10,8 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Downloads thematic images for seeders, stores them in the gallery,
- * and purges previously seeded media so each run regenerates fresh files.
+ * Stores thematic images for seeders into the gallery.
+ * Prefers local files under public/seed/, then Picsum, then GD synthesis.
  */
 class SeedImageLibrary
 {
@@ -47,6 +47,55 @@ class SeedImageLibrary
     }
 
     /**
+     * Copy a file from public/seed/{relativePath} into the organization gallery.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function storeFromPublicSeed(
+        int $organizationId,
+        string $relativePath,
+        ?int $userId = null,
+        string $module = 'content',
+        array $meta = []
+    ): Gallery {
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $absolute = public_path('seed/'.$relativePath);
+
+        if (! is_file($absolute)) {
+            throw new RuntimeException("Seed asset missing: public/seed/{$relativePath}");
+        }
+
+        $contents = file_get_contents($absolute);
+        if ($contents === false || $contents === '') {
+            throw new RuntimeException("Unable to read seed asset: public/seed/{$relativePath}");
+        }
+
+        $basename = basename($relativePath);
+        $extension = strtolower(pathinfo($basename, PATHINFO_EXTENSION) ?: 'jpg');
+        $slug = Str::slug(pathinfo($basename, PATHINFO_FILENAME)) ?: 'seed-image';
+        $filename = 'img-'.$slug.'.'.$extension;
+        $mime = match ($extension) {
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            default => 'image/jpeg',
+        };
+
+        return $this->gallery->uploadFromContents($contents, $filename, $organizationId, [
+            'source' => 'seeder',
+            'module' => $module,
+            'kind' => 'image',
+            'original_name' => $filename,
+            'alt_text' => $meta['alt_text'] ?? Str::headline(str_replace('-', ' ', $slug)),
+            'description' => $meta['description'] ?? 'Seeded demo media from public/seed',
+            'uploaded_by' => $userId,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+            'mime_type' => $mime,
+        ]);
+    }
+
+    /**
      * Download (or synthesize) an image and store it in the gallery with an img- filename prefix.
      *
      * @param  array<string, mixed>  $meta
@@ -58,6 +107,16 @@ class SeedImageLibrary
         string $module = 'content',
         array $meta = []
     ): Gallery {
+        if (! empty($meta['seed_path'])) {
+            return $this->storeFromPublicSeed(
+                $organizationId,
+                (string) $meta['seed_path'],
+                $userId,
+                $module,
+                $meta
+            );
+        }
+
         $slug = Str::slug($slug) ?: 'seed-image';
         $filename = 'img-'.$slug.'.jpg';
         $width = (int) ($meta['width'] ?? 1200);

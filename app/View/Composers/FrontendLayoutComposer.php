@@ -41,6 +41,10 @@ class FrontendLayoutComposer
                 'logo_text' => $settings['brand.logo_text'] ?? $settings['logo_text'] ?? 'Examtube',
                 'tagline' => $settings['brand.tagline'] ?? $settings['tagline'] ?? '',
                 'description' => $settings['brand.description'] ?? '',
+                'application_url' => $settings['brand.application_url'] ?? '',
+                'application_host' => \App\Services\Settings\OrganizationSettingsService::applicationHost(
+                    $settings['brand.application_url'] ?? null
+                ),
                 'logo_url' => $logoUrl,
                 'favicon_url' => $faviconUrl,
                 'og_image_url' => $ogImageUrl,
