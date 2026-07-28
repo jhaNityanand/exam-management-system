@@ -273,11 +273,20 @@
         <main id="panel-main" class="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
             <div class="mx-auto flex w-full flex-col gap-4 sm:gap-6 @yield('content-container-class', 'max-w-7xl')">
                 @hasSection('breadcrumbs')
-                    <nav class="flex text-sm text-slate-500 dark:text-slate-400 font-medium mb-4" aria-label="Breadcrumb">
-                        <ol class="inline-flex items-center space-x-1 md:space-x-2">
+                    <div class="mb-4 flex items-center justify-between gap-3">
+                        <div class="min-w-0 text-sm font-medium text-slate-500 dark:text-slate-400">
                             @yield('breadcrumbs')
-                        </ol>
-                    </nav>
+                        </div>
+                        <a href="{{ route('home') }}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-sky-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-sky-600">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Visit Site
+                        </a>
+                    </div>
                 @endif
 
                 @yield('content')

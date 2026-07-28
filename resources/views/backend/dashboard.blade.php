@@ -152,25 +152,6 @@
     </div>
 </div>
 
-{{-- Quick Actions --}}
-<div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm p-4 sm:p-6 mb-8">
-    <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-4 sm:mb-6">Quick Actions</h3>
-    <div class="flex flex-wrap gap-3">
-        <a href="{{ route('home') }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition shadow-sm bg-sky-500 hover:bg-sky-600 text-white">
-            Visit Site
-        </a>
-        <a href="{{ route('admin.questions.create') }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition shadow-sm border border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-500/10">
-            Add Question
-        </a>
-        <a href="{{ route('admin.exams.create') }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition shadow-sm border border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-500/10">
-            Create Exam
-        </a>
-        <a href="{{ route('admin.settings.index') }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition shadow-sm border border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-500/10">
-            Settings / Clear Cache
-        </a>
-    </div>
-</div>
-
 @endsection
 
 @push('scripts')
