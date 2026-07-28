@@ -359,9 +359,11 @@ class FrontendCmsSeeder extends Seeder
     protected function seedFaqs(?int $orgId): void
     {
         $cats = [
-            ['name' => 'Getting started', 'slug' => 'getting-started'],
-            ['name' => 'Exams & scoring', 'slug' => 'exams-scoring'],
-            ['name' => 'Accounts', 'slug' => 'accounts'],
+            ['name' => 'Getting started',        'slug' => 'getting-started'],
+            ['name' => 'Exams & scoring',         'slug' => 'exams-scoring'],
+            ['name' => 'Accounts',               'slug' => 'accounts'],
+            ['name' => 'Institutes & admins',    'slug' => 'institutes-admins'],
+            ['name' => 'Results & certificates', 'slug' => 'results-certificates'],
         ];
 
         $categoryIds = [];
@@ -376,26 +378,50 @@ class FrontendCmsSeeder extends Seeder
         Faq::query()->where('organization_id', $orgId)->delete();
 
         $faqs = [
-            ['slug' => 'getting-started', 'question' => 'How do I begin practicing on Examtube.in?', 'answer' => 'Create a free account, browse the Exams section, pick a published paper that matches your goal, and attempt it under timer conditions. Results appear after submission with marks and attempt history.'],
-            ['slug' => 'getting-started', 'question' => 'Is Examtube suitable for institute classrooms?', 'answer' => 'Yes. Institutes can manage exams, categories, blogs, news, and media from the admin workspace while candidates attempt papers on the public site.'],
-            ['slug' => 'exams-scoring', 'question' => 'Do practice exams support negative marking?', 'answer' => 'Yes. Exam authors can enable negative marking and pass percentage rules so mocks match the scoring pattern of the real paper.'],
-            ['slug' => 'exams-scoring', 'question' => 'Can I retake an exam?', 'answer' => 'Retakes depend on the exam’s attempt policy. Some papers allow unlimited practice; others limit attempts to preserve exam integrity.'],
-            ['slug' => 'accounts', 'question' => 'How do I reset my password?', 'answer' => 'Use Forgot password on the login page. You will receive a secure reset link on your registered email address.'],
-            ['slug' => 'accounts', 'question' => 'Where can I track my progress?', 'answer' => 'After logging in, open your profile dashboard to review exam attempts, results, and saved reading preferences.'],
+            // Getting started
+            ['slug' => 'getting-started', 'featured' => true,  'question' => 'How do I begin practicing on Examtube.in?', 'answer' => 'Create a free account, browse the Exams section, pick a published paper that matches your goal, and attempt it under timer conditions. Results appear after submission with marks and attempt history.'],
+            ['slug' => 'getting-started', 'featured' => true,  'question' => 'Is Examtube suitable for institute classrooms?', 'answer' => 'Yes. Institutes can manage exams, categories, blogs, news, and media from the admin workspace while candidates attempt papers on the public site.'],
+            ['slug' => 'getting-started', 'featured' => false, 'question' => 'Do I need to pay to take exams?', 'answer' => 'Most practice exams are completely free. Some premium or institute-specific papers may require registration or an access code provided by your institute.'],
+            ['slug' => 'getting-started', 'featured' => false, 'question' => 'Which browsers and devices are supported?', 'answer' => 'Examtube.in works on all modern browsers — Chrome, Firefox, Edge, and Safari — on both desktop and mobile devices. We recommend the latest browser version for the best experience.'],
+
+            // Exams & scoring
+            ['slug' => 'exams-scoring', 'featured' => true,  'question' => 'Do practice exams support negative marking?', 'answer' => 'Yes. Exam authors can enable negative marking and pass percentage rules so mocks match the scoring pattern of the real paper.'],
+            ['slug' => 'exams-scoring', 'featured' => true,  'question' => 'Can I retake an exam?', 'answer' => 'Retakes depend on the exam\'s attempt policy. Some papers allow unlimited practice; others limit attempts to preserve exam integrity.'],
+            ['slug' => 'exams-scoring', 'featured' => false, 'question' => 'Are questions shuffled in every attempt?', 'answer' => 'Shuffle behavior is controlled by the exam author. Many practice papers randomize both question order and answer options to simulate actual exam conditions.'],
+            ['slug' => 'exams-scoring', 'featured' => false, 'question' => 'How is the final score calculated?', 'answer' => 'Each question carries a configurable mark value. Correct answers add marks; wrong answers subtract marks if negative marking is enabled. The final score is displayed as raw marks and, where applicable, as a percentage.'],
+            ['slug' => 'exams-scoring', 'featured' => false, 'question' => 'Can I pause an exam midway?', 'answer' => 'Most timed exams do not support pausing, as this would compromise exam integrity. Check the exam instructions before starting to understand the timer and submission rules.'],
+
+            // Accounts
+            ['slug' => 'accounts', 'featured' => true,  'question' => 'How do I reset my password?', 'answer' => 'Use Forgot password on the login page. You will receive a secure reset link on your registered email address.'],
+            ['slug' => 'accounts', 'featured' => false, 'question' => 'Where can I track my progress?', 'answer' => 'After logging in, open your profile dashboard to review exam attempts, results, and saved reading preferences.'],
+            ['slug' => 'accounts', 'featured' => false, 'question' => 'Can I change my registered email address?', 'answer' => 'Yes. Go to Profile → Account settings and update your email. A verification link will be sent to the new address before the change takes effect.'],
+            ['slug' => 'accounts', 'featured' => false, 'question' => 'How do I delete my account?', 'answer' => 'Send a deletion request to hello@examtube.in from your registered email address. Accounts are permanently removed within 7 business days. Attempt history cannot be recovered after deletion.'],
+
+            // Institutes & admins
+            ['slug' => 'institutes-admins', 'featured' => false, 'question' => 'How do I set up an institute workspace?', 'answer' => 'After registering, navigate to Admin → Settings → Organization to configure your branding, contact details, and homepage content. You can then create exam categories, publish exams, and manage candidates from the admin panel.'],
+            ['slug' => 'institutes-admins', 'featured' => false, 'question' => 'Can I restrict an exam to specific candidates?', 'answer' => 'Yes. Exams can be set to require login, and you can control access through invitation codes or candidate lists configured in the exam settings.'],
+            ['slug' => 'institutes-admins', 'featured' => false, 'question' => 'How many exams can I publish?', 'answer' => 'There is no hard limit on the number of exams you can create and publish within your workspace. Large-scale deployments can contact support for dedicated assistance.'],
+            ['slug' => 'institutes-admins', 'featured' => false, 'question' => 'Can multiple admins manage the same workspace?', 'answer' => 'Yes. The primary organization admin can invite additional team members and assign roles with appropriate permissions from Admin → Settings → Team.'],
+
+            // Results & certificates
+            ['slug' => 'results-certificates', 'featured' => false, 'question' => 'When can I see my results after submitting an exam?', 'answer' => 'Results are available immediately after submission for most auto-graded exams. Your score, correct/incorrect breakdown, and rank (if enabled) appear on the results page.'],
+            ['slug' => 'results-certificates', 'featured' => false, 'question' => 'Are certificates issued for completed exams?', 'answer' => 'Certificates are issued when the exam author has enabled them and you meet the required pass percentage. Download your certificate from the results page or your profile dashboard.'],
+            ['slug' => 'results-certificates', 'featured' => false, 'question' => 'How long are my results stored?', 'answer' => 'Attempt records and results are stored for the lifetime of your account. Institutes retain records as configured by their data retention policy.'],
         ];
 
         foreach ($faqs as $i => $faq) {
             Faq::query()->create([
-                'organization_id' => $orgId,
-                'faq_category_id' => $categoryIds[$faq['slug']],
-                'question' => $faq['question'],
-                'answer' => $faq['answer'],
-                'is_featured' => $i < 4,
-                'sort_order' => $i + 1,
-                'status' => 'active',
+                'organization_id'  => $orgId,
+                'faq_category_id'  => $categoryIds[$faq['slug']],
+                'question'         => $faq['question'],
+                'answer'           => $faq['answer'],
+                'is_featured'      => $faq['featured'],
+                'sort_order'       => $i + 1,
+                'status'           => 'active',
             ]);
         }
     }
+
 
     protected function seedSocial(?int $orgId): void
     {

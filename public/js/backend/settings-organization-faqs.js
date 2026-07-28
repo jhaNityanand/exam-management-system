@@ -58,16 +58,25 @@
         clearErrors();
         form.reset();
         form.querySelector('#faq_id').value = faq?.id || '';
-        form.querySelector('#faq_question').value = faq?.question || '';
-        form.querySelector('#faq_answer').value = faq?.answer || '';
+        const question = faq?.question || '';
+        const answer = faq?.answer || '';
+        form.querySelector('#faq_question').value = question;
+        form.querySelector('#faq_answer').value = answer;
         form.querySelector('#faq_category_id').value = faq?.faq_category_id || '';
         form.querySelector('#faq_status').value = faq?.status || 'active';
         form.querySelector('#faq_sort_order').value = faq?.sort_order ?? 0;
         form.querySelector('#faq_is_featured').checked = Boolean(faq?.is_featured);
         document.getElementById('faq-modal-title').textContent = faq?.id ? 'Edit FAQ' : 'Add FAQ';
+        // Sync character counters
+        const qCount = document.getElementById('faq_question_count');
+        const aCount = document.getElementById('faq_answer_count');
+        if (qCount) qCount.textContent = question.length + ' / 500';
+        if (aCount) aCount.textContent = answer.length.toLocaleString() + ' / 10 000';
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('ems-dialog-open');
+        // Focus first focusable field after animation frame
+        requestAnimationFrame(() => form.querySelector('#faq_question')?.focus());
     };
 
     const closeModal = () => {
@@ -75,6 +84,15 @@
         modal.classList.add('hidden');
         modal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('ems-dialog-open');
+    };
+
+    const updateStats = (meta, rows) => {
+        const totalEl = document.getElementById('faq-stat-total');
+        const activeEl = document.getElementById('faq-stat-active');
+        const featuredEl = document.getElementById('faq-stat-featured');
+        if (totalEl && meta) totalEl.textContent = meta.total ?? '—';
+        if (activeEl && rows) activeEl.textContent = rows.filter(r => r.status === 'active').length;
+        if (featuredEl && rows) featuredEl.textContent = rows.filter(r => r.is_featured).length;
     };
 
     const renderRows = (rows) => {
@@ -86,32 +104,42 @@
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="5" class="faq-table__empty">
-                        <p style="margin:0;font-weight:600;color:inherit">No FAQs found</p>
-                        <p style="margin:0.35rem 0 0;font-size:0.75rem;opacity:0.85">Try adjusting filters or add a new FAQ.</p>
+                        <div class="faq-empty-state">
+                            <div class="faq-empty-state__icon">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <p class="faq-empty-state__title">No FAQs found</p>
+                            <p class="faq-empty-state__desc">Try adjusting your filters or click <strong>Add FAQ</strong> to create one.</p>
+                        </div>
                     </td>
                 </tr>`;
             return;
         }
 
+        const EDIT_ICON = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`;
+        const DEL_ICON  = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
+        const STAR_ICON = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
+
         tableBody.innerHTML = rows.map((faq) => {
             const active = faq.status === 'active';
+            const catName = escapeHtml(faq.category_name || '');
             return `
                 <tr data-faq-id="${faq.id}">
                     <td>
                         <p class="faq-table__question">${escapeHtml(faq.question)}</p>
                         <div class="faq-table__meta">
-                            ${faq.is_featured ? '<span class="faq-table__badge faq-table__badge--featured">Featured</span>' : ''}
+                            ${faq.is_featured ? `<span class="faq-table__badge faq-table__badge--featured">${STAR_ICON} Featured</span>` : ''}
                         </div>
                     </td>
-                    <td>${escapeHtml(faq.category_name || '—')}</td>
+                    <td>${catName ? `<span class="faq-table__category-pill">${catName}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
                     <td>
                         <span class="faq-table__badge faq-table__badge--status ${active ? 'faq-table__badge--active' : 'faq-table__badge--inactive'}">${escapeHtml(faq.status)}</span>
                     </td>
                     <td><span class="faq-table__order">${escapeHtml(faq.sort_order)}</span></td>
                     <td>
                         <div class="faq-table__actions">
-                            <button type="button" class="faq-table__action faq-table__action--edit faq-edit-btn" data-id="${faq.id}">Edit</button>
-                            <button type="button" class="faq-table__action faq-table__action--delete faq-delete-btn" data-id="${faq.id}">Delete</button>
+                            <button type="button" class="faq-table__action faq-table__action--edit faq-edit-btn" data-id="${faq.id}" title="Edit">${EDIT_ICON} Edit</button>
+                            <button type="button" class="faq-table__action faq-table__action--delete faq-delete-btn" data-id="${faq.id}" title="Delete">${DEL_ICON} Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -142,7 +170,7 @@
     const loadFaqs = async (page = state.page) => {
         state.page = page;
         if (tableBody) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="faq-table__empty">Loading FAQs…</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="5" class="faq-table__loading"><div class="faq-skeleton"><div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div><div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div><div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div></div></td></tr>`;
         }
 
         const params = new URLSearchParams({
@@ -157,8 +185,10 @@
             const res = await fetch(`${config.indexUrl}?${params.toString()}`, { headers: headers() });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Failed to load FAQs');
-            renderRows(data.data || []);
+            const rows = data.data || [];
+            renderRows(rows);
             renderPagination(data.meta || {});
+            updateStats(data.meta || {}, rows);
             state.loadedOnce = true;
         } catch (error) {
             if (tableBody) {

@@ -612,23 +612,53 @@
     {{-- FAQs tab --}}
     <div x-show="tab === 'faqs'" x-cloak>
         <x-page-card>
-            <div class="px-4 py-5 sm:p-6 space-y-5">
-                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div class="min-w-0">
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Frequently asked questions</h2>
-                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Manage homepage FAQ content. Create and edit entries in a modal.
-                        </p>
-                    </div>
-                    <button type="button" id="faq-add-btn"
-                            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            {{-- Enhanced FAQ header --}}
+            <div class="faq-hero">
+                <div class="faq-hero__inner">
+                    <div class="faq-hero__icon-wrap" aria-hidden="true">
+                        <svg class="faq-hero__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        Add FAQ
-                    </button>
+                    </div>
+                    <div class="faq-hero__copy">
+                        <h2 class="faq-hero__title">Frequently Asked Questions</h2>
+                        <p class="faq-hero__desc">Create and manage FAQ entries that appear on your public homepage. Use categories and featured flags to organize content.</p>
+                    </div>
                 </div>
+                <button type="button" id="faq-add-btn" class="faq-hero__cta" aria-label="Add a new FAQ entry">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span>Add FAQ</span>
+                </button>
+            </div>
 
+            {{-- Stats bar --}}
+            <div class="faq-stats" id="faq-stats-bar" aria-label="FAQ stats">
+                <div class="faq-stat faq-stat--total">
+                    <span class="faq-stat__num" id="faq-stat-total">—</span>
+                    <span class="faq-stat__label">Total</span>
+                </div>
+                <div class="faq-stat faq-stat--active">
+                    <span class="faq-stat__dot faq-stat__dot--active"></span>
+                    <span class="faq-stat__num" id="faq-stat-active">—</span>
+                    <span class="faq-stat__label">Active</span>
+                </div>
+                <div class="faq-stat faq-stat--featured">
+                    <span class="faq-stat__icon" aria-hidden="true">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    </span>
+                    <span class="faq-stat__num" id="faq-stat-featured">—</span>
+                    <span class="faq-stat__label">Featured</span>
+                </div>
+                <div class="faq-stat faq-stat--cats">
+                    <span class="faq-stat__num" id="faq-stat-cats">{{ count($faqCategories) }}</span>
+                    <span class="faq-stat__label">Categories</span>
+                </div>
+            </div>
+
+            <div class="px-4 pb-5 sm:px-6 space-y-5">
+                {{-- Toolbar --}}
                 <form id="faq-filters" class="faq-toolbar">
                     <div class="faq-toolbar__search">
                         <label for="faq_filter_search" class="faq-toolbar__label">Search</label>
@@ -657,26 +687,49 @@
                         </select>
                     </div>
                     <div class="faq-toolbar__actions">
-                        <button type="submit" class="faq-toolbar__btn faq-toolbar__btn--primary">Filter</button>
-                        <button type="button" id="faq-filters-reset" class="faq-toolbar__btn">Reset</button>
+                        <button type="submit" class="faq-toolbar__btn faq-toolbar__btn--primary">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+                            Filter
+                        </button>
+                        <button type="button" id="faq-filters-reset" class="faq-toolbar__btn">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Reset
+                        </button>
                     </div>
                 </form>
 
+                {{-- Table --}}
                 <div class="faq-table-wrap">
                     <div class="overflow-x-auto">
-                        <table class="faq-table">
+                        <table class="faq-table" id="faq-main-table">
                             <thead>
                                 <tr>
-                                    <th class="faq-table__col-question">Question</th>
-                                    <th class="faq-table__col-category">Category</th>
+                                    <th class="faq-table__col-question">
+                                        <span class="faq-th-inner">
+                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            Question
+                                        </span>
+                                    </th>
+                                    <th class="faq-table__col-category">
+                                        <span class="faq-th-inner">
+                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+                                            Category
+                                        </span>
+                                    </th>
                                     <th class="faq-table__col-status">Status</th>
-                                    <th class="faq-table__col-order">Order</th>
+                                    <th class="faq-table__col-order">#</th>
                                     <th class="faq-table__col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="faq-table-body">
                                 <tr>
-                                    <td colspan="5" class="faq-table__empty">Loading FAQs…</td>
+                                    <td colspan="5" class="faq-table__loading">
+                                        <div class="faq-skeleton">
+                                            <div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div>
+                                            <div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div>
+                                            <div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div>
+                                        </div>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -994,8 +1047,6 @@
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 0.65rem;
             align-items: end;
-            padding: 0.85rem;
-            border: 1px solid #e2e8f0;
             border-radius: 0.9rem;
             background: #f8fafc;
         }
@@ -1246,13 +1297,147 @@
             }
         }
 
-        /* FAQ toolbar */
+
+        /* ──────────────────────────────────────
+           FAQ hero header
+        ────────────────────────────────────── */
+        .faq-hero {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem 1.5rem;
+            padding: 1.5rem 1.5rem 1.25rem;
+            background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
+            border-bottom: 1px solid #e0e7ff;
+        }
+        .dark .faq-hero {
+            background: linear-gradient(135deg, rgb(15 23 42 / 0.9) 0%, rgb(49 46 129 / 0.22) 100%);
+            border-bottom-color: rgb(99 102 241 / 0.18);
+        }
+        .faq-hero__inner {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-width: 0;
+        }
+        .faq-hero__icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.9rem;
+            background: #4f46e5;
+            box-shadow: 0 4px 14px rgb(79 70 229 / 0.32);
+            flex-shrink: 0;
+        }
+        .faq-hero__icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #fff;
+        }
+        .faq-hero__title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e1b4b;
+            letter-spacing: -0.01em;
+        }
+        .dark .faq-hero__title { color: #e0e7ff; }
+        .faq-hero__desc {
+            margin: 0.3rem 0 0;
+            font-size: 0.8125rem;
+            line-height: 1.55;
+            color: #6366f1;
+        }
+        .dark .faq-hero__desc { color: #a5b4fc; }
+        .faq-hero__cta {
+            display: inline-flex;
+            flex-shrink: 0;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.15rem;
+            border-radius: 0.85rem;
+            background: #4f46e5;
+            color: #fff;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgb(79 70 229 / 0.35);
+            transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+        }
+        .faq-hero__cta:hover {
+            background: #4338ca;
+            box-shadow: 0 6px 18px rgb(79 70 229 / 0.42);
+            transform: translateY(-1px);
+        }
+        .faq-hero__cta:active { transform: translateY(0); }
+
+        /* ──────────────────────────────────────
+           FAQ stats bar
+        ────────────────────────────────────── */
+        .faq-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .dark .faq-stats { border-bottom-color: #1e293b; }
+        .faq-stat {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.85rem 1.25rem;
+            border-right: 1px solid #f1f5f9;
+            min-width: 6rem;
+        }
+        .dark .faq-stat { border-right-color: #1e293b; }
+        .faq-stat:last-child { border-right: 0; }
+        .faq-stat__num {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e293b;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+        .dark .faq-stat__num { color: #f1f5f9; }
+        .faq-stat__label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .dark .faq-stat__label { color: #64748b; }
+        .faq-stat__dot {
+            width: 0.55rem;
+            height: 0.55rem;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .faq-stat__dot--active { background: #10b981; box-shadow: 0 0 0 3px rgb(16 185 129 / 0.18); }
+        .faq-stat__icon {
+            display: inline-flex;
+            color: #f59e0b;
+        }
+        .faq-stat--total .faq-stat__num { color: #4f46e5; }
+        .dark .faq-stat--total .faq-stat__num { color: #a5b4fc; }
+        .faq-stat--active .faq-stat__num { color: #059669; }
+        .dark .faq-stat--active .faq-stat__num { color: #34d399; }
+        .faq-stat--featured .faq-stat__num { color: #d97706; }
+        .dark .faq-stat--featured .faq-stat__num { color: #fbbf24; }
+
+        /* ──────────────────────────────────────
+           FAQ toolbar
+        ────────────────────────────────────── */
         .faq-toolbar {
             display: grid;
             grid-template-columns: 1fr;
             gap: 0.85rem;
             padding: 1rem;
-            border: 1px solid #e2e8f0;
             border-radius: 1rem;
             background: #f8fafc;
         }
@@ -1325,6 +1510,10 @@
             .faq-toolbar__btn { width: 100%; }
         }
         .faq-toolbar__btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
             min-height: 2.6rem;
             padding: 0 1rem;
             border: 1px solid #cbd5e1;
@@ -1354,7 +1543,9 @@
             color: #fff;
         }
 
-        /* FAQ table */
+        /* ──────────────────────────────────────
+           FAQ table
+        ────────────────────────────────────── */
         .faq-table-wrap {
             overflow: hidden;
             border: 1px solid #e2e8f0;
@@ -1374,7 +1565,7 @@
         .faq-table thead th {
             padding: 0.85rem 1rem;
             text-align: left;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 700;
             letter-spacing: 0.05em;
             text-transform: uppercase;
@@ -1387,6 +1578,11 @@
             color: #94a3b8;
             background: rgb(15 23 42 / 0.85);
             border-bottom-color: #334155;
+        }
+        .faq-th-inner {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
         }
         .faq-table tbody tr {
             border-bottom: 1px solid #f1f5f9;
@@ -1423,9 +1619,10 @@
         .faq-table__badge {
             display: inline-flex;
             align-items: center;
+            gap: 0.25rem;
             border-radius: 999px;
-            padding: 0.15rem 0.55rem;
-            font-size: 0.68rem;
+            padding: 0.15rem 0.6rem;
+            font-size: 0.67rem;
             font-weight: 700;
             letter-spacing: 0.02em;
         }
@@ -1453,6 +1650,22 @@
             background: #1e293b;
             color: #94a3b8;
         }
+        .faq-table__badge--status { text-transform: capitalize; }
+        .faq-table__category-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 0.5rem;
+            background: #eef2ff;
+            color: #4338ca;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .dark .faq-table__category-pill {
+            background: rgb(99 102 241 / 0.15);
+            color: #a5b4fc;
+        }
         .faq-table__actions {
             display: inline-flex;
             justify-content: flex-end;
@@ -1463,9 +1676,10 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 0.3rem;
             min-height: 2rem;
-            padding: 0 0.7rem;
-            border-radius: 0.55rem;
+            padding: 0 0.75rem;
+            border-radius: 0.6rem;
             border: 1px solid #e2e8f0;
             background: #fff;
             font-size: 0.75rem;
@@ -1498,21 +1712,96 @@
             background: rgb(244 63 94 / 0.12);
         }
         .faq-table__empty {
-            padding: 2.75rem 1rem !important;
+            padding: 3.5rem 1rem !important;
             text-align: center;
-            color: #64748b;
+        }
+        .faq-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .faq-empty-state__icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 1rem;
+            background: #f1f5f9;
+            color: #94a3b8;
+        }
+        .dark .faq-empty-state__icon { background: #1e293b; }
+        .faq-empty-state__title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #334155;
+            margin: 0;
+        }
+        .dark .faq-empty-state__title { color: #e2e8f0; }
+        .faq-empty-state__desc {
+            font-size: 0.8125rem;
+            color: #94a3b8;
+            margin: 0;
         }
         .dark .faq-table__empty { color: #94a3b8; }
         .faq-table__badge--status { text-transform: capitalize; }
         .faq-table__order {
             display: inline-flex;
             min-width: 1.75rem;
+            align-items: center;
             justify-content: center;
+            height: 1.75rem;
+            border-radius: 0.45rem;
+            background: #f1f5f9;
             font-variant-numeric: tabular-nums;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 0.8125rem;
             color: #334155;
         }
-        .dark .faq-table__order { color: #e2e8f0; }
+        .dark .faq-table__order {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        /* ──────────────────────────────────────
+           FAQ skeleton loader
+        ────────────────────────────────────── */
+        .faq-table__loading { padding: 0 !important; }
+        .faq-skeleton {
+            padding: 0.5rem 0;
+        }
+        .faq-skeleton__row {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .dark .faq-skeleton__row { border-bottom-color: #1e293b; }
+        .faq-skeleton__row:last-child { border-bottom: 0; }
+        .faq-skeleton__bar {
+            height: 0.75rem;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: faq-shimmer 1.4s infinite linear;
+        }
+        .dark .faq-skeleton__bar {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+        }
+        .faq-skeleton__bar--q { flex: 2; }
+        .faq-skeleton__bar--c { flex: 0 0 7rem; }
+        .faq-skeleton__bar--s { flex: 0 0 4rem; }
+        @keyframes faq-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ──────────────────────────────────────
+           FAQ pagination
+        ────────────────────────────────────── */
         .faq-pagination {
             display: flex;
             flex-direction: column;
