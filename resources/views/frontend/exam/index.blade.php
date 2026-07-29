@@ -4,6 +4,10 @@
     $seo = [
         'title' => 'Exams',
         'description' => $siteSettings['seo.default_description'] ?? 'Browse published exams and mock tests on Examtube.in.',
+        'breadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'Exams'],
+        ],
     ];
 @endphp
 
@@ -42,7 +46,7 @@
             <button type="submit" class="et-btn et-btn--primary et-btn--sm">Apply</button>
         </form>
 
-        {!! ad_slot('exam_list') !!}
+        {!! '' !!}
 
         @if(($exams ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', [

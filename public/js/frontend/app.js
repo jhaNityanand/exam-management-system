@@ -63,32 +63,187 @@
     });
   }
 
-  /* Mobile nav */
+  /* Mobile drawer */
   function initMobileNav() {
     const toggle = qs('[data-mobile-nav-toggle]');
-    const panel = qs('[data-mobile-nav]');
-    if (!toggle || !panel) return;
+    const drawer = qs('[data-mobile-nav]');
+    const backdrop = qs('[data-mobile-nav-backdrop]');
+    const closer = qs('[data-mobile-nav-close]');
+    if (!toggle || !drawer) return;
+
+    let lastFocus = null;
+
+    function focusables() {
+      return qsa('a, button, input, [tabindex]:not([tabindex="-1"])', drawer)
+        .filter(function (el) { return !el.hasAttribute('disabled') && !el.hasAttribute('hidden'); });
+    }
+
+    function open() {
+      lastFocus = doc.activeElement;
+      drawer.hidden = false;
+      if (backdrop) backdrop.hidden = false;
+      requestAnimationFrame(function () {
+        drawer.classList.add('is-open');
+        if (backdrop) backdrop.classList.add('is-open');
+      });
+      toggle.classList.add('is-open');
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-label', 'Close menu');
+      doc.body.classList.add('et-drawer-open');
+      const items = focusables();
+      if (items[0]) items[0].focus();
+    }
+
+    function close() {
+      drawer.classList.remove('is-open');
+      if (backdrop) backdrop.classList.remove('is-open');
+      toggle.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open menu');
+      doc.body.classList.remove('et-drawer-open');
+      setTimeout(function () {
+        if (!drawer.classList.contains('is-open')) {
+          drawer.hidden = true;
+          if (backdrop) backdrop.hidden = true;
+        }
+      }, 260);
+      if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+    }
+
+    function isOpen() {
+      return drawer.classList.contains('is-open');
+    }
 
     toggle.addEventListener('click', function () {
-      const open = panel.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (isOpen()) close();
+      else open();
+    });
+    if (closer) closer.addEventListener('click', close);
+    if (backdrop) backdrop.addEventListener('click', close);
+
+    doc.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) {
+        e.preventDefault();
+        close();
+      }
+      if (e.key === 'Tab' && isOpen()) {
+        const items = focusables();
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && doc.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && doc.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
+    qsa('[data-drawer-accordion]').forEach(function (group) {
+      const trigger = qs('[data-drawer-accordion-trigger]', group);
+      const panel = qs('[data-drawer-accordion-panel]', group);
+      if (!trigger || !panel) return;
+      trigger.addEventListener('click', function () {
+        const openAcc = group.classList.toggle('is-open');
+        panel.hidden = !openAcc;
+        trigger.setAttribute('aria-expanded', openAcc ? 'true' : 'false');
+      });
     });
   }
 
-  /* Profile dropdown */
-  function initProfileMenu() {
-    const wrap = qs('[data-profile-menu]');
-    if (!wrap) return;
-    const btn = qs('[data-profile-toggle]', wrap);
-    if (!btn) return;
+  /* Desktop nav dropdowns — hover + click, delayed close so submenu stays clickable */
+  function initNavDropdown() {
+    qsa('[data-nav-dropdown]').forEach(function (wrap) {
+      const trigger = qs('[data-nav-dropdown-trigger]', wrap);
+      const panel = qs('[data-nav-dropdown-panel]', wrap);
+      if (!trigger || !panel) return;
 
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      wrap.classList.toggle('is-open');
-    });
+      let closeTimer = null;
 
-    doc.addEventListener('click', function () {
-      wrap.classList.remove('is-open');
+      function open() {
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
+        }
+        // Close other open dropdowns
+        qsa('[data-nav-dropdown].is-open').forEach(function (other) {
+          if (other !== wrap) {
+            other.classList.remove('is-open');
+            const otherPanel = qs('[data-nav-dropdown-panel]', other);
+            const otherTrigger = qs('[data-nav-dropdown-trigger]', other);
+            if (otherPanel) otherPanel.hidden = true;
+            if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+        wrap.classList.add('is-open');
+        panel.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+
+      function close() {
+        wrap.classList.remove('is-open');
+        panel.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+
+      function scheduleClose() {
+        if (closeTimer) clearTimeout(closeTimer);
+        closeTimer = setTimeout(close, 180);
+      }
+
+      trigger.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (wrap.classList.contains('is-open')) close();
+        else open();
+      });
+
+      trigger.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          open();
+          const first = qs('[role="menuitem"]', panel);
+          if (first) first.focus();
+        }
+        if (e.key === 'Escape') close();
+      });
+
+      panel.addEventListener('keydown', function (e) {
+        const items = qsa('[role="menuitem"]', panel);
+        const idx = items.indexOf(doc.activeElement);
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          close();
+          trigger.focus();
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = items[(idx + 1) % items.length];
+          if (next) next.focus();
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = items[(idx - 1 + items.length) % items.length];
+          if (prev) prev.focus();
+        }
+      });
+
+      // Keep panel open while pointer is over trigger or panel
+      wrap.addEventListener('mouseenter', open);
+      wrap.addEventListener('mouseleave', scheduleClose);
+      panel.addEventListener('mouseenter', open);
+      panel.addEventListener('mouseleave', scheduleClose);
+
+      // Allow clicking links without the panel vanishing mid-click
+      panel.addEventListener('mousedown', function (e) {
+        e.stopPropagation();
+      });
+
+      doc.addEventListener('click', function (e) {
+        if (!wrap.contains(e.target)) close();
+      });
     });
   }
 
@@ -408,14 +563,115 @@
     });
   }
 
+  /* Category group slider — one full group at a time, pause, then slide */
+  function initCatSlider() {
+    qsa('[data-cat-slider]').forEach(function (root) {
+      const track = qs('[data-cat-slider-track]', root);
+      const groups = qsa('[data-cat-slider-group]', root);
+      const dots = qsa('[data-cat-slider-dot]', root);
+      const prevBtn = qs('[data-cat-slider-prev]', root);
+      const nextBtn = qs('[data-cat-slider-next]', root);
+      if (!track || groups.length < 2) return;
+
+      const pauseMs = Number(root.getAttribute('data-pause-ms') || 2000);
+      const slideMs = Number(root.getAttribute('data-slide-ms') || 650);
+      let index = 0;
+      let timer = null;
+      let locked = false;
+      const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      track.style.transition = 'transform ' + slideMs + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
+
+      function render() {
+        track.style.transform = 'translateX(-' + index * 100 + '%)';
+        groups.forEach(function (group, i) {
+          group.classList.toggle('is-active', i === index);
+        });
+        dots.forEach(function (dot, i) {
+          const active = i === index;
+          dot.classList.toggle('is-active', active);
+          dot.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+      }
+
+      function go(next) {
+        if (locked) return;
+        locked = true;
+        index = (next + groups.length) % groups.length;
+        render();
+        setTimeout(function () {
+          locked = false;
+        }, slideMs + 40);
+      }
+
+      function stop() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      }
+
+      function schedule() {
+        stop();
+        if (reduceMotion) return;
+        timer = setTimeout(function () {
+          go(index + 1);
+          schedule();
+        }, pauseMs + slideMs);
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+          go(index - 1);
+          schedule();
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+          go(index + 1);
+          schedule();
+        });
+      }
+      dots.forEach(function (dot, i) {
+        dot.addEventListener('click', function () {
+          go(i);
+          schedule();
+        });
+      });
+
+      root.addEventListener('mouseenter', stop);
+      root.addEventListener('mouseleave', schedule);
+      root.addEventListener('focusin', stop);
+      root.addEventListener('focusout', function (e) {
+        if (!root.contains(e.relatedTarget)) schedule();
+      });
+
+      render();
+      schedule();
+    });
+  }
+
+  /* Sticky header shadow */
+  function initStickyHeader() {
+    const header = qs('[data-sticky-header]');
+    if (!header) return;
+    function onScroll() {
+      header.classList.toggle('is-scrolled', window.scrollY > 8);
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
   doc.addEventListener('DOMContentLoaded', function () {
     initTheme();
     initMobileNav();
-    initProfileMenu();
+    initNavDropdown();
+    initStickyHeader();
     initAnnouncements();
     initHeroSlider();
     initFaq();
     initSearch();
     initNewsletter();
+    initCatSlider();
   });
 })();

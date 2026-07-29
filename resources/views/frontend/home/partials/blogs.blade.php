@@ -1,15 +1,13 @@
 @php
-    $blogs = ($page['featuredBlogs'] ?? collect())->isNotEmpty()
-        ? $page['featuredBlogs']
-        : ($page['latestBlogs'] ?? collect());
+    $blogs = $page['featuredBlogs'] ?? ($page['latestBlogs'] ?? collect());
 @endphp
-<section class="et-section et-section--alt">
+<section class="et-section et-section--alt" data-reveal>
     <div class="et-container">
         @include('frontend.components.section-heading', [
-            'title' => $section->title ?? '',
-            'subtitle' => $section->subtitle ?? '',
-            'actionUrl' => Route::has('frontend.blogs.index') ? route('frontend.blogs.index') : null,
-            'actionLabel' => ($section->settings['action_label'] ?? null) ?: 'All blogs',
+            'title' => 'From the Blog',
+            'subtitle' => 'Guides and insights to keep your preparation on track.',
+            'actionUrl' => route('frontend.blogs.index'),
+            'actionLabel' => 'Show All Blogs',
         ])
         @if($blogs->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No blog posts yet', 'message' => ''])
@@ -18,6 +16,9 @@
                 @foreach($blogs as $blog)
                     @include('frontend.components.blog-card', ['blog' => $blog])
                 @endforeach
+            </div>
+            <div class="et-section__cta">
+                <a href="{{ route('frontend.blogs.index') }}" class="et-btn et-btn--primary">Show All Blogs</a>
             </div>
         @endif
     </div>

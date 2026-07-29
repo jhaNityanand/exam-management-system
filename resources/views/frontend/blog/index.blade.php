@@ -1,7 +1,14 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'Blogs', 'description' => 'Study strategies, mentor tips, and exam preparation guides.'];
+    $seo = [
+        'title' => 'Blogs',
+        'description' => 'Study strategies, mentor tips, and exam preparation guides.',
+        'breadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'Blogs'],
+        ],
+    ];
 @endphp
 
 @section('content')
@@ -22,7 +29,7 @@
             <button type="submit" class="et-btn et-btn--primary et-btn--sm">Search</button>
         </form>
 
-        {!! ad_slot('blog_list') !!}
+        {!! '' !!}
 
         @if(($blogs ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No blogs found', 'message' => 'New posts will show up here.'])

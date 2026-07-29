@@ -38,11 +38,13 @@ use App\Http\Controllers\Frontend\CandidateAttemptController;
 use App\Http\Controllers\Frontend\CandidateExamController;
 use App\Http\Controllers\Frontend\CategoryController;
 use App\Http\Controllers\Frontend\ExamController as FrontendExamController;
+use App\Http\Controllers\Frontend\FaqController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\NewsController as FrontendNewsController;
 use App\Http\Controllers\Frontend\NewsletterController;
 use App\Http\Controllers\Frontend\PageController;
 use App\Http\Controllers\Frontend\SearchController;
+use App\Http\Controllers\Frontend\SitemapController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -110,6 +112,9 @@ Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->
 
 Route::get('/authors', [AuthorController::class, 'index'])->name('frontend.authors.index');
 Route::get('/authors/{author:slug}', [AuthorController::class, 'show'])->name('frontend.authors.show');
+
+Route::get('/faqs', [FaqController::class, 'index'])->name('frontend.faqs.index');
+Route::get('/sitemap', [SitemapController::class, 'index'])->name('frontend.sitemap');
 
 Route::get('/search', [SearchController::class, 'index'])->name('frontend.search');
 Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('frontend.search.suggest');

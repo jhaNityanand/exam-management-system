@@ -35,7 +35,7 @@ class NewsController extends Controller
             })
             ->latest('published_at');
 
-        $news = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
+        $news = $query->paginate((int) $request->input('per_page', 36))->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
             return $this->paginatedHtmlJson($news, 'frontend.components.news-card', 'news');

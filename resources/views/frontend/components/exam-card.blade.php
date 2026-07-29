@@ -1,14 +1,20 @@
 @php
-    $examUrl = Route::has('frontend.exams.show')
-        ? route('frontend.exams.show', $exam->slug ?? $exam)
-        : '#';
+    $examUrl = route('frontend.exams.show', $exam->slug ?? $exam);
     $difficulty = $exam->difficulty_level ?? null;
     $duration = $exam->duration ?? null;
     $questions = $exam->total_questions ?? null;
     $amount = $exam->exam_amount ?? null;
     $isFree = ($exam->pricing_option ?? 'free') === 'free' || (float) ($amount ?? 0) <= 0;
+    $thumb = method_exists($exam, 'bannerUrl') ? $exam->bannerUrl() : ($exam->bannerImage->file_url ?? null);
 @endphp
 <article class="et-card et-exam-card">
+    <a href="{{ $examUrl }}" class="et-card__media" tabindex="-1" aria-hidden="true">
+        @if($thumb)
+            <img src="{{ $thumb }}" alt="" loading="lazy">
+        @else
+            <img src="{{ asset('frontend/images/exams.svg') }}" alt="" class="et-card__media-fallback" loading="lazy">
+        @endif
+    </a>
     <div class="et-card__body">
         <div class="et-card__meta">
             @if($exam->category)
@@ -20,9 +26,6 @@
             <span class="et-badge {{ $isFree ? 'et-badge' : 'et-badge--warn' }}">{{ $isFree ? 'Free' : 'Paid' }}</span>
         </div>
         <h3 class="et-card__title"><a href="{{ $examUrl }}">{{ $exam->title }}</a></h3>
-        @if($exam->description)
-            <p class="et-card__excerpt">{{ \Illuminate\Support\Str::limit(strip_tags($exam->description), 120) }}</p>
-        @endif
         <div class="et-exam-card__stats">
             @if($duration)
                 <span>{{ (int) $duration }} min</span>
@@ -35,10 +38,7 @@
             @endif
         </div>
         <div class="et-card__footer">
-            <a href="{{ $examUrl }}" class="et-btn et-btn--soft et-btn--sm">View exam</a>
-            @if($exam->scheduled_start && $exam->scheduled_start->isFuture())
-                <span class="et-card__meta">{{ $exam->scheduled_start->format('d M Y') }}</span>
-            @endif
+            <a href="{{ $examUrl }}" class="et-btn et-btn--primary et-btn--sm">Attempt</a>
         </div>
     </div>
 </article>

@@ -1,13 +1,38 @@
 @extends('frontend.layouts.app')
 
+@php
+    $seo = [
+        'title' => 'Home',
+        'description' => $siteSettings['seo.default_description']
+            ?? ($siteBrand['description'] ?? ($siteSettings['brand.tagline'] ?? 'Practice smarter with exams, questions, blogs, and news.')),
+        'type' => 'website',
+        'breadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+        ],
+    ];
+@endphp
+
 @section('content')
-    @foreach(($page['sections'] ?? collect()) as $key => $section)
+    @php
+        $sections = $page['sections'] ?? collect();
+        $order = [
+            'hero',
+            'stats',
+            'featured_exams',
+            'questions',
+            'categories',
+            'blogs',
+            'news',
+            'testimonials',
+            'faqs',
+            'newsletter',
+        ];
+    @endphp
+
+    @foreach($order as $key)
         @includeIf('frontend.home.partials.'.$key, [
-            'section' => $section,
+            'section' => $sections->get($key),
             'page' => $page,
         ])
-        @if($key === 'hero')
-            <div class="et-container">{!! ad_slot('home_sidebar') !!}</div>
-        @endif
     @endforeach
 @endsection

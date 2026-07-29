@@ -32,7 +32,7 @@ class BlogController extends Controller
                 });
             })
             ->latest('published_at')
-            ->paginate((int) $request->input('per_page', 12))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {

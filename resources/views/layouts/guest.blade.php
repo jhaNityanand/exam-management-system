@@ -29,13 +29,18 @@
     <div class="et-auth">
         <aside class="et-auth__brand-panel" aria-hidden="false">
             <a href="{{ route('home') }}" class="et-auth__logo">
-                @if(is_file(public_path('images/brand/examtube-logo.svg')))
+                @if(is_file(public_path('frontend/images/logo.svg')))
+                    <img class="et-logo__img" src="{{ asset('frontend/images/logo.svg') }}" alt="{{ site_setting('brand.site_name', 'Examtube.in') }}" width="150" height="32">
+                @elseif(is_file(public_path('images/brand/examtube-logo.svg')))
                     <img class="et-logo__img" src="{{ asset('images/brand/examtube-logo.svg') }}" alt="{{ site_setting('brand.site_name', 'Examtube.in') }}" width="150" height="32">
                 @else
                     <span class="et-auth__logo-mark">{{ strtoupper(substr(site_setting('brand.logo_text', 'Examtube'), 0, 2)) }}</span>
                     <span>{{ site_setting('brand.logo_text', 'Examtube') }}<em>.in</em></span>
                 @endif
             </a>
+            <div class="et-auth__art" aria-hidden="true">
+                <img src="{{ asset('frontend/images/login.svg') }}" alt="" loading="lazy">
+            </div>
             <h1 class="et-auth__headline">{{ site_setting('brand.tagline', 'Practice smarter. Score higher.') }}</h1>
             <p class="et-auth__subcopy">
                 Structured mocks, mentor blogs, and exam news — built for students, mentors, and institutes.

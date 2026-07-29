@@ -101,6 +101,7 @@ if (! function_exists('ad_slot')) {
      */
     function ad_slot(string $placement): string
     {
-        return app(\App\Services\Advertisement\AdvertisementService::class)->renderSlot($placement);
+        // Advertisement UI temporarily disabled pending redesign.
+        return '';
     }
 }

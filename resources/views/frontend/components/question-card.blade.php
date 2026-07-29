@@ -14,7 +14,7 @@
         </h3>
         <p class="et-card__excerpt">{{ \Illuminate\Support\Str::limit(strip_tags((string) $question->body), 140) }}</p>
         <div class="et-card__footer">
-            <a class="et-link" href="{{ route('frontend.questions.show', $question) }}">Read explanation</a>
+            <a class="et-btn et-btn--soft et-btn--sm" href="{{ route('frontend.questions.show', $question) }}">View Details</a>
         </div>
     </div>
 </article>

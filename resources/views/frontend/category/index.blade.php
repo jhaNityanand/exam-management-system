@@ -1,7 +1,14 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'Categories', 'description' => 'Browse exams, blogs, and news by category.'];
+    $seo = [
+        'title' => 'Categories',
+        'description' => 'Browse exams, blogs, and news by category.',
+        'breadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'Categories'],
+        ],
+    ];
     $examCategories = $examCategories ?? collect();
     $blogCategories = $blogCategories ?? collect();
     $newsCategories = $newsCategories ?? collect();
@@ -26,7 +33,7 @@
         @endunless
 
         @if($examCategories->isNotEmpty())
-            <section>
+            <section id="exam-categories">
                 @include('frontend.components.section-heading', [
                     'title' => 'Exam categories',
                     'subtitle' => 'Practice by stream and subject.',
@@ -42,7 +49,7 @@
         @endif
 
         @if($blogCategories->isNotEmpty())
-            <section>
+            <section id="blog-categories">
                 @include('frontend.components.section-heading', [
                     'title' => 'Blog categories',
                     'subtitle' => 'Guides and preparation tips.',
@@ -64,7 +71,7 @@
         @endif
 
         @if($newsCategories->isNotEmpty())
-            <section>
+            <section id="news-categories">
                 @include('frontend.components.section-heading', [
                     'title' => 'News categories',
                     'subtitle' => 'Alerts and exam updates.',

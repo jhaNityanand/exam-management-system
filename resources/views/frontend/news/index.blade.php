@@ -1,7 +1,14 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'News', 'description' => 'Education news, alerts, and trending updates for aspirants.'];
+    $seo = [
+        'title' => 'News',
+        'description' => 'Education news, alerts, and trending updates for aspirants.',
+        'breadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'News'],
+        ],
+    ];
 @endphp
 
 @section('content')
@@ -33,7 +40,7 @@
             <button type="submit" class="et-btn et-btn--primary et-btn--sm">Filter</button>
         </form>
 
-        {!! ad_slot('news_list') !!}
+        {!! '' !!}
 
         @if(($newsItems ?? $news ?? collect())->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No news found', 'message' => ''])
