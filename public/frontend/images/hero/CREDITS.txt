@@ -1,0 +1,3 @@
+Hero illustrations based on unDraw (https://undraw.co).
+Source mirror: balazser/undraw-svg-collection (jsDelivr).
+Primary accent colors recolored to match Examtube module themes.

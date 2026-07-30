@@ -282,20 +282,33 @@
     if (!root) return;
     const slides = qsa('[data-hero-slide]', root);
     const dots = qsa('[data-hero-dot]', root);
-    if (slides.length < 2) return;
+    const prevBtn = qs('[data-hero-prev]', root);
+    const nextBtn = qs('[data-hero-next]', root);
+    if (!slides.length) return;
 
     let index = 0;
     let timer;
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const intervalMs = 3000;
 
     function go(i) {
       index = (i + slides.length) % slides.length;
       slides.forEach(function (slide, n) {
-        slide.classList.toggle('is-active', n === index);
+        const active = n === index;
+        slide.classList.toggle('is-active', active);
+        slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+        if (active) {
+          slide.removeAttribute('inert');
+        } else {
+          slide.setAttribute('inert', '');
+        }
       });
       dots.forEach(function (dot, n) {
-        dot.classList.toggle('is-active', n === index);
-        dot.setAttribute('aria-selected', n === index ? 'true' : 'false');
+        const active = n === index;
+        dot.classList.toggle('is-active', active);
+        dot.setAttribute('aria-selected', active ? 'true' : 'false');
       });
+      root.setAttribute('data-active-theme', slides[index].getAttribute('data-theme') || '');
     }
 
     function next() {
@@ -303,26 +316,80 @@
     }
 
     function start() {
-      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        return;
-      }
+      if (reduceMotion || slides.length < 2) return;
       stop();
-      timer = setInterval(next, 6500);
+      timer = setInterval(next, intervalMs);
     }
 
     function stop() {
       if (timer) clearInterval(timer);
+      timer = null;
+    }
+
+    function restart() {
+      stop();
+      start();
     }
 
     dots.forEach(function (dot, n) {
       dot.addEventListener('click', function () {
         go(n);
-        start();
+        restart();
       });
     });
 
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function () {
+        go(index - 1);
+        restart();
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function () {
+        go(index + 1);
+        restart();
+      });
+    }
+
+    root.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        go(index - 1);
+        restart();
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        go(index + 1);
+        restart();
+      }
+    });
+    if (!root.hasAttribute('tabindex')) {
+      root.setAttribute('tabindex', '0');
+    }
+
     root.addEventListener('mouseenter', stop);
     root.addEventListener('mouseleave', start);
+    root.addEventListener('focusin', stop);
+    root.addEventListener('focusout', function (event) {
+      if (!root.contains(event.relatedTarget)) start();
+    });
+
+    let touchX = null;
+    root.addEventListener('touchstart', function (event) {
+      touchX = event.changedTouches[0].clientX;
+      stop();
+    }, { passive: true });
+    root.addEventListener('touchend', function (event) {
+      if (touchX == null) return;
+      const dx = event.changedTouches[0].clientX - touchX;
+      touchX = null;
+      if (Math.abs(dx) > 40) {
+        go(index + (dx < 0 ? 1 : -1));
+      }
+      restart();
+    }, { passive: true });
+
+    go(0);
     start();
   }
 
@@ -662,11 +729,32 @@
     window.addEventListener('scroll', onScroll, { passive: true });
   }
 
+  /* Back to top */
+  function initBackToTop() {
+    const btn = qs('[data-back-top]');
+    if (!btn) return;
+
+    function sync() {
+      const show = window.scrollY > 320;
+      btn.classList.toggle('is-visible', show);
+      btn.hidden = !show;
+    }
+
+    btn.addEventListener('click', function () {
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    });
+
+    sync();
+    window.addEventListener('scroll', sync, { passive: true });
+  }
+
   doc.addEventListener('DOMContentLoaded', function () {
     initTheme();
     initMobileNav();
     initNavDropdown();
     initStickyHeader();
+    initBackToTop();
     initAnnouncements();
     initHeroSlider();
     initFaq();

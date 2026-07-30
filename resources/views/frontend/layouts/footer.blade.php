@@ -123,3 +123,16 @@
         </div>
     </div>
 </footer>
+
+<button
+    type="button"
+    class="et-back-top"
+    data-back-top
+    aria-label="Scroll to top"
+    title="Back to top"
+    hidden
+>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</button>
