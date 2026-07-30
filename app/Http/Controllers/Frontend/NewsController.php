@@ -66,7 +66,7 @@ class NewsController extends Controller
             ->where('is_trending', true)
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
             ->latest('published_at')
-            ->paginate((int) $request->input('per_page', 12))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
@@ -124,6 +124,7 @@ class NewsController extends Controller
         $category = NewsCategory::query()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('slug', $slug)
+            ->where('status', 'active')
             ->firstOrFail();
 
         $news = News::query()
@@ -132,7 +133,7 @@ class NewsController extends Controller
             ->where('news_category_id', $category->id)
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
             ->latest('published_at')
-            ->paginate((int) $request->input('per_page', 12))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
@@ -160,7 +161,7 @@ class NewsController extends Controller
             ->whereHas('tags', fn ($q) => $q->where('news_tags.id', $tag->id))
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
             ->latest('published_at')
-            ->paginate((int) $request->input('per_page', 12))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {

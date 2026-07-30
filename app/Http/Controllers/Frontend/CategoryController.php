@@ -87,12 +87,12 @@ class CategoryController extends Controller
         ]);
 
         $exams = Exam::query()
-            ->published()
+            ->publicCatalog()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('category_id', $category->id)
             ->with(['category:id,name,slug'])
             ->latest('id')
-            ->paginate((int) $request->input('per_page', 12), ['*'], 'page')
+            ->paginate((int) $request->input('per_page', 36), ['*'], 'page')
             ->withQueryString();
 
         $relatedBlogs = $this->relatedBlogsForCategorySlug($orgId, $category->slug);

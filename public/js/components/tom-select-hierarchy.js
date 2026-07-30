@@ -87,7 +87,20 @@
             return null;
         }
 
-        const instance = new global.TomSelect(select, createConfig(select, extra));
+        // Prefer specialized hierarchy instance over a generic auto-init
+        if (select.tomselect) {
+            try {
+                select.tomselect.destroy();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        const config = createConfig(select, {
+            ...extra,
+            plugins: ['dropdown_input', ...((extra && extra.plugins) || [])],
+        });
+        const instance = new global.TomSelect(select, config);
         global.EmsTomSelectBlur?.attach(instance);
         return instance;
     }

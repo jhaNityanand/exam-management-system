@@ -48,7 +48,7 @@ class QuestionController extends Controller
             default => $query->latest('id'),
         };
 
-        $questions = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
+        $questions = $query->paginate((int) $request->input('per_page', 36))->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
             return $this->paginatedHtmlJson($questions, 'frontend.components.question-card', 'question');
@@ -127,7 +127,7 @@ class QuestionController extends Controller
             ->withCount(['publicQuestions as questions_count'])
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->paginate((int) $request->input('per_page', 24))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
@@ -155,7 +155,7 @@ class QuestionController extends Controller
             ->where('category_id', $category->id)
             ->with(['category:id,name,slug'])
             ->latest('id')
-            ->paginate((int) $request->input('per_page', 12))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {

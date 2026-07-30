@@ -34,6 +34,24 @@ class ExamController extends Controller
             ->with(['category:id,name,slug', 'bannerImage', 'ogImage'])
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', (int) $request->input('category_id')))
             ->when($request->filled('difficulty_level'), fn ($q) => $q->where('difficulty_level', $request->input('difficulty_level')))
+            ->when($request->filled('exam_mode'), fn ($q) => $q->where('exam_mode', $request->input('exam_mode')))
+            ->when($request->filled('pricing'), function ($q) use ($request) {
+                $pricing = $request->string('pricing')->toString();
+                if ($pricing === 'paid') {
+                    $q->where(function ($inner) {
+                        $inner->where('pricing_option', 'paid')
+                            ->orWhere('exam_amount', '>', 0);
+                    });
+                } elseif ($pricing === 'free') {
+                    $q->where(function ($inner) {
+                        $inner->whereNull('pricing_option')
+                            ->orWhere('pricing_option', '!=', 'paid');
+                    })->where(function ($inner) {
+                        $inner->whereNull('exam_amount')
+                            ->orWhere('exam_amount', '<=', 0);
+                    });
+                }
+            })
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = '%'.$request->string('search')->trim().'%';
                 $q->where(function ($inner) use ($term) {
@@ -70,7 +88,7 @@ class ExamController extends Controller
             default => $query->latest('id'),
         };
 
-        $exams = $query->paginate((int) $request->input('per_page', 12))->withQueryString();
+        $exams = $query->paginate((int) $request->input('per_page', 36))->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
             return $this->paginatedHtmlJson($exams, 'frontend.components.exam-card', 'exam');
@@ -86,7 +104,7 @@ class ExamController extends Controller
         return view('frontend.exam.index', [
             'exams' => $exams,
             'categories' => $categories,
-            'filters' => $request->only(['category_id', 'difficulty_level', 'search', 'sort']),
+            'filters' => $request->only(['category_id', 'difficulty_level', 'exam_mode', 'pricing', 'search', 'sort']),
         ]);
     }
 

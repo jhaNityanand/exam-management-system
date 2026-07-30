@@ -169,7 +169,15 @@ class News extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_PUBLISHED)
-            ->where('visibility', self::VISIBILITY_PUBLIC);
+            ->where('visibility', self::VISIBILITY_PUBLIC)
+            ->where(function (Builder $inner) {
+                $inner->whereNull('published_at')
+                    ->orWhere('published_at', '<=', now());
+            })
+            ->where(function (Builder $inner) {
+                $inner->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
     }
 
     public function statusLabel(): string

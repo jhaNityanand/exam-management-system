@@ -255,12 +255,13 @@
 
         const config = {
             create: false,
-            plugins: ['remove_button'],
+            plugins: ['remove_button', 'dropdown_input'],
             placeholder: select.dataset.placeholder || 'Select one or more…',
             maxItems: null,
             maxOptions: select.dataset.maxOptions ? Number(select.dataset.maxOptions) : null,
             closeAfterSelect: false,
             hideSelected: true,
+            searchField: ['text'],
         };
 
         if (select.dataset.filterHierarchy === '1' && global.EmsTomSelectHierarchy) {

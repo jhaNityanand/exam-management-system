@@ -213,11 +213,11 @@ class HomePageService
         $cacheKey = 'frontend.stats.'.($orgId ?? 'global');
 
         return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($orgId) {
-            $examQuery = Exam::query()->published();
+            $examQuery = Exam::query()->publicCatalog();
             $blogQuery = Blog::query()->published();
             $newsQuery = News::query()->published();
-            $questionQuery = Question::query();
-            $userQuery = User::query();
+            $questionQuery = Question::query()->publiclyVisible();
+            $userQuery = User::query()->where('status', 'active');
 
             if ($orgId) {
                 $examQuery->forOrg($orgId);
@@ -243,7 +243,7 @@ class HomePageService
     public function featuredExams(?int $orgId = null, int $limit = 12): Collection
     {
         return Exam::query()
-            ->published()
+            ->publicCatalog()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->with(['category', 'bannerImage'])
             ->inRandomOrder()
@@ -257,7 +257,7 @@ class HomePageService
     public function upcomingExams(?int $orgId = null, int $limit = 4): Collection
     {
         return Exam::query()
-            ->published()
+            ->publicCatalog()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->whereNotNull('scheduled_start')
             ->where('scheduled_start', '>', now())
@@ -273,6 +273,7 @@ class HomePageService
     public function randomQuestions(?int $orgId = null, int $limit = 12): Collection
     {
         return Question::query()
+            ->publiclyVisible()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->with(['category'])
             ->inRandomOrder()

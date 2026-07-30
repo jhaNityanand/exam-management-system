@@ -137,7 +137,11 @@ class Blog extends Model
 
     public function scopePublished(Builder $query): Builder
     {
-        return $query->where('status', self::STATUS_PUBLISHED);
+        return $query->where('status', self::STATUS_PUBLISHED)
+            ->where(function (Builder $inner) {
+                $inner->whereNull('published_at')
+                    ->orWhere('published_at', '<=', now());
+            });
     }
 
     public function statusLabel(): string

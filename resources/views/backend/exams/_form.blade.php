@@ -93,7 +93,7 @@
                     <div class="exam-grid exam-grid--3" id="basic-meta-grid">
                         <div>
                             <label for="exam_category_id" class="exam-label">Exam Category <span class="form-required">*</span></label>
-                            <select id="exam_category_id" name="exam_category_id" class="mt-1 block w-full">
+                            <select id="exam_category_id" name="exam_category_id" class="mt-1 block w-full" data-option-style="hierarchy" data-ems-select="manual">
                                 <option value="">Search or select...</option>
                                 @foreach($categories as $cat)
                                     <option value="{{ $cat->id }}"

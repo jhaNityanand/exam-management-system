@@ -8,6 +8,9 @@
     @include('partials.theme-init', ['themeStorageKey' => 'ems.theme', 'themeResolveMode' => 'preference'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ versioned_asset('css/components/icon-buttons.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('vendor/tom-select/tom-select.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('vendor/tom-select/tom-select.default.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/components/searchable-select.css') }}">
     @stack('styles')
 </head>
 <body class="font-sans antialiased">
@@ -24,6 +27,8 @@
     <div id="page-progress" class="page-progress" aria-hidden="true"></div>
     @yield('body')
     @include('partials.flash-toasts')
+    <script src="{{ versioned_asset('vendor/tom-select/tom-select.complete.min.js') }}"></script>
+    <script src="{{ versioned_asset('js/components/searchable-select.js') }}" defer></script>
     @stack('scripts')
     <script>
         (function () {

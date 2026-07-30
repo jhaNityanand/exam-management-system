@@ -101,7 +101,7 @@
             hideSelected: !isMultiple,
             closeAfterSelect: !isMultiple,
             dropdownParent: 'body',
-            plugins: isMultiple ? ['remove_button'] : [],
+            plugins: isMultiple ? ['remove_button'] : ['dropdown_input'],
             sortField: [{ field: '$order' }],
             searchField: ['text'],
             placeholder: getPlaceholder(select),
@@ -173,6 +173,15 @@
 
         if (typeof global.TomSelect === 'undefined') {
             return null;
+        }
+
+        // Replace generic auto-enhanced instance with EmsSelect config
+        if (select.tomselect) {
+            try {
+                select.tomselect.destroy();
+            } catch (_) {
+                /* ignore */
+            }
         }
 
         const instance = new global.TomSelect(select, createTomConfig(select));

@@ -33,7 +33,7 @@ class SearchController extends Controller
             $like = '%'.$term.'%';
 
             $exams = Exam::query()
-                ->published()
+                ->publicCatalog()
                 ->when($orgId, fn ($q) => $q->forOrg($orgId))
                 ->where(function ($q) use ($like) {
                     $q->where('title', 'like', $like)

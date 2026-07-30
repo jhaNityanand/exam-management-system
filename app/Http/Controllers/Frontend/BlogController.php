@@ -108,6 +108,7 @@ class BlogController extends Controller
         $category = BlogCategory::query()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('slug', $slug)
+            ->where('status', 'active')
             ->firstOrFail();
 
         $blogs = Blog::query()
@@ -116,7 +117,7 @@ class BlogController extends Controller
             ->where('blog_category_id', $category->id)
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'banners'])
             ->latest('published_at')
-            ->paginate((int) $request->input('per_page', 12))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
@@ -144,7 +145,7 @@ class BlogController extends Controller
             ->whereHas('tags', fn ($q) => $q->where('blog_tags.id', $tag->id))
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'banners'])
             ->latest('published_at')
-            ->paginate((int) $request->input('per_page', 12))
+            ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
         if ($this->wantsFrontendJson($request)) {
