@@ -34,4 +34,44 @@ final class OrganizationRoles
     {
         return in_array((string) $role, self::adminPanelRoles(), true);
     }
+
+    /**
+     * Human-readable label for public author / org roles.
+     */
+    public static function label(?string $role): string
+    {
+        return match ((string) $role) {
+            self::ADMIN => 'Administrator',
+            self::ORG_ADMIN => 'Organization Admin',
+            self::EDITOR => 'Editor',
+            self::VIEWER => 'Viewer',
+            self::CANDIDATE => 'Candidate',
+            default => 'Author',
+        };
+    }
+
+    /**
+     * Short badge label for author cards.
+     */
+    public static function shortLabel(?string $role): string
+    {
+        return match ((string) $role) {
+            self::ADMIN => 'Admin',
+            self::ORG_ADMIN => 'Org Admin',
+            self::EDITOR => 'Editor',
+            default => 'Author',
+        };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function publicAuthorLabels(): array
+    {
+        return [
+            self::ADMIN => self::label(self::ADMIN),
+            self::ORG_ADMIN => self::label(self::ORG_ADMIN),
+            self::EDITOR => self::label(self::EDITOR),
+        ];
+    }
 }

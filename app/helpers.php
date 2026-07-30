@@ -95,6 +95,40 @@ if (! function_exists('user_avatar')) {
     }
 }
 
+if (! function_exists('author_role')) {
+    /**
+     * Resolve the public author role for a user in the current org context.
+     *
+     * @return array{key:string, label:string, short:string}
+     */
+    function author_role(?\App\Models\User $user, ?string $fallback = null): array
+    {
+        $key = $fallback;
+        if ($user && blank($key)) {
+            $key = $user->getAttribute('public_role');
+        }
+        if ($user && blank($key)) {
+            $orgId = current_organization_id();
+            $membership = $user->organizations()
+                ->wherePivot('status', 'active')
+                ->when($orgId, fn ($q) => $q->where('organizations.id', $orgId))
+                ->wherePivotIn('role', \App\Support\OrganizationRoles::adminPanelRoles())
+                ->get()
+                ->sortBy(fn ($org) => array_search($org->pivot->role, \App\Support\OrganizationRoles::adminPanelRoles(), true))
+                ->first();
+            $key = $membership?->pivot?->role;
+        }
+
+        $key = (string) ($key ?: 'editor');
+
+        return [
+            'key' => $key,
+            'label' => \App\Support\OrganizationRoles::label($key),
+            'short' => \App\Support\OrganizationRoles::shortLabel($key),
+        ];
+    }
+}
+
 if (! function_exists('ad_slot')) {
     /**
      * Render active advertisements for a placement slot.

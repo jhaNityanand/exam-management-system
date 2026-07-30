@@ -413,6 +413,28 @@
         });
       });
     });
+
+    const root = qs('[data-faq-root]');
+    const search = qs('[data-faq-search]');
+    const empty = qs('[data-faq-empty]');
+    if (!root || !search) return;
+
+    search.addEventListener('input', function () {
+      const term = String(search.value || '').trim().toLowerCase();
+      let visible = 0;
+      qsa('[data-faq-group]', root).forEach(function (group) {
+        let groupVisible = 0;
+        qsa('[data-faq-item]', group).forEach(function (item) {
+          const text = item.getAttribute('data-faq-text') || '';
+          const show = !term || text.indexOf(term) !== -1;
+          item.hidden = !show;
+          if (show) groupVisible += 1;
+        });
+        group.hidden = groupVisible === 0;
+        visible += groupVisible;
+      });
+      if (empty) empty.hidden = visible > 0;
+    });
   }
 
   /* Search overlay + suggest */

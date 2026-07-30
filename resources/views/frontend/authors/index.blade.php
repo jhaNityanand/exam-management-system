@@ -12,20 +12,21 @@
 
     $activeFilterCount = collect([
         request('search'),
+        request('role'),
         request('sort') && request('sort') !== 'name' ? request('sort') : null,
     ])->filter(fn ($v) => filled($v))->count();
 @endphp
 
 @section('content')
     <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.authors.index') }}">
-        <div class="et-page-hero et-page-hero--listing">
+        <div class="et-page-hero et-page-hero--listing et-page-hero--authors">
             <div class="et-container">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $seo['breadcrumbs']])
                 <div class="et-page-hero__row">
                     <div class="et-page-hero__copy">
                         <p class="et-eyebrow">Community</p>
                         <h1>Meet our authors</h1>
-                        <p>Mentors and editors who publish exams, blogs, and news.</p>
+                        <p>Administrators, org leads, and editors who publish exams, blogs, and news.</p>
                     </div>
                     <div class="et-filter-toolbar">
                         <button type="button" class="et-btn et-btn--soft et-filter-trigger" data-filter-open aria-haspopup="dialog" aria-controls="et-author-filter-modal">
@@ -63,6 +64,21 @@
                                     <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
                                 <input type="search" name="search" value="{{ request('search') }}" placeholder="Search by name…">
+                            </span>
+                        </label>
+
+                        <label class="et-field">
+                            <span class="et-field__label">Role</span>
+                            <span class="et-field__control">
+                                <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                <select name="role" aria-label="Role">
+                                    <option value="">All roles</option>
+                                    @foreach(($roleOptions ?? []) as $val => $label)
+                                        <option value="{{ $val }}" @selected(request('role') === $val)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
                             </span>
                         </label>
 

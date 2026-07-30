@@ -24,8 +24,13 @@ class FaqController extends Controller
             }))
             ->get();
 
+        $grouped = $faqs
+            ->groupBy(fn ($faq) => $faq->category?->name ?: 'General')
+            ->sortKeys();
+
         return view('frontend.faqs.index', [
             'faqs' => $faqs,
+            'groupedFaqs' => $grouped,
         ]);
     }
 }

@@ -30,8 +30,10 @@
 
     <div class="et-contact__layout">
         <div class="et-panel et-contact__form-panel">
-            <h2 class="et-panel__title">Send us a message</h2>
-            <p class="et-panel__subtitle">We typically reply within one business day during support hours.</p>
+            <div class="et-contact__form-head">
+                <h2 class="et-panel__title">Send us a message</h2>
+                <p class="et-panel__subtitle">We typically reply within one business day during support hours.</p>
+            </div>
 
             @if (session('success'))
                 <div class="et-alert et-alert--success" role="status">{{ session('success') }}</div>
@@ -67,85 +69,97 @@
             </form>
         </div>
 
-        <aside class="et-panel et-contact__details">
-            <h2 class="et-panel__title">Contact details</h2>
-            <ul class="et-contact__list">
-                @if ($email)
-                    <li>
-                        <span class="et-contact__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
-                        </span>
-                        <div>
-                            <strong>Email</strong>
-                            <a href="mailto:{{ $email }}">{{ $email }}</a>
-                        </div>
-                    </li>
-                @endif
-                @if ($phone)
-                    <li>
-                        <span class="et-contact__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 006 6l1.5-2 4 1.5v3A2 2 0 0118.5 20 15.5 15.5 0 014 5.5a2 2 0 012.5-2z"/></svg>
-                        </span>
-                        <div>
-                            <strong>Phone</strong>
-                            <a href="tel:{{ preg_replace('/\s+/', '', $phone) }}">{{ $phone }}</a>
-                        </div>
-                    </li>
-                @endif
-                @if ($whatsappHref)
-                    <li>
-                        <span class="et-contact__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 19.5 6 21l.8-3.2A8 8 0 1112 20a7.8 7.8 0 01-3.5-.9z"/><path d="M9.2 10.8c.3-.5.5-.5.8-.5h.3c.2 0 .4 0 .5.4l.6 1.5c.1.3 0 .5-.2.7l-.4.4a6.5 6.5 0 003 3l.4-.3c.2-.2.4-.2.7-.1l1.5.6c.3.1.4.3.4.5v.3c0 .3 0 .5-.5.8a4.2 4.2 0 01-2 .5 6.8 6.8 0 01-5.8-5.8 4.2 4.2 0 01.5-2z"/></svg>
-                        </span>
-                        <div>
-                            <strong>WhatsApp</strong>
-                            <a href="{{ $whatsappHref }}" target="_blank" rel="noopener noreferrer">{{ $whatsapp }}</a>
-                        </div>
-                    </li>
-                @endif
-                @if ($address)
-                    <li>
-                        <span class="et-contact__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-5.2 7-11a7 7 0 10-14 0c0 5.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                        </span>
-                        <div>
-                            <strong>Address</strong>
-                            @if ($mapsUrl)
-                                <a href="{{ $mapsUrl }}" target="_blank" rel="noopener noreferrer">{{ $address }}</a>
-                            @else
-                                <span>{{ $address }}</span>
-                            @endif
-                        </div>
-                    </li>
-                @endif
-                @if ($supportHours !== [] || $hours)
-                    <li>
-                        <span class="et-contact__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                        </span>
-                        <div>
-                            <strong>Hours</strong>
-                            @if ($supportHours !== [])
-                                <ul class="et-contact__hours">
-                                    @foreach ($supportHours as $row)
-                                        <li>
-                                            <span class="et-contact__hours-day">{{ $dayLabels[$row['day']] ?? ucfirst($row['day']) }}</span>
-                                            <span class="et-contact__hours-time">
-                                                {{ \App\Services\Settings\OrganizationSettingsService::formatClockAmPm($row['from']) }}
-                                                –
-                                                {{ \App\Services\Settings\OrganizationSettingsService::formatClockAmPm($row['to']) }}
-                                            </span>
-                                            <span class="et-contact__hours-tz">({{ $row['timezone'] === 'Asia/Kolkata' ? 'IST' : $row['timezone'] }})</span>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @else
-                                <span>{{ $hours }}</span>
-                            @endif
-                        </div>
-                    </li>
-                @endif
-            </ul>
+        <aside class="et-contact__side">
+            <div class="et-panel et-contact__details">
+                <h2 class="et-panel__title">Contact details</h2>
+                <ul class="et-contact__list">
+                    @if ($email)
+                        <li>
+                            <span class="et-contact__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+                            </span>
+                            <div>
+                                <strong>Email</strong>
+                                <a href="mailto:{{ $email }}">{{ $email }}</a>
+                            </div>
+                        </li>
+                    @endif
+                    @if ($phone)
+                        <li>
+                            <span class="et-contact__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 006 6l1.5-2 4 1.5v3A2 2 0 0118.5 20 15.5 15.5 0 014 5.5a2 2 0 012.5-2z"/></svg>
+                            </span>
+                            <div>
+                                <strong>Phone</strong>
+                                <a href="tel:{{ preg_replace('/\s+/', '', $phone) }}">{{ $phone }}</a>
+                            </div>
+                        </li>
+                    @endif
+                    @if ($whatsappHref)
+                        <li>
+                            <span class="et-contact__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 19.5 6 21l.8-3.2A8 8 0 1112 20a7.8 7.8 0 01-3.5-.9z"/><path d="M9.2 10.8c.3-.5.5-.5.8-.5h.3c.2 0 .4 0 .5.4l.6 1.5c.1.3 0 .5-.2.7l-.4.4a6.5 6.5 0 003 3l.4-.3c.2-.2.4-.2.7-.1l1.5.6c.3.1.4.3.4.5v.3c0 .3 0 .5-.5.8a4.2 4.2 0 01-2 .5 6.8 6.8 0 01-5.8-5.8 4.2 4.2 0 01.5-2z"/></svg>
+                            </span>
+                            <div>
+                                <strong>WhatsApp</strong>
+                                <a href="{{ $whatsappHref }}" target="_blank" rel="noopener noreferrer">{{ $whatsapp }}</a>
+                            </div>
+                        </li>
+                    @endif
+                    @if ($address)
+                        <li>
+                            <span class="et-contact__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-5.2 7-11a7 7 0 10-14 0c0 5.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                            </span>
+                            <div>
+                                <strong>Address</strong>
+                                @if ($mapsUrl)
+                                    <a href="{{ $mapsUrl }}" target="_blank" rel="noopener noreferrer">{{ $address }}</a>
+                                @else
+                                    <span>{{ $address }}</span>
+                                @endif
+                            </div>
+                        </li>
+                    @endif
+                    @if ($supportHours !== [] || $hours)
+                        <li>
+                            <span class="et-contact__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                            </span>
+                            <div>
+                                <strong>Hours</strong>
+                                @if ($supportHours !== [])
+                                    <ul class="et-contact__hours">
+                                        @foreach ($supportHours as $row)
+                                            <li>
+                                                <span class="et-contact__hours-day">{{ $dayLabels[$row['day']] ?? ucfirst($row['day']) }}</span>
+                                                <span class="et-contact__hours-time">
+                                                    {{ \App\Services\Settings\OrganizationSettingsService::formatClockAmPm($row['from']) }}
+                                                    –
+                                                    {{ \App\Services\Settings\OrganizationSettingsService::formatClockAmPm($row['to']) }}
+                                                </span>
+                                                <span class="et-contact__hours-tz">({{ $row['timezone'] === 'Asia/Kolkata' ? 'IST' : $row['timezone'] }})</span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    <span>{{ $hours }}</span>
+                                @endif
+                            </div>
+                        </li>
+                    @endif
+                </ul>
+            </div>
+
+            <div class="et-panel et-contact__help">
+                <h2 class="et-panel__title">Quick links</h2>
+                <ul class="et-cms-aside__links">
+                    <li><a href="{{ route('frontend.faqs.index') }}">Browse FAQs</a></li>
+                    <li><a href="{{ url('/about-us') }}">About Examtube</a></li>
+                    <li><a href="{{ route('frontend.authors.index') }}">Meet authors</a></li>
+                </ul>
+            </div>
         </aside>
     </div>
 </section>
+
