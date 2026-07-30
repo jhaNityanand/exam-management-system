@@ -18,12 +18,17 @@ class NewsController extends Controller
     {
         $orgId = $this->organizationId();
 
+        $spotlight = $request->input('spotlight');
+        $isBreaking = $request->boolean('breaking') || $spotlight === 'breaking';
+        $isTrending = $request->boolean('trending') || $spotlight === 'trending';
+
         $query = News::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
-            ->when($request->boolean('breaking'), fn ($q) => $q->where('is_breaking', true))
-            ->when($request->boolean('trending'), fn ($q) => $q->where('is_trending', true))
+            ->when($isBreaking, fn ($q) => $q->where('is_breaking', true))
+            ->when($isTrending, fn ($q) => $q->where('is_trending', true))
+            ->when($request->filled('category_id'), fn ($q) => $q->where('news_category_id', $request->integer('category_id')))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = '%'.$request->string('search')->trim().'%';
                 $q->where(function ($inner) use ($term) {
@@ -32,8 +37,14 @@ class NewsController extends Controller
                         ->orWhere('short_description', 'like', $term)
                         ->orWhere('slug', 'like', $term);
                 });
-            })
-            ->latest('published_at');
+            });
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $query->oldest('published_at'),
+            'title' => $query->orderBy('title')->orderByDesc('published_at'),
+            'popular' => $query->orderByDesc('view_count')->orderByDesc('published_at'),
+            default => $query->latest('published_at'),
+        };
 
         $news = $query->paginate((int) $request->input('per_page', 36))->withQueryString();
 
@@ -52,7 +63,7 @@ class NewsController extends Controller
         return view('frontend.news.index', [
             'news' => $news,
             'categories' => $categories,
-            'filters' => $request->only(['breaking', 'trending', 'search']),
+            'filters' => $request->only(['breaking', 'trending', 'search', 'category_id', 'sort', 'spotlight']),
         ]);
     }
 
@@ -65,7 +76,23 @@ class NewsController extends Controller
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('is_trending', true)
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
-            ->latest('published_at')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('title', 'like', $term)
+                        ->orWhere('excerpt', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            });
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $news->oldest('published_at'),
+            'title' => $news->orderBy('title')->orderByDesc('published_at'),
+            'popular' => $news->orderByDesc('view_count')->orderByDesc('published_at'),
+            default => $news->latest('published_at'),
+        };
+
+        $news = $news
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
@@ -127,12 +154,28 @@ class NewsController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        $news = News::query()
+        $query = News::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('news_category_id', $category->id)
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
-            ->latest('published_at')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('title', 'like', $term)
+                        ->orWhere('excerpt', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            });
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $query->oldest('published_at'),
+            'title' => $query->orderBy('title')->orderByDesc('published_at'),
+            'popular' => $query->orderByDesc('view_count')->orderByDesc('published_at'),
+            default => $query->latest('published_at'),
+        };
+
+        $news = $query
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
@@ -155,12 +198,28 @@ class NewsController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $news = News::query()
+        $query = News::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->whereHas('tags', fn ($q) => $q->where('news_tags.id', $tag->id))
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
-            ->latest('published_at')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('title', 'like', $term)
+                        ->orWhere('excerpt', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            });
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $query->oldest('published_at'),
+            'title' => $query->orderBy('title')->orderByDesc('published_at'),
+            'popular' => $query->orderByDesc('view_count')->orderByDesc('published_at'),
+            default => $query->latest('published_at'),
+        };
+
+        $news = $query
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 

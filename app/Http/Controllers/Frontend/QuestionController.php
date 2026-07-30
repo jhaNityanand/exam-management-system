@@ -125,8 +125,22 @@ class QuestionController extends Controller
             ->publiclyVisible()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->withCount(['publicQuestions as questions_count'])
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('name', 'like', $term)
+                        ->orWhere('description', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            });
+
+        match ($request->input('sort', 'name')) {
+            'name_desc' => $categories->orderByDesc('name'),
+            'popular' => $categories->orderByDesc('questions_count')->orderBy('name'),
+            default => $categories->orderBy('sort_order')->orderBy('name'),
+        };
+
+        $categories = $categories
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
@@ -149,12 +163,30 @@ class QuestionController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $questions = Question::query()
+        $query = Question::query()
             ->publiclyVisible()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('category_id', $category->id)
             ->with(['category:id,name,slug'])
-            ->latest('id')
+            ->when($request->filled('difficulty'), fn ($q) => $q->where('difficulty', $request->input('difficulty')))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('title', 'like', $term)
+                        ->orWhere('body', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            });
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $query->oldest('id'),
+            'title' => $query->orderBy('title')->orderByDesc('id'),
+            'difficulty' => $query->orderBy('difficulty')->orderByDesc('id'),
+            'popular' => $query->orderByDesc('view_count')->orderByDesc('id'),
+            default => $query->latest('id'),
+        };
+
+        $questions = $query
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 

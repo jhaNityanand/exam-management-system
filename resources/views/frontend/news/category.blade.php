@@ -5,36 +5,32 @@
         'title' => ($category->name ?? 'Category').' news',
         'description' => $category->description ?? 'News in this category.',
     ];
+    $activeFilterCount = collect([
+        request('search'),
+        request('sort') && request('sort') !== 'latest' ? request('sort') : null,
+    ])->filter(fn ($v) => filled($v))->count();
 @endphp
 
 @section('content')
-    <div class="et-page-hero">
-        <div class="et-container">
-            @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
-                ['label' => 'Home', 'url' => route('home')],
-                ['label' => 'News', 'url' => route('frontend.news.index')],
-                ['label' => $category->name ?? 'Category'],
-            ]])
-            <h1>{{ $category->name ?? 'Category' }}</h1>
-            @if(!empty($category->description))
-                <p>{{ $category->description }}</p>
-            @endif
-        </div>
-    </div>
-
-    <div class="et-container et-section">
-        @if(($news ?? collect())->isEmpty())
-            @include('frontend.partials.empty-state', ['title' => 'No news in this category', 'message' => ''])
-        @else
-            <div class="et-grid et-grid--3" data-load-more-list>
-                @foreach($news as $item)
-                    @include('frontend.components.news-card', ['news' => $item])
-                @endforeach
-            </div>
-            @include('frontend.partials.load-more', [
-                'paginator' => $news,
-                'endpoint' => route('frontend.news.category', $category->slug).(($qs = request()->getQueryString()) ? '?'.$qs : ''),
-            ])
-        @endif
-    </div>
+    @include('frontend.partials.listing-page', [
+        'listingEndpoint' => route('frontend.news.category', $category->slug),
+        'listingLoadMoreEndpoint' => route('frontend.news.category', $category->slug).(request()->getQueryString() ? '?'.request()->getQueryString() : ''),
+        'listingModalId' => 'et-news-category-filter-modal',
+        'listingTitle' => 'Filter news',
+        'listingHeading' => $category->name ?? 'Category',
+        'listingLead' => $category->description ?? null,
+        'listingBreadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'News', 'url' => route('frontend.news.index')],
+            ['label' => $category->name ?? 'Category'],
+        ],
+        'listingSearchLabel' => 'Search news',
+        'listingSearchPlaceholder' => 'Search by title or topic…',
+        'listingItems' => $news,
+        'listingCard' => 'frontend.components.news-card',
+        'listingCardKey' => 'news',
+        'listingEmptyTitle' => 'No news in this category',
+        'listingResetUrl' => route('frontend.news.category', $category->slug),
+        'activeFilterCount' => $activeFilterCount,
+    ])
 @endsection

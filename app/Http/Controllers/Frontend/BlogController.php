@@ -19,7 +19,7 @@ class BlogController extends Controller
     {
         $orgId = $this->organizationId();
 
-        $blogs = Blog::query()
+        $query = Blog::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'banners'])
@@ -31,7 +31,16 @@ class BlogController extends Controller
                         ->orWhere('slug', 'like', $term);
                 });
             })
-            ->latest('published_at')
+            ->when($request->filled('category_id'), fn ($q) => $q->where('blog_category_id', $request->integer('category_id')));
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $query->oldest('published_at'),
+            'title' => $query->orderBy('title')->orderByDesc('published_at'),
+            'popular' => $query->orderByDesc('view_count')->orderByDesc('published_at'),
+            default => $query->latest('published_at'),
+        };
+
+        $blogs = $query
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
@@ -111,12 +120,28 @@ class BlogController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        $blogs = Blog::query()
+        $query = Blog::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('blog_category_id', $category->id)
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'banners'])
-            ->latest('published_at')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('title', 'like', $term)
+                        ->orWhere('excerpt', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            });
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $query->oldest('published_at'),
+            'title' => $query->orderBy('title')->orderByDesc('published_at'),
+            'popular' => $query->orderByDesc('view_count')->orderByDesc('published_at'),
+            default => $query->latest('published_at'),
+        };
+
+        $blogs = $query
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 
@@ -139,12 +164,28 @@ class BlogController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $blogs = Blog::query()
+        $query = Blog::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->whereHas('tags', fn ($q) => $q->where('blog_tags.id', $tag->id))
             ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'banners'])
-            ->latest('published_at')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('title', 'like', $term)
+                        ->orWhere('excerpt', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            });
+
+        match ($request->input('sort', 'latest')) {
+            'oldest' => $query->oldest('published_at'),
+            'title' => $query->orderBy('title')->orderByDesc('published_at'),
+            'popular' => $query->orderByDesc('view_count')->orderByDesc('published_at'),
+            default => $query->latest('published_at'),
+        };
+
+        $blogs = $query
             ->paginate((int) $request->input('per_page', 36))
             ->withQueryString();
 

@@ -2,34 +2,32 @@
 
 @php
     $seo = ['title' => 'News tagged '.$tag->name, 'description' => 'News tagged with '.$tag->name];
+    $activeFilterCount = collect([
+        request('search'),
+        request('sort') && request('sort') !== 'latest' ? request('sort') : null,
+    ])->filter(fn ($v) => filled($v))->count();
 @endphp
 
 @section('content')
-    <div class="et-page-hero">
-        <div class="et-container">
-            @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
-                ['label' => 'Home', 'url' => route('home')],
-                ['label' => 'News', 'url' => route('frontend.news.index')],
-                ['label' => '#'.$tag->name],
-            ]])
-            <h1>#{{ $tag->name }}</h1>
-            <p>News stories tagged with {{ $tag->name }}.</p>
-        </div>
-    </div>
-
-    <div class="et-container et-section">
-        @if(($news ?? collect())->isEmpty())
-            @include('frontend.partials.empty-state', ['title' => 'No news for this tag', 'message' => ''])
-        @else
-            <div class="et-grid et-grid--3" data-load-more-list>
-                @foreach($news as $item)
-                    @include('frontend.components.news-card', ['news' => $item])
-                @endforeach
-            </div>
-            @include('frontend.partials.load-more', [
-                'paginator' => $news,
-                'endpoint' => route('frontend.news.tag', array_merge([$tag->slug], request()->query())),
-            ])
-        @endif
-    </div>
+    @include('frontend.partials.listing-page', [
+        'listingEndpoint' => route('frontend.news.tag', $tag->slug),
+        'listingLoadMoreEndpoint' => route('frontend.news.tag', $tag->slug).(request()->getQueryString() ? '?'.request()->getQueryString() : ''),
+        'listingModalId' => 'et-news-tag-filter-modal',
+        'listingTitle' => 'Filter news',
+        'listingHeading' => '#'.$tag->name,
+        'listingLead' => 'News stories tagged with '.$tag->name.'.',
+        'listingBreadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'News', 'url' => route('frontend.news.index')],
+            ['label' => '#'.$tag->name],
+        ],
+        'listingSearchLabel' => 'Search news',
+        'listingSearchPlaceholder' => 'Search by title or topic…',
+        'listingItems' => $news,
+        'listingCard' => 'frontend.components.news-card',
+        'listingCardKey' => 'news',
+        'listingEmptyTitle' => 'No news for this tag',
+        'listingResetUrl' => route('frontend.news.tag', $tag->slug),
+        'activeFilterCount' => $activeFilterCount,
+    ])
 @endsection

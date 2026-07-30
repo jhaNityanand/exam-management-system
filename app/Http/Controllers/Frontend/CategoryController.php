@@ -12,7 +12,9 @@ use App\Models\News;
 use App\Models\NewsCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CategoryController extends Controller
@@ -22,51 +24,47 @@ class CategoryController extends Controller
     public function index(Request $request): View|JsonResponse
     {
         $orgId = $this->organizationId();
+        $items = $this->catalogItems($orgId);
 
-        $examCategories = ExamCategory::query()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('status', 'active')
-            ->roots()
-            ->with(['children' => fn ($q) => $q->where('status', 'active')->orderBy('sort_order')->orderBy('name')])
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
+        $type = $request->string('type')->toString();
+        if (in_array($type, ['exams', 'blogs', 'news'], true)) {
+            $items = $items->where('type', $type)->values();
+        }
 
-        $blogCategories = BlogCategory::query()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('status', 'active')
-            ->roots()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'description']);
+        if ($request->filled('search')) {
+            $term = Str::lower($request->string('search')->trim()->toString());
+            $items = $items->filter(function ($item) use ($term) {
+                return Str::contains(Str::lower((string) $item->name), $term)
+                    || Str::contains(Str::lower((string) ($item->description ?? '')), $term);
+            })->values();
+        }
 
-        $newsCategories = NewsCategory::query()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('status', 'active')
-            ->roots()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'description']);
+        $sort = $request->input('sort', 'name');
+        $items = match ($sort) {
+            'name_desc' => $items->sortByDesc(fn ($item) => Str::lower((string) $item->name))->values(),
+            default => $items->sortBy(fn ($item) => Str::lower((string) $item->name))->values(),
+        };
+
+        $perPage = max(1, (int) $request->input('per_page', 36));
+        $page = max(1, (int) $request->input('page', 1));
+        $total = $items->count();
+        $categories = new LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(),
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
 
         if ($this->wantsFrontendJson($request)) {
-            return response()->json([
-                'data' => [
-                    'exams' => $examCategories,
-                    'blogs' => $blogCategories,
-                    'news' => $newsCategories,
-                ],
-                'meta' => [
-                    'exam_count' => $examCategories->count(),
-                    'blog_count' => $blogCategories->count(),
-                    'news_count' => $newsCategories->count(),
-                ],
-            ]);
+            return $this->paginatedHtmlJson($categories, 'frontend.components.catalog-category-card', 'item');
         }
 
         return view('frontend.category.index', [
-            'examCategories' => $examCategories,
-            'blogCategories' => $blogCategories,
-            'newsCategories' => $newsCategories,
+            'categories' => $categories,
         ]);
     }
 
@@ -111,17 +109,72 @@ class CategoryController extends Controller
     }
 
     /**
-     * @return Collection<int, Blog>
+     * @return Collection<int, object{name:string,description:?string,url:string,type:string,type_label:string}>
      */
-    protected function relatedBlogsForCategorySlug(?int $orgId, ?string $slug): Collection
+    protected function catalogItems(?int $orgId): Collection
     {
-        if (! $slug) {
-            return collect();
-        }
+        $items = collect();
 
+        ExamCategory::query()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('status', 'active')
+            ->roots()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description'])
+            ->each(function (ExamCategory $category) use ($items) {
+                $items->push((object) [
+                    'name' => $category->name,
+                    'description' => $category->description,
+                    'url' => route('frontend.categories.show', $category->slug),
+                    'type' => 'exams',
+                    'type_label' => 'Exam',
+                ]);
+            });
+
+        BlogCategory::query()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('status', 'active')
+            ->roots()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description'])
+            ->each(function (BlogCategory $category) use ($items) {
+                $items->push((object) [
+                    'name' => $category->name,
+                    'description' => $category->description,
+                    'url' => route('frontend.blogs.category', $category->slug),
+                    'type' => 'blogs',
+                    'type_label' => 'Blog',
+                ]);
+            });
+
+        NewsCategory::query()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('status', 'active')
+            ->roots()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description'])
+            ->each(function (NewsCategory $category) use ($items) {
+                $items->push((object) [
+                    'name' => $category->name,
+                    'description' => $category->description,
+                    'url' => route('frontend.news.category', $category->slug),
+                    'type' => 'news',
+                    'type_label' => 'News',
+                ]);
+            });
+
+        return $items;
+    }
+
+    protected function relatedBlogsForCategorySlug(?int $orgId, string $slug): Collection
+    {
         $blogCategory = BlogCategory::query()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('slug', $slug)
+            ->where('status', 'active')
             ->first();
 
         if (! $blogCategory) {
@@ -138,18 +191,12 @@ class CategoryController extends Controller
             ->get();
     }
 
-    /**
-     * @return Collection<int, News>
-     */
-    protected function relatedNewsForCategorySlug(?int $orgId, ?string $slug): Collection
+    protected function relatedNewsForCategorySlug(?int $orgId, string $slug): Collection
     {
-        if (! $slug) {
-            return collect();
-        }
-
         $newsCategory = NewsCategory::query()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('slug', $slug)
+            ->where('status', 'active')
             ->first();
 
         if (! $newsCategory) {

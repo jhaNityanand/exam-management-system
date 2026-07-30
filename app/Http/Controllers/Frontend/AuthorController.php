@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\Blog;
 use App\Models\News;
 use App\Models\User;
 use App\Models\UserOrganization;
 use App\Support\OrganizationRoles;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AuthorController extends Controller
 {
-    public function index(): View
+    use RespondsWithFrontendJson;
+
+    public function index(Request $request): View|JsonResponse
     {
         $orgId = current_organization_id();
 
@@ -23,13 +28,34 @@ class AuthorController extends Controller
             ->pluck('user_id')
             ->unique();
 
-        $authors = User::query()
+        $query = User::query()
             ->with('profile')
             ->whereIn('id', $authorIds)
             ->where('status', 'active')
             ->whereNotNull('slug')
-            ->orderBy('name')
-            ->get();
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%'.$request->string('search')->trim().'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('name', 'like', $term)
+                        ->orWhere('email', 'like', $term)
+                        ->orWhere('slug', 'like', $term)
+                        ->orWhereHas('profile', fn ($profile) => $profile->where('bio', 'like', $term));
+                });
+            });
+
+        match ($request->input('sort', 'name')) {
+            'name_desc' => $query->orderByDesc('name'),
+            'latest' => $query->latest('id'),
+            default => $query->orderBy('name'),
+        };
+
+        $authors = $query
+            ->paginate((int) $request->input('per_page', 36))
+            ->withQueryString();
+
+        if ($this->wantsFrontendJson($request)) {
+            return $this->paginatedHtmlJson($authors, 'frontend.components.author-card', 'author');
+        }
 
         return view('frontend.authors.index', compact('authors'));
     }

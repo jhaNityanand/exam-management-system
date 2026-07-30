@@ -2,34 +2,32 @@
 
 @php
     $seo = ['title' => 'Trending news', 'description' => 'Trending education news and exam updates.'];
+    $activeFilterCount = collect([
+        request('search'),
+        request('sort') && request('sort') !== 'latest' ? request('sort') : null,
+    ])->filter(fn ($v) => filled($v))->count();
 @endphp
 
 @section('content')
-    <div class="et-page-hero">
-        <div class="et-container">
-            @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
-                ['label' => 'Home', 'url' => route('home')],
-                ['label' => 'News', 'url' => route('frontend.news.index')],
-                ['label' => 'Trending'],
-            ]])
-            <h1>Trending news</h1>
-            <p>Stories gaining traction with aspirants right now.</p>
-        </div>
-    </div>
-
-    <div class="et-container et-section">
-        @if(($news ?? collect())->isEmpty())
-            @include('frontend.partials.empty-state', ['title' => 'No trending stories', 'message' => ''])
-        @else
-            <div class="et-grid et-grid--3" data-load-more-list>
-                @foreach($news as $item)
-                    @include('frontend.components.news-card', ['news' => $item])
-                @endforeach
-            </div>
-            @include('frontend.partials.load-more', [
-                'paginator' => $news,
-                'endpoint' => route('frontend.news.trending', request()->query()),
-            ])
-        @endif
-    </div>
+    @include('frontend.partials.listing-page', [
+        'listingEndpoint' => route('frontend.news.trending'),
+        'listingLoadMoreEndpoint' => route('frontend.news.trending', request()->query()),
+        'listingModalId' => 'et-news-trending-filter-modal',
+        'listingTitle' => 'Filter trending news',
+        'listingHeading' => 'Trending news',
+        'listingLead' => 'Stories gaining traction with aspirants right now.',
+        'listingBreadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'News', 'url' => route('frontend.news.index')],
+            ['label' => 'Trending'],
+        ],
+        'listingSearchLabel' => 'Search news',
+        'listingSearchPlaceholder' => 'Search by title or topic…',
+        'listingItems' => $news,
+        'listingCard' => 'frontend.components.news-card',
+        'listingCardKey' => 'news',
+        'listingEmptyTitle' => 'No trending stories',
+        'listingResetUrl' => route('frontend.news.trending'),
+        'activeFilterCount' => $activeFilterCount,
+    ])
 @endsection

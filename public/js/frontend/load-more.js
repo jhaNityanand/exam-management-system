@@ -36,11 +36,12 @@
     return params;
   }
 
-  function countActiveFilters(params) {
+  function countActiveFilters(params, defaultSort) {
     var count = 0;
+    var skipSort = defaultSort || 'latest';
     Object.keys(params || {}).forEach(function (key) {
       if (key === 'page') return;
-      if (key === 'sort' && params[key] === 'latest') return;
+      if (key === 'sort' && params[key] === skipSort) return;
       if (params[key] != null && String(params[key]).trim() !== '') count += 1;
     });
     return count;
@@ -134,10 +135,11 @@
     var countEl = qs('[data-filter-count]', listing);
     var resetBtn = qs('[data-filters-reset]', listing);
     var endpoint = listing.getAttribute('data-endpoint') || (form && form.getAttribute('action')) || window.location.pathname;
+    var defaultSort = (form && form.getAttribute('data-default-sort')) || 'latest';
     var loading = false;
 
     function syncFilterChrome(params) {
-      var count = countActiveFilters(params);
+      var count = countActiveFilters(params, defaultSort);
       if (countEl) {
         countEl.textContent = String(count);
         countEl.hidden = count < 1;
@@ -256,8 +258,8 @@
       closeModal();
 
       var params = formToParams(form);
-      // Keep default sort out of URL when latest
-      if (params.sort === 'latest') delete params.sort;
+      // Keep default sort out of URL
+      if (params.sort === defaultSort) delete params.sort;
       params.page = 1;
       // Don't keep page=1 in URL
       var urlParams = Object.assign({}, params);
@@ -286,8 +288,15 @@
       if (event) event.preventDefault();
       if (!form) return;
       qsa('input, select', form).forEach(function (el) {
-        if (el.tagName === 'SELECT') {
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          el.checked = false;
+        } else if (el.tagName === 'SELECT') {
           el.selectedIndex = 0;
+          if (el.tomselect) {
+            try {
+              el.tomselect.setValue(el.value, true);
+            } catch (e) { /* ignore */ }
+          }
         } else {
           el.value = '';
         }
