@@ -45,7 +45,17 @@ class PageController extends Controller
         if (app(\App\Services\Settings\SecuritySettingsService::class)->requiresRecaptcha('contact')) {
             $rules['g-recaptcha-response'] = [new \App\Rules\RecaptchaToken('contact')];
         }
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'name.required' => 'Please enter your name.',
+            'name.max' => 'Name may not be greater than 120 characters.',
+            'email.required' => 'Please enter your email address.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.max' => 'Email may not be greater than 190 characters.',
+            'phone.max' => 'Phone may not be greater than 40 characters.',
+            'subject.max' => 'Subject may not be greater than 190 characters.',
+            'message.required' => 'Please enter your message.',
+            'message.max' => 'Message may not be greater than 5000 characters.',
+        ]);
 
         $message = ContactMessage::query()->create([
             ...$validated,

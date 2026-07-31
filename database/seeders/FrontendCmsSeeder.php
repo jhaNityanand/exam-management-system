@@ -62,7 +62,7 @@ class FrontendCmsSeeder extends Seeder
                 ['day' => 'friday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
                 ['day' => 'saturday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 'type' => 'json', 'label' => 'Support hours schedule'],
-            ['group' => 'contact', 'key' => 'maps_url', 'value' => 'https://maps.google.com/?q=Koramangala+Bengaluru', 'type' => 'string', 'label' => 'Google Maps URL'],
+            ['group' => 'contact', 'key' => 'maps_url', 'value' => 'https://www.google.com/maps?q=Innov8+Workspace,+Koramangala,+Bengaluru,+Karnataka+560034&output=embed', 'type' => 'string', 'label' => 'Google Maps URL'],
             ['group' => 'seo', 'key' => 'default_title', 'value' => 'Examtube.in — Online Exams, Mock Tests & Learning Hub', 'type' => 'string', 'label' => 'Default SEO title'],
             ['group' => 'seo', 'key' => 'default_description', 'value' => 'Prepare for competitive exams with curated mock tests, expert blogs, campus news, and progress tracking on Examtube.in.', 'type' => 'text', 'label' => 'Default SEO description'],
             ['group' => 'seo', 'key' => 'default_keywords', 'value' => 'online exams, mock tests, competitive exams, exam preparation, Examtube', 'type' => 'string', 'label' => 'Default keywords'],
@@ -276,10 +276,10 @@ class FrontendCmsSeeder extends Seeder
         $pages = [
             [
                 'slug' => 'about-us',
-                'title' => 'About Examtube.in',
-                'template' => 'default',
-                'excerpt' => 'We build exam-ready practice experiences for students, teachers, and institutes.',
-                'content' => '<p>Examtube.in is an online exam management and learning platform created for aspirants who want structured practice, clear feedback, and reliable education updates in one place.</p><p>Our mission is simple: help every learner attempt exams with confidence, whether they are preparing for university assessments, competitive recruitments, or classroom evaluations.</p><h2>What we offer</h2><ul><li>Configurable mock exams with timers and scoring rules</li><li>Expert blogs for strategy and syllabus clarity</li><li>News updates that matter to candidates</li><li>Institute-friendly administration with galleries and media tools</li></ul>',
+                'title' => 'About Us',
+                'template' => 'about',
+                'excerpt' => 'Examtube is a complete learning and knowledge platform for exams, questions, blogs, news, and career preparation.',
+                'content' => '<p>Examtube is rendered with a dedicated About experience.</p>',
             ],
             [
                 'slug' => 'contact-us',
@@ -291,16 +291,16 @@ class FrontendCmsSeeder extends Seeder
             [
                 'slug' => 'privacy-policy',
                 'title' => 'Privacy Policy',
-                'template' => 'default',
-                'excerpt' => 'How Examtube.in collects, uses, and protects your information.',
-                'content' => '<p>We respect your privacy. Account data, exam attempts, and newsletter subscriptions are processed only to deliver the learning experience you request.</p><p>We do not sell personal data. Access is limited to authorized operators of your organization workspace.</p>',
+                'template' => 'privacy',
+                'excerpt' => 'How Examtube collects, uses, and protects your information across learning and exam features.',
+                'content' => '<p>Privacy policy content is rendered with a dedicated legal layout.</p>',
             ],
             [
                 'slug' => 'terms-and-conditions',
-                'title' => 'Terms and Conditions',
-                'template' => 'default',
-                'excerpt' => 'The rules that govern use of Examtube.in.',
-                'content' => '<p>By creating an account or attempting an exam on Examtube.in, you agree to use the platform honestly, respect exam integrity, and keep your credentials secure.</p><p>Institutes are responsible for the exams and content they publish within their workspace.</p>',
+                'title' => 'Terms & Conditions',
+                'template' => 'terms',
+                'excerpt' => 'Rules for accounts, exams, content usage, and fair use of the Examtube platform.',
+                'content' => '<p>Terms content is rendered with a dedicated legal layout.</p>',
             ],
             [
                 'slug' => 'help-center',

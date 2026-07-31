@@ -771,6 +771,212 @@
     window.addEventListener('scroll', sync, { passive: true });
   }
 
+  /* Legal accordion (Privacy / Terms) + TOC sync */
+  function initLegalAccordion() {
+    const layouts = qsa('.et-legal-layout');
+    if (!layouts.length) return;
+
+    function headerOffset() {
+      const header = qs('.et-header') || qs('header');
+      return (header ? header.getBoundingClientRect().height : 72) + 16;
+    }
+
+    function setOpen(root, item, shouldOpen) {
+      const trigger = qs('[data-legal-trigger]', item);
+      const panel = qs('.et-legal-card__panel', item);
+      if (!trigger || !panel) return;
+
+      if (shouldOpen) {
+        item.classList.add('is-open');
+        item.setAttribute('data-open', '');
+        panel.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+      } else {
+        item.classList.remove('is-open');
+        item.removeAttribute('data-open');
+        panel.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function closeAll(root) {
+      qsa('[data-legal-item]', root).forEach(function (item) {
+        setOpen(root, item, false);
+      });
+    }
+
+    function syncToc(layout, activeId) {
+      qsa('[data-legal-nav]', layout).forEach(function (link) {
+        const target = link.getAttribute('href') || '';
+        const id = target.charAt(0) === '#' ? target.slice(1) : '';
+        const isActive = id && id === activeId;
+        link.classList.toggle('is-active', isActive);
+        if (isActive) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      });
+    }
+
+    function activateItem(layout, root, item, opts) {
+      opts = opts || {};
+      if (!item) return;
+      closeAll(root);
+      setOpen(root, item, true);
+      qsa('[data-legal-item]', root).forEach(function (card) {
+        card.classList.remove('is-highlighted');
+      });
+      item.classList.add('is-highlighted');
+      syncToc(layout, item.id || '');
+
+      if (opts.updateHash !== false && item.id) {
+        if (history.replaceState) {
+          history.replaceState(null, '', '#' + item.id);
+        } else {
+          location.hash = item.id;
+        }
+      }
+
+      if (opts.scroll !== false) {
+        window.requestAnimationFrame(function () {
+          const top = item.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+          window.scrollTo({ top: Math.max(0, top), behavior: opts.smooth === false ? 'auto' : 'smooth' });
+        });
+      }
+    }
+
+    layouts.forEach(function (layout) {
+      const root = qs('[data-legal-accordion]', layout);
+      if (!root) return;
+
+      // Initial open state from markup
+      qsa('[data-legal-item]', root).forEach(function (item) {
+        if (item.hasAttribute('data-open')) {
+          setOpen(root, item, true);
+          item.classList.add('is-highlighted');
+          syncToc(layout, item.id || '');
+        }
+      });
+
+      // Accordion triggers
+      qsa('[data-legal-item]', root).forEach(function (item) {
+        const trigger = qs('[data-legal-trigger]', item);
+        if (!trigger) return;
+        trigger.addEventListener('click', function () {
+          const alreadyOpen = item.classList.contains('is-open');
+          if (alreadyOpen) {
+            setOpen(root, item, false);
+            item.classList.remove('is-highlighted');
+            syncToc(layout, '');
+            return;
+          }
+          activateItem(layout, root, item, { scroll: false, updateHash: true });
+        });
+      });
+
+      // Sidebar TOC links
+      qsa('[data-legal-nav]', layout).forEach(function (link) {
+        link.addEventListener('click', function (event) {
+          const href = link.getAttribute('href') || '';
+          if (href.charAt(0) !== '#') return;
+          const id = href.slice(1);
+          const item = id ? doc.getElementById(id) : null;
+          if (!item || !root.contains(item)) return;
+          event.preventDefault();
+          activateItem(layout, root, item, { scroll: true, updateHash: true, smooth: true });
+        });
+      });
+
+      // Deep-link / hash on load
+      const hashId = (location.hash || '').replace(/^#/, '');
+      if (hashId) {
+        const hashItem = doc.getElementById(hashId);
+        if (hashItem && root.contains(hashItem)) {
+          activateItem(layout, root, hashItem, { scroll: true, updateHash: false, smooth: false });
+        }
+      }
+    });
+  }
+
+  function initContactForm() {
+    qsa('[data-contact-form]').forEach(function (form) {
+      const fields = qsa('[data-validate]', form);
+
+      function clearFieldError(field) {
+        field.classList.remove('is-invalid');
+        const err = qs('[data-error-for="' + field.name + '"]', form);
+        if (err) {
+          err.hidden = true;
+          err.textContent = '';
+        }
+      }
+
+      function setFieldError(field, message) {
+        field.classList.add('is-invalid');
+        const err = qs('[data-error-for="' + field.name + '"]', form);
+        if (err) {
+          err.hidden = false;
+          err.textContent = message;
+        }
+      }
+
+      function validateField(field) {
+        const rules = (field.getAttribute('data-validate') || '').split('|').filter(Boolean);
+        const value = (field.value || '').trim();
+        let max = null;
+
+        for (let i = 0; i < rules.length; i += 1) {
+          const rule = rules[i];
+          if (rule === 'required' && value === '') {
+            return field.name === 'email'
+              ? 'Please enter your email address.'
+              : field.name === 'message'
+                ? 'Please enter your message.'
+                : 'Please enter your name.';
+          }
+          if (rule === 'email' && value !== '') {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+              return 'Please enter a valid email address.';
+            }
+          }
+          if (rule.indexOf('max:') === 0) {
+            max = parseInt(rule.slice(4), 10);
+            if (!Number.isNaN(max) && value.length > max) {
+              return 'This field may not be greater than ' + max + ' characters.';
+            }
+          }
+        }
+        return null;
+      }
+
+      fields.forEach(function (field) {
+        field.addEventListener('input', function () {
+          clearFieldError(field);
+        });
+        field.addEventListener('blur', function () {
+          const message = validateField(field);
+          if (message) setFieldError(field, message);
+          else clearFieldError(field);
+        });
+      });
+
+      form.addEventListener('submit', function (event) {
+        let firstInvalid = null;
+        fields.forEach(function (field) {
+          const message = validateField(field);
+          if (message) {
+            setFieldError(field, message);
+            if (!firstInvalid) firstInvalid = field;
+          } else {
+            clearFieldError(field);
+          }
+        });
+        if (firstInvalid) {
+          event.preventDefault();
+          firstInvalid.focus();
+        }
+      });
+    });
+  }
+
   doc.addEventListener('DOMContentLoaded', function () {
     initTheme();
     initMobileNav();
@@ -780,6 +986,8 @@
     initAnnouncements();
     initHeroSlider();
     initFaq();
+    initLegalAccordion();
+    initContactForm();
     initSearch();
     initNewsletter();
     initCatSlider();
