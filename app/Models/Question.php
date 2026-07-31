@@ -136,6 +136,37 @@ class Question extends Model
         return $plain !== '' ? \Illuminate\Support\Str::limit($plain, 120, '') : 'Question #'.$this->id;
     }
 
+    public function isChoiceType(): bool
+    {
+        $type = (string) $this->type;
+
+        return in_array($type, ['mcq', 'multi_select', 'true_false'], true)
+            || ($type === 'mcq' && (bool) $this->allows_multiple);
+    }
+
+    public function allowsMultipleAnswers(): bool
+    {
+        return (bool) $this->allows_multiple || in_array((string) $this->type, ['multi_select'], true);
+    }
+
+    public function typeLabel(): string
+    {
+        return match ((string) $this->type) {
+            'mcq' => $this->allowsMultipleAnswers() ? 'Multiple select' : 'MCQ',
+            'multi_select' => 'Multiple select',
+            'true_false' => 'True / False',
+            'fill_blank' => 'Fill in the blank',
+            'short_answer' => 'Short answer',
+            'long_answer' => 'Long answer',
+            default => ucwords(str_replace('_', ' ', (string) $this->type)),
+        };
+    }
+
+    public function difficultyLabel(): string
+    {
+        return ucfirst((string) ($this->difficulty ?: 'medium'));
+    }
+
     /**
      * Candidate/public-safe payload without correct answers.
      *
@@ -169,5 +200,100 @@ class Question extends Model
                 return ['key' => (string) $index, 'text' => (string) $option];
             })->values()->all(),
         ];
+    }
+
+    /**
+     * Public practice detail payload with revealed correct choices (for learning pages).
+     *
+     * @return array{show_options: bool, multiple: bool, options: list<array{key: string, letter: string, text: string, is_correct: bool}>, explanation: ?string}
+     */
+    public function toPracticeDetailPayload(): array
+    {
+        $type = (string) $this->type;
+        $multiple = $this->allowsMultipleAnswers();
+        $correctKeys = $this->normalizedCorrectKeys();
+        $options = [];
+
+        if ($type === 'true_false') {
+            foreach (['True', 'False'] as $index => $label) {
+                $options[] = [
+                    'key' => $label,
+                    'letter' => $index === 0 ? 'A' : 'B',
+                    'text' => $label,
+                    'is_correct' => in_array(mb_strtolower($label), $correctKeys, true),
+                ];
+            }
+        } elseif (in_array($type, ['mcq', 'multi_select'], true) || ! empty($this->options)) {
+            foreach (array_values($this->options ?? []) as $index => $option) {
+                $text = is_array($option)
+                    ? (string) ($option['text'] ?? $option['label'] ?? '')
+                    : (string) $option;
+                $key = is_array($option)
+                    ? (string) ($option['key'] ?? $text)
+                    : $text;
+                $options[] = [
+                    'key' => $key,
+                    'letter' => chr(65 + min($index, 25)),
+                    'text' => $text,
+                    'is_correct' => $this->optionIsCorrect($key, $text, $correctKeys),
+                ];
+            }
+        }
+
+        $showOptions = $options !== [] && (
+            in_array($type, ['mcq', 'multi_select', 'true_false'], true)
+            || ! empty($this->options)
+        );
+
+        $explanation = null;
+        if ($this->show_explanation_publicly && filled($this->explanation)) {
+            $explanation = $this->explanation;
+        }
+
+        return [
+            'show_options' => $showOptions,
+            'multiple' => $multiple,
+            'options' => $options,
+            'explanation' => $explanation,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function normalizedCorrectKeys(): array
+    {
+        $values = [];
+        if (is_array($this->correct_answers) && $this->correct_answers !== []) {
+            $values = $this->correct_answers;
+        } elseif (filled($this->correct_answer)) {
+            $values = [$this->correct_answer];
+        }
+
+        return collect($values)
+            ->map(fn ($value) => mb_strtolower(trim(strip_tags((string) $value))))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $correctKeys
+     */
+    protected function optionIsCorrect(string $key, string $text, array $correctKeys): bool
+    {
+        $candidates = [
+            mb_strtolower(trim($key)),
+            mb_strtolower(trim($text)),
+            mb_strtolower(trim(strip_tags($text))),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '' && in_array($candidate, $correctKeys, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

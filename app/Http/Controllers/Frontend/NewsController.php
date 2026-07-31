@@ -118,21 +118,64 @@ class NewsController extends Controller
 
         $news->load([
             'category:id,name,slug',
-            'author:id,name',
+            'author:id,name,slug',
+            'author.profile',
             'bannerImage',
             'featuredImage',
             'tags:id,name,slug',
         ]);
 
-        $relatedNews = News::query()
+        $news->increment('view_count');
+
+        $relatedQuery = News::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('id', '!=', $news->id)
-            ->when($news->news_category_id, fn ($q) => $q->where('news_category_id', $news->news_category_id))
+            ->where('id', '!=', $news->id);
+
+        $tagIds = $news->tags->pluck('id');
+        if ($news->news_category_id || $tagIds->isNotEmpty()) {
+            $relatedQuery->where(function ($q) use ($news, $tagIds) {
+                if ($news->news_category_id) {
+                    $q->where('news_category_id', $news->news_category_id);
+                }
+                if ($tagIds->isNotEmpty()) {
+                    $q->orWhereHas('tags', fn ($tags) => $tags->whereIn('news_tags.id', $tagIds));
+                }
+            });
+        }
+
+        $relatedNews = $relatedQuery
+            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
+            ->latest('published_at')
+            ->limit(3)
+            ->get();
+
+        $excludeIds = $relatedNews->pluck('id')->push($news->id)->all();
+
+        $trendingNews = News::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->whereNotIn('id', $excludeIds)
+            ->where(function ($q) {
+                $q->where('is_trending', true)
+                    ->orWhere('is_breaking', true);
+            })
             ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
             ->latest('published_at')
             ->limit(4)
             ->get();
+
+        if ($trendingNews->count() < 4) {
+            $fallback = News::query()
+                ->published()
+                ->when($orgId, fn ($q) => $q->forOrg($orgId))
+                ->whereNotIn('id', array_merge($excludeIds, $trendingNews->pluck('id')->all()))
+                ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
+                ->latest('published_at')
+                ->limit(4 - $trendingNews->count())
+                ->get();
+            $trendingNews = $trendingNews->concat($fallback)->values();
+        }
 
         $adService = app(\App\Services\Advertisement\AdvertisementService::class);
         $processedContent = $adService->injectIntoContent((string) $news->content, 'news', $orgId);
@@ -140,6 +183,7 @@ class NewsController extends Controller
         return view('frontend.news.show', [
             'news' => $news,
             'relatedNews' => $relatedNews,
+            'trendingNews' => $trendingNews,
             'processedContent' => $processedContent,
         ]);
     }

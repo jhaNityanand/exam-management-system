@@ -74,7 +74,8 @@ class BlogController extends Controller
 
         $blog->load([
             'category:id,name,slug',
-            'author:id,name',
+            'author:id,name,slug',
+            'author.profile',
             'bannerImage',
             'banners',
             'tags:id,name,slug',
@@ -82,19 +83,35 @@ class BlogController extends Controller
 
         $blog->increment('view_count');
 
-        $relatedBlogs = Blog::query()
+        $relatedQuery = Blog::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('id', '!=', $blog->id)
-            ->where(function ($q) use ($blog) {
+            ->where('id', '!=', $blog->id);
+
+        $tagIds = $blog->tags->pluck('id');
+        if ($blog->blog_category_id || $tagIds->isNotEmpty()) {
+            $relatedQuery->where(function ($q) use ($blog, $tagIds) {
                 if ($blog->blog_category_id) {
                     $q->where('blog_category_id', $blog->blog_category_id);
                 }
-                $tagIds = $blog->tags->pluck('id');
                 if ($tagIds->isNotEmpty()) {
                     $q->orWhereHas('tags', fn ($tags) => $tags->whereIn('blog_tags.id', $tagIds));
                 }
-            })
+            });
+        }
+
+        $relatedBlogs = $relatedQuery
+            ->with(['category:id,name,slug', 'bannerImage', 'banners'])
+            ->latest('published_at')
+            ->limit(3)
+            ->get();
+
+        $excludeIds = $relatedBlogs->pluck('id')->push($blog->id)->all();
+
+        $latestBlogs = Blog::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->whereNotIn('id', $excludeIds)
             ->with(['category:id,name,slug', 'bannerImage', 'banners'])
             ->latest('published_at')
             ->limit(4)
@@ -106,6 +123,7 @@ class BlogController extends Controller
         return view('frontend.blog.show', [
             'blog' => $blog,
             'relatedBlogs' => $relatedBlogs,
+            'latestBlogs' => $latestBlogs,
             'processedContent' => $processedContent,
         ]);
     }

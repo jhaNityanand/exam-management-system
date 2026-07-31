@@ -1,30 +1,32 @@
 @php
-    $html = (string) ($content ?? '');
-    $toc = [];
-    if ($html !== '' && preg_match_all('/<h([23])[^>]*>(.*?)<\/h\1>/is', $html, $matches, PREG_SET_ORDER)) {
-        foreach ($matches as $i => $match) {
-            $text = trim(html_entity_decode(strip_tags($match[2])));
-            if ($text === '') {
-                continue;
-            }
-            $id = 'section-'.($i + 1).'-'.\Illuminate\Support\Str::slug(\Illuminate\Support\Str::limit($text, 40, ''));
-            $toc[] = ['level' => (int) $match[1], 'text' => $text, 'id' => $id];
-            $html = preg_replace('/'.preg_quote($match[0], '/').'/', '<h'.$match[1].' id="'.$id.'">'.$match[2].'</h'.$match[1].'>', $html, 1);
-        }
-    }
+    $tocItems = $tocItems ?? [];
 @endphp
 
-@if(count($toc) >= 3)
-    <nav class="et-toc" aria-label="Table of contents">
-        <strong>On this page</strong>
-        <ol>
-            @foreach($toc as $item)
-                <li class="et-toc__item et-toc__item--h{{ $item['level'] }}">
-                    <a href="#{{ $item['id'] }}">{{ $item['text'] }}</a>
-                </li>
-            @endforeach
-        </ol>
-    </nav>
+@if(count($tocItems) >= 2)
+    <details class="et-toc" open data-article-toc>
+        <summary class="et-toc__summary">
+            <span class="et-toc__summary-main">
+                <svg class="et-toc__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                </svg>
+                <strong class="et-toc__title">On this page</strong>
+            </span>
+            <span class="et-toc__meta">
+                <span class="et-toc__count">{{ count($tocItems) }}</span>
+                <span class="et-toc__chevron" aria-hidden="true"></span>
+            </span>
+        </summary>
+        <nav class="et-toc__nav" aria-label="Table of contents">
+            <ol class="et-toc__list">
+                @foreach($tocItems as $item)
+                    <li class="et-toc__item et-toc__item--h{{ $item['level'] }}">
+                        <a href="#{{ $item['id'] }}" data-toc-link>
+                            <span class="et-toc__num" aria-hidden="true">{{ $item['number'] }}</span>
+                            <span class="et-toc__text">{{ $item['text'] }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ol>
+        </nav>
+    </details>
 @endif
-
-@php($processedContent = $html)

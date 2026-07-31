@@ -3,7 +3,7 @@
 @php
     $seo = [
         'title' => 'Authors',
-        'description' => 'Meet the mentors and editors who publish exams, blogs, and news on '.($siteBrand['name'] ?? 'Examtube').'.',
+        'description' => 'Meet the mentors and writers who publish exams, blogs, and news on '.($siteBrand['name'] ?? 'Examtube').'.',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Authors'],
@@ -12,7 +12,6 @@
 
     $activeFilterCount = collect([
         request('search'),
-        request('role'),
         request('sort') && request('sort') !== 'name' ? request('sort') : null,
     ])->filter(fn ($v) => filled($v))->count();
 @endphp
@@ -26,7 +25,7 @@
                     <div class="et-page-hero__copy">
                         <p class="et-eyebrow">Community</p>
                         <h1>Meet our authors</h1>
-                        <p>Administrators, org leads, and editors who publish exams, blogs, and news.</p>
+                        <p>Discover the mentors and writers behind exams, blogs, and learning updates on {{ $siteBrand['name'] ?? 'Examtube' }}.</p>
                     </div>
                     <div class="et-filter-toolbar">
                         <button type="button" class="et-btn et-btn--soft et-filter-trigger" data-filter-open aria-haspopup="dialog" aria-controls="et-author-filter-modal">
@@ -42,7 +41,7 @@
             </div>
         </div>
 
-        <div class="et-container et-section">
+        <div class="et-container et-section et-authors-section">
             <div class="et-filter-modal" id="et-author-filter-modal" data-filter-modal hidden>
                 <div class="et-filter-modal__backdrop" data-filter-close tabindex="-1"></div>
                 <div class="et-filter-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="et-author-filter-title">
@@ -64,21 +63,6 @@
                                     <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
                                 <input type="search" name="search" value="{{ request('search') }}" placeholder="Search by name…">
-                            </span>
-                        </label>
-
-                        <label class="et-field">
-                            <span class="et-field__label">Role</span>
-                            <span class="et-field__control">
-                                <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                </svg>
-                                <select name="role" aria-label="Role">
-                                    <option value="">All roles</option>
-                                    @foreach(($roleOptions ?? []) as $val => $label)
-                                        <option value="{{ $val }}" @selected(request('role') === $val)>{{ $label }}</option>
-                                    @endforeach
-                                </select>
                             </span>
                         </label>
 
@@ -105,9 +89,16 @@
             </div>
 
             <div class="et-listing__main" data-listing-main>
-                <div class="et-listing__skeleton et-grid et-grid--3" data-listing-skeleton hidden aria-hidden="true">
+                <div class="et-listing__skeleton et-authors-grid" data-listing-skeleton hidden aria-hidden="true">
                     @for($i = 0; $i < 6; $i++)
-                        @include('frontend.partials.skeleton-card')
+                        <div class="et-author-card et-author-card--skeleton" aria-hidden="true">
+                            <div class="et-author-card__media et-skeleton__media"></div>
+                            <div class="et-author-card__body">
+                                <span class="et-skeleton__line et-skeleton__line--sm"></span>
+                                <span class="et-skeleton__line et-skeleton__line--md"></span>
+                                <span class="et-skeleton__line"></span>
+                            </div>
+                        </div>
                     @endfor
                 </div>
 
@@ -120,7 +111,7 @@
                     ])
                 </div>
 
-                <div class="et-grid et-grid--3" data-load-more-list @if(($authors ?? collect())->isEmpty()) hidden @endif>
+                <div class="et-authors-grid" data-load-more-list @if(($authors ?? collect())->isEmpty()) hidden @endif>
                     @foreach($authors ?? [] as $author)
                         @include('frontend.components.author-card', ['author' => $author])
                     @endforeach

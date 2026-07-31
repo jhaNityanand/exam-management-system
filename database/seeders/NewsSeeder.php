@@ -212,13 +212,16 @@ class NewsSeeder extends Seeder
                 'is_featured' => true,
                 'is_trending' => true,
                 'content' => <<<'HTML'
+<h2>What changed this summer</h2>
 <p>Candidates preparing for SSC Combined Graduate Level and CHSL examinations can now attempt a refreshed summer mock series designed around the latest Tier-I pattern.</p>
 <p>Each paper runs with exam-day timers, instant scoring, and negative marking so students experience realistic pressure before the official window.</p>
+<h2>What is included</h2>
 <ul>
 <li>Daily full-length mocks with sectional analytics</li>
 <li>Topic tags for Quant, Reasoning, English, and GK</li>
 <li>Revision playlists for frequently missed concepts</li>
 </ul>
+<h3>How to start</h3>
 <p>Register on the practice portal, choose the SSC category, and start with one diagnostic paper before moving to timed sets.</p>
 HTML,
             ],
@@ -236,8 +239,11 @@ HTML,
                 'is_featured' => true,
                 'is_trending' => true,
                 'content' => <<<'HTML'
+<h2>Updated timelines</h2>
 <p>Institute mentors recommend sectional mocks early in the cycle, then full-length papers during the final month.</p>
+<h2>Focus areas for the next wave</h2>
 <p>Key focus areas for the next recruitment wave include Data Interpretation, Puzzle sets, and Banking Awareness capsules refreshed weekly.</p>
+<h3>Suggested weekly plan</h3>
 <p>Aspirants should lock a weekly schedule: five weekday sectional drills, one weekend full mock, and a Monday error-log review.</p>
 HTML,
             ],
@@ -255,8 +261,12 @@ HTML,
                 'is_featured' => false,
                 'is_trending' => true,
                 'content' => <<<'HTML'
+<h2>Practice lab updates</h2>
 <p>Each set includes detailed explanations and topic tags so learners can revisit weak areas quickly.</p>
+<h2>Cloud computing track</h2>
 <p>The cloud track spans virtualization basics, consistency models, container orchestration concepts, and reliability patterns commonly tested in advanced CS papers.</p>
+<h3>Who should enroll</h3>
+<p>Engineering students preparing for GATE can practice cloud-focused sets alongside traditional CS papers.</p>
 HTML,
             ],
             [
@@ -273,8 +283,11 @@ HTML,
                 'is_featured' => true,
                 'is_trending' => false,
                 'content' => <<<'HTML'
+<h2>Drive overview</h2>
 <p>Hiring partners will evaluate aptitude, coding fundamentals, and communication in a hybrid format.</p>
+<h2>How to prepare</h2>
 <p>Students are advised to complete at least three company-style mock interviews and refresh resume projects before week one.</p>
+<h3>Week-by-week schedule</h3>
 <ol>
 <li>Week 1 — Service companies and internship pipelines</li>
 <li>Week 2 — Product engineering and SDE roles</li>
@@ -296,8 +309,12 @@ HTML,
                 'is_featured' => true,
                 'is_trending' => true,
                 'content' => <<<'HTML'
+<h2>30-day capsule plan</h2>
 <p>The capsule prioritizes high-yield themes: monetary policy updates, constitutional amendments in news, space missions, and climate agreements.</p>
+<h2>Weekly consolidation</h2>
 <p>Each Sunday includes a 50-question mixed quiz with explanations mapped back to static syllabus topics.</p>
+<h3>Daily habit</h3>
+<p>Spend 45 focused minutes on notes, then attempt a short quiz before ending the day.</p>
 HTML,
             ],
             [

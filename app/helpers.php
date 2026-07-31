@@ -95,6 +95,82 @@ if (! function_exists('user_avatar')) {
     }
 }
 
+if (! function_exists('user_initials')) {
+    /**
+     * Initials from a display name (e.g. "Jane Doe" → "JD").
+     */
+    function user_initials(?string $name, string $fallback = 'U'): string
+    {
+        return \App\Support\UserAvatar::initials($name, $fallback);
+    }
+}
+
+if (! function_exists('build_article_toc')) {
+    /**
+     * Inject heading IDs and build a table-of-contents list from article HTML.
+     *
+     * @return array{items: list<array{level:int, text:string, id:string, number:string}>, html: string}
+     */
+    function build_article_toc(?string $html): array
+    {
+        $html = (string) $html;
+        $items = [];
+
+        if ($html === '') {
+            return ['items' => $items, 'html' => $html];
+        }
+
+        $index = 0;
+        $major = 0;
+        $minor = 0;
+
+        $html = preg_replace_callback(
+            '/<h([23])([^>]*)>(.*?)<\/h\1>/is',
+            function (array $match) use (&$items, &$index, &$major, &$minor): string {
+                $index++;
+                $level = (int) $match[1];
+                $attrs = (string) ($match[2] ?? '');
+                $inner = (string) ($match[3] ?? '');
+                $text = trim(html_entity_decode(strip_tags($inner), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+                if (preg_match('/\bid\s*=\s*([\'"])(.*?)\1/i', $attrs, $idMatch)) {
+                    $id = trim((string) $idMatch[2]);
+                } else {
+                    $slug = \Illuminate\Support\Str::slug(\Illuminate\Support\Str::limit($text !== '' ? $text : 'section', 48, ''));
+                    $id = 'section-'.$index.($slug !== '' ? '-'.$slug : '');
+                    $attrs = rtrim($attrs).' id="'.e($id).'"';
+                }
+
+                if ($text !== '' && $id !== '') {
+                    if ($level === 2) {
+                        $major++;
+                        $minor = 0;
+                        $number = (string) $major;
+                    } else {
+                        if ($major === 0) {
+                            $major = 1;
+                        }
+                        $minor++;
+                        $number = $major.'.'.$minor;
+                    }
+
+                    $items[] = [
+                        'level' => $level,
+                        'text' => $text,
+                        'id' => $id,
+                        'number' => $number,
+                    ];
+                }
+
+                return '<h'.$level.$attrs.'>'.$inner.'</h'.$level.'>';
+            },
+            $html
+        ) ?? $html;
+
+        return ['items' => $items, 'html' => $html];
+    }
+}
+
 if (! function_exists('author_role')) {
     /**
      * Resolve the public author role for a user in the current org context.

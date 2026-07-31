@@ -4,7 +4,6 @@
     $words = str_word_count(strip_tags((string) ($blog->content ?? '')));
     $readingMins = max(1, (int) ceil($words / 200));
     $banner = method_exists($blog, 'bannerUrl') ? $blog->bannerUrl() : ($blog->bannerImage->file_url ?? null);
-    $author = $blog->author_name ?: ($blog->author->name ?? 'Examtube Editorial');
     $seo = [
         'title' => $blog->seo_title ?: $blog->title,
         'description' => $blog->seo_description ?: ($blog->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $blog->content), 160)),
@@ -17,37 +16,49 @@
     ];
     $shareUrl = urlencode(url()->current());
     $shareText = urlencode($blog->title);
+    $shareRawUrl = url()->current();
+    $crumbs = [
+        ['label' => 'Home', 'url' => route('home')],
+        ['label' => 'Blogs', 'url' => route('frontend.blogs.index')],
+    ];
+    if ($blog->category) {
+        $crumbs[] = [
+            'label' => $blog->category->name,
+            'url' => route('frontend.blogs.category', $blog->category->slug),
+        ];
+    }
+    $crumbs[] = ['label' => 'Article'];
 @endphp
 
 @section('content')
     <article class="et-article">
-        <div class="et-page-hero">
+        <header class="et-article__top">
             <div class="et-container et-article__wrap">
-                @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
-                    ['label' => 'Home', 'url' => route('home')],
-                    ['label' => 'Blogs', 'url' => route('frontend.blogs.index')],
-                    ['label' => $blog->title],
-                ]])
-                <div class="et-card__meta" style="margin-bottom:.5rem">
-                    @if($blog->category)
-                        <a class="et-badge" href="{{ route('frontend.blogs.category', $blog->category->slug) }}">{{ $blog->category->name }}</a>
-                    @endif
-                    <span>{{ $readingMins }} min read</span>
-                    @if($blog->published_at)
-                        <span>{{ $blog->published_at->format('d M Y') }}</span>
-                    @endif
-                </div>
-                {!! ad_slot('blog_detail_above_h1') !!}
-                <h1>{{ $blog->title }}</h1>
-                <p>By {{ $author }}</p>
-            </div>
-        </div>
+                @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $crumbs])
 
-        <div class="et-container et-article__wrap et-section">
-            @if($banner)
-                <div class="et-article-banner">
-                    <img src="{{ $banner }}" alt="{{ $blog->title }}" loading="lazy" width="820" height="420">
+                <div class="et-article__badges">
+                    @if($blog->category)
+                        <a class="et-badge et-article__badge" href="{{ route('frontend.blogs.category', $blog->category->slug) }}">{{ $blog->category->name }}</a>
+                    @endif
+                    <span class="et-badge et-badge--soft">{{ $readingMins }} min read</span>
+                    @if($blog->published_at)
+                        <span class="et-badge et-badge--soft">
+                            <time datetime="{{ $blog->published_at->toIso8601String() }}">{{ $blog->published_at->format('d M Y') }}</time>
+                        </span>
+                    @endif
                 </div>
+
+                {!! ad_slot('blog_detail_above_h1') !!}
+
+                <h1 class="et-article__title">{{ $blog->title }}</h1>
+            </div>
+        </header>
+
+        <div class="et-container et-article__wrap et-article__main">
+            @if($banner)
+                <figure class="et-article-banner">
+                    <img src="{{ $banner }}" alt="{{ $blog->title }}" loading="eager" width="960" height="480">
+                </figure>
             @endif
 
             {!! ad_slot('blog_detail_sidebar_top') !!}
@@ -56,48 +67,128 @@
                 <p class="et-article__lead">{{ $blog->excerpt }}</p>
             @endif
 
-            @include('frontend.partials.article-toc', ['content' => $blog->content])
+            @php
+                $tocData = build_article_toc($processedContent ?? $blog->content);
+                $processedContent = $tocData['html'];
+                $tocItems = $tocData['items'];
+            @endphp
 
-            <div class="et-prose">
-                {!! $processedContent ?? $blog->content !!}
+            @include('frontend.partials.article-toc', ['tocItems' => $tocItems])
+
+            <div class="et-prose et-article__prose">
+                {!! $processedContent !!}
             </div>
+
+            @include('frontend.partials.article-author', [
+                'authorUser' => $blog->author,
+                'authorName' => $blog->author_name ?: ($blog->author->name ?? null),
+                'fallbackName' => 'Examtube Editorial',
+                'defaultBio' => 'Sharing practice insights, guides, and learning updates on Examtube.',
+                'publishedLabel' => $blog->published_at
+                    ? 'Published '.$blog->published_at->format('d M Y')
+                    : null,
+            ])
 
             {!! ad_slot('blog_detail_sidebar_middle') !!}
 
-            <div class="et-share">
-                <span>Share</span>
-                <a href="https://twitter.com/intent/tweet?url={{ $shareUrl }}&text={{ $shareText }}" target="_blank" rel="noopener">X</a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl }}" target="_blank" rel="noopener">Facebook</a>
-                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $shareUrl }}" target="_blank" rel="noopener">LinkedIn</a>
-                <a href="https://wa.me/?text={{ $shareText }}%20{{ $shareUrl }}" target="_blank" rel="noopener">WhatsApp</a>
+            <div class="et-article__footer-panel">
+                @if(($blog->tags ?? collect())->isNotEmpty())
+                    <div class="et-article__tags">
+                        <span class="et-article__share-label">Tags</span>
+                        <div class="et-article__tags-list">
+                            @foreach($blog->tags as $blogTag)
+                                <a class="et-article__tag" href="{{ route('frontend.blogs.tag', $blogTag->slug) }}">#{{ $blogTag->name }}</a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @include('frontend.partials.article-share', [
+                    'shareUrl' => $shareUrl,
+                    'shareText' => $shareText,
+                    'shareRawUrl' => $shareRawUrl,
+                    'shareLabel' => 'Share this article',
+                ])
             </div>
 
             {!! ad_slot('blog_detail_before_comments') !!}
-
-            @if(($blog->tags ?? collect())->isNotEmpty())
-                <div class="et-tag-cloud">
-                    @foreach($blog->tags as $tag)
-                        <a href="{{ route('frontend.blogs.tag', $tag->slug) }}">#{{ $tag->name }}</a>
-                    @endforeach
-                </div>
-            @endif
-
             {!! ad_slot('blog_detail_sidebar_bottom') !!}
 
             @php $relatedItems = $relatedBlogs ?? $related ?? collect(); @endphp
             @if($relatedItems->isNotEmpty())
-                <aside class="et-related-rail">
+                <section class="et-article__related">
                     @include('frontend.components.section-heading', [
                         'title' => 'Related posts',
-                        'subtitle' => '',
+                        'subtitle' => 'More guides connected to this topic',
                     ])
-                    <div class="et-grid et-grid--2">
-                        @foreach($relatedItems as $rel)
+                    <div class="et-grid et-grid--3 et-article__related-grid">
+                        @foreach($relatedItems->take(3) as $rel)
                             @include('frontend.components.blog-card', ['blog' => $rel])
                         @endforeach
                     </div>
-                </aside>
+                </section>
             @endif
+
+            @php $moreItems = $latestBlogs ?? collect(); @endphp
+            @if($moreItems->isNotEmpty())
+                <section class="et-article__more">
+                    @include('frontend.components.section-heading', [
+                        'title' => 'Latest from the blog',
+                        'subtitle' => 'Fresh prep tips and exam insights',
+                    ])
+                    <div class="et-article__more-list">
+                        @foreach($moreItems as $item)
+                            @php
+                                $itemUrl = route('frontend.blogs.show', $item->slug);
+                                $itemBanner = method_exists($item, 'bannerUrl') ? $item->bannerUrl() : ($item->bannerImage->file_url ?? null);
+                            @endphp
+                            <a class="et-article__more-item" href="{{ $itemUrl }}">
+                                <span class="et-article__more-thumb">
+                                    @if($itemBanner)
+                                        <img src="{{ $itemBanner }}" alt="" loading="lazy">
+                                    @endif
+                                </span>
+                                <span class="et-article__more-copy">
+                                    @if($item->category)
+                                        <span class="et-article__more-kicker">{{ $item->category->name }}</span>
+                                    @endif
+                                    <span class="et-article__more-title">{{ $item->title }}</span>
+                                    @if($item->published_at)
+                                        <span class="et-article__more-meta">{{ $item->published_at->format('d M Y') }}</span>
+                                    @endif
+                                </span>
+                            </a>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
+            <section class="et-article__newsletter">
+                <div class="et-newsletter-band et-newsletter-band--compact">
+                    <div class="et-newsletter-band__copy">
+                        <p class="et-eyebrow">Stay exam-ready</p>
+                        <h2>Get new blogs in your inbox</h2>
+                        <p>Weekly prep tips, strategy notes, and updates — no spam.</p>
+                        @include('frontend.partials.newsletter-form', [
+                            'cta' => 'Subscribe',
+                            'source' => 'blog_detail',
+                        ])
+                    </div>
+                </div>
+            </section>
+
+            <section class="et-article__cta">
+                @include('frontend.components.cta-band', [
+                    'title' => 'Keep exploring',
+                    'subtitle' => 'Browse more blogs or jump into practice exams.',
+                    'primaryLabel' => 'All blogs',
+                    'primaryUrl' => route('frontend.blogs.index'),
+                    'secondaryLabel' => $blog->category ? 'More in '.$blog->category->name : 'Browse exams',
+                    'secondaryUrl' => $blog->category
+                        ? route('frontend.blogs.category', $blog->category->slug)
+                        : (Route::has('frontend.exams.index') ? route('frontend.exams.index') : route('home')),
+                ])
+            </section>
         </div>
     </article>
 @endsection

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
+use App\Models\Blog;
 use App\Models\Question;
 use App\Models\QuestionCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class QuestionController extends Controller
@@ -84,36 +87,13 @@ class QuestionController extends Controller
         $question->load(['category:id,name,slug,description']);
         $question->increment('view_count');
 
-        $related = Question::query()
-            ->publiclyVisible()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('id', '!=', $question->id)
-            ->when($question->category_id, fn ($q) => $q->where('category_id', $question->category_id))
-            ->with(['category:id,name,slug'])
-            ->latest('id')
-            ->limit(6)
-            ->get();
-
-        $previous = Question::query()
-            ->publiclyVisible()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('id', '<', $question->id)
-            ->orderByDesc('id')
-            ->first(['id', 'title', 'slug', 'body']);
-
-        $next = Question::query()
-            ->publiclyVisible()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('id', '>', $question->id)
-            ->orderBy('id')
-            ->first(['id', 'title', 'slug', 'body']);
+        $payload = $question->toPracticeDetailPayload();
+        $relatedBlogs = $this->relatedBlogsForQuestion($question, $payload, $orgId);
 
         return view('frontend.questions.show', [
             'question' => $question,
-            'payload' => $question->toPublicPayload(),
-            'related' => $related,
-            'previous' => $previous,
-            'next' => $next,
+            'payload' => $payload,
+            'relatedBlogs' => $relatedBlogs,
         ]);
     }
 
@@ -200,5 +180,75 @@ class QuestionController extends Controller
             'category' => $category,
             'questions' => $questions,
         ]);
+    }
+
+    /**
+     * @param  array{explanation: ?string, options: list<array{text: string, is_correct: bool}>}  $payload
+     * @return Collection<int, Blog>
+     */
+    protected function relatedBlogsForQuestion(Question $question, array $payload, ?int $orgId): Collection
+    {
+        $stopWords = collect([
+            'a', 'an', 'the', 'and', 'or', 'of', 'to', 'in', 'on', 'for', 'with', 'is', 'are', 'was', 'were',
+            'be', 'by', 'as', 'at', 'from', 'that', 'this', 'it', 'its', 'into', 'about', 'true', 'false',
+            'which', 'what', 'when', 'where', 'how', 'why', 'select', 'apply', 'all', 'following',
+        ]);
+
+        $raw = collect([
+            $question->category?->name,
+            $question->publicTitle(),
+            strip_tags((string) $question->body),
+            strip_tags((string) ($payload['explanation'] ?? '')),
+            collect($payload['options'] ?? [])->where('is_correct', true)->pluck('text')->implode(' '),
+            collect($question->public_tags ?? [])->map(fn ($tag) => is_array($tag) ? ($tag['name'] ?? '') : $tag)->implode(' '),
+        ])->filter()->implode(' ');
+
+        $keywords = collect(preg_split('/[^a-zA-Z0-9]+/', Str::lower($raw)) ?: [])
+            ->map(fn ($word) => trim($word))
+            ->filter(fn ($word) => strlen($word) >= 4 && ! $stopWords->contains($word))
+            ->countBy()
+            ->sortDesc()
+            ->keys()
+            ->take(8)
+            ->values();
+
+        $query = Blog::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->with(['category:id,name,slug', 'bannerImage', 'banners', 'author:id,name']);
+
+        if ($keywords->isNotEmpty()) {
+            $query->where(function ($outer) use ($keywords) {
+                foreach ($keywords as $word) {
+                    $term = '%'.$word.'%';
+                    $outer->orWhere('title', 'like', $term)
+                        ->orWhere('excerpt', 'like', $term)
+                        ->orWhere('content', 'like', $term)
+                        ->orWhere('seo_keywords', 'like', $term);
+                }
+            });
+        }
+
+        $blogs = $query
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit(3)
+            ->get();
+
+        if ($blogs->count() >= 3) {
+            return $blogs;
+        }
+
+        $fallback = Blog::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->whereNotIn('id', $blogs->pluck('id'))
+            ->with(['category:id,name,slug', 'bannerImage', 'banners', 'author:id,name'])
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit(3 - $blogs->count())
+            ->get();
+
+        return $blogs->concat($fallback)->take(3)->values();
     }
 }

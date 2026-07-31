@@ -1,5 +1,8 @@
 @php
-    $headingTag = $tag ?? 'h2';
+    $rawTag = $tag ?? ($heading ?? 'h2');
+    $headingTag = (is_string($rawTag) && preg_match('/^h[1-6]$/', $rawTag) === 1)
+        ? $rawTag
+        : 'h2';
 @endphp
 <div class="et-section-heading">
     <div class="et-section-heading__copy">
