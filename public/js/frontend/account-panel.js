@@ -50,11 +50,83 @@
                 btn.disabled = false;
             }
         },
+        /**
+         * Acknowledgement messages → toast (same as backend EmsToast).
+         * Dialogs/confirms should use confirm() / SweetAlert2 instead.
+         */
         showAlert(el, type, message) {
-            if (!el) return;
-            el.hidden = false;
-            el.className = 'ca-alert ca-alert--' + (type === 'error' ? 'error' : 'success');
-            el.textContent = message;
+            var text = (message || '').toString().trim();
+            if (!text) return;
+
+            var tone = (type || 'info').toString().toLowerCase();
+            if (tone === 'failed' || tone === 'danger') tone = 'error';
+            if (tone !== 'success' && tone !== 'error' && tone !== 'warning' && tone !== 'info') {
+                tone = 'info';
+            }
+
+            if (el) {
+                el.hidden = true;
+                el.textContent = '';
+                el.className = 'ca-alert';
+            }
+
+            if (window.EmsToast && typeof window.EmsToast[tone] === 'function') {
+                window.EmsToast[tone](text);
+                return;
+            }
+
+            // Fallback if toast assets failed to load
+            if (el) {
+                el.hidden = false;
+                el.className = 'ca-alert ca-alert--' + (tone === 'error' ? 'error' : 'success');
+                el.textContent = text;
+            }
+        },
+        /**
+         * Confirm / alert dialogs → SweetAlert2 (same idea as backend).
+         */
+        confirm(options) {
+            options = options || {};
+            var title = options.title || 'Are you sure?';
+            var text = options.text || '';
+            var confirmText = options.confirmText || 'Yes';
+            var cancelText = options.cancelText || 'Cancel';
+            var icon = options.icon || 'warning';
+
+            if (window.Swal && typeof window.Swal.fire === 'function') {
+                return window.Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: icon,
+                    showCancelButton: true,
+                    confirmButtonText: confirmText,
+                    cancelButtonText: cancelText,
+                    reverseButtons: true,
+                    focusCancel: true,
+                }).then(function (result) {
+                    return !!(result && result.isConfirmed);
+                });
+            }
+
+            return Promise.resolve(window.confirm(text ? (title + '\n\n' + text) : title));
+        },
+        alert(options) {
+            options = options || {};
+            var title = options.title || 'Notice';
+            var text = options.text || '';
+            var icon = options.icon || 'info';
+
+            if (window.Swal && typeof window.Swal.fire === 'function') {
+                return window.Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: icon,
+                    confirmButtonText: options.confirmText || 'OK',
+                });
+            }
+
+            window.alert(text ? (title + '\n\n' + text) : title);
+            return Promise.resolve();
         },
         clearFieldErrors(form) {
             form.querySelectorAll('.ca-field').forEach(function (field) {

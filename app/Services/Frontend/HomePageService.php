@@ -137,7 +137,7 @@ class HomePageService
                 'cta_label' => 'Attempt Exam',
                 'cta_url' => route('frontend.exams.show', $exam->slug),
                 'illustration' => asset('frontend/images/exams.svg'),
-                'image' => method_exists($exam, 'bannerUrl') ? $exam->bannerUrl() : null,
+                'image' => null,
             ];
         }
 

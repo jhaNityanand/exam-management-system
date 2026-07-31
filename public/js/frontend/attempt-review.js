@@ -27,6 +27,19 @@
             .replace(/"/g, '&quot;');
     }
 
+    function plainText(value) {
+        var div = document.createElement('div');
+        div.innerHTML = String(value ?? '');
+        return String(div.textContent || div.innerText || '')
+            .replace(/\u00a0/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function looksLikeHtml(value) {
+        return /<\/?[a-z][\s\S]*>/i.test(String(value ?? ''));
+    }
+
     function iconCheck() {
         return '<svg class="rv-option__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     }
@@ -183,7 +196,7 @@
                 '    <span class="rv-option__fake" aria-hidden="true"></span>',
                 '  </span>',
                 '  <span class="rv-option__key">' + escapeHtml(option.letter) + '</span>',
-                '  <span class="rv-option__text">' + escapeHtml(option.text) + '</span>',
+                '  <span class="rv-option__text">' + escapeHtml(plainText(option.text)) + '</span>',
                 state.icon,
                 '</label>',
             ].join('');
@@ -191,8 +204,10 @@
     }
 
     function renderTextAnswer(question) {
-        var yours = textValue(question.candidate_labels, question.candidate_keys);
-        var correct = textValue(question.correct_labels, question.correct_keys);
+        var yoursRaw = textValue(question.candidate_labels, question.candidate_keys);
+        var correctRaw = textValue(question.correct_labels, question.correct_keys);
+        var yours = plainText(yoursRaw);
+        var correctPlain = plainText(correctRaw);
         var yoursClass = 'is-empty';
         if (question.status === 'correct') yoursClass = 'is-yours-correct';
         else if (question.status === 'incorrect') yoursClass = 'is-yours-wrong';
@@ -206,6 +221,15 @@
             field = '<textarea class="rv-field" rows="' + rows + '" readonly disabled placeholder="No answer">' + escapeHtml(yours) + '</textarea>';
         }
 
+        var correctHtml;
+        if (!correctPlain) {
+            correctHtml = '—';
+        } else if (looksLikeHtml(correctRaw)) {
+            correctHtml = '<div class="et-prose rv-correct-text__html">' + correctRaw + '</div>';
+        } else {
+            correctHtml = escapeHtml(correctPlain);
+        }
+
         return [
             '<div class="rv-answer-block">',
             '  <div class="rv-answer-row ' + yoursClass + '">',
@@ -214,7 +238,7 @@
             '  </div>',
             '  <div class="rv-answer-row is-correct">',
             '    <strong>Correct answer</strong>',
-            '    <div class="rv-correct-text">' + (correct ? escapeHtml(correct) : '—') + '</div>',
+            '    <div class="rv-correct-text">' + correctHtml + '</div>',
             '  </div>',
             '</div>',
         ].join('');

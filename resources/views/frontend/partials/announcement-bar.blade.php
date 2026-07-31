@@ -1,3 +1,14 @@
+@php
+    $hideAnnouncements = $hideAnnouncements
+        ?? request()->routeIs([
+            'frontend.exams.rules',
+            'frontend.exams.prepare',
+            'frontend.exams.started',
+            'frontend.attempts.result',
+            'frontend.attempts.review',
+        ]);
+@endphp
+@if(! $hideAnnouncements)
 @forelse(($announcements ?? collect()) as $announcement)
     <div
         class="et-announce"
@@ -28,3 +39,4 @@
     </div>
 @empty
 @endforelse
+@endif

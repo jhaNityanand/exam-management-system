@@ -195,7 +195,13 @@ class Exam extends Model
 
     public function bannerUrl(): ?string
     {
-        return $this->bannerImage?->file_url ?? $this->ogImage?->file_url;
+        // Only the dedicated exam banner — never fall back to OG/social image.
+        return $this->bannerImage?->file_url;
+    }
+
+    public function socialImageUrl(): ?string
+    {
+        return $this->ogImage?->file_url ?? $this->bannerImage?->file_url;
     }
 
     public function isPaid(): bool

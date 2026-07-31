@@ -845,8 +845,17 @@
             // Hand webcam off to the runner after mount so prepare stream can stop cleanly.
             stopAllMedia();
 
-            var mountExam = await waitForMountExam(8000);
-            mountExam(examRoot);
+            try {
+                var mountExam = await waitForMountExam(8000);
+                mountExam(examRoot);
+            } catch (mountErr) {
+                // Vite/dev assets missing — fall back to full started page load.
+                if (startedUrl) {
+                    window.location.href = startedUrl;
+                    return;
+                }
+                throw mountErr;
+            }
             setLoading(false);
 
             if (root) {

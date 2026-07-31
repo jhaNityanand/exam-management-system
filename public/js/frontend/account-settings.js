@@ -195,6 +195,15 @@
         if (deleteForm) {
             deleteForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
+                var confirmed = await window.CaAccount.confirm({
+                    title: 'Delete account?',
+                    text: 'This permanently deletes your account and cannot be undone.',
+                    confirmText: 'Delete account',
+                    cancelText: 'Cancel',
+                    icon: 'warning',
+                });
+                if (!confirmed) return;
+
                 var btn = document.getElementById('ca-delete-submit');
                 window.CaAccount.clearFieldErrors(deleteForm);
                 window.CaAccount.setButtonLoading(btn, true, 'Deleting…');

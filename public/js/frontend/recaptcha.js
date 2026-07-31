@@ -55,7 +55,17 @@
                 form.requestSubmit ? form.requestSubmit() : form.submit();
             } catch (error) {
                 form.dataset.etRecaptchaReady = '';
-                window.alert('reCAPTCHA failed to load. Please refresh and try again.');
+                if (window.EmsToast && typeof window.EmsToast.error === 'function') {
+                    window.EmsToast.error('reCAPTCHA failed to load. Please refresh and try again.');
+                } else if (window.Swal && typeof window.Swal.fire === 'function') {
+                    window.Swal.fire({
+                        icon: 'error',
+                        title: 'reCAPTCHA failed',
+                        text: 'Please refresh and try again.',
+                    });
+                } else {
+                    window.alert('reCAPTCHA failed to load. Please refresh and try again.');
+                }
             }
         });
     };

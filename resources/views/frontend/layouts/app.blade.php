@@ -71,6 +71,8 @@
 
     <div class="et-visually-hidden" role="status" aria-live="polite" data-global-live></div>
 
+    @include('partials.flash-toasts')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ versioned_asset('vendor/tom-select/tom-select.complete.min.js') }}"></script>
     <script src="{{ versioned_asset('js/components/searchable-select.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/app.js') }}" defer></script>

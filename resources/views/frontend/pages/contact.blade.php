@@ -117,13 +117,6 @@
                 <p class="et-panel__subtitle">Share a few details and we will reply during support hours.</p>
             </div>
 
-            @if (session('success'))
-                <div class="et-alert et-alert--success" role="status">{{ session('success') }}</div>
-            @endif
-            @if ($errors->any())
-                <div class="et-alert et-alert--error" role="alert">{{ $errors->first() }}</div>
-            @endif
-
             <form class="et-form et-form--stack" method="POST" action="{{ route('frontend.contact.store') }}" novalidate data-contact-form>
                 @csrf
                 <div class="et-form__row">

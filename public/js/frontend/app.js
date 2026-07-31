@@ -602,25 +602,33 @@
               });
             })
             .then(function (result) {
-              if (!msg) return;
               if (result.ok) {
-                msg.textContent = (result.json && result.json.message) || 'Subscribed successfully.';
-                msg.classList.add('is-ok');
+                if (msg) {
+                  msg.textContent = '';
+                  msg.className = 'et-newsletter-form__msg';
+                }
+                showToast((result.json && result.json.message) || 'Subscribed successfully.', 'success');
                 form.reset();
               } else {
                 const errors = result.json && result.json.errors;
                 const first = errors ? Object.values(errors)[0] : null;
-                msg.textContent =
+                const errorText =
                   (first && first[0]) ||
                   (result.json && result.json.message) ||
                   'Subscription failed. Please try again.';
-                msg.classList.add('is-error');
+                if (msg) {
+                  msg.textContent = '';
+                  msg.className = 'et-newsletter-form__msg';
+                }
+                showToast(errorText, 'error');
               }
             })
             .catch(function () {
-              if (!msg) return;
-              msg.textContent = 'Subscription failed. Please try again.';
-              msg.classList.add('is-error');
+              if (msg) {
+                msg.textContent = '';
+                msg.className = 'et-newsletter-form__msg';
+              }
+              showToast('Subscription failed. Please try again.', 'error');
             })
             .finally(function () {
               if (btn) btn.disabled = false;
@@ -638,10 +646,7 @@
                 run();
               })
               .catch(function () {
-                if (msg) {
-                  msg.textContent = 'reCAPTCHA failed. Please try again.';
-                  msg.classList.add('is-error');
-                }
+                showToast('reCAPTCHA failed. Please try again.', 'error');
               });
           });
           return;
@@ -978,6 +983,20 @@
   }
 
   function showToast(message, tone) {
+    var text = (message || '').toString().trim();
+    if (!text) return;
+
+    var type = (tone || 'success').toString().toLowerCase();
+    if (type === 'failed' || type === 'danger') type = 'error';
+    if (type !== 'success' && type !== 'error' && type !== 'warning' && type !== 'info') {
+      type = 'info';
+    }
+
+    if (window.EmsToast && typeof window.EmsToast[type] === 'function') {
+      window.EmsToast[type](text);
+      return;
+    }
+
     let toast = qs('[data-et-toast]');
     if (!toast) {
       toast = doc.createElement('div');
@@ -988,8 +1007,8 @@
       doc.body.appendChild(toast);
     }
 
-    toast.textContent = message || '';
-    toast.setAttribute('data-tone', tone || 'success');
+    toast.textContent = text;
+    toast.setAttribute('data-tone', type);
     toast.classList.add('is-visible');
 
     if (toast._hideTimer) window.clearTimeout(toast._hideTimer);

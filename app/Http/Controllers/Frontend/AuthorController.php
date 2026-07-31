@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\Blog;
+use App\Models\Exam;
 use App\Models\News;
+use App\Models\Question;
 use App\Models\User;
 use App\Models\UserOrganization;
 use App\Support\OrganizationRoles;
@@ -43,7 +45,6 @@ class AuthorController extends Controller
                 $term = '%'.$request->string('search')->trim().'%';
                 $q->where(function ($inner) use ($term) {
                     $inner->where('name', 'like', $term)
-                        ->orWhere('email', 'like', $term)
                         ->orWhere('slug', 'like', $term)
                         ->orWhereHas('profile', fn ($profile) => $profile->where('bio', 'like', $term));
                 });
@@ -91,7 +92,15 @@ class AuthorController extends Controller
         abort_unless($membership, 404);
 
         $author->load('profile');
-        $author->setAttribute('public_role', $membership->role);
+
+        $exams = Exam::query()
+            ->publicCatalog()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('created_by', $author->id)
+            ->with(['category:id,name,slug', 'bannerImage', 'ogImage'])
+            ->latest('id')
+            ->limit(3)
+            ->get();
 
         $blogs = Blog::query()
             ->published()
@@ -99,7 +108,7 @@ class AuthorController extends Controller
             ->where('author_id', $author->id)
             ->with(['category:id,name,slug', 'bannerImage', 'banners'])
             ->orderByDesc('published_at')
-            ->limit(12)
+            ->limit(3)
             ->get();
 
         $news = News::query()
@@ -108,23 +117,37 @@ class AuthorController extends Controller
             ->where('author_id', $author->id)
             ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
             ->orderByDesc('published_at')
-            ->limit(12)
+            ->limit(3)
             ->get();
 
-        $socialLinks = collect($author->profile?->social_links ?? [])
-            ->filter(fn ($value) => filled($value))
+        $questions = Question::query()
+            ->publiclyVisible()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('created_by', $author->id)
+            ->with(['category:id,name,slug'])
+            ->latest('id')
+            ->limit(3)
+            ->get();
+
+        $authorSocialLinks = collect($author->profile?->social_links ?? [])
+            ->filter(fn ($value) => is_string($value) && filled(trim($value)))
+            ->mapWithKeys(function ($url, $network) {
+                $key = strtolower((string) $network);
+                if ($key === 'twitter') {
+                    $key = 'x';
+                }
+
+                return [$key => trim($url)];
+            })
             ->all();
 
         return view('frontend.authors.show', [
             'author' => $author,
-            'role' => author_role($author, $membership->role),
+            'exams' => $exams,
             'blogs' => $blogs,
             'news' => $news,
-            'socialLinks' => $socialLinks,
-            'stats' => [
-                'blogs' => $blogs->count(),
-                'news' => $news->count(),
-            ],
+            'questions' => $questions,
+            'authorSocialLinks' => $authorSocialLinks,
         ]);
     }
 

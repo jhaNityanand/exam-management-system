@@ -1937,20 +1937,38 @@ html.et-filter-modal-open body {
 }
 
 /* Exam cards */
+.et-exam-card--text {
+  display: flex;
+  flex-direction: column;
+}
+.et-exam-card--text .et-card__body {
+  gap: 0.7rem;
+  padding: 1.15rem 1.2rem 1.25rem;
+}
+.et-exam-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.et-exam-card__top .et-card__meta {
+  flex: 1;
+  min-width: 0;
+}
 .et-exam-card__excerpt {
   margin: 0;
   color: var(--et-text-muted);
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.55;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .et-exam-card__stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem 0.85rem;
+  gap: 0.55rem 0.9rem;
   color: var(--et-text-muted);
   font-size: 0.82rem;
   font-weight: 600;
@@ -1962,9 +1980,8 @@ html.et-filter-modal-open body {
 }
 .et-exam-card__stats svg { opacity: 0.8; color: var(--et-accent); }
 .et-exam-card__price {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
+  position: static;
+  flex-shrink: 0;
   z-index: 1;
   padding: 0.28rem 0.65rem;
   border-radius: 999px;
@@ -1972,15 +1989,25 @@ html.et-filter-modal-open body {
   font-weight: 800;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  backdrop-filter: blur(8px);
+  line-height: 1.2;
 }
 .et-exam-card__price.is-free {
-  background: color-mix(in srgb, #10b981 88%, #fff);
-  color: #ecfdf5;
+  background: color-mix(in srgb, #10b981 16%, var(--et-surface));
+  color: #047857;
+  border: 1px solid color-mix(in srgb, #10b981 35%, transparent);
 }
 .et-exam-card__price.is-paid {
-  background: color-mix(in srgb, #f59e0b 90%, #fff);
-  color: #451a03;
+  background: color-mix(in srgb, #f59e0b 18%, var(--et-surface));
+  color: #92400e;
+  border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
+}
+html.dark .et-exam-card__price.is-free,
+.et-body[data-theme="dark"] .et-exam-card__price.is-free {
+  color: #6ee7b7;
+}
+html.dark .et-exam-card__price.is-paid,
+.et-body[data-theme="dark"] .et-exam-card__price.is-paid {
+  color: #fcd34d;
 }
 .et-exam-card__actions {
   display: flex;
@@ -1989,11 +2016,42 @@ html.et-filter-modal-open body {
   margin-top: auto;
   padding-top: 0.35rem;
 }
-.et-exam-card .et-card__media img {
-  transition: transform 420ms ease;
+.et-exam-detail__about {
+  padding: 1.35rem 1.4rem 1.5rem;
 }
-.et-exam-card:hover .et-card__media img {
-  transform: scale(1.04);
+.et-exam-detail__about h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1.2rem;
+}
+.et-exam-detail__lead {
+  margin: 0 0 1rem;
+  color: var(--et-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.et-exam-detail__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  margin-top: 0.65rem;
+  color: var(--et-text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.et-exam-detail__cta {
+  margin-top: 0;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+}
+.et-exam-detail__cta .et-btn {
+  width: auto;
+  flex: 0 0 auto;
 }
 .et-card--enter {
   animation: et-card-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -4698,22 +4756,26 @@ html.dark .et-author-card__role--admin { color: #c4b5fd; }
 html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
 
 .et-author-hero {
-  padding: 1.5rem 0 0;
+  padding: 1.25rem 0 0;
   background:
     radial-gradient(560px 220px at 0% 0%, color-mix(in srgb, var(--et-accent) 18%, transparent), transparent 55%),
     linear-gradient(180deg, color-mix(in srgb, var(--et-accent-soft) 70%, transparent), transparent);
   border-bottom: 1px solid var(--et-border);
 }
+.et-author-page__wrap {
+  max-width: 1100px;
+  margin-inline: auto;
+}
 .et-author-hero__panel {
   display: grid;
   gap: 1.25rem;
-  padding: 1.5rem 0 2rem;
+  padding: 1.15rem 0 1.85rem;
+  align-items: start;
 }
-@media (min-width: 720px) {
+@media (min-width: 900px) {
   .et-author-hero__panel {
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 1.75rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1.5rem 1.75rem;
   }
 }
 .et-author-hero__avatar {
@@ -4730,66 +4792,121 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
   box-shadow: 0 0 0 4px var(--et-surface), 0 18px 36px -22px rgba(15, 23, 42, 0.45);
 }
 .et-author-hero__avatar img { width: 100%; height: 100%; object-fit: cover; }
-.et-author-hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 0.9rem;
-  margin-bottom: 0.55rem;
+.et-author-hero__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--et-accent);
 }
-.et-author-hero__counts {
-  color: var(--et-text-muted);
-  font-size: 0.9rem;
-}
-.et-author-hero__counts strong { color: var(--et-text); }
 .et-author-hero h1 {
-  margin: 0 0 0.45rem;
-  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.7rem, 4vw, 2.35rem);
   letter-spacing: -0.03em;
+  line-height: 1.15;
 }
 .et-author-hero__bio {
   margin: 0;
   max-width: 42rem;
   color: var(--et-text-muted);
   font-size: 1.02rem;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 .et-author-hero__social {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   list-style: none;
-  margin: 1rem 0 0;
+  margin: 0.95rem 0 0;
   padding: 0;
 }
-.et-author-hero__social a {
-  display: inline-flex;
-  padding: 0.4rem 0.75rem;
+.et-author-hero__social-link {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-grid;
+  place-items: center;
   border-radius: 999px;
   border: 1px solid var(--et-border);
   background: var(--et-surface);
-  font-size: 0.82rem;
-  font-weight: 650;
   color: var(--et-text);
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
-.et-author-hero__social a:hover {
-  border-color: var(--et-accent);
+.et-author-hero__social-link:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--et-accent) 40%, var(--et-border));
   color: var(--et-accent);
+  box-shadow: var(--et-shadow);
 }
-.et-author-work { display: grid; gap: 2.5rem; }
+.et-author-hero__share {
+  justify-self: start;
+}
+.et-author-hero__share .et-article__share {
+  margin: 0;
+  justify-items: start;
+}
+@media (min-width: 900px) {
+  .et-author-hero__share {
+    justify-self: end;
+    align-self: center;
+  }
+  .et-author-hero__share .et-article__share {
+    justify-items: end;
+  }
+  .et-author-hero__share .et-article__share-label {
+    text-align: right;
+    width: 100%;
+  }
+}
+@media (max-width: 899px) {
+  .et-author-hero__share {
+    grid-column: 1 / -1;
+  }
+}
+.et-author-work {
+  display: grid;
+  gap: 2.25rem;
+  padding: 1.75rem 0 2.75rem;
+}
+.et-author-work__block {
+  padding: 1.15rem 1.2rem 1.25rem;
+  border: 1px solid var(--et-border);
+  border-radius: 18px;
+  background: var(--et-surface);
+  box-shadow: var(--et-shadow);
+}
 .et-author-work__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
 }
 .et-author-work__head h2 {
-  margin: 0;
-  font-size: 1.25rem;
+  margin: 0 0 0.2rem;
+  font-size: 1.2rem;
   letter-spacing: -0.02em;
 }
-.et-author-work__empty { margin: 0; color: var(--et-text-muted); }
+.et-author-work__head p {
+  margin: 0;
+  color: var(--et-text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.et-author-work__empty {
+  margin: 0;
+  padding: 0.85rem 0.2rem;
+  color: var(--et-text-muted);
+}
+@media (max-width: 640px) {
+  .et-author-hero__avatar {
+    width: 5.75rem;
+    height: 5.75rem;
+    font-size: 1.45rem;
+  }
+  .et-author-work__block { padding: 1rem; }
+}
 
 /* FAQ page */
 .et-faq-page__layout {

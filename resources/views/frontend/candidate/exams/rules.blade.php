@@ -25,13 +25,6 @@
 </div>
 
 <div class="et-container" style="padding:1.5rem 0 3rem;display:grid;gap:1.25rem">
-    @if(session('success'))
-        <div class="et-alert et-alert--success">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="et-alert et-alert--danger">{{ session('error') }}</div>
-    @endif
-
     <div class="et-grid et-grid--4">
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_questions }}</span><span class="et-stat__label">Questions</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->duration }}</span><span class="et-stat__label">Minutes</span></div>
@@ -122,7 +115,23 @@ setInterval(() => {
 }, 1000);
 
 document.getElementById('rules-purchase-btn')?.addEventListener('click', async (e) => {
-    if (!confirm('Complete placeholder payment?')) return;
+    let confirmed = false;
+    if (window.Swal && typeof window.Swal.fire === 'function') {
+        const result = await window.Swal.fire({
+            title: 'Complete payment?',
+            text: 'Complete placeholder payment for this exam?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Continue',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+        });
+        confirmed = !!(result && result.isConfirmed);
+    } else {
+        confirmed = confirm('Complete placeholder payment?');
+    }
+    if (!confirmed) return;
+
     const res = await fetch(e.currentTarget.dataset.url, {
         method: 'POST',
         headers: {
@@ -130,8 +139,17 @@ document.getElementById('rules-purchase-btn')?.addEventListener('click', async (
             'Accept': 'application/json',
         },
     });
-    if (res.ok) location.reload();
-    else alert('Payment failed');
+    if (res.ok) {
+        location.reload();
+        return;
+    }
+    if (window.EmsToast?.error) {
+        window.EmsToast.error('Payment failed');
+    } else if (window.Swal?.fire) {
+        window.Swal.fire({ icon: 'error', title: 'Payment failed' });
+    } else {
+        alert('Payment failed');
+    }
 });
 
 (function () {

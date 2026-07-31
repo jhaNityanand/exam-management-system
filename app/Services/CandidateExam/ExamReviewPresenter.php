@@ -155,13 +155,18 @@ class ExamReviewPresenter
             return '';
         }
         if (is_string($raw) || is_numeric($raw)) {
-            return trim((string) $raw);
+            return $this->plainLabel((string) $raw);
         }
         if (is_array($raw)) {
-            return trim((string) ($raw['text'] ?? $raw['label'] ?? $raw['value'] ?? $raw['option'] ?? ''));
+            return $this->plainLabel((string) ($raw['text'] ?? $raw['label'] ?? $raw['value'] ?? $raw['option'] ?? ''));
         }
 
         return '';
+    }
+
+    protected function plainLabel(string $value): string
+    {
+        return trim(html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
     }
 
     /**
@@ -236,7 +241,9 @@ class ExamReviewPresenter
         }
 
         return array_map(function (string $key) use ($map) {
-            return $map[strtolower($key)] ?? $key;
+            $label = $map[strtolower($key)] ?? $key;
+
+            return $this->plainLabel($label);
         }, $keys);
     }
 
