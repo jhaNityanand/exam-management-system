@@ -251,12 +251,13 @@
         </div>
         <div class="et-faq" data-faq>
             @foreach ($supportFaqs as $i => $faq)
+                @php $panelId = 'contact-faq-panel-'.$i; @endphp
                 <div class="et-faq__item" data-faq-item>
-                    <button type="button" class="et-faq__trigger" data-faq-trigger aria-expanded="false" id="contact-faq-{{ $i }}">
+                    <button type="button" class="et-faq__trigger" data-faq-trigger aria-expanded="false" aria-controls="{{ $panelId }}" id="contact-faq-{{ $i }}">
                         <span>{{ $faq['q'] }}</span>
                         <span class="et-faq__icon" aria-hidden="true">+</span>
                     </button>
-                    <div class="et-faq__panel" role="region" aria-labelledby="contact-faq-{{ $i }}">{{ $faq['a'] }}</div>
+                    <div class="et-faq__panel" id="{{ $panelId }}" role="region" aria-labelledby="contact-faq-{{ $i }}">{{ $faq['a'] }}</div>
                 </div>
             @endforeach
         </div>

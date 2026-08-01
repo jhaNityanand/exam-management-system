@@ -8,7 +8,8 @@
         'canonical' => $category->canonical_url ?: url()->current(),
         'og_title' => $category->og_title,
         'og_description' => $category->og_description,
-        'image' => $category->ogImage?->file_url,
+        'image' => $category->seoImageUrl(),
+        'image_type' => 'category',
     ];
     $children = $category->children ?? collect();
     $relatedBlogs = $relatedBlogs ?? collect();
@@ -30,7 +31,7 @@
         </div>
     </div>
 
-    <div class="et-container et-section" style="display:grid;gap:2rem">
+    <div class="et-container et-section et-stack-lg">
         <section>
             @include('frontend.components.section-heading', [
                 'title' => 'Exams',
@@ -39,7 +40,12 @@
                 'actionLabel' => 'View all',
             ])
             @if(($exams ?? collect())->isEmpty())
-                @include('frontend.partials.empty-state', ['title' => 'No exams in this category', 'message' => ''])
+                @include('frontend.partials.empty-state', [
+                    'title' => 'No exams in this category',
+                    'message' => 'Browse all published exams or try another category.',
+                    'actionUrl' => route('frontend.exams.index'),
+                    'actionLabel' => 'Browse exams',
+                ])
             @else
                 <div class="et-grid et-grid--3" data-load-more-list>
                     @foreach($exams as $exam)

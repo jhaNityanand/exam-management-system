@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'Rules — '.$exam->title];
+    $seo = ['title' => 'Rules — '.$exam->title, 'robots' => 'noindex, nofollow', 'image_type' => 'exam'];
     $policy = $policy ?? $exam->proctoringPolicy;
     $warningLimit = (int) ($policy?->focus_violation_limit ?? 3);
     $rulesAgreed = ! empty($rulesAgreed);
@@ -9,6 +9,7 @@
     $canContinueAttempt = ! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']);
     $needsPayment = ! empty($evaluation['requires_payment']);
     $canAttempt = (! empty($evaluation['can_attempt']) || empty($evaluation['reasons'])) && ! $needsPayment && ! $canContinueAttempt;
+    $formats = collect($exam->exam_format ?? [])->map(fn ($f) => str_replace('_', ' ', ucfirst((string) $f)))->implode(', ');
 @endphp
 
 @section('content')
@@ -24,7 +25,7 @@
     </div>
 </div>
 
-<div class="et-container" style="padding:1.5rem 0 3rem;display:grid;gap:1.25rem">
+<div class="et-container et-page-stack">
     <div class="et-grid et-grid--4">
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_questions }}</span><span class="et-stat__label">Questions</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->duration }}</span><span class="et-stat__label">Minutes</span></div>
@@ -41,10 +42,10 @@
         @endif
     </div>
 
-    <div class="et-card" style="padding:1.25rem">
-        <h2 style="margin-top:0">Assessment summary</h2>
-        <ul>
-            <li><strong>Question types:</strong> {{ collect($exam->exam_format ?? [])->map(fn($f)=>str_replace('_',' ',ucfirst($f)))->implode(', ') }}</li>
+    <div class="et-card et-card--padded">
+        <h2 class="et-heading-flush">Assessment summary</h2>
+        <ul class="et-detail-list">
+            <li><strong>Question types:</strong> {{ $formats ?: '—' }}</li>
             <li><strong>Negative marking:</strong>
                 @if($exam->enable_negative_marking)
                     Enabled ({{ $exam->negative_marking_type ?: 'custom' }})
@@ -63,8 +64,8 @@
         </ul>
     </div>
 
-    <div class="et-card" style="padding:1.25rem">
-        <h2 style="margin-top:0">Instructions for candidates</h2>
+    <div class="et-card et-card--padded">
+        <h2 class="et-heading-flush">Instructions for candidates</h2>
         <div class="et-prose">
             @if($exam->instructions)
                 <x-rich-text-content :content="$exam->instructions" />
@@ -87,9 +88,13 @@
         @endunless
 
         @if($needsPayment)
-            <button type="button" class="et-btn et-btn--primary" id="rules-purchase-btn"
-                    data-url="{{ route('frontend.exams.purchase', $exam) }}">Purchase Exam</button>
-            <span style="color:var(--et-text-muted)">Payment is required before continuing.</span>
+            <button type="button"
+                    class="et-btn et-btn--primary"
+                    id="rules-purchase-btn"
+                    data-exam-purchase
+                    data-url="{{ route('frontend.exams.purchase', $exam) }}"
+                    data-reload="1">Purchase Exam</button>
+            <span class="et-text-muted">Payment is required before continuing.</span>
         @elseif($canContinueAttempt)
             <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
         @elseif($canAttempt)
@@ -100,7 +105,7 @@
                 Continue to verification
             </a>
         @else
-            <span style="color:var(--et-text-muted)">{{ $evaluation['reasons'][0] ?? 'You cannot start this exam right now.' }}</span>
+            <span class="et-text-muted">{{ $evaluation['reasons'][0] ?? 'You cannot start this exam right now.' }}</span>
         @endif
         <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Back to exam details</a>
     </div>
@@ -108,96 +113,6 @@
 @endsection
 
 @push('scripts')
-<script>
-setInterval(() => {
-    const el = document.getElementById('cx-current-time');
-    if (el) el.textContent = new Date().toLocaleString();
-}, 1000);
-
-document.getElementById('rules-purchase-btn')?.addEventListener('click', async (e) => {
-    let confirmed = false;
-    if (window.Swal && typeof window.Swal.fire === 'function') {
-        const result = await window.Swal.fire({
-            title: 'Complete payment?',
-            text: 'Complete placeholder payment for this exam?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Continue',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-        });
-        confirmed = !!(result && result.isConfirmed);
-    } else {
-        confirmed = confirm('Complete placeholder payment?');
-    }
-    if (!confirmed) return;
-
-    const res = await fetch(e.currentTarget.dataset.url, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept': 'application/json',
-        },
-    });
-    if (res.ok) {
-        location.reload();
-        return;
-    }
-    if (window.EmsToast?.error) {
-        window.EmsToast.error('Payment failed');
-    } else if (window.Swal?.fire) {
-        window.Swal.fire({ icon: 'error', title: 'Payment failed' });
-    } else {
-        alert('Payment failed');
-    }
-});
-
-(function () {
-    const wrap = document.getElementById('cx-rules-actions');
-    const checkbox = document.getElementById('cx-rules-agree');
-    const continueBtn = document.getElementById('cx-rules-continue');
-    if (!wrap || !checkbox || !continueBtn) return;
-
-    const agreeUrl = wrap.getAttribute('data-agree-url') || '';
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-
-    function setContinueEnabled(enabled) {
-        if (enabled) {
-            continueBtn.removeAttribute('aria-disabled');
-            continueBtn.removeAttribute('tabindex');
-            continueBtn.classList.remove('is-disabled');
-        } else {
-            continueBtn.setAttribute('aria-disabled', 'true');
-            continueBtn.setAttribute('tabindex', '-1');
-            continueBtn.classList.add('is-disabled');
-        }
-    }
-
-    setContinueEnabled(checkbox.checked);
-
-    continueBtn.addEventListener('click', (e) => {
-        if (!checkbox.checked) {
-            e.preventDefault();
-            checkbox.focus();
-        }
-    });
-
-    checkbox.addEventListener('change', async () => {
-        const agreed = checkbox.checked;
-        setContinueEnabled(agreed);
-        if (!agreeUrl) return;
-        try {
-            await fetch(agreeUrl, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ agreed }),
-            });
-        } catch (err) {}
-    });
-})();
-</script>
+<script src="{{ versioned_asset('js/frontend/exam-purchase.js') }}" defer></script>
+<script src="{{ versioned_asset('js/frontend/exam-rules.js') }}" defer></script>
 @endpush

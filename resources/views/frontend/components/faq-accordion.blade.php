@@ -1,11 +1,13 @@
 <div class="et-faq" data-faq>
     @foreach(($faqs ?? collect()) as $faq)
+        @php $panelId = 'faq-panel-'.$faq->id; @endphp
         <div class="et-faq__item" data-faq-item data-faq-text="{{ \Illuminate\Support\Str::lower($faq->question.' '.$faq->answer) }}">
             <button
                 type="button"
                 class="et-faq__trigger"
                 data-faq-trigger
                 aria-expanded="false"
+                aria-controls="{{ $panelId }}"
                 id="faq-trigger-{{ $faq->id }}"
             >
                 <span>{{ $faq->question }}</span>
@@ -15,7 +17,7 @@
                     </svg>
                 </span>
             </button>
-            <div class="et-faq__panel" role="region" aria-labelledby="faq-trigger-{{ $faq->id }}">
+            <div class="et-faq__panel" id="{{ $panelId }}" role="region" aria-labelledby="faq-trigger-{{ $faq->id }}">
                 {!! nl2br(e($faq->answer)) !!}
             </div>
         </div>

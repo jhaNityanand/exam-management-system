@@ -1,7 +1,11 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'Trending news', 'description' => 'Trending education news and exam updates.'];
+    $seo = [
+        'title' => 'Trending news',
+        'description' => 'Trending education news and exam updates.',
+        'image_type' => 'news',
+    ];
     $activeFilterCount = collect([
         request('search'),
         request('sort') && request('sort') !== 'latest' ? request('sort') : null,

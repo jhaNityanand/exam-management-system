@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $maintenance['title'] }} — {{ $maintenance['site_name'] }}</title>
+    <meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags((string) ($maintenance['message'] ?? 'We will be back shortly.')), 160) }}">
+    <meta property="og:title" content="{{ $maintenance['title'] }} — {{ $maintenance['site_name'] }}">
+    <meta property="og:description" content="{{ \Illuminate\Support\Str::limit(strip_tags((string) ($maintenance['message'] ?? 'We will be back shortly.')), 160) }}">
+    <meta property="og:image" content="{{ seo_default_image('organization') }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{ seo_default_image('organization') }}">
     @include('frontend.partials.theme-init')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +26,7 @@
 @endphp
 <div class="et-maintenance" @if($bgStyle) style="{{ $bgStyle }}" @endif>
     <div class="et-maintenance__glow" aria-hidden="true"></div>
-    <div class="et-maintenance__card">
+    <main class="et-maintenance__card">
         @if(!empty($maintenance['logo_url']))
             <img class="et-maintenance__logo" src="{{ $maintenance['logo_url'] }}" alt="{{ $maintenance['site_name'] }}">
         @else
@@ -60,7 +66,7 @@
         @endif
 
         <p class="et-maintenance__footnote">Thank you for your patience.</p>
-    </div>
+    </main>
 </div>
 </body>
 </html>

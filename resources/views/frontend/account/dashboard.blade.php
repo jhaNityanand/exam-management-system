@@ -1,7 +1,7 @@
 @extends('frontend.account.layout')
 
 @php
-    $seo = ['title' => 'Dashboard'];
+    $seo = ['title' => 'Dashboard', 'robots' => 'noindex, nofollow', 'image_type' => 'profile'];
     $charts = $charts ?? ['pie' => [], 'bars' => [], 'line' => [], 'categories' => [], 'demo' => true];
     $pie = $charts['pie'] ?? [];
     $bars = $charts['bars'] ?? [];

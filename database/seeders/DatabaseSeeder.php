@@ -35,8 +35,8 @@ class DatabaseSeeder extends Seeder
         $this->command->table(
             ['Email', 'Role', 'Access'],
             [
-                ['admin@example.in', 'Application Admin', '/admin — full admin panel'],
-                ['admin@examtube.in', 'Org Admin', '/admin — organization management'],
+                [\Database\Seeders\Support\SeederContact::EMAIL_ADMIN, 'Application Admin', '/admin — full admin panel'],
+                [\Database\Seeders\Support\SeederContact::EMAIL_INFO, 'Org Admin', '/admin — organization management'],
                 ['candidate@examtube.in', 'Candidate', '/account — exams & results'],
             ]
         );

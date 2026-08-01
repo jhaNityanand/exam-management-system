@@ -4,9 +4,6 @@
     $article = $news ?? $article ?? null;
     $words = str_word_count(strip_tags((string) ($article->content ?? '')));
     $readingMins = max(1, (int) ceil($words / 200));
-    $banner = $article->featuredImageUrl()
-        ?? (method_exists($article, 'bannerUrl') ? $article->bannerUrl() : null)
-        ?? ($article->bannerImage->file_url ?? null);
     $seo = [
         'title' => $article->seo_title ?: $article->title,
         'description' => $article->seo_description ?: ($article->short_description ?: $article->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $article->content), 160)),
@@ -14,7 +11,8 @@
         'canonical' => $article->canonical_url ?: url()->current(),
         'og_title' => $article->og_title,
         'og_description' => $article->og_description,
-        'image' => $article->ogImage->file_url ?? $banner,
+        'image' => $article->seoImageUrl(),
+        'image_type' => 'news',
         'type' => 'article',
     ];
     $shareUrl = urlencode(url()->current());

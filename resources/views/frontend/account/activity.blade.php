@@ -1,7 +1,7 @@
 @extends('frontend.account.layout')
 
 @php
-    $seo = ['title' => 'Activity tracking'];
+    $seo = ['title' => 'Activity tracking', 'robots' => 'noindex, nofollow', 'image_type' => 'profile'];
 @endphp
 
 @section('account-eyebrow', 'Insights')

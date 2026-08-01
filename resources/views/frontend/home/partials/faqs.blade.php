@@ -1,6 +1,6 @@
 @php $faqs = $page['faqs'] ?? collect(); @endphp
 <section class="et-section">
-    <div class="et-container" style="max-width:820px;margin-inline:auto">
+    <div class="et-container et-container--narrow">
         @include('frontend.components.section-heading', [
             'title' => 'Frequently asked questions',
             'subtitle' => 'Quick answers about exams, accounts, and preparation on Examtube.',

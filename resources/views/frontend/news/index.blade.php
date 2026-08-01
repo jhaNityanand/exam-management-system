@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'News',
         'description' => 'Education news, alerts, and trending updates for aspirants.',
+        'image_type' => 'news',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'News'],

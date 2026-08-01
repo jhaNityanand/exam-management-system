@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'Question categories',
         'description' => 'Browse question categories on Examtube.',
+        'image_type' => 'question',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Questions', 'url' => route('frontend.questions.index')],

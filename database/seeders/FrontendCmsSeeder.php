@@ -49,10 +49,10 @@ class FrontendCmsSeeder extends Seeder
             ['group' => 'brand', 'key' => 'tagline', 'value' => 'Practice smarter. Score higher. Get exam-ready.', 'type' => 'string', 'label' => 'Tagline'],
             ['group' => 'brand', 'key' => 'logo_text', 'value' => 'Examtube', 'type' => 'string', 'label' => 'Logo text'],
             ['group' => 'brand', 'key' => 'description', 'value' => 'Examtube.in helps students, job seekers, and institutes practice with structured exams, stay updated with education news, and learn from practical blogs.', 'type' => 'text', 'label' => 'Description'],
-            ['group' => 'contact', 'key' => 'email', 'value' => 'hello@examtube.in', 'type' => 'string', 'label' => 'Support email'],
-            ['group' => 'contact', 'key' => 'phone', 'value' => '+91 98765 43210', 'type' => 'string', 'label' => 'Support phone'],
-            ['group' => 'contact', 'key' => 'whatsapp', 'value' => '+91 98765 43210', 'type' => 'string', 'label' => 'WhatsApp'],
-            ['group' => 'contact', 'key' => 'address', 'value' => 'Innov8 Workspace, Koramangala, Bengaluru, Karnataka 560034', 'type' => 'text', 'label' => 'Address'],
+            ['group' => 'contact', 'key' => 'email', 'value' => \Database\Seeders\Support\SeederContact::EMAIL_SUPPORT, 'type' => 'string', 'label' => 'Support email'],
+            ['group' => 'contact', 'key' => 'phone', 'value' => \Database\Seeders\Support\SeederContact::PHONE, 'type' => 'string', 'label' => 'Support phone'],
+            ['group' => 'contact', 'key' => 'whatsapp', 'value' => \Database\Seeders\Support\SeederContact::PHONE, 'type' => 'string', 'label' => 'WhatsApp'],
+            ['group' => 'contact', 'key' => 'address', 'value' => \Database\Seeders\Support\SeederContact::ADDRESS, 'type' => 'text', 'label' => 'Address'],
             ['group' => 'contact', 'key' => 'hours', 'value' => 'Monday 10:00 AM – 4:00 PM (IST); Tuesday 10:00 AM – 4:00 PM (IST); Wednesday 10:00 AM – 4:00 PM (IST); Thursday 10:00 AM – 4:00 PM (IST); Friday 10:00 AM – 4:00 PM (IST); Saturday 10:00 AM – 4:00 PM (IST)', 'type' => 'string', 'label' => 'Support hours'],
             ['group' => 'contact', 'key' => 'support_hours', 'value' => json_encode([
                 ['day' => 'monday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
@@ -62,7 +62,7 @@ class FrontendCmsSeeder extends Seeder
                 ['day' => 'friday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
                 ['day' => 'saturday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 'type' => 'json', 'label' => 'Support hours schedule'],
-            ['group' => 'contact', 'key' => 'maps_url', 'value' => 'https://www.google.com/maps?q=Innov8+Workspace,+Koramangala,+Bengaluru,+Karnataka+560034&output=embed', 'type' => 'string', 'label' => 'Google Maps URL'],
+            ['group' => 'contact', 'key' => 'maps_url', 'value' => \Database\Seeders\Support\SeederContact::MAPS_URL, 'type' => 'string', 'label' => 'Google Maps URL'],
             ['group' => 'seo', 'key' => 'default_title', 'value' => 'Examtube.in — Online Exams, Mock Tests & Learning Hub', 'type' => 'string', 'label' => 'Default SEO title'],
             ['group' => 'seo', 'key' => 'default_description', 'value' => 'Prepare for competitive exams with curated mock tests, expert blogs, campus news, and progress tracking on Examtube.in.', 'type' => 'text', 'label' => 'Default SEO description'],
             ['group' => 'seo', 'key' => 'default_keywords', 'value' => 'online exams, mock tests, competitive exams, exam preparation, Examtube', 'type' => 'string', 'label' => 'Default keywords'],
@@ -100,8 +100,8 @@ class FrontendCmsSeeder extends Seeder
             'enabled' => false,
             'title' => 'We will be right back',
             'message' => "We are currently performing scheduled maintenance to improve your experience.\nPlease check back shortly.",
-            'contact_email' => 'hello@examtube.in',
-            'contact_phone' => '+91 98765 43210',
+            'contact_email' => \Database\Seeders\Support\SeederContact::EMAIL_SUPPORT,
+            'contact_phone' => \Database\Seeders\Support\SeederContact::PHONE,
             'social_facebook' => 'https://facebook.com/examtube',
             'social_instagram' => 'https://instagram.com/examtube',
             'social_linkedin' => 'https://linkedin.com/company/examtube',
@@ -113,7 +113,7 @@ class FrontendCmsSeeder extends Seeder
         app(\App\Services\Seo\SeoSiteGenerator::class)->seedDefaults($orgId);
 
         app(\App\Services\Settings\EmailConfigurationService::class)->seedDefaults($orgId, [
-            'from_address' => 'hello@examtube.in',
+            'from_address' => \Database\Seeders\Support\SeederContact::EMAIL_SUPPORT,
             'from_name' => 'Examtube.in',
         ]);
 
@@ -314,7 +314,7 @@ class FrontendCmsSeeder extends Seeder
                 'title' => 'Careers at Examtube',
                 'template' => 'careers',
                 'excerpt' => 'Join a team building better exam experiences for India.',
-                'content' => '<p>We welcome educators, full-stack engineers, content strategists, and growth partners who care about accessible education technology.</p><p>Email <strong>careers@examtube.in</strong> with your portfolio and the role you are excited about.</p>',
+                'content' => '<p>We welcome educators, full-stack engineers, content strategists, and growth partners who care about accessible education technology.</p><p>Email <strong>'.\Database\Seeders\Support\SeederContact::EMAIL_INFO.'</strong> with your portfolio and the role you are excited about.</p>',
             ],
         ];
 
@@ -395,7 +395,7 @@ class FrontendCmsSeeder extends Seeder
             ['slug' => 'accounts', 'featured' => true,  'question' => 'How do I reset my password?', 'answer' => 'Use Forgot password on the login page. You will receive a secure reset link on your registered email address.'],
             ['slug' => 'accounts', 'featured' => false, 'question' => 'Where can I track my progress?', 'answer' => 'After logging in, open your profile dashboard to review exam attempts, results, and saved reading preferences.'],
             ['slug' => 'accounts', 'featured' => false, 'question' => 'Can I change my registered email address?', 'answer' => 'Yes. Go to Profile → Account settings and update your email. A verification link will be sent to the new address before the change takes effect.'],
-            ['slug' => 'accounts', 'featured' => false, 'question' => 'How do I delete my account?', 'answer' => 'Send a deletion request to hello@examtube.in from your registered email address. Accounts are permanently removed within 7 business days. Attempt history cannot be recovered after deletion.'],
+            ['slug' => 'accounts', 'featured' => false, 'question' => 'How do I delete my account?', 'answer' => 'Send a deletion request to '.\Database\Seeders\Support\SeederContact::EMAIL_SUPPORT.' from your registered email address. Accounts are permanently removed within 7 business days. Attempt history cannot be recovered after deletion.'],
 
             // Institutes & admins
             ['slug' => 'institutes-admins', 'featured' => false, 'question' => 'How do I set up an institute workspace?', 'answer' => 'After registering, navigate to Admin → Settings → Organization to configure your branding, contact details, and homepage content. You can then create exam categories, publish exams, and manage candidates from the admin panel.'],
@@ -429,12 +429,12 @@ class FrontendCmsSeeder extends Seeder
 
         foreach ([
             ['platform' => 'facebook', 'label' => 'Facebook', 'url' => 'https://facebook.com/examtube', 'sort_order' => 1],
-            ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://instagram.com/examtube.in', 'sort_order' => 2],
+            ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://instagram.com/examtube', 'sort_order' => 2],
             ['platform' => 'linkedin', 'label' => 'LinkedIn', 'url' => 'https://linkedin.com/company/examtube', 'sort_order' => 3],
             ['platform' => 'x', 'label' => 'X (Twitter)', 'url' => 'https://x.com/examtube', 'sort_order' => 4],
             ['platform' => 'youtube', 'label' => 'YouTube', 'url' => 'https://youtube.com/@examtube', 'sort_order' => 5],
             ['platform' => 'telegram', 'label' => 'Telegram', 'url' => 'https://t.me/examtube', 'sort_order' => 6],
-            ['platform' => 'whatsapp', 'label' => 'WhatsApp', 'url' => 'https://wa.me/919876543210', 'sort_order' => 7],
+            ['platform' => 'whatsapp', 'label' => 'WhatsApp', 'url' => \Database\Seeders\Support\SeederContact::WHATSAPP_URL, 'sort_order' => 7],
             ['platform' => 'github', 'label' => 'GitHub', 'url' => 'https://github.com/examtube', 'sort_order' => 8],
             ['platform' => 'discord', 'label' => 'Discord', 'url' => 'https://discord.gg/examtube', 'sort_order' => 9],
         ] as $row) {
@@ -450,10 +450,10 @@ class FrontendCmsSeeder extends Seeder
         Partner::query()->where('organization_id', $orgId)->delete();
 
         foreach ([
-            ['name' => 'SkillVista Academy', 'url' => 'https://skillvista.example', 'sort_order' => 1],
-            ['name' => 'CampusBridge India', 'url' => 'https://campusbridge.example', 'sort_order' => 2],
-            ['name' => 'HireReady Labs', 'url' => 'https://hireready.example', 'sort_order' => 3],
-            ['name' => 'EduPulse Media', 'url' => 'https://edupulse.example', 'sort_order' => 4],
+            ['name' => 'SkillVista Academy', 'url' => 'https://examtube.in', 'sort_order' => 1],
+            ['name' => 'CampusBridge India', 'url' => 'https://examtube.in', 'sort_order' => 2],
+            ['name' => 'HireReady Labs', 'url' => 'https://examtube.in', 'sort_order' => 3],
+            ['name' => 'EduPulse Media', 'url' => 'https://examtube.in', 'sort_order' => 4],
         ] as $row) {
             Partner::query()->create(array_merge($row, [
                 'organization_id' => $orgId,

@@ -162,4 +162,14 @@ class QuestionCategory extends Model
     {
         return $this->questions()->publiclyVisible();
     }
+
+    public function socialImageUrl(): ?string
+    {
+        return $this->ogImage?->file_url;
+    }
+
+    public function seoImageUrl(): string
+    {
+        return seo_image($this->socialImageUrl(), 'category');
+    }
 }

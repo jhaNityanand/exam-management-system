@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'Exams',
         'description' => $siteSettings['seo.default_description'] ?? 'Browse published exams and mock tests on Examtube.in.',
+        'image_type' => 'exam',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Exams'],

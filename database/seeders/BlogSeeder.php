@@ -52,6 +52,7 @@ class BlogSeeder extends Seeder
                     $editor->id,
                     'blog',
                     [
+                        'seo_type' => 'blog',
                         'alt_text' => $post['title'],
                         'description' => 'Banner for '.$post['title'],
                     ]

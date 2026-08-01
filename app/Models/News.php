@@ -200,4 +200,16 @@ class News extends Model
     {
         return $this->featuredImage?->file_url;
     }
+
+    public function socialImageUrl(): ?string
+    {
+        return $this->ogImage?->file_url
+            ?? $this->featuredImageUrl()
+            ?? $this->bannerUrl();
+    }
+
+    public function seoImageUrl(): string
+    {
+        return seo_image($this->socialImageUrl(), 'news');
+    }
 }

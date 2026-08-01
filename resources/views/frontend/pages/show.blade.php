@@ -23,6 +23,8 @@
         'title' => $page->seo_title ?: $page->title.' | '.($siteBrand['name'] ?? 'Examtube.in'),
         'description' => $page->seo_description ?: ($page->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $page->content), 160)),
         'keywords' => $page->seo_keywords,
+        'image' => $page->seoImageUrl(),
+        'image_type' => \App\Support\SeoImage::typeForCmsPage($page->template, $page->slug),
     ];
     $banner = $page->bannerImage->file_url ?? null;
 @endphp

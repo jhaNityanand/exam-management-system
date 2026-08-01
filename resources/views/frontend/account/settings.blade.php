@@ -1,7 +1,7 @@
 @extends('frontend.account.layout')
 
 @php
-    $seo = ['title' => 'Settings'];
+    $seo = ['title' => 'Settings', 'robots' => 'noindex, nofollow', 'image_type' => 'profile'];
 @endphp
 
 @section('account-eyebrow', 'Preferences')
@@ -25,7 +25,7 @@
     <section id="ca-settings-skeleton" class="ca-card" aria-hidden="true">
         <div class="ca-skel ca-skel--line ca-skel--w40"></div>
         <div class="ca-skel ca-skel--line ca-skel--w70"></div>
-        <div class="ca-skel ca-skel--block" style="margin-top:.75rem"></div>
+        <div class="ca-skel ca-skel--block ca-skel--spaced"></div>
     </section>
 
     <div id="ca-settings-content" hidden>
@@ -48,10 +48,10 @@
                     </div>
                 </div>
 
-                <h3 style="margin:0;font-size:.95rem">Notification preferences</h3>
+                <h3 class="ca-subhead">Notification preferences</h3>
                 <div class="ca-list" id="ca-notifications"></div>
 
-                <h3 style="margin:0;font-size:.95rem">Privacy settings</h3>
+                <h3 class="ca-subhead">Privacy settings</h3>
                 <div class="ca-list" id="ca-privacy"></div>
 
                 <div class="ca-actions">
@@ -68,11 +68,11 @@
                 </div>
             </div>
 
-            <div class="ca-stats" id="ca-security-stats" style="margin-bottom:.85rem"></div>
+            <div class="ca-stats ca-stats--mb" id="ca-security-stats"></div>
 
             <form id="ca-password-form" class="ca-form" novalidate>
                 <div class="ca-form__grid">
-                    <div class="ca-field" style="grid-column:1/-1">
+                    <div class="ca-field ca-field--full">
                         <label for="ca-current-password">Current Password <span class="ca-req">*</span></label>
                         <input id="ca-current-password" name="current_password" type="password" required autocomplete="current-password">
                     </div>
@@ -91,8 +91,8 @@
                 </div>
             </form>
 
-            <div style="margin-top:1rem">
-                <h3 style="margin:0 0 .55rem;font-size:.95rem">Recent login sessions</h3>
+            <div class="ca-block--mt">
+                <h3 class="ca-subhead--spaced">Recent login sessions</h3>
                 <div class="ca-list" id="ca-sessions"></div>
             </div>
         </section>
@@ -104,9 +104,9 @@
                     <p>Permanently remove your account and associated candidate data.</p>
                 </div>
             </div>
-            <p class="ca-help" style="color:inherit">This action cannot be undone. You will need to confirm with your password and type DELETE.</p>
+            <p class="ca-help">This action cannot be undone. You will need to confirm with your password and type DELETE.</p>
             <div class="ca-actions">
-                <button type="button" class="et-btn et-btn--primary" id="ca-delete-open" style="background:#dc2626;border-color:#dc2626">Delete my account</button>
+                <button type="button" class="et-btn et-btn--primary et-btn--danger" id="ca-delete-open">Delete my account</button>
             </div>
         </section>
     </div>
@@ -115,7 +115,7 @@
 <div id="ca-delete-modal" class="ca-modal" hidden>
     <div class="ca-modal__backdrop" data-ca-modal-close></div>
     <div class="ca-modal__panel" role="dialog" aria-modal="true" aria-labelledby="ca-delete-title">
-        <h2 id="ca-delete-title" style="margin:0;font-size:1.1rem">Confirm account deletion</h2>
+        <h2 id="ca-delete-title" class="ca-modal__title">Confirm account deletion</h2>
         <p class="ca-help">Enter your password and type <strong>DELETE</strong> to confirm.</p>
         <form id="ca-delete-form" class="ca-form">
             <div class="ca-field">
@@ -127,8 +127,8 @@
                 <input id="ca-delete-confirm" name="confirmation" type="text" required placeholder="DELETE">
             </div>
             <div class="ca-actions">
-                <button type="button" class="et-btn et-btn--ghost" data-ca-modal-close>Cancel</button>
-                <button type="submit" class="et-btn et-btn--primary" id="ca-delete-submit" style="background:#dc2626;border-color:#dc2626">Delete account</button>
+                <button type="button" class="et-btn et-btn--ghost" data-ca-modal-close">Cancel</button>
+                <button type="submit" class="et-btn et-btn--primary et-btn--danger" id="ca-delete-submit">Delete account</button>
             </div>
         </form>
     </div>
@@ -136,5 +136,5 @@
 @endsection
 
 @push('account-scripts')
-<script src="{{ versioned_asset('js/frontend/account-settings.js') }}"></script>
+<script src="{{ versioned_asset('js/frontend/account-settings.js') }}" defer></script>
 @endpush

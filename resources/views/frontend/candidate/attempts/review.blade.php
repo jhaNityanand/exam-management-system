@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'Review — '.$exam->title];
+    $seo = ['title' => 'Review — '.$exam->title, 'robots' => 'noindex, nofollow', 'image_type' => 'exam'];
 @endphp
 
 @push('styles')

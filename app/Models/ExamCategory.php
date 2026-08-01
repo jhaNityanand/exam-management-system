@@ -129,4 +129,14 @@ class ExamCategory extends Model
     {
         return $query->where('status', $status);
     }
+
+    public function socialImageUrl(): ?string
+    {
+        return $this->ogImage?->file_url;
+    }
+
+    public function seoImageUrl(): string
+    {
+        return seo_image($this->socialImageUrl(), 'category');
+    }
 }

@@ -1,7 +1,7 @@
 @extends('frontend.account.layout')
 
 @php
-    $seo = ['title' => 'My exams'];
+    $seo = ['title' => 'My exams', 'robots' => 'noindex, nofollow', 'image_type' => 'profile'];
 @endphp
 
 @section('account-eyebrow', 'Practice history')
@@ -23,8 +23,8 @@
             ])
         </section>
     @else
-        <section class="ca-card" style="padding:0;overflow:hidden">
-            <div class="ca-table-wrap" style="border:0;border-radius:0">
+        <section class="ca-card ca-card--flush">
+            <div class="ca-table-wrap ca-table-wrap--flush">
                 <table class="ca-table">
                     <thead>
                         <tr>
@@ -40,14 +40,14 @@
                             <tr>
                                 <td>
                                     <strong>{{ $attempt->exam?->title ?: 'Exam' }}</strong>
-                                    <div style="color:var(--et-text-muted);font-size:.8rem">Attempt #{{ $attempt->attempt_no ?: $attempt->id }}</div>
+                                    <div class="ca-meta">Attempt #{{ $attempt->attempt_no ?: $attempt->id }}</div>
                                 </td>
                                 <td>
                                     <span class="ca-badge {{ in_array($attempt->status, ['submitted','graded'], true) ? 'is-info' : '' }}">
                                         {{ ucfirst(str_replace('_', ' ', $attempt->status)) }}
                                     </span>
                                     @if($attempt->submission_reason)
-                                        <div style="color:var(--et-text-muted);font-size:.78rem;margin-top:.2rem">
+                                        <div class="ca-meta--sm">
                                             {{ $attempt->submissionReasonLabel() }}
                                         </div>
                                     @endif

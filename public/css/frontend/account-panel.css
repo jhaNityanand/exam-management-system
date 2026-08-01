@@ -1140,3 +1140,64 @@ html.dark .ca-meter__head {
 
 html.dark .ca-line-path { stroke: #2dd4bf; }
 html.dark .ca-line-dot { fill: #5eead4; stroke: #121a2b; }
+
+/* Utility replacements for former inline styles */
+.ca-skel--block.ca-skel--spaced,
+.ca-skel--spaced { margin-top: 0.75rem; }
+.ca-stats--spaced { margin-top: 0.85rem; }
+.ca-stats--mb { margin-bottom: 0.85rem; }
+.ca-actions--tight { margin-top: 0.45rem; }
+.ca-field--full { grid-column: 1 / -1; }
+.ca-subhead {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.ca-subhead--spaced {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+}
+.ca-card__title-sm {
+  margin: 0;
+  font-size: 1rem;
+}
+.ca-modal__title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.ca-block--mt {
+  margin-top: 1rem;
+}
+.ca-card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+.ca-table-wrap--flush {
+  border: 0;
+  border-radius: 0;
+}
+.ca-meta {
+  color: var(--et-text-muted, #64748b);
+  font-size: 0.8rem;
+}
+.ca-meta--sm {
+  color: var(--et-text-muted, #64748b);
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+.ca-upload-label {
+  cursor: pointer;
+}
+.et-btn--danger,
+.ca-btn--danger {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+.et-btn--danger:hover,
+.ca-btn--danger:hover {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+}
+.ca-danger .ca-help {
+  color: inherit;
+}
+

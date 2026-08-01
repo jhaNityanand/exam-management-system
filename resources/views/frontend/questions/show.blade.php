@@ -6,23 +6,6 @@
         ?: (($question->show_explanation_publicly && filled($question->explanation))
             ? $question->explanation
             : $question->body);
-    $seo = [
-        'title' => $question->meta_title ?: $title,
-        'description' => \Illuminate\Support\Str::limit(strip_tags((string) $seoDescriptionSource), 160),
-        'keywords' => $question->meta_keywords,
-        'canonical' => $question->canonical_url ?: url()->current(),
-        'og_title' => $question->og_title ?: $title,
-        'og_description' => $question->og_description,
-        'type' => 'article',
-    ];
-    $shareUrl = urlencode(url()->current());
-    $shareText = urlencode($title);
-    $difficulty = strtolower((string) $question->difficulty);
-    $difficultyBadge = match ($difficulty) {
-        'easy' => 'et-badge--success',
-        'hard' => 'et-badge--danger',
-        default => 'et-badge--warn',
-    };
     $breadcrumbs = [
         ['label' => 'Home', 'url' => route('home')],
         ['label' => 'Questions', 'url' => route('frontend.questions.index')],
@@ -34,6 +17,26 @@
         ];
     }
     $breadcrumbs[] = ['label' => 'Practice'];
+    $seo = [
+        'title' => $question->meta_title ?: $title,
+        'description' => \Illuminate\Support\Str::limit(strip_tags((string) $seoDescriptionSource), 160),
+        'keywords' => $question->meta_keywords,
+        'canonical' => $question->canonical_url ?: url()->current(),
+        'og_title' => $question->og_title ?: $title,
+        'og_description' => $question->og_description,
+        'image' => $question->seoImageUrl(),
+        'image_type' => 'question',
+        'type' => 'article',
+        'breadcrumbs' => $breadcrumbs,
+    ];
+    $shareUrl = urlencode(url()->current());
+    $shareText = urlencode($title);
+    $difficulty = strtolower((string) $question->difficulty);
+    $difficultyBadge = match ($difficulty) {
+        'easy' => 'et-badge--success',
+        'hard' => 'et-badge--danger',
+        default => 'et-badge--warn',
+    };
     $inputType = ! empty($payload['multiple']) ? 'checkbox' : 'radio';
 @endphp
 

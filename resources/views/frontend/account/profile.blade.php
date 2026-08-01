@@ -1,7 +1,7 @@
 @extends('frontend.account.layout')
 
 @php
-    $seo = ['title' => 'Profile'];
+    $seo = ['title' => 'Profile', 'robots' => 'noindex, nofollow', 'image_type' => 'profile'];
 @endphp
 
 @push('styles')
@@ -21,7 +21,7 @@
     <section id="ca-profile-skeleton" class="ca-card" aria-hidden="true">
         <div class="ca-skel ca-skel--line ca-skel--w40"></div>
         <div class="ca-skel ca-skel--line ca-skel--w70"></div>
-        <div class="ca-skel ca-skel--block" style="margin-top:.75rem"></div>
+        <div class="ca-skel ca-skel--block ca-skel--spaced"></div>
     </section>
 
     <div id="ca-profile-content" hidden>
@@ -36,7 +36,7 @@
                 <div class="ca-progress__meta"><span>Progress</span><span id="ca-completion-pct">0%</span></div>
                 <div class="ca-progress__track"><div class="ca-progress__fill" id="ca-completion-fill" style="width:0%"></div></div>
             </div>
-            <div class="ca-stats" style="margin-top:.85rem" id="ca-profile-stats"></div>
+            <div class="ca-stats ca-stats--spaced" id="ca-profile-stats"></div>
         </section>
 
         <section class="ca-card">
@@ -48,8 +48,8 @@
                     <div>
                         <strong>Profile picture</strong>
                         <p class="ca-help">JPG, PNG, or WebP up to 2MB.</p>
-                        <div class="ca-actions" style="margin-top:.45rem">
-                            <label class="et-btn et-btn--ghost et-btn--sm" style="cursor:pointer">
+                        <div class="ca-actions ca-actions--tight">
+                            <label class="et-btn et-btn--ghost et-btn--sm ca-upload-label">
                                 Upload photo
                                 <input type="file" id="ca-avatar-input" accept="image/*" hidden>
                             </label>
@@ -108,13 +108,13 @@
                     <textarea id="ca-bio" name="bio" maxlength="2000" placeholder="Write a short introduction about yourself, your goals, or exam focus areas"></textarea>
                 </div>
 
-                <h2 style="margin:0;font-size:1rem">Address</h2>
+                <h2 class="ca-card__title-sm">Address</h2>
                 <div class="ca-form__grid">
-                    <div class="ca-field" style="grid-column:1/-1">
+                    <div class="ca-field ca-field--full">
                         <label for="ca-address1">Address line 1</label>
                         <input id="ca-address1" name="address_line1" type="text" maxlength="255" placeholder="House / flat number, street name">
                     </div>
-                    <div class="ca-field" style="grid-column:1/-1">
+                    <div class="ca-field ca-field--full">
                         <label for="ca-address2">Address line 2</label>
                         <input id="ca-address2" name="address_line2" type="text" maxlength="255" placeholder="Area, landmark (optional)">
                     </div>
@@ -136,7 +136,7 @@
                     </div>
                 </div>
 
-                <h2 style="margin:0;font-size:1rem">Social links</h2>
+                <h2 class="ca-card__title-sm">Social links</h2>
                 <div class="ca-form__grid">
                     <div class="ca-field">
                         <label for="ca-website">Website</label>
@@ -170,7 +170,7 @@
 @endsection
 
 @push('account-scripts')
-<script src="{{ versioned_asset('js/components/user-avatar.js') }}"></script>
-<script src="{{ versioned_asset('js/components/dob-datepicker.js') }}"></script>
-<script src="{{ versioned_asset('js/frontend/account-profile.js') }}"></script>
+<script src="{{ versioned_asset('js/components/user-avatar.js') }}" defer></script>
+<script src="{{ versioned_asset('js/components/dob-datepicker.js') }}" defer></script>
+<script src="{{ versioned_asset('js/frontend/account-profile.js') }}" defer></script>
 @endpush

@@ -1,5 +1,14 @@
 @extends('frontend.layouts.app')
 
+@php
+    $seo = [
+        'title' => 'Page not found',
+        'description' => 'The page you are looking for does not exist or may have moved.',
+        'robots' => 'noindex, follow',
+        'image_type' => 'organization',
+    ];
+@endphp
+
 @section('content')
 @include('errors.partials.content', [
     'code' => '404',

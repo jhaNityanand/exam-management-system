@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sign in') · {{ site_setting('brand.site_name', 'Examtube.in') }}</title>
+    <meta name="description" content="{{ site_setting('brand.tagline', 'Practice smarter. Score higher.') }}">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="{{ url()->current() }}">
+    <meta property="og:title" content="@yield('title', 'Sign in') · {{ site_setting('brand.site_name', 'Examtube.in') }}">
+    <meta property="og:description" content="{{ site_setting('brand.tagline', 'Practice smarter. Score higher.') }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ seo_default_image('organization') }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('title', 'Sign in') · {{ site_setting('brand.site_name', 'Examtube.in') }}">
+    <meta name="twitter:description" content="{{ site_setting('brand.tagline', 'Practice smarter. Score higher.') }}">
+    <meta name="twitter:image" content="{{ seo_default_image('organization') }}">
     @include('frontend.partials.theme-init')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,18 +30,10 @@
 </head>
 <body class="et-body et-auth-body">
     @include('frontend.partials.integrations-body')
-    <script>
-        (function () {
-            function markThemeReady() {
-                document.documentElement.classList.add('ems-theme-ready');
-                document.documentElement.style.backgroundColor = '';
-            }
-            if (document.readyState === 'complete') markThemeReady();
-            else window.addEventListener('load', markThemeReady);
-        })();
-    </script>
+    <script src="{{ versioned_asset('js/frontend/theme-boot.js') }}"></script>
+    <a class="et-skip-link" href="#auth-main">Skip to content</a>
     <div class="et-auth">
-        <aside class="et-auth__brand-panel" aria-hidden="false">
+        <aside class="et-auth__brand-panel">
             <a href="{{ route('home') }}" class="et-auth__logo">
                 @if(is_file(public_path('frontend/images/logo.svg')))
                     <img class="et-logo__img" src="{{ asset('frontend/images/logo.svg') }}" alt="{{ site_setting('brand.site_name', 'Examtube.in') }}" width="150" height="32">
@@ -42,7 +45,7 @@
                 @endif
             </a>
             <div class="et-auth__art" aria-hidden="true">
-                <img src="{{ asset('frontend/images/login.svg') }}" alt="" loading="lazy">
+                <img src="{{ asset('frontend/images/login.svg') }}" alt="" loading="lazy" width="420" height="320">
             </div>
             <h1 class="et-auth__headline">{{ site_setting('brand.tagline', 'Practice smarter. Score higher.') }}</h1>
             <p class="et-auth__subcopy">
@@ -55,7 +58,7 @@
             </ul>
         </aside>
 
-        <main class="et-auth__main">
+        <main id="auth-main" class="et-auth__main" tabindex="-1">
             <div class="et-auth__card">
                 <div class="et-auth__mobile-brand">
                     <a href="{{ route('home') }}" class="et-auth__logo">
@@ -71,7 +74,7 @@
         </main>
     </div>
     @include('partials.flash-toasts')
-    <script src="{{ versioned_asset('vendor/tom-select/tom-select.complete.min.js') }}"></script>
+    <script src="{{ versioned_asset('vendor/tom-select/tom-select.complete.min.js') }}" defer></script>
     <script src="{{ versioned_asset('js/components/searchable-select.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/recaptcha.js') }}" defer></script>
 </body>

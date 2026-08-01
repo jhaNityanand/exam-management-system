@@ -4,14 +4,13 @@ namespace Database\Seeders\Support;
 
 use App\Models\Gallery;
 use App\Services\GalleryService;
-use Illuminate\Support\Facades\Http;
+use App\Support\SeoImage;
 use Illuminate\Support\Str;
 use RuntimeException;
-use Throwable;
 
 /**
- * Stores thematic images for seeders into the gallery.
- * Prefers local files under public/seed/, then Picsum, then GD synthesis.
+ * Stores seeded gallery media from production frontend defaults
+ * (public/frontend/images/seo/*.png and brand SVGs).
  */
 class SeedImageLibrary
 {
@@ -47,7 +46,82 @@ class SeedImageLibrary
     }
 
     /**
-     * Copy a file from public/seed/{relativePath} into the organization gallery.
+     * Copy a typed SEO default PNG into the organization gallery.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function storeSeoDefault(
+        int $organizationId,
+        string $type,
+        ?int $userId = null,
+        string $module = 'content',
+        array $meta = []
+    ): Gallery {
+        $key = SeoImage::TYPES[$type] ?? SeoImage::TYPES['default'];
+
+        return $this->storeFromFrontend(
+            $organizationId,
+            'seo/'.$key.'.png',
+            $userId,
+            $module,
+            $meta
+        );
+    }
+
+    /**
+     * Copy a file from public/frontend/images/{relativePath} into the gallery.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function storeFromFrontend(
+        int $organizationId,
+        string $relativePath,
+        ?int $userId = null,
+        string $module = 'content',
+        array $meta = []
+    ): Gallery {
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $absolute = public_path('frontend/images/'.$relativePath);
+
+        if (! is_file($absolute)) {
+            throw new RuntimeException("Frontend image missing: public/frontend/images/{$relativePath}");
+        }
+
+        $contents = file_get_contents($absolute);
+        if ($contents === false || $contents === '') {
+            throw new RuntimeException("Unable to read frontend image: public/frontend/images/{$relativePath}");
+        }
+
+        $basename = basename($relativePath);
+        $extension = strtolower(pathinfo($basename, PATHINFO_EXTENSION) ?: 'png');
+        $slug = Str::slug(pathinfo($basename, PATHINFO_FILENAME)) ?: 'seed-image';
+        $unique = isset($meta['slug_suffix']) ? $slug.'-'.Str::slug((string) $meta['slug_suffix']) : $slug;
+        $filename = 'img-'.$unique.'.'.$extension;
+        $mime = match ($extension) {
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            'jpg', 'jpeg' => 'image/jpeg',
+            default => 'application/octet-stream',
+        };
+
+        return $this->gallery->uploadFromContents($contents, $filename, $organizationId, [
+            'source' => 'seeder',
+            'module' => $module,
+            'kind' => 'image',
+            'original_name' => $filename,
+            'alt_text' => $meta['alt_text'] ?? Str::headline(str_replace('-', ' ', $slug)),
+            'description' => $meta['description'] ?? 'Seeded demo media from frontend defaults',
+            'uploaded_by' => $userId,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+            'mime_type' => $mime,
+        ]);
+    }
+
+    /**
+     * @deprecated Use storeFromFrontend() / storeSeoDefault().
      *
      * @param  array<string, mixed>  $meta
      */
@@ -58,45 +132,18 @@ class SeedImageLibrary
         string $module = 'content',
         array $meta = []
     ): Gallery {
-        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
-        $absolute = public_path('seed/'.$relativePath);
+        // Legacy seed paths under public/seed → map to SEO defaults.
+        $mapped = $this->mapLegacySeedPath($relativePath);
 
-        if (! is_file($absolute)) {
-            throw new RuntimeException("Seed asset missing: public/seed/{$relativePath}");
+        if ($mapped['kind'] === 'seo') {
+            return $this->storeSeoDefault($organizationId, $mapped['type'], $userId, $module, $meta);
         }
 
-        $contents = file_get_contents($absolute);
-        if ($contents === false || $contents === '') {
-            throw new RuntimeException("Unable to read seed asset: public/seed/{$relativePath}");
-        }
-
-        $basename = basename($relativePath);
-        $extension = strtolower(pathinfo($basename, PATHINFO_EXTENSION) ?: 'jpg');
-        $slug = Str::slug(pathinfo($basename, PATHINFO_FILENAME)) ?: 'seed-image';
-        $filename = 'img-'.$slug.'.'.$extension;
-        $mime = match ($extension) {
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            default => 'image/jpeg',
-        };
-
-        return $this->gallery->uploadFromContents($contents, $filename, $organizationId, [
-            'source' => 'seeder',
-            'module' => $module,
-            'kind' => 'image',
-            'original_name' => $filename,
-            'alt_text' => $meta['alt_text'] ?? Str::headline(str_replace('-', ' ', $slug)),
-            'description' => $meta['description'] ?? 'Seeded demo media from public/seed',
-            'uploaded_by' => $userId,
-            'created_by' => $userId,
-            'updated_by' => $userId,
-            'mime_type' => $mime,
-        ]);
+        return $this->storeFromFrontend($organizationId, $mapped['path'], $userId, $module, $meta);
     }
 
     /**
-     * Download (or synthesize) an image and store it in the gallery with an img- filename prefix.
+     * Store a gallery image for a content slug using a typed SEO default.
      *
      * @param  array<string, mixed>  $meta
      */
@@ -107,105 +154,67 @@ class SeedImageLibrary
         string $module = 'content',
         array $meta = []
     ): Gallery {
+        if (! empty($meta['frontend_path'])) {
+            return $this->storeFromFrontend(
+                $organizationId,
+                (string) $meta['frontend_path'],
+                $userId,
+                $module,
+                array_merge($meta, ['slug_suffix' => $slug])
+            );
+        }
+
         if (! empty($meta['seed_path'])) {
             return $this->storeFromPublicSeed(
                 $organizationId,
                 (string) $meta['seed_path'],
                 $userId,
                 $module,
-                $meta
+                array_merge($meta, ['slug_suffix' => $slug])
             );
         }
 
-        $slug = Str::slug($slug) ?: 'seed-image';
-        $filename = 'img-'.$slug.'.jpg';
-        $width = (int) ($meta['width'] ?? 1200);
-        $height = (int) ($meta['height'] ?? 675);
-        $contents = $this->downloadBytes($slug, $width, $height);
+        $type = (string) ($meta['seo_type'] ?? match ($module) {
+            'blog' => 'blog',
+            'news' => 'news',
+            'exam', 'demo-media' => 'exam',
+            'profile' => 'profile',
+            default => 'home',
+        });
 
-        return $this->gallery->uploadFromContents($contents, $filename, $organizationId, [
-            'source' => 'seeder',
-            'module' => $module,
-            'kind' => 'image',
-            'original_name' => $filename,
-            'alt_text' => $meta['alt_text'] ?? Str::headline(str_replace('-', ' ', $slug)),
-            'description' => $meta['description'] ?? 'Seeded demo media',
-            'uploaded_by' => $userId,
-            'created_by' => $userId,
-            'updated_by' => $userId,
-            'mime_type' => 'image/jpeg',
-        ]);
+        return $this->storeSeoDefault(
+            $organizationId,
+            $type,
+            $userId,
+            $module,
+            array_merge($meta, ['slug_suffix' => $slug])
+        );
     }
 
-    private function downloadBytes(string $seed, int $width, int $height): string
+    /**
+     * @return array{kind:'seo',type:string}|array{kind:'file',path:string}
+     */
+    private function mapLegacySeedPath(string $relativePath): array
     {
-        $url = sprintf('https://picsum.photos/seed/%s/%d/%d', rawurlencode($seed), $width, $height);
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
 
-        try {
-            $response = Http::timeout(8)
-                ->connectTimeout(3)
-                ->withHeaders(['Accept' => 'image/*'])
-                ->get($url);
-
-            if ($response->successful() && $response->body() !== '') {
-                return $response->body();
-            }
-        } catch (Throwable) {
-            // Continue to insecure fallback for local Windows/WAMP CA issues.
-        }
-
-        try {
-            $response = Http::timeout(8)
-                ->connectTimeout(3)
-                ->withoutVerifying()
-                ->withHeaders(['Accept' => 'image/*'])
-                ->get($url);
-
-            if ($response->successful() && $response->body() !== '') {
-                return $response->body();
-            }
-        } catch (Throwable) {
-            // Fall through to local generation.
-        }
-
-        return $this->synthesizeJpeg($seed, $width, $height);
-    }
-
-    private function synthesizeJpeg(string $seed, int $width, int $height): string
-    {
-        if (! function_exists('imagecreatetruecolor')) {
-            throw new RuntimeException('Unable to download or generate a seed image (GD extension missing).');
-        }
-
-        $image = imagecreatetruecolor($width, $height);
-        if ($image === false) {
-            throw new RuntimeException('Unable to allocate seed image canvas.');
-        }
-
-        $hash = abs(crc32($seed));
-        $r = 40 + ($hash % 140);
-        $g = 60 + (($hash >> 3) % 140);
-        $b = 90 + (($hash >> 6) % 140);
-        $background = imagecolorallocate($image, $r, $g, $b);
-        $overlay = imagecolorallocatealpha($image, 255, 255, 255, 90);
-        $textColor = imagecolorallocate($image, 255, 255, 255);
-
-        imagefilledrectangle($image, 0, 0, $width, $height, $background);
-        imagefilledrectangle($image, 0, (int) ($height * 0.62), $width, $height, $overlay);
-
-        $label = Str::limit(Str::headline(str_replace('-', ' ', $seed)), 42, '');
-        imagestring($image, 5, 36, (int) ($height * 0.72), $label !== '' ? $label : 'Seed Image', $textColor);
-        imagestring($image, 3, 36, (int) ($height * 0.80), 'img-'.$seed.'.jpg', $textColor);
-
-        ob_start();
-        imagejpeg($image, null, 85);
-        $bytes = (string) ob_get_clean();
-        imagedestroy($image);
-
-        if ($bytes === '') {
-            throw new RuntimeException('Failed to encode generated seed JPEG.');
-        }
-
-        return $bytes;
+        return match (true) {
+            str_starts_with($relativePath, 'brand/logo') => ['kind' => 'file', 'path' => 'logo.svg'],
+            str_starts_with($relativePath, 'brand/favicon') => ['kind' => 'file', 'path' => 'favicon.svg'],
+            str_starts_with($relativePath, 'brand/og') => ['kind' => 'seo', 'type' => 'home'],
+            str_starts_with($relativePath, 'heroes/') => ['kind' => 'seo', 'type' => 'home'],
+            str_starts_with($relativePath, 'exams/') => ['kind' => 'seo', 'type' => 'exam'],
+            str_starts_with($relativePath, 'ads/') => ['kind' => 'seo', 'type' => 'home'],
+            str_starts_with($relativePath, 'partners/') => ['kind' => 'seo', 'type' => 'organization'],
+            str_starts_with($relativePath, 'avatars/') => ['kind' => 'seo', 'type' => 'profile'],
+            str_starts_with($relativePath, 'gallery/') => ['kind' => 'seo', 'type' => 'organization'],
+            str_contains($relativePath, 'page-about') => ['kind' => 'seo', 'type' => 'about'],
+            str_contains($relativePath, 'page-contact') => ['kind' => 'seo', 'type' => 'contact'],
+            str_contains($relativePath, 'page-privacy') => ['kind' => 'seo', 'type' => 'privacy'],
+            str_contains($relativePath, 'page-terms') => ['kind' => 'seo', 'type' => 'terms'],
+            str_contains($relativePath, 'page-help'),
+            str_contains($relativePath, 'page-careers') => ['kind' => 'seo', 'type' => 'about'],
+            default => ['kind' => 'seo', 'type' => 'home'],
+        };
     }
 }

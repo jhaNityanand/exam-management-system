@@ -215,3 +215,23 @@ if (! function_exists('ad_slot')) {
         return '';
     }
 }
+
+if (! function_exists('seo_default_image')) {
+    /**
+     * Absolute URL for a typed default social/meta image.
+     */
+    function seo_default_image(string $type = 'home'): string
+    {
+        return \App\Support\SeoImage::defaultUrl($type);
+    }
+}
+
+if (! function_exists('seo_image')) {
+    /**
+     * Prefer an uploaded image URL; fall back to a branded default by type.
+     */
+    function seo_image(?string $uploadedUrl, string $type = 'home'): string
+    {
+        return \App\Support\SeoImage::resolve($uploadedUrl, $type);
+    }
+}

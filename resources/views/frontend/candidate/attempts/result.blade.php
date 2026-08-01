@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'Result — '.$exam->title];
+    $seo = ['title' => 'Result — '.$exam->title, 'robots' => 'noindex, nofollow', 'image_type' => 'exam'];
     $needsFeedback = ! empty($needsFeedback);
 @endphp
 

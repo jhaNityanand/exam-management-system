@@ -3,20 +3,6 @@
 @php
     $words = str_word_count(strip_tags((string) ($blog->content ?? '')));
     $readingMins = max(1, (int) ceil($words / 200));
-    $banner = method_exists($blog, 'bannerUrl') ? $blog->bannerUrl() : ($blog->bannerImage->file_url ?? null);
-    $seo = [
-        'title' => $blog->seo_title ?: $blog->title,
-        'description' => $blog->seo_description ?: ($blog->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $blog->content), 160)),
-        'keywords' => $blog->seo_keywords,
-        'canonical' => $blog->canonical_url ?: url()->current(),
-        'og_title' => $blog->og_title,
-        'og_description' => $blog->og_description,
-        'image' => $blog->ogImage->file_url ?? $banner,
-        'type' => 'article',
-    ];
-    $shareUrl = urlencode(url()->current());
-    $shareText = urlencode($blog->title);
-    $shareRawUrl = url()->current();
     $crumbs = [
         ['label' => 'Home', 'url' => route('home')],
         ['label' => 'Blogs', 'url' => route('frontend.blogs.index')],
@@ -28,6 +14,21 @@
         ];
     }
     $crumbs[] = ['label' => 'Article'];
+    $seo = [
+        'title' => $blog->seo_title ?: $blog->title,
+        'description' => $blog->seo_description ?: ($blog->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $blog->content), 160)),
+        'keywords' => $blog->seo_keywords,
+        'canonical' => $blog->canonical_url ?: url()->current(),
+        'og_title' => $blog->og_title,
+        'og_description' => $blog->og_description,
+        'image' => $blog->seoImageUrl(),
+        'image_type' => 'blog',
+        'type' => 'article',
+        'breadcrumbs' => $crumbs,
+    ];
+    $shareUrl = urlencode(url()->current());
+    $shareText = urlencode($blog->title);
+    $shareRawUrl = url()->current();
 @endphp
 
 @section('content')

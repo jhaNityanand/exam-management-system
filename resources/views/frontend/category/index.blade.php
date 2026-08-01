@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'Categories',
         'description' => 'Browse exams, blogs, and news by category.',
+        'image_type' => 'category',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Categories'],

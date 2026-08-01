@@ -123,8 +123,8 @@ After seeding, all of these use password `password`:
 
 | Email | Role label | Typical entry point |
 |---|---|---|
-| `admin@example.in` | Application Admin | `/admin` |
-| `admin@examtube.in` | Org Admin | `/admin` |
+| `admin@examtube.in` | Application Admin | `/admin` |
+| `info@examtube.in` | Org Admin | `/admin` |
 | `candidate@examtube.in` | Candidate | `/account` |
 
 Role labels are stored on organization memberships. Admin panel access is limited to Application Admin, Org Admin, and Editor roles via middleware.

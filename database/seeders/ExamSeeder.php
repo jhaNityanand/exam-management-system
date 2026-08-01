@@ -33,8 +33,8 @@ class ExamSeeder extends Seeder
     public function run(): void
     {
         $organization = Organization::query()->where('slug', 'demo-org')->first();
-        $admin = User::query()->where('email', 'admin@examtube.in')->first()
-            ?: User::query()->where('email', 'admin@example.in')->first();
+        $admin = User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_INFO)->first()
+            ?: User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_ADMIN)->first();
 
         if (! $organization || ! $admin) {
             $this->command?->warn('ExamSeeder: demo-org or orgadmin missing. Skipping.');
@@ -203,7 +203,7 @@ HTML,
                 'formats' => $allFormats,
                 'difficulty' => 'medium',
                 'visibility' => 'private',
-                'manual_candidate_emails' => ['candidate.one@example.com', 'candidate.two@example.com'],
+                'manual_candidate_emails' => ['invite.one@examtube.in', 'invite.two@examtube.in'],
                 'tags' => ['primary interview', 'full assessment', 'hiring'],
                 'instructions' => '<p>Complete every section independently. Explain your reasoning for written responses and submit before the timer expires.</p>',
             ],
@@ -529,7 +529,7 @@ HTML,
                 'formats' => $allFormats,
                 'difficulty' => 'hard',
                 'visibility' => 'invite_only',
-                'manual_candidate_emails' => ['finalist.alpha@example.com', 'finalist.beta@example.com', 'finalist.gamma@example.com'],
+                'manual_candidate_emails' => ['finalist.alpha@examtube.in', 'finalist.beta@examtube.in', 'finalist.gamma@examtube.in'],
                 'shuffle_questions' => true,
                 'shuffle_categories' => true,
             ],
@@ -572,13 +572,13 @@ HTML,
                 'visibility' => 'private',
                 'pricing_option' => 'free_for_imported',
                 'imported_candidates' => [
-                    ['name' => 'Aarav Sharma', 'email' => 'aarav.sharma@example.com'],
-                    ['name' => 'Meera Patel', 'email' => 'meera.patel@example.com'],
-                    ['name' => 'Daniel Thomas', 'email' => 'daniel.thomas@example.com'],
+                    ['name' => 'Aarav Sharma', 'email' => 'aarav.sharma@examtube.in'],
+                    ['name' => 'Meera Patel', 'email' => 'meera.patel@examtube.in'],
+                    ['name' => 'Daniel Thomas', 'email' => 'daniel.thomas@examtube.in'],
                 ],
                 'free_imported_candidates' => [
-                    ['name' => 'Aarav Sharma', 'email' => 'aarav.sharma@example.com'],
-                    ['name' => 'Meera Patel', 'email' => 'meera.patel@example.com'],
+                    ['name' => 'Aarav Sharma', 'email' => 'aarav.sharma@examtube.in'],
+                    ['name' => 'Meera Patel', 'email' => 'meera.patel@examtube.in'],
                 ],
             ],
             [

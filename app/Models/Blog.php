@@ -154,4 +154,14 @@ class Blog extends Model
         return $this->bannerImage?->file_url
             ?? $this->banners->first()?->file_url;
     }
+
+    public function socialImageUrl(): ?string
+    {
+        return $this->ogImage?->file_url ?? $this->bannerUrl();
+    }
+
+    public function seoImageUrl(): string
+    {
+        return seo_image($this->socialImageUrl(), 'blog');
+    }
 }

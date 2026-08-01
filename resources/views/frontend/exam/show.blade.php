@@ -8,7 +8,8 @@
         'canonical' => $exam->canonical_url ?: url()->current(),
         'og_title' => $exam->og_title,
         'og_description' => $exam->og_description,
-        'image' => $exam->socialImageUrl(),
+        'image' => $exam->seoImageUrl(),
+        'image_type' => 'exam',
     ];
     $isFree = ! $exam->isPaid();
     $attemptsLabel = ($exam->attempt_limit_type === 'unlimited' || (int) ($exam->max_attempts ?? 0) === 0)
@@ -21,6 +22,8 @@
         ? $publishedAt->timezone($exam->timezone ?: config('app.timezone'))->format('d M Y')
         : null;
     $hasDescription = filled(trim(strip_tags((string) ($exam->description ?? ''))));
+    $policy = $exam->proctoringPolicy;
+    $warningLimit = (int) ($policy?->focus_violation_limit ?? 3);
 @endphp
 
 @section('content')
@@ -31,7 +34,7 @@
                 ['label' => 'Exams', 'url' => route('frontend.exams.index')],
                 ['label' => $exam->title],
             ]])
-            <div class="et-card__meta" style="margin-bottom:.5rem">
+            <div class="et-card__meta et-exam-detail__badges">
                 @if($exam->category)
                     <span class="et-badge">{{ $exam->category->name }}</span>
                 @endif
@@ -59,7 +62,7 @@
         </div>
     </div>
 
-    <div class="et-container" style="padding:1.5rem 0 3rem;display:grid;gap:1.25rem">
+    <div class="et-container et-page-stack">
         <div class="et-grid et-grid--4">
             <div class="et-stat"><span class="et-stat__value">{{ (int) ($exam->duration ?? 0) }}</span><span class="et-stat__label">Minutes</span></div>
             <div class="et-stat"><span class="et-stat__value">{{ (int) ($exam->total_questions ?? 0) }}</span><span class="et-stat__label">Questions</span></div>
@@ -78,13 +81,9 @@
             </div>
         </section>
 
-        <div class="et-card" style="padding:1.25rem">
-            <h2 style="margin-top:0">Exam details</h2>
-            @php
-                $policy = $exam->proctoringPolicy;
-                $warningLimit = (int) ($policy?->focus_violation_limit ?? 3);
-            @endphp
-            <div class="et-callout et-callout--warning et-warning-limit" role="note" style="margin:0 0 1rem">
+        <div class="et-card et-card--padded">
+            <h2 class="et-heading-flush">Exam details</h2>
+            <div class="et-callout et-callout--warning et-warning-limit et-callout--spaced" role="note">
                 <strong>Warnings allowed: {{ $warningLimit }}</strong>
                 @if($warningLimit === 0)
                     <p>No warnings are allowed during this exam. The first monitored violation can auto-submit your attempt.</p>
@@ -92,7 +91,7 @@
                     <p>Candidates may receive up to <strong>{{ $warningLimit }}</strong> monitored warning{{ $warningLimit === 1 ? '' : 's' }} before the exam is auto-submitted.</p>
                 @endif
             </div>
-            <div class="et-grid et-grid--2" style="gap:.75rem 1.25rem">
+            <div class="et-grid et-grid--2 et-detail-grid">
                 <div><strong>Mode:</strong> {{ ucfirst((string) $exam->exam_mode) }}</div>
                 <div><strong>Question types:</strong> {{ $formats ?: '—' }}</div>
                 <div><strong>Pricing:</strong>
@@ -143,8 +142,12 @@
                 @endif
 
                 @if(! empty($evaluation['requires_payment']))
-                    <button type="button" class="et-btn et-btn--primary" id="purchase-exam-btn"
-                            data-url="{{ route('frontend.exams.purchase', $exam) }}">Purchase Exam</button>
+                    <button type="button"
+                            class="et-btn et-btn--primary"
+                            id="purchase-exam-btn"
+                            data-exam-purchase
+                            data-url="{{ route('frontend.exams.purchase', $exam) }}"
+                            data-redirect="{{ route('frontend.exams.rules', $exam) }}">Purchase Exam</button>
                 @endif
 
                 @if($previousAttempts->isNotEmpty())
@@ -154,7 +157,7 @@
 
             @auth
                 @if(! empty($evaluation['reasons']))
-                    <ul style="margin:0;flex-basis:100%;color:var(--et-text-muted);font-size:.9rem">
+                    <ul class="et-cta-reasons">
                         @foreach($evaluation['reasons'] as $reason)
                             <li>{{ $reason }}</li>
                         @endforeach
@@ -185,82 +188,6 @@
 
 @push('scripts')
 <script src="{{ versioned_asset('js/frontend/feedback.js') }}" defer></script>
-<script>
-(function () {
-    const key = 'ems_exam_return_url';
-    document.querySelectorAll('.js-store-return').forEach((el) => {
-        el.addEventListener('click', () => {
-            const url = el.getAttribute('data-return-url');
-            if (!url) return;
-            try { localStorage.setItem(key, url); } catch (e) {}
-            document.cookie = 'ems_exam_return_url=' + encodeURIComponent(url) + '; path=/; max-age=7200; SameSite=Lax';
-        });
-    });
-
-    const purchaseBtn = document.getElementById('purchase-exam-btn');
-    if (purchaseBtn) {
-        purchaseBtn.addEventListener('click', async () => {
-            let confirmed = false;
-            if (window.Swal && typeof window.Swal.fire === 'function') {
-                const result = await window.Swal.fire({
-                    title: 'Complete payment?',
-                    text: 'Proceed with placeholder payment for this exam?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Continue',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true,
-                });
-                confirmed = !!(result && result.isConfirmed);
-            } else {
-                confirmed = confirm('Proceed with placeholder payment for this exam?');
-            }
-            if (!confirmed) return;
-
-            const token = document.querySelector('meta[name="csrf-token"]')?.content;
-            const res = await fetch(purchaseBtn.dataset.url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': token,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({}),
-            });
-            if (res.ok) {
-                window.location.href = @json(route('frontend.exams.rules', $exam));
-            } else if (window.EmsToast?.error) {
-                window.EmsToast.error('Unable to complete placeholder payment.');
-            } else if (window.Swal?.fire) {
-                window.Swal.fire({ icon: 'error', title: 'Payment failed', text: 'Unable to complete placeholder payment.' });
-            } else {
-                alert('Unable to complete placeholder payment.');
-            }
-        });
-    }
-
-    document.querySelectorAll('[data-pa-toggle]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const card = btn.closest('[data-pa-card]');
-            if (!card) return;
-            const panelId = btn.getAttribute('aria-controls');
-            const panel = panelId ? document.getElementById(panelId) : card.querySelector('.pa-card__body');
-            const label = btn.querySelector('[data-pa-toggle-label]');
-            const open = card.classList.contains('is-collapsed');
-
-            card.classList.toggle('is-collapsed', !open);
-            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-            if (panel) {
-                if (open) panel.removeAttribute('hidden');
-                else panel.setAttribute('hidden', 'hidden');
-            }
-            if (label) label.textContent = open ? 'Hide details' : 'Show details';
-        });
-    });
-
-    document.getElementById('exam-feedback')?.addEventListener('feedback:submitted', () => {
-        window.setTimeout(() => window.location.reload(), 800);
-    });
-})();
-</script>
+<script src="{{ versioned_asset('js/frontend/exam-purchase.js') }}" defer></script>
+<script src="{{ versioned_asset('js/frontend/exam-show.js') }}" defer></script>
 @endpush

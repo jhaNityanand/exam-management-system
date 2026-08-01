@@ -1,7 +1,7 @@
 @extends('frontend.account.layout')
 
 @php
-    $seo = ['title' => 'My results'];
+    $seo = ['title' => 'My results', 'robots' => 'noindex, nofollow', 'image_type' => 'profile'];
 @endphp
 
 @section('account-eyebrow', 'Scorecards')
@@ -19,8 +19,8 @@
             ])
         </section>
     @else
-        <section class="ca-card" style="padding:0;overflow:hidden">
-            <div class="ca-table-wrap" style="border:0;border-radius:0">
+        <section class="ca-card ca-card--flush">
+            <div class="ca-table-wrap ca-table-wrap--flush">
                 <table class="ca-table">
                     <thead>
                         <tr>

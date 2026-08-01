@@ -16,10 +16,10 @@
 @endif
 
 @if(! empty($cookies['enabled']))
-    <div id="et-cookie-banner" class="et-cookie" hidden role="dialog" aria-live="polite" aria-label="Cookie consent">
+    <div id="et-cookie-banner" class="et-cookie" hidden role="dialog" aria-modal="true" aria-live="polite" aria-labelledby="et-cookie-title">
         <div class="et-cookie__inner">
             <div class="et-cookie__copy">
-                <strong class="et-cookie__title">{{ $cookies['title'] }}</strong>
+                <strong class="et-cookie__title" id="et-cookie-title">{{ $cookies['title'] }}</strong>
                 <p class="et-cookie__message">{{ $cookies['message'] }}</p>
                 @if(! empty($cookies['policy_url']))
                     <a class="et-cookie__policy" href="{{ $cookies['policy_url'] }}">Privacy policy</a>

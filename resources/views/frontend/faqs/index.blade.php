@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'Frequently Asked Questions',
         'description' => 'Find answers to common questions about exams, accounts, and using '.($siteBrand['name'] ?? config('app.name')).'.',
+        'image_type' => 'organization',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'FAQs'],

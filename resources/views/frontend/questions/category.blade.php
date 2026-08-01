@@ -4,6 +4,8 @@
     $seo = [
         'title' => $category->meta_title ?: $category->name,
         'description' => $category->meta_description ?: ($category->description ?: 'Questions in '.$category->name),
+        'image' => $category->seoImageUrl(),
+        'image_type' => 'category',
     ];
     $activeFilterCount = collect([
         request('search'),

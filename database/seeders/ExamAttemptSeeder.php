@@ -36,8 +36,8 @@ class ExamAttemptSeeder extends Seeder
 
         $users = User::query()
             ->whereIn('email', [
-                'admin@example.in',
-                'admin@examtube.in',
+                \Database\Seeders\Support\SeederContact::EMAIL_ADMIN,
+                \Database\Seeders\Support\SeederContact::EMAIL_INFO,
                 'candidate@examtube.in',
             ])
             ->get()
@@ -213,8 +213,8 @@ class ExamAttemptSeeder extends Seeder
     private function attemptPlans($users): array
     {
         $candidate = $users->get('candidate@examtube.in');
-        $orgAdmin = $users->get('admin@examtube.in');
-        $appAdmin = $users->get('admin@example.in');
+        $orgAdmin = $users->get(\Database\Seeders\Support\SeederContact::EMAIL_INFO);
+        $appAdmin = $users->get(\Database\Seeders\Support\SeederContact::EMAIL_ADMIN);
 
         return [
             // Candidate — rich history for /account demos

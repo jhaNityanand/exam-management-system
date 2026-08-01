@@ -204,6 +204,14 @@ class Exam extends Model
         return $this->ogImage?->file_url ?? $this->bannerImage?->file_url;
     }
 
+    /**
+     * Absolute social/meta image with branded default fallback.
+     */
+    public function seoImageUrl(): string
+    {
+        return seo_image($this->socialImageUrl(), 'exam');
+    }
+
     public function isPaid(): bool
     {
         return ($this->pricing_option ?: 'free') === 'paid' || (float) ($this->exam_amount ?? 0) > 0;

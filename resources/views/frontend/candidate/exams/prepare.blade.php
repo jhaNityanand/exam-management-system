@@ -45,9 +45,7 @@
         </div>
     </div>
 </div>
-<script>
-    document.body.classList.add('cx-page-booting');
-</script>
+<script src="{{ versioned_asset('js/candidate/page-boot.js') }}"></script>
 <div class="cx-prepare" id="cx-prepare"
      data-start-url="{{ route('frontend.exams.attempts.start', $exam) }}"
      data-verify-url="{{ route('frontend.exams.verification', $exam) }}"

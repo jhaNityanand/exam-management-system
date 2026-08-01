@@ -4,6 +4,7 @@
     $seo = [
         'title' => '#'.($tag->name ?? 'tag'),
         'description' => 'Blog posts tagged '.($tag->name ?? '').'.',
+        'image_type' => 'blog',
     ];
     $activeFilterCount = collect([
         request('search'),

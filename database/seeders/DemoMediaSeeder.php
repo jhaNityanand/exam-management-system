@@ -13,14 +13,13 @@ use App\Models\Gallery;
 use App\Models\Organization;
 use App\Support\AdvertisementCatalog;
 use Database\Seeders\Concerns\ResolvesDemoContext;
-use Database\Seeders\Support\SeedAssetGenerator;
 use Database\Seeders\Support\SeedImageLibrary;
 use Illuminate\Database\Seeder;
 use Throwable;
 
 /**
- * Attaches production-ready branding, hero, exam, page, partner, testimonial,
- * advertisement, and standalone gallery media for demo-org from public/seed.
+ * Attaches branding, hero, exam, page, partner, testimonial,
+ * advertisement, and gallery media using frontend SEO default images.
  */
 class DemoMediaSeeder extends Seeder
 {
@@ -36,9 +35,6 @@ class DemoMediaSeeder extends Seeder
 
             return;
         }
-
-        $assets = (new SeedAssetGenerator)->ensure();
-        $this->command?->info("DemoMediaSeeder: seed assets created={$assets['created']} skipped={$assets['skipped']}.");
 
         $images = new SeedImageLibrary;
         $purged = $images->purge($org->id, 'demo-media');
@@ -64,9 +60,9 @@ class DemoMediaSeeder extends Seeder
      */
     private function seedBrand(Organization $org, int $userId, SeedImageLibrary $images): array
     {
-        $logo = $this->safeStore($images, $org->id, 'brand/logo.png', $userId, 'Examtube logo');
-        $favicon = $this->safeStore($images, $org->id, 'brand/favicon.png', $userId, 'Examtube favicon');
-        $og = $this->safeStore($images, $org->id, 'brand/og-image.jpg', $userId, 'Default Open Graph image');
+        $logo = $this->safeSeo($images, $org->id, 'organization', $userId, 'Examtube logo');
+        $favicon = $this->safeSeo($images, $org->id, 'home', $userId, 'Examtube favicon');
+        $og = $this->safeSeo($images, $org->id, 'home', $userId, 'Default Open Graph image');
 
         $this->upsertSetting($org->id, 'brand', 'logo_gallery_id', $logo?->id, 'integer', 'Logo gallery ID');
         $this->upsertSetting($org->id, 'brand', 'favicon_gallery_id', $favicon?->id, 'integer', 'Favicon gallery ID');
@@ -89,8 +85,7 @@ class DemoMediaSeeder extends Seeder
                 'secondary_cta_label' => 'Read prep blogs',
                 'secondary_cta_url' => '/blogs',
                 'show_search' => true,
-                'desktop' => 'heroes/hero-01-exam-confidence.jpg',
-                'mobile' => 'heroes/mobile-01.jpg',
+                'seo' => 'home',
             ],
             [
                 'title' => 'Practice like the real exam floor',
@@ -102,8 +97,7 @@ class DemoMediaSeeder extends Seeder
                 'secondary_cta_label' => 'How it works',
                 'secondary_cta_url' => '/about-us',
                 'show_search' => true,
-                'desktop' => 'heroes/hero-02-practice-floor.jpg',
-                'mobile' => 'heroes/mobile-02.jpg',
+                'seo' => 'exam',
             ],
             [
                 'title' => 'Stay informed with blogs & campus news',
@@ -115,42 +109,15 @@ class DemoMediaSeeder extends Seeder
                 'secondary_cta_label' => 'Browse blogs',
                 'secondary_cta_url' => '/blogs',
                 'show_search' => false,
-                'desktop' => 'heroes/hero-03-news-insights.jpg',
-                'mobile' => 'heroes/mobile-03.jpg',
-            ],
-            [
-                'title' => 'See exactly where marks are won or lost',
-                'subtitle' => 'Attempt history · Score trends · Weak topics',
-                'description' => 'Review graded attempts with clear pass/fail outcomes, section-level feedback, and a timeline that keeps your preparation accountable.',
-                'badge_text' => 'Results that teach',
-                'primary_cta_label' => 'View exams',
-                'primary_cta_url' => '/exams',
-                'secondary_cta_label' => 'Create free account',
-                'secondary_cta_url' => '/register',
-                'show_search' => true,
-                'desktop' => 'heroes/hero-04-analytics.jpg',
-                'mobile' => 'heroes/mobile-04.jpg',
-            ],
-            [
-                'title' => 'From campus interviews to career-ready confidence',
-                'subtitle' => 'Aptitude · Technical · HR rounds',
-                'description' => 'Run structured interview assessments for institutes and self-prep tracks for candidates — with branding, galleries, and ads ready out of the box.',
-                'badge_text' => 'Demo-ready workspace',
-                'primary_cta_label' => 'Browse categories',
-                'primary_cta_url' => '/categories',
-                'secondary_cta_label' => 'Contact us',
-                'secondary_cta_url' => '/contact-us',
-                'show_search' => false,
-                'desktop' => 'heroes/hero-05-career-ready.jpg',
-                'mobile' => 'heroes/mobile-05.jpg',
+                'seo' => 'news',
             ],
         ];
 
         HeroBanner::query()->where('organization_id', $orgId)->delete();
 
         foreach ($slides as $index => $slide) {
-            $desktop = $this->safeStore($images, $orgId, $slide['desktop'], $userId, $slide['title']);
-            $mobile = $this->safeStore($images, $orgId, $slide['mobile'], $userId, $slide['title'].' (mobile)');
+            $desktop = $this->safeSeo($images, $orgId, $slide['seo'], $userId, $slide['title'], 'hero-'.$index);
+            $mobile = $desktop;
 
             HeroBanner::query()->create([
                 'organization_id' => $orgId,
@@ -174,20 +141,8 @@ class DemoMediaSeeder extends Seeder
 
     private function seedPartners(int $orgId, int $userId, SeedImageLibrary $images): void
     {
-        $map = [
-            'SkillVista Academy' => 'partners/partner-01-skillvista.png',
-            'CampusBridge India' => 'partners/partner-02-campusbridge.png',
-            'HireReady Labs' => 'partners/partner-03-hireready.png',
-            'EduPulse Media' => 'partners/partner-04-edupulse.png',
-        ];
-
-        foreach (Partner::query()->where('organization_id', $orgId)->get() as $partner) {
-            $path = $map[$partner->name] ?? null;
-            if (! $path) {
-                continue;
-            }
-
-            $logo = $this->safeStore($images, $orgId, $path, $userId, $partner->name.' logo');
+        foreach (Partner::query()->where('organization_id', $orgId)->get() as $index => $partner) {
+            $logo = $this->safeSeo($images, $orgId, 'organization', $userId, $partner->name.' logo', 'partner-'.$index);
             if ($logo) {
                 $partner->update(['logo_id' => $logo->id]);
             }
@@ -196,20 +151,8 @@ class DemoMediaSeeder extends Seeder
 
     private function seedTestimonials(int $orgId, int $userId, SeedImageLibrary $images): void
     {
-        $map = [
-            'Ananya Sharma' => 'avatars/avatar-01-ananya.jpg',
-            'Rahul Nair' => 'avatars/avatar-02-rahul.jpg',
-            'Fatima Khan' => 'avatars/avatar-03-fatima.jpg',
-            'Vikram Joshi' => 'avatars/avatar-04-vikram.jpg',
-        ];
-
-        foreach (Testimonial::query()->where('organization_id', $orgId)->get() as $row) {
-            $path = $map[$row->name] ?? null;
-            if (! $path) {
-                continue;
-            }
-
-            $avatar = $this->safeStore($images, $orgId, $path, $userId, $row->name.' avatar');
+        foreach (Testimonial::query()->where('organization_id', $orgId)->get() as $index => $row) {
+            $avatar = $this->safeSeo($images, $orgId, 'profile', $userId, $row->name.' avatar', 'testimonial-'.$index);
             if ($avatar) {
                 $row->update(['avatar_id' => $avatar->id]);
             }
@@ -223,11 +166,8 @@ class DemoMediaSeeder extends Seeder
             ->orderBy('id')
             ->get();
 
-        $index = 0;
-        foreach ($exams as $exam) {
-            $index++;
-            $file = sprintf('exams/exam-banner-%02d.jpg', (($index - 1) % 12) + 1);
-            $banner = $this->safeStore($images, $orgId, $file, $userId, $exam->title.' banner');
+        foreach ($exams as $index => $exam) {
+            $banner = $this->safeSeo($images, $orgId, 'exam', $userId, $exam->title.' banner', 'exam-'.$index);
             if (! $banner) {
                 continue;
             }
@@ -242,21 +182,21 @@ class DemoMediaSeeder extends Seeder
     private function seedPageBanners(int $orgId, int $userId, SeedImageLibrary $images): void
     {
         $map = [
-            'about-us' => 'pages/page-about.jpg',
-            'contact-us' => 'pages/page-contact.jpg',
-            'privacy-policy' => 'pages/page-privacy.jpg',
-            'terms-and-conditions' => 'pages/page-terms.jpg',
-            'help-center' => 'pages/page-help.jpg',
-            'careers' => 'pages/page-careers.jpg',
+            'about-us' => 'about',
+            'contact-us' => 'contact',
+            'privacy-policy' => 'privacy',
+            'terms-and-conditions' => 'terms',
+            'help-center' => 'about',
+            'careers' => 'organization',
         ];
 
         foreach (SitePage::query()->where('organization_id', $orgId)->get() as $page) {
-            $path = $map[$page->slug] ?? null;
-            if (! $path) {
+            $type = $map[$page->slug] ?? null;
+            if (! $type) {
                 continue;
             }
 
-            $banner = $this->safeStore($images, $orgId, $path, $userId, $page->title.' banner');
+            $banner = $this->safeSeo($images, $orgId, $type, $userId, $page->title.' banner', 'page-'.$page->slug);
             if ($banner) {
                 $page->update(['banner_image_id' => $banner->id]);
             }
@@ -271,7 +211,7 @@ class DemoMediaSeeder extends Seeder
             [
                 'name' => 'Home sidebar premium mocks',
                 'placement' => 'home_sidebar',
-                'file' => 'ads/ad-home-sidebar.jpg',
+                'seo' => 'exam',
                 'headline' => 'Upgrade your mock series',
                 'body' => 'Unlock timed packs with analytics built for serious aspirants.',
                 'cta_label' => 'Browse exams',
@@ -280,7 +220,7 @@ class DemoMediaSeeder extends Seeder
             [
                 'name' => 'Exam list banner',
                 'placement' => 'exam_list',
-                'file' => 'ads/ad-exam-list.jpg',
+                'seo' => 'category',
                 'headline' => 'Find your next paper',
                 'body' => 'Aptitude, technical, and HR interview assessments ready to attempt.',
                 'cta_label' => 'View categories',
@@ -289,7 +229,7 @@ class DemoMediaSeeder extends Seeder
             [
                 'name' => 'Blog sidebar banner',
                 'placement' => 'blog_detail_sidebar_top',
-                'file' => 'ads/ad-blog-sidebar.jpg',
+                'seo' => 'blog',
                 'headline' => 'Practice after you read',
                 'body' => 'Turn study tips into timed attempts on Examtube.',
                 'cta_label' => 'Start practicing',
@@ -298,7 +238,7 @@ class DemoMediaSeeder extends Seeder
             [
                 'name' => 'News sidebar banner',
                 'placement' => 'news_detail_sidebar_top',
-                'file' => 'ads/ad-news-sidebar.jpg',
+                'seo' => 'news',
                 'headline' => 'News that fuels prep',
                 'body' => 'Stay current, then validate readiness with a mock test.',
                 'cta_label' => 'Open exams',
@@ -307,7 +247,7 @@ class DemoMediaSeeder extends Seeder
             [
                 'name' => 'Exam result promo',
                 'placement' => 'exam_result',
-                'file' => 'ads/ad-exam-result.jpg',
+                'seo' => 'exam',
                 'headline' => 'Retake. Improve. Repeat.',
                 'body' => 'Use unlimited practice papers to climb your score curve.',
                 'cta_label' => 'Try another exam',
@@ -316,7 +256,7 @@ class DemoMediaSeeder extends Seeder
             [
                 'name' => 'Footer strip banner',
                 'placement' => 'footer',
-                'file' => 'ads/ad-footer.jpg',
+                'seo' => 'organization',
                 'headline' => 'Examtube for institutes',
                 'body' => 'Brand your workspace, publish exams, and track candidate results.',
                 'cta_label' => 'Contact us',
@@ -325,7 +265,7 @@ class DemoMediaSeeder extends Seeder
         ];
 
         foreach ($ads as $index => $ad) {
-            $image = $this->safeStore($images, $orgId, $ad['file'], $userId, $ad['name']);
+            $image = $this->safeSeo($images, $orgId, $ad['seo'], $userId, $ad['name'], 'ad-'.$index);
 
             Advertisement::query()->create([
                 'organization_id' => $orgId,
@@ -357,13 +297,16 @@ class DemoMediaSeeder extends Seeder
 
     private function seedStandaloneGallery(int $orgId, int $userId, SeedImageLibrary $images): void
     {
-        for ($i = 1; $i <= 8; $i++) {
-            $this->safeStore(
+        $types = ['home', 'exam', 'blog', 'news', 'category', 'question', 'organization', 'about'];
+
+        foreach ($types as $index => $type) {
+            $this->safeSeo(
                 $images,
                 $orgId,
-                sprintf('gallery/gallery-%02d.jpg', $i),
+                $type,
                 $userId,
-                'Campus gallery image '.$i
+                'Campus gallery image '.($index + 1),
+                'gallery-'.$index
             );
         }
     }
@@ -401,15 +344,26 @@ class DemoMediaSeeder extends Seeder
         );
     }
 
-    private function safeStore(SeedImageLibrary $images, int $orgId, string $path, int $userId, string $alt): ?Gallery
-    {
+    private function safeSeo(
+        SeedImageLibrary $images,
+        int $orgId,
+        string $type,
+        int $userId,
+        string $alt,
+        ?string $suffix = null
+    ): ?Gallery {
         try {
-            return $images->storeFromPublicSeed($orgId, $path, $userId, 'demo-media', [
+            $meta = [
                 'alt_text' => $alt,
                 'description' => $alt,
-            ]);
+            ];
+            if ($suffix !== null) {
+                $meta['slug_suffix'] = $suffix;
+            }
+
+            return $images->storeSeoDefault($orgId, $type, $userId, 'demo-media', $meta);
         } catch (Throwable $e) {
-            $this->command?->warn("DemoMediaSeeder: failed {$path}: {$e->getMessage()}");
+            $this->command?->warn("DemoMediaSeeder: failed {$type}: {$e->getMessage()}");
 
             return null;
         }

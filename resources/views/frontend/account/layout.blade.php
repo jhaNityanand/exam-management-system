@@ -26,12 +26,15 @@
         <div class="ca-layout">
             <div class="ca-sidebar-backdrop" data-ca-sidebar-close hidden></div>
             @include('frontend.layouts.sidebar')
-            <main class="ca-main">
+            <div class="ca-main" id="account-content" role="region" aria-label="Account content">
                 @yield('account-content')
-            </main>
+            </div>
         </div>
     </div>
 </div>
-<script src="{{ versioned_asset('js/frontend/account-panel.js') }}"></script>
-@stack('account-scripts')
 @endsection
+
+@push('scripts')
+<script src="{{ versioned_asset('js/frontend/account-panel.js') }}" defer></script>
+@stack('account-scripts')
+@endpush

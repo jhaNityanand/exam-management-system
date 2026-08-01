@@ -212,11 +212,11 @@ class SeoSiteGenerator
             'chunk_size' => [(string) self::DEFAULT_CHUNK, 'integer', 'Sitemap chunk size'],
             'robots_extra' => ['', 'text', 'Extra robots.txt rules'],
             'humans_text' => [
-                "/* TEAM */\nOwner: Examtube Learning Technologies\nSite: https://examtube.in\nLocation: Bengaluru, India\n\n/* THANKS */\nLaravel, Tailwind CSS\n\n/* SITE */\nLast update: ".now()->toDateString()."\nLanguage: en-IN\nStandards: HTML5, CSS3",
+                "/* TEAM */\nOwner: Examtube Learning Technologies\nSite: https://examtube.in\nLocation: Mumbai, India\n\n/* THANKS */\nLaravel, Tailwind CSS\n\n/* SITE */\nLast update: ".now()->toDateString()."\nLanguage: en-IN\nStandards: HTML5, CSS3",
                 'text',
                 'humans.txt content',
             ],
-            'security_contact_email' => ['security@examtube.in', 'string', 'security.txt contact email'],
+            'security_contact_email' => ['support@examtube.in', 'string', 'security.txt contact email'],
             'security_policy_url' => ['', 'string', 'security.txt policy URL'],
             'manifest_name' => ['Examtube.in', 'string', 'Manifest name'],
             'manifest_short_name' => ['Examtube', 'string', 'Manifest short name'],
@@ -325,7 +325,7 @@ class SeoSiteGenerator
 
     protected function renderSecurityTxt(?int $orgId): string
     {
-        $email = (string) $this->setting('security_contact_email', 'security@examtube.in', $orgId);
+        $email = (string) $this->setting('security_contact_email', 'support@examtube.in', $orgId);
         $policy = trim((string) $this->setting('security_policy_url', '', $orgId));
         $lines = [
             'Contact: mailto:'.$email,

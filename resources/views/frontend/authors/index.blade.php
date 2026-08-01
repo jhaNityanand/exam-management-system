@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'Authors',
         'description' => 'Meet the mentors and writers who publish exams, blogs, and news on '.($siteBrand['name'] ?? 'Examtube').'.',
+        'image_type' => 'profile',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Authors'],

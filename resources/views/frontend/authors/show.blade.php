@@ -6,6 +6,11 @@
     $shareRawUrl = url()->current();
     $shareUrl = urlencode($shareRawUrl);
     $shareText = urlencode($author->name.' on Examtube');
+    $crumbs = [
+        ['label' => 'Home', 'url' => route('home')],
+        ['label' => 'Authors', 'url' => route('frontend.authors.index')],
+        ['label' => 'Profile'],
+    ];
     $seo = [
         'title' => $author->name.' · Author',
         'description' => \Illuminate\Support\Str::limit(
@@ -13,12 +18,9 @@
             160
         ),
         'type' => 'profile',
-        'image' => $avatar['url'] ?? null,
-    ];
-    $crumbs = [
-        ['label' => 'Home', 'url' => route('home')],
-        ['label' => 'Authors', 'url' => route('frontend.authors.index')],
-        ['label' => 'Profile'],
+        'image' => seo_image($avatar['url'] ?? null, 'profile'),
+        'image_type' => 'profile',
+        'breadcrumbs' => $crumbs,
     ];
     $socialLabels = [
         'website' => 'Website',

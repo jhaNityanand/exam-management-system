@@ -60,6 +60,7 @@ class NewsSeeder extends Seeder
                     $author->id,
                     'news',
                     [
+                        'seo_type' => 'news',
                         'alt_text' => $article['title'],
                         'description' => 'Cover image for '.$article['title'],
                     ]

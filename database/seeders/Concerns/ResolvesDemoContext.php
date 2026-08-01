@@ -4,6 +4,7 @@ namespace Database\Seeders\Concerns;
 
 use App\Models\Organization;
 use App\Models\User;
+use Database\Seeders\Support\SeederContact;
 
 trait ResolvesDemoContext
 {
@@ -14,7 +15,7 @@ trait ResolvesDemoContext
 
     protected function demoEditor(): ?User
     {
-        return User::query()->where('email', 'admin@examtube.in')->first()
-            ?: User::query()->where('email', 'admin@example.in')->first();
+        return User::query()->where('email', SeederContact::EMAIL_INFO)->first()
+            ?: User::query()->where('email', SeederContact::EMAIL_ADMIN)->first();
     }
 }

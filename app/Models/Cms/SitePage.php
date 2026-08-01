@@ -59,4 +59,16 @@ class SitePage extends Model
     {
         return $query->orderBy('sort_order');
     }
+
+    public function socialImageUrl(): ?string
+    {
+        return $this->bannerImage?->file_url;
+    }
+
+    public function seoImageUrl(): string
+    {
+        $type = \App\Support\SeoImage::typeForCmsPage($this->template, $this->slug);
+
+        return seo_image($this->socialImageUrl(), $type);
+    }
 }

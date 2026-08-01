@@ -1,7 +1,7 @@
 @extends('frontend.account.layout')
 
 @php
-    $seo = ['title' => 'Invoices'];
+    $seo = ['title' => 'Invoices', 'robots' => 'noindex, nofollow', 'image_type' => 'profile'];
 @endphp
 
 @section('account-eyebrow', 'Billing')

@@ -1,5 +1,14 @@
 @extends('frontend.layouts.app')
 
+@php
+    $seo = [
+        'title' => 'Too many requests',
+        'description' => 'Rate limit exceeded. Please wait a moment and try again.',
+        'robots' => 'noindex, follow',
+        'image_type' => 'organization',
+    ];
+@endphp
+
 @section('content')
 @include('errors.partials.content', [
     'code' => '429',

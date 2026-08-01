@@ -68,7 +68,7 @@ class OrganizationSettingsService
             'hint' => 'Public channel or group invite link',
         ],
         'whatsapp' => [
-            'placeholder' => 'https://wa.me/919876543210',
+            'placeholder' => 'https://wa.me/910000000000',
             'hint' => 'Use wa.me with country code, no spaces',
         ],
         'discord' => [

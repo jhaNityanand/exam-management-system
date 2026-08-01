@@ -12,8 +12,8 @@ class ExamInstructionRuleSeeder extends Seeder
     public function run(): void
     {
         $org = Organization::where('slug', 'demo-org')->first();
-        $admin = User::where('email', 'admin@examtube.in')->first()
-            ?: User::where('email', 'admin@example.in')->first();
+        $admin = User::where('email', \Database\Seeders\Support\SeederContact::EMAIL_INFO)->first()
+            ?: User::where('email', \Database\Seeders\Support\SeederContact::EMAIL_ADMIN)->first();
 
         if (! $org) {
             $this->command?->warn('ExamInstructionRuleSeeder: demo-org not found. Skipping.');

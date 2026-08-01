@@ -1,5 +1,14 @@
 @extends('frontend.layouts.app')
 
+@php
+    $seo = [
+        'title' => 'Access denied',
+        'description' => 'You do not have permission to view this page.',
+        'robots' => 'noindex, follow',
+        'image_type' => 'organization',
+    ];
+@endphp
+
 @section('content')
 @include('errors.partials.content', [
     'code' => '403',

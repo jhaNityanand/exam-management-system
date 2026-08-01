@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'Sitemap',
         'description' => 'Browse all key pages on '.($siteBrand['name'] ?? config('app.name')).'.',
+        'image_type' => 'organization',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Sitemap'],
@@ -24,14 +25,23 @@
 <section class="et-section">
     <div class="et-container">
         <ul class="et-sitemap-grid">
-            @foreach($links as $link)
+            @forelse($links as $link)
                 <li>
                     <a href="{{ $link['url'] }}" class="et-sitemap-card">
                         <span>{{ $link['label'] }}</span>
                         <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 5.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/></svg>
                     </a>
                 </li>
-            @endforeach
+            @empty
+                <li class="et-sitemap-empty">
+                    @include('frontend.partials.empty-state', [
+                        'title' => 'Sitemap unavailable',
+                        'message' => 'No public links are configured yet.',
+                        'actionUrl' => route('home'),
+                        'actionLabel' => 'Go home',
+                    ])
+                </li>
+            @endforelse
         </ul>
     </div>
 </section>

@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use App\Models\Profile;
 use App\Models\User;
 use Database\Seeders\Concerns\ResolvesDemoContext;
-use Database\Seeders\Support\SeedAssetGenerator;
+use Database\Seeders\Support\SeederContact;
 use Database\Seeders\Support\SeedImageLibrary;
 use Illuminate\Database\Seeder;
 use Throwable;
@@ -17,7 +17,6 @@ class ProfileSeeder extends Seeder
     public function run(): void
     {
         $org = $this->demoOrganization();
-        (new SeedAssetGenerator)->ensure();
         $images = new SeedImageLibrary;
 
         if ($org) {
@@ -26,32 +25,29 @@ class ProfileSeeder extends Seeder
         }
 
         $profiles = [
-            'admin@example.in' => [
-                'bio' => 'Application administrator for the Examtube platform demo workspace.',
-                'phone' => '+91 90000 00001',
-                'city' => 'Bengaluru',
-                'state_region' => 'Karnataka',
-                'country' => 'IN',
-                'gender' => 'male',
-                'avatar_seed' => 'avatars/avatar-user-appadmin.jpg',
-            ],
             'admin@examtube.in' => [
+                'bio' => 'Application administrator for the Examtube platform demo workspace.',
+                'phone' => SeederContact::PHONE,
+                'city' => SeederContact::CITY,
+                'state_region' => SeederContact::STATE,
+                'country' => SeederContact::COUNTRY,
+                'gender' => 'male',
+            ],
+            'info@examtube.in' => [
                 'bio' => 'Organization admin managing exams, CMS, galleries, and candidate results for Demo Organization.',
-                'phone' => '+91 90000 00002',
-                'city' => 'Bengaluru',
-                'state_region' => 'Karnataka',
-                'country' => 'IN',
+                'phone' => SeederContact::PHONE,
+                'city' => SeederContact::CITY,
+                'state_region' => SeederContact::STATE,
+                'country' => SeederContact::COUNTRY,
                 'gender' => 'female',
-                'avatar_seed' => 'avatars/avatar-user-orgadmin.jpg',
             ],
             'candidate@examtube.in' => [
                 'bio' => 'Demo candidate preparing for campus interviews with timed aptitude and technical mocks.',
-                'phone' => '+91 90000 00003',
-                'city' => 'Pune',
-                'state_region' => 'Maharashtra',
-                'country' => 'IN',
+                'phone' => SeederContact::PHONE,
+                'city' => SeederContact::CITY,
+                'state_region' => SeederContact::STATE,
+                'country' => SeederContact::COUNTRY,
                 'gender' => 'male',
-                'avatar_seed' => 'avatars/avatar-user-candidate.jpg',
             ],
         ];
 
@@ -59,16 +55,17 @@ class ProfileSeeder extends Seeder
             $extra = $profiles[$user->email] ?? [];
             $avatarPath = null;
 
-            if ($org && ! empty($extra['avatar_seed'])) {
+            if ($org && isset($profiles[$user->email])) {
                 try {
-                    $gallery = $images->storeFromPublicSeed(
+                    $gallery = $images->storeSeoDefault(
                         $org->id,
-                        $extra['avatar_seed'],
+                        'profile',
                         $user->id,
                         'profile',
                         [
                             'alt_text' => $user->name.' avatar',
                             'description' => 'Seeded profile avatar',
+                            'slug_suffix' => $user->username ?: (string) $user->id,
                         ]
                     );
                     $avatarPath = $gallery->file_path;
@@ -85,7 +82,7 @@ class ProfileSeeder extends Seeder
                     'phone' => $extra['phone'] ?? null,
                     'city' => $extra['city'] ?? null,
                     'state_region' => $extra['state_region'] ?? null,
-                    'country' => $extra['country'] ?? 'India',
+                    'country' => $extra['country'] ?? SeederContact::COUNTRY,
                     'gender' => $extra['gender'] ?? null,
                     'avatar' => $avatarPath,
                     'default_organization_id' => $org?->id,

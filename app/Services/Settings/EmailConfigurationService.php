@@ -63,7 +63,7 @@ class EmailConfigurationService
         }
 
         if (trim((string) $config['from_address']) === '') {
-            $config['from_address'] = (string) ($all['contact.email'] ?? config('mail.from.address', 'hello@examtube.in'));
+            $config['from_address'] = (string) ($all['contact.email'] ?? config('mail.from.address', 'support@examtube.in'));
         }
         if (trim((string) $config['from_name']) === '') {
             $config['from_name'] = (string) ($all['brand.site_name'] ?? config('mail.from.name', config('app.name')));
@@ -279,7 +279,7 @@ class EmailConfigurationService
             'username' => '',
             'password' => '',
             'encryption' => 'tls',
-            'from_address' => 'hello@examtube.in',
+            'from_address' => 'support@examtube.in',
             'from_name' => 'Examtube.in',
             'google_oauth_enabled' => false,
             'google_client_id' => '',

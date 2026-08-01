@@ -5,6 +5,11 @@
     $seo = [
         'title' => $q !== '' ? 'Search: '.$q : 'Search',
         'description' => 'Search exams, questions, blogs, news, and categories on Examtube.in.',
+        'image_type' => 'home',
+        'breadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'Search'],
+        ],
     ];
     $exams = $exams ?? collect();
     $blogs = $blogs ?? collect();
@@ -22,8 +27,9 @@
             ]])
             <h1>Search</h1>
             <p>Find exams, questions, blogs, news, and categories.</p>
-            <form class="et-hero__search" style="margin-top:1rem;max-width:560px" method="get" action="{{ route('frontend.search') }}">
-                <input type="search" name="q" value="{{ $q }}" placeholder="What are you preparing for?" autofocus>
+            <form class="et-hero__search et-search-page__form" method="get" action="{{ route('frontend.search') }}" role="search">
+                <label class="et-visually-hidden" for="et-search-q">Search Examtube</label>
+                <input id="et-search-q" type="search" name="q" value="{{ $q }}" placeholder="What are you preparing for?" autofocus autocomplete="off">
                 <button type="submit" class="et-btn et-btn--primary et-btn--sm">Search</button>
             </form>
         </div>

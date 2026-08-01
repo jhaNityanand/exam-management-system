@@ -19,8 +19,8 @@ class ExamCategorySeeder extends Seeder
     public function run(): void
     {
         $organization = Organization::query()->where('slug', 'demo-org')->first();
-        $admin = User::query()->where('email', 'admin@examtube.in')->first()
-            ?: User::query()->where('email', 'admin@example.in')->first();
+        $admin = User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_INFO)->first()
+            ?: User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_ADMIN)->first();
 
         if (! $organization || ! $admin) {
             $this->command?->warn('ExamCategorySeeder: demo-org or orgadmin missing. Skipping.');

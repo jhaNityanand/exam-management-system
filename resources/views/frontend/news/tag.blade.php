@@ -1,7 +1,11 @@
 @extends('frontend.layouts.app')
 
 @php
-    $seo = ['title' => 'News tagged '.$tag->name, 'description' => 'News tagged with '.$tag->name];
+    $seo = [
+        'title' => 'News tagged '.$tag->name,
+        'description' => 'News tagged with '.$tag->name,
+        'image_type' => 'news',
+    ];
     $activeFilterCount = collect([
         request('search'),
         request('sort') && request('sort') !== 'latest' ? request('sort') : null,

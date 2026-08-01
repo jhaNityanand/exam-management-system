@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\OrganizationRoles;
+use Database\Seeders\Support\SeederContact;
 use Illuminate\Database\Seeder;
 
 class UserOrganizationSeeder extends Seeder
@@ -20,8 +21,8 @@ class UserOrganizationSeeder extends Seeder
         }
 
         $assignments = [
-            'admin@example.in' => OrganizationRoles::ADMIN,
-            'admin@examtube.in' => OrganizationRoles::ORG_ADMIN,
+            SeederContact::EMAIL_ADMIN => OrganizationRoles::ADMIN,
+            SeederContact::EMAIL_INFO => OrganizationRoles::ORG_ADMIN,
             'candidate@examtube.in' => OrganizationRoles::CANDIDATE,
         ];
 

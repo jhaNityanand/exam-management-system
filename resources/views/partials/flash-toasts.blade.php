@@ -45,8 +45,8 @@
     }
 @endphp
 
-<link rel="stylesheet" href="{{ asset('css/backend/toast.css') }}">
-<script src="{{ asset('js/core/toast.js') }}"></script>
+<link rel="stylesheet" href="{{ versioned_asset('css/backend/toast.css') }}">
+<script src="{{ versioned_asset('js/core/toast.js') }}"></script>
 @if (count($emsToasts) > 0)
     <script>
         window.__emsFlashToasts = @json($emsToasts);

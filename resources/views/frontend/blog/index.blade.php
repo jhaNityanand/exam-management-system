@@ -4,6 +4,7 @@
     $seo = [
         'title' => 'Blogs',
         'description' => 'Study strategies, mentor tips, and exam preparation guides.',
+        'image_type' => 'blog',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Blogs'],
