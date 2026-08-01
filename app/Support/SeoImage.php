@@ -49,7 +49,7 @@ class SeoImage
             return asset('frontend/images/banner.svg');
         }
 
-        return asset('frontend/images/logo.svg');
+        return asset('images/brand/logo.svg');
     }
 
     /**

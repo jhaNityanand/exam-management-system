@@ -52,9 +52,9 @@
 
     $faviconUrl = $siteBrand['favicon_url'] ?? null;
     if (! filled($faviconUrl)) {
-        $faviconUrl = asset('frontend/images/favicon.svg');
+        $faviconUrl = asset('images/brand/favicon.svg');
     }
-    $logoUrl = $siteBrand['logo_url'] ?? asset('frontend/images/logo.svg');
+    $logoUrl = $siteBrand['logo_url'] ?? asset('images/brand/logo.svg');
 
     $breadcrumbs = $seo['breadcrumbs'] ?? ($breadcrumbs ?? null);
     $schema = $seo['schema'] ?? null;

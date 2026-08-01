@@ -10,7 +10,7 @@ use RuntimeException;
 
 /**
  * Stores seeded gallery media from production frontend defaults
- * (public/frontend/images/seo/*.png and brand SVGs).
+ * (public/frontend/images/seo/*.png and public/images/brand/*).
  */
 class SeedImageLibrary
 {
@@ -139,7 +139,59 @@ class SeedImageLibrary
             return $this->storeSeoDefault($organizationId, $mapped['type'], $userId, $module, $meta);
         }
 
-        return $this->storeFromFrontend($organizationId, $mapped['path'], $userId, $module, $meta);
+        return $this->storeFromBrand($organizationId, $mapped['path'], $userId, $module, $meta);
+    }
+
+    /**
+     * Copy a file from public/images/brand/{relativePath} into the gallery.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function storeFromBrand(
+        int $organizationId,
+        string $relativePath,
+        ?int $userId = null,
+        string $module = 'content',
+        array $meta = []
+    ): Gallery {
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $absolute = public_path('images/brand/'.$relativePath);
+
+        if (! is_file($absolute)) {
+            throw new RuntimeException("Brand image missing: public/images/brand/{$relativePath}");
+        }
+
+        $contents = file_get_contents($absolute);
+        if ($contents === false || $contents === '') {
+            throw new RuntimeException("Unable to read brand image: public/images/brand/{$relativePath}");
+        }
+
+        $basename = basename($relativePath);
+        $extension = strtolower(pathinfo($basename, PATHINFO_EXTENSION) ?: 'svg');
+        $slug = Str::slug(pathinfo($basename, PATHINFO_FILENAME)) ?: 'seed-brand';
+        $unique = isset($meta['slug_suffix']) ? $slug.'-'.Str::slug((string) $meta['slug_suffix']) : $slug;
+        $filename = 'img-'.$unique.'.'.$extension;
+        $mime = match ($extension) {
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            'jpg', 'jpeg' => 'image/jpeg',
+            default => 'application/octet-stream',
+        };
+
+        return $this->gallery->uploadFromContents($contents, $filename, $organizationId, [
+            'source' => 'seeder',
+            'module' => $module,
+            'kind' => 'image',
+            'original_name' => $filename,
+            'alt_text' => $meta['alt_text'] ?? Str::headline(str_replace('-', ' ', $slug)),
+            'description' => $meta['description'] ?? 'Seeded demo media from brand assets',
+            'uploaded_by' => $userId,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+            'mime_type' => $mime,
+        ]);
     }
 
     /**

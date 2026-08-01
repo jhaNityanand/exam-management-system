@@ -60,8 +60,8 @@ class DemoMediaSeeder extends Seeder
      */
     private function seedBrand(Organization $org, int $userId, SeedImageLibrary $images): array
     {
-        $logo = $this->safeSeo($images, $org->id, 'organization', $userId, 'Examtube logo');
-        $favicon = $this->safeSeo($images, $org->id, 'home', $userId, 'Examtube favicon');
+        $logo = $this->safeBrand($images, $org->id, 'logo.svg', $userId, 'Examtube logo');
+        $favicon = $this->safeBrand($images, $org->id, 'favicon.svg', $userId, 'Examtube favicon');
         $og = $this->safeSeo($images, $org->id, 'home', $userId, 'Default Open Graph image');
 
         $this->upsertSetting($org->id, 'brand', 'logo_gallery_id', $logo?->id, 'integer', 'Logo gallery ID');
@@ -364,6 +364,26 @@ class DemoMediaSeeder extends Seeder
             return $images->storeSeoDefault($orgId, $type, $userId, 'demo-media', $meta);
         } catch (Throwable $e) {
             $this->command?->warn("DemoMediaSeeder: failed {$type}: {$e->getMessage()}");
+
+            return null;
+        }
+    }
+
+    private function safeBrand(
+        SeedImageLibrary $images,
+        int $orgId,
+        string $filename,
+        int $userId,
+        string $alt
+    ): ?Gallery {
+        try {
+            return $images->storeFromBrand($orgId, $filename, $userId, 'demo-media', [
+                'alt_text' => $alt,
+                'description' => $alt,
+                'slug_suffix' => pathinfo($filename, PATHINFO_FILENAME),
+            ]);
+        } catch (Throwable $e) {
+            $this->command?->warn("DemoMediaSeeder: failed brand {$filename}: {$e->getMessage()}");
 
             return null;
         }

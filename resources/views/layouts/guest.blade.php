@@ -32,10 +32,8 @@
     <div class="et-auth">
         <aside class="et-auth__brand-panel">
             <a href="{{ route('home') }}" class="et-auth__logo">
-                @if(is_file(public_path('frontend/images/logo.svg')))
-                    <img class="et-logo__img" src="{{ asset('frontend/images/logo.svg') }}" alt="{{ site_setting('brand.site_name', 'Examtube.in') }}" width="150" height="32">
-                @elseif(is_file(public_path('images/brand/examtube-logo.svg')))
-                    <img class="et-logo__img" src="{{ asset('images/brand/examtube-logo.svg') }}" alt="{{ site_setting('brand.site_name', 'Examtube.in') }}" width="150" height="32">
+                @if(is_file(public_path('images/brand/logo.svg')))
+                    <img class="et-logo__img" src="{{ asset('images/brand/logo.svg') }}" alt="{{ site_setting('brand.site_name', 'Examtube.in') }}" width="150" height="32">
                 @else
                     <span class="et-auth__logo-mark">{{ strtoupper(substr(site_setting('brand.logo_text', 'Examtube'), 0, 2)) }}</span>
                     <span>{{ site_setting('brand.logo_text', 'Examtube') }}<em>.in</em></span>
