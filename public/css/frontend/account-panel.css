@@ -941,6 +941,8 @@ html.dark .ca-badge.is-pass,
 html.dark .ca-badge.is-success { background: color-mix(in srgb, #34d399 22%, #121a2b); color: #86efac; }
 html.dark .ca-badge.is-fail,
 html.dark .ca-badge.is-danger { background: color-mix(in srgb, #f87171 22%, #121a2b); color: #fca5a5; }
+html.dark .ca-badge.is-warn { background: color-mix(in srgb, #f59e0b 22%, #121a2b); color: #fcd34d; }
+html.dark .ca-badge.is-info { background: color-mix(in srgb, #14b8a6 22%, #121a2b); color: #5eead4; }
 
 html.dark .ca-alert--success {
   background: color-mix(in srgb, #34d399 14%, #121a2b);
@@ -1279,8 +1281,11 @@ html.dark .ca-line-dot { fill: #5eead4; stroke: #121a2b; }
   font-size: 0.95rem;
 }
 .ca-card__title-sm {
-  margin: 0;
+  margin: 1rem 0 0;
   font-size: 1rem;
+}
+.ca-form > .ca-card__title-sm:first-child {
+  margin-top: 0;
 }
 .ca-modal__title {
   margin: 0;

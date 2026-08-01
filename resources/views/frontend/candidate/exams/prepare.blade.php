@@ -208,7 +208,7 @@
             <div class="cx-progress"><div class="cx-progress__bar" id="cx-progress-bar" style="width:0%"></div></div>
             <p id="cx-loading-step">Starting...</p>
             <p class="cx-save-state">Please wait — this usually takes a few seconds.</p>
-            <button type="button" class="et-btn et-btn--ghost" id="cx-cancel-start" style="margin-top:1rem">Cancel</button>
+            <button type="button" class="et-btn et-btn--ghost cx-loading__cancel" id="cx-cancel-start">Cancel</button>
         </div>
     </div>
 </div>

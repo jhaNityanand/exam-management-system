@@ -71,7 +71,7 @@
 
     @if(method_exists($items, 'hasPages') && $items->hasPages())
         <div class="fb-pagination">
-            {{ $items->fragment('exam-feedback')->links() }}
+            {{ $items->fragment('exam-feedback')->links('frontend.partials.pagination') }}
         </div>
     @endif
 </section>

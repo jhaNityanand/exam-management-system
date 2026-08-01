@@ -286,6 +286,10 @@ body.fb-modal-open {
   font-weight: 700;
   font-size: 0.9rem;
 }
+html.dark .fb-success,
+[data-theme="dark"] .fb-success {
+  color: #34d399;
+}
 
 /* Result feedback modal */
 .fb-modal {

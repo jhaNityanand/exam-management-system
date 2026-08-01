@@ -116,7 +116,7 @@
             maxItems: isMultiple ? (maxItems ?? null) : 1,
             maxOptions: 500,
             persist: false,
-            hideSelected: !isMultiple,
+            hideSelected: isMultiple,
             closeAfterSelect: !isMultiple,
             dropdownParent: 'body',
             plugins: isMultiple
@@ -160,11 +160,29 @@
             },
             onDropdownOpen() {
                 this.dropdown.classList.add('is-open');
-                if (typeof global.EmsFilterDrawer?.positionTomSelectDropdown === 'function') {
-                    global.EmsFilterDrawer.positionTomSelectDropdown(this);
-                } else if (typeof global.EmsSearchableSelect?.positionDropdown === 'function') {
-                    global.EmsSearchableSelect.positionDropdown(this);
+                this.dropdown.style.setProperty('z-index', '12000', 'important');
+                if (includeSearch && typeof this.setTextboxValue === 'function') {
+                    this.setTextboxValue('');
+                    this.lastQuery = '';
                 }
+                try {
+                    this.refreshOptions(false);
+                } catch (_) {
+                    /* ignore */
+                }
+                const self = this;
+                const reposition = () => {
+                    if (!self.isOpen) return;
+                    if (typeof global.EmsFilterDrawer?.positionTomSelectDropdown === 'function') {
+                        global.EmsFilterDrawer.positionTomSelectDropdown(self);
+                    } else if (typeof global.EmsSearchableSelect?.positionDropdown === 'function') {
+                        global.EmsSearchableSelect.positionDropdown(self);
+                    }
+                };
+                // Position after Tom Select finishes its own layout pass.
+                window.requestAnimationFrame(() => {
+                    window.requestAnimationFrame(reposition);
+                });
             },
             onDropdownClose() {
                 this.dropdown.classList.remove('is-open');
@@ -196,8 +214,8 @@
 
         if (!includeSearch) {
             config.plugins = (config.plugins || []).filter((plugin) => plugin !== 'dropdown_input');
-            config.searchField = ['text'];
-            config.score = () => () => 1;
+            // Keep default Tom Select search; with no textbox it won't filter on open.
+            delete config.score;
         }
 
         return config;
@@ -273,6 +291,34 @@
         }
     }
 
+    function destroy(selectId) {
+        const select = document.getElementById(selectId);
+        const instance = instances.get(selectId);
+        if (instance) {
+            try {
+                instance.destroy();
+            } catch (error) {
+                console.warn(`Select destroy failed for "${selectId}"`, error);
+            }
+            instances.delete(selectId);
+            return;
+        }
+
+        // Orphan Tom Select (e.g. searchable-select auto-init) must be cleared too.
+        if (select?.tomselect) {
+            try {
+                select.tomselect.destroy();
+            } catch (error) {
+                console.warn(`Orphan Tom Select destroy failed for "${selectId}"`, error);
+            }
+        }
+    }
+
+    /**
+     * Safely replace <option> HTML on a select that may already be Tom Select–enhanced.
+     * Always destroy first: Tom Select destroy() restores the HTML captured at init time,
+     * so setting innerHTML while an instance is live (or destroying after) wipes options.
+     */
     function replaceOptions(selectId, html, values = null, maxItems = null) {
         const select = document.getElementById(selectId);
         if (!select) {
@@ -285,6 +331,7 @@
 
         destroy(selectId);
         select.innerHTML = html;
+        select.classList.remove('tomselected', 'is-searchable', 'ts-hidden-accessible');
 
         const instance = initOne(select, 0);
         if (!instance) {
@@ -320,16 +367,6 @@
         if (parsed && Array.isArray(instance.items) && instance.items.length > parsed) {
             instance.setValue(instance.items.slice(0, parsed), true);
         }
-    }
-
-    function destroy(selectId) {
-        const instance = instances.get(selectId);
-        if (!instance) {
-            return;
-        }
-
-        instance.destroy();
-        instances.delete(selectId);
     }
 
     function reinit(selectId) {

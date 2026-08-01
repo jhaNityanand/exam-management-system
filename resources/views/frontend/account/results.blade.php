@@ -59,6 +59,6 @@
                 </table>
             </div>
         </section>
-        <div>{{ $results->links() }}</div>
+        {{ $results->links('frontend.partials.pagination') }}
     @endif
 @endsection

@@ -302,6 +302,8 @@
      * Position a Tom Select dropdown above the control when there is not enough
      * space below (e.g. near the bottom of the filter drawer / viewport).
      * Max-height is applied to .ts-dropdown-content only so a single scrollbar appears.
+     * Uses position:fixed so menus stay anchored when a nested panel scrolls
+     * (admin #panel-main) instead of the window.
      */
     function positionTomSelectDropdown(instance) {
         if (!instance?.dropdown || !instance?.control) return;
@@ -341,9 +343,24 @@
 
             dropdown.classList.toggle('ts-dropdown--up', openUp);
 
+            // Fixed coords track the control even when an ancestor panel scrolls.
+            dropdown.style.position = 'fixed';
+            dropdown.style.left = `${Math.round(controlRect.left)}px`;
+            dropdown.style.width = `${Math.max(160, Math.round(controlRect.width))}px`;
+            dropdown.style.minWidth = `${Math.max(160, Math.round(controlRect.width))}px`;
+            dropdown.style.right = 'auto';
+            dropdown.style.bottom = 'auto';
+            dropdown.style.marginTop = '0';
+            dropdown.style.marginBottom = '0';
+            dropdown.style.transform = 'none';
+            // Beat page CSS that still uses lower !important z-index values.
+            dropdown.style.setProperty('z-index', '12000', 'important');
+
             if (openUp) {
-                const height = Math.min(dropdown.offsetHeight || shellMax, shellMax);
-                dropdown.style.top = `${Math.max(8, controlRect.top - height - 6)}px`;
+                const height = Math.min(Math.max(dropdown.offsetHeight || 0, contentNatural + chrome, 120), shellMax);
+                dropdown.style.top = `${Math.max(8, Math.round(controlRect.top - height - 6))}px`;
+            } else {
+                dropdown.style.top = `${Math.round(controlRect.bottom + 6)}px`;
             }
         });
     }

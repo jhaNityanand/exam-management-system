@@ -715,7 +715,8 @@ span.flatpickr-weekday,
     background: #fff;
     box-shadow: 0 22px 44px -28px rgba(15, 23, 42, 0.42);
     overflow: hidden;
-    z-index: 75 !important;
+    /* Must sit above TinyMCE iframes and other panel chrome when portaled to body */
+    z-index: 12000 !important;
     opacity: 0;
     transform: translateY(-3px);
     transition: opacity 0.16s ease, transform 0.16s ease;

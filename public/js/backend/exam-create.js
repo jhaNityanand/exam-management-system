@@ -895,18 +895,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const stringValue = String(value);
         const hasOption = [...select.options].some((option) => option.value === stringValue);
-        if (hasOption) {
-            select.value = stringValue;
-            return true;
+        if (!hasOption) {
+            return false;
         }
-        return false;
+
+        if (select.id && window.EmsSelect && typeof window.EmsSelect.setValue === 'function' && window.EmsSelect.get(select.id)) {
+            window.EmsSelect.setValue(select.id, stringValue, true);
+        } else if (select.tomselect) {
+            select.tomselect.setValue(stringValue, true);
+        } else {
+            select.value = stringValue;
+        }
+        return true;
+    }
+
+    function setSelectDefault(select, expectedValue) {
+        if (!select) return;
+        const hasExpected = [...select.options].some((option) => option.value === expectedValue);
+        const nextValue = hasExpected
+            ? expectedValue
+            : (select.options.length > 1 ? select.options[1].value : '');
+        if (!nextValue) return;
+
+        if (select.id && window.EmsSelect && typeof window.EmsSelect.setValue === 'function' && window.EmsSelect.get(select.id)) {
+            window.EmsSelect.setValue(select.id, nextValue, true);
+        } else if (select.tomselect) {
+            select.tomselect.setValue(nextValue, true);
+        } else {
+            select.value = nextValue;
+        }
     }
 
     function initEnhancedSelects() {
         if (!window.EmsSelect || typeof window.EmsSelect.initAll !== 'function') {
             return;
         }
-        window.EmsSelect.initAll(document, 'select.panel-input:not([data-field="selected_categories_select"])');
+        // Skip manual selects: dynamically populated ones are enhanced in populateSelect,
+        // and hierarchy category selects are owned by EmsTomSelectHierarchy.
+        window.EmsSelect.initAll(
+            document,
+            'select.panel-input:not([data-field="selected_categories_select"]):not([data-ems-select="manual"])'
+        );
     }
 
     // ── Schedule date-time helpers ─────────────────────────────────────
@@ -1144,22 +1173,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateSelect(select, items, placeholder) {
         if (!select) return;
+        const list = Array.isArray(items) ? items : [];
         const html = [`<option value="">${escapeHtml(placeholder)}</option>`]
-            .concat(items.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`))
+            .concat(list.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`))
             .join('');
-        select.innerHTML = html;
-    }
 
-    function setSelectDefault(select, expectedValue) {
-        if (!select) return;
-        const hasExpected = [...select.options].some((option) => option.value === expectedValue);
-        if (hasExpected) {
-            select.value = expectedValue;
+        // Destroy any live Tom Select first, then set options, then enhance.
+        // Setting innerHTML while Tom Select is active (or destroying after) restores
+        // the empty HTML captured at first init and wipes the options.
+        if (select.id && window.EmsSelect && typeof window.EmsSelect.replaceOptions === 'function') {
+            window.EmsSelect.replaceOptions(select.id, html);
             return;
         }
-        if (select.options.length > 1) {
-            select.value = select.options[1].value;
+
+        if (select.tomselect) {
+            try {
+                select.tomselect.destroy();
+            } catch (_) {
+                /* ignore */
+            }
         }
+        select.innerHTML = html;
+        select.classList.remove('tomselected', 'is-searchable', 'ts-hidden-accessible');
     }
 
     // ── Category helpers (shared, read-only lookups) ──────────────────
@@ -1383,7 +1418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refs.pricingOptionHidden.value = state.selectedPricing;
         highlightPricingOptions();
 
-        if (refs.examCurrency && refs.examCurrency.options.length === 0) {
+        if (refs.examCurrency && (!refs.examCurrency.options.length || (refs.examCurrency.options.length === 1 && !refs.examCurrency.options[0].value))) {
             populateSelect(refs.examCurrency, state.config.currencies, 'Select currency');
             setSelectDefault(refs.examCurrency, 'USD');
         }
@@ -1577,13 +1612,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Instruction templates / rules (exam-level) ────────────────────
 
     function renderInstructionTemplates() {
+        if (!refs.instructionTemplate) return;
         const templates = Array.isArray(state.config.instructionTemplates) ? state.config.instructionTemplates : [];
-        refs.instructionTemplate.innerHTML = [`<option value="">Choose template</option>`]
-            .concat(templates.map((template) => `<option value="${escapeHtml(template.id)}">${escapeHtml(template.label)}</option>`))
-            .join('');
+        populateSelect(
+            refs.instructionTemplate,
+            templates.map((template) => ({ id: template.id, label: template.label })),
+            'Choose template'
+        );
         const defaultTemplate = templates.find((template) => template.is_default);
         if (defaultTemplate) {
-            refs.instructionTemplate.value = defaultTemplate.id;
+            setSelectValueIfAvailable(refs.instructionTemplate, defaultTemplate.id);
         }
     }
 
@@ -4452,6 +4490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function hideLoader() {
         if (!refs.loader) return;
         refs.loader.classList.add('is-hidden');
+        refs.loader.setAttribute('aria-busy', 'false');
         if (refs.page) refs.page.setAttribute('data-page-ready', 'true');
         window.setTimeout(() => setDefaultFocusOnTitle(), 50);
     }

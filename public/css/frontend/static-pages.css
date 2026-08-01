@@ -450,6 +450,16 @@ a.et-contact-card:hover {
   min-height: 420px;
   border: 0;
 }
+@media (max-width: 640px) {
+  .et-contact-map__frame {
+    min-height: 260px;
+    height: min(50vw, 320px);
+  }
+  .et-contact-map__frame iframe,
+  .et-contact-map__placeholder {
+    min-height: 260px;
+  }
+}
 .et-contact-map__placeholder {
   min-height: 420px;
   height: 100%;

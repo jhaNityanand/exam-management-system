@@ -83,7 +83,7 @@
 
         <div class="cx-drawer-backdrop" id="cx-drawer-backdrop" hidden></div>
 
-        <aside class="cx-rail" id="cx-rail" aria-label="Exam panel">
+        <aside class="cx-rail{{ $requireWebcam ? ' cx-rail--with-webcam' : '' }}" id="cx-rail" aria-label="Exam panel">
             @if($rightAdHtml !== '')
                 <div class="cx-ad" data-exam-ad="right">{!! $rightAdHtml !!}</div>
             @endif
@@ -121,12 +121,12 @@
                     <span id="cx-palette-page-label">1 / 1</span>
                     <button type="button" id="cx-palette-next">Next</button>
                 </div>
-                <ul class="cx-legend">
-                    <li><span class="cx-legend__swatch is-answered"></span> Answered</li>
-                    <li><span class="cx-legend__swatch is-pending"></span> Save pending</li>
-                    <li><span class="cx-legend__swatch is-review"></span> Review</li>
-                    <li><span class="cx-legend__swatch is-visited"></span> Visited</li>
-                    <li><span class="cx-legend__swatch is-current"></span> Current</li>
+                <ul class="cx-legend" aria-label="Question status legend">
+                    <li><span class="cx-legend__swatch is-answered" aria-hidden="true"></span> Answered</li>
+                    <li><span class="cx-legend__swatch is-pending" aria-hidden="true"></span> Save pending</li>
+                    <li><span class="cx-legend__swatch is-review" aria-hidden="true"></span> Review</li>
+                    <li><span class="cx-legend__swatch is-visited" aria-hidden="true"></span> Visited</li>
+                    <li><span class="cx-legend__swatch is-current" aria-hidden="true"></span> Current</li>
                 </ul>
             </section>
 

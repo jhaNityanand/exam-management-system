@@ -80,34 +80,36 @@
     <div class="et-card et-rules-actions" id="cx-rules-actions"
          data-agree-url="{{ $agreeUrl }}"
          data-rules-agreed="{{ $rulesAgreed ? '1' : '0' }}">
-        @unless($canContinueAttempt || $needsPayment)
+        @if($canAttempt)
             <label class="et-agree">
                 <input type="checkbox" id="cx-rules-agree" @checked($rulesAgreed)>
                 <span>I have read and agree to the exam rules, instructions, and monitoring policies above.</span>
             </label>
-        @endunless
-
-        @if($needsPayment)
-            <button type="button"
-                    class="et-btn et-btn--primary"
-                    id="rules-purchase-btn"
-                    data-exam-purchase
-                    data-url="{{ route('frontend.exams.purchase', $exam) }}"
-                    data-reload="1">Purchase Exam</button>
-            <span class="et-text-muted">Payment is required before continuing.</span>
-        @elseif($canContinueAttempt)
-            <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
-        @elseif($canAttempt)
-            <a href="{{ route('frontend.exams.prepare', $exam) }}"
-               class="et-btn et-btn--primary"
-               id="cx-rules-continue"
-               @unless($rulesAgreed) aria-disabled="true" tabindex="-1" @endunless>
-                Continue to verification
-            </a>
-        @else
-            <span class="et-text-muted">{{ $evaluation['reasons'][0] ?? 'You cannot start this exam right now.' }}</span>
         @endif
-        <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Back to exam details</a>
+
+        <div class="et-rules-actions__bar">
+            @if($needsPayment)
+                <button type="button"
+                        class="et-btn et-btn--primary"
+                        id="rules-purchase-btn"
+                        data-exam-purchase
+                        data-url="{{ route('frontend.exams.purchase', $exam) }}"
+                        data-reload="1">Purchase Exam</button>
+                <span class="et-text-muted">Payment is required before continuing.</span>
+            @elseif($canContinueAttempt)
+                <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
+            @elseif($canAttempt)
+                <a href="{{ route('frontend.exams.prepare', $exam) }}"
+                   class="et-btn et-btn--primary"
+                   id="cx-rules-continue"
+                   @unless($rulesAgreed) aria-disabled="true" tabindex="-1" @endunless>
+                    Continue to verification
+                </a>
+            @else
+                <span class="et-text-muted">{{ $evaluation['reasons'][0] ?? 'You cannot start this exam right now.' }}</span>
+            @endif
+            <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Back to exam details</a>
+        </div>
     </div>
 </div>
 @endsection

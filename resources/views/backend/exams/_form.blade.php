@@ -108,19 +108,19 @@
                         </div>
                         <div>
                             <label for="difficulty_level" class="exam-label">Difficulty Level <span class="info-tip" tabindex="0" role="button" aria-label="Difficulty level info" data-tooltip="Used for filtering and recommendation in reports.">i</span></label>
-                            <select id="difficulty_level" name="difficulty_level" class="panel-input" data-placeholder="Select difficulty"></select>
+                            <select id="difficulty_level" name="difficulty_level" class="panel-input" data-ems-select="manual" data-placeholder="Select difficulty"></select>
                         </div>
                         <div>
                             <label for="exam_status" class="exam-label">Status <span class="form-required">*</span></label>
-                            <select id="exam_status" name="status" class="panel-input" data-placeholder="Select status"></select>
+                            <select id="exam_status" name="status" class="panel-input" data-ems-select="manual" data-placeholder="Select status"></select>
                         </div>
                         <div>
                             <label for="exam_mode" class="exam-label">Exam Mode <span class="form-required">*</span></label>
-                            <select id="exam_mode" name="exam_mode" class="panel-input" data-placeholder="Select mode"></select>
+                            <select id="exam_mode" name="exam_mode" class="panel-input" data-ems-select="manual" data-placeholder="Select mode"></select>
                         </div>
                         <div>
                             <label for="exam_visibility" class="exam-label">Visibility <span class="form-required">*</span></label>
-                            <select id="exam_visibility" name="visibility" class="panel-input" data-placeholder="Select visibility"></select>
+                            <select id="exam_visibility" name="visibility" class="panel-input" data-ems-select="manual" data-placeholder="Select visibility"></select>
                         </div>
                         <div class="exam-grid-span-3">
                             <label for="exam-tags-input" class="exam-label">Tags <span class="info-tip" tabindex="0" role="button" aria-label="Tags input info" data-tooltip="Press Enter to add each tag. Commas are ignored.">i</span></label>
@@ -374,7 +374,7 @@
                     <div id="pricing-details-wrap" hidden>
                         <label class="exam-label">Exam Fee</label>
                         <div class="pricing-amount-group">
-                            <select id="exam_currency" name="exam_currency" class="panel-input pricing-amount-group__currency" data-placeholder="Select currency"></select>
+                            <select id="exam_currency" name="exam_currency" class="panel-input pricing-amount-group__currency" data-ems-select="manual" data-placeholder="Select currency"></select>
                             <input type="number" id="exam_amount" name="exam_amount" class="pricing-amount-group__input" min="0" step="0.01" value="{{ $val('exam_amount', '', 'exam_amount') }}" placeholder="Enter amount">
                         </div>
                         <p class="exam-help exam-help-warning mt-1"><strong>&#9888;</strong> A 5% platform charge applies to all paid exams.</p>
@@ -534,7 +534,7 @@
                     <div class="instruction-tools">
                         <div class="instruction-tools__select">
                             <label for="instruction_template" class="exam-label">Default Instruction Templates</label>
-                            <select id="instruction_template" class="panel-input" data-placeholder="Select template"></select>
+                            <select id="instruction_template" class="panel-input" data-ems-select="manual" data-placeholder="Select template"></select>
                         </div>
                         <button type="button" id="apply-instruction-template" class="panel-button-secondary">Apply Template</button>
                     </div>
