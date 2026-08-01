@@ -1339,29 +1339,6 @@ html.dark .et-hero__dot { background: var(--et-slate-600); }
 }
 .et-faq__item.is-open .et-faq__panel { display: block; }
 
-/* Partners */
-.et-partners {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-@media (min-width: 700px) {
-  .et-partners { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-.et-partner {
-  display: grid;
-  place-items: center;
-  min-height: 84px;
-  padding: 1rem;
-  border-radius: var(--et-radius-sm);
-  border: 1px dashed var(--et-border);
-  background: var(--et-surface);
-  color: var(--et-text-muted);
-  font-weight: 700;
-  text-align: center;
-}
-.et-partner img { max-height: 42px; width: auto; }
-
 /* CTA / newsletter bands */
 .et-cta-band,
 .et-newsletter-band {
@@ -1409,14 +1386,34 @@ html.dark .et-hero__dot { background: var(--et-slate-600); }
 .et-newsletter-form input[type="email"],
 .et-newsletter-form input[type="text"] {
   flex: 1 1 200px;
-  border: 0;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
   padding: 0.75rem 1rem;
   outline: none;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+}
+.et-newsletter-form input[type="email"]:focus,
+.et-newsletter-form input[type="text"]:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.28);
 }
 .et-newsletter-form .et-btn {
   background: #fff;
   color: #0f766e;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.et-newsletter-form .et-btn:hover {
+  background: #f0fdfa;
+}
+.et-newsletter-form .et-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 .et-newsletter-form__msg {
   width: 100%;
@@ -4416,54 +4413,58 @@ html.dark .et-article__share-btn--x,
 @media (prefers-reduced-motion: reduce) {
   .et-marquee__track { animation: none; }
 }
-.et-newsletter-band--modern {
+.et-newsletter-band--panel {
   display: grid;
   gap: 1.5rem;
   align-items: center;
   padding: 1.75rem;
   border-radius: calc(var(--et-radius) + 4px);
   border: 1px solid var(--et-border);
+  color: var(--et-text);
   background:
-    radial-gradient(600px 220px at 0% 0%, rgba(13,148,136,.14), transparent 60%),
+    radial-gradient(600px 220px at 0% 0%, rgba(13,148,136,.12), transparent 60%),
     var(--et-surface);
+  box-shadow: var(--et-shadow);
 }
 @media (min-width: 860px) {
-  .et-newsletter-band--modern { grid-template-columns: 1.2fr 0.8fr; padding: 2.25rem; }
+  .et-newsletter-band--panel { grid-template-columns: 1.2fr 0.8fr; padding: 2.25rem; }
 }
-.et-newsletter-band--modern h2 {
+.et-newsletter-band--panel h2 {
   margin: 0.35rem 0 0.55rem;
+  color: var(--et-text);
   font-size: clamp(1.45rem, 2.5vw, 2rem);
   letter-spacing: -0.02em;
 }
-.et-newsletter-band--modern > .et-newsletter-band__copy > p {
+.et-newsletter-band--panel > .et-newsletter-band__copy > p {
   color: var(--et-text-muted);
   margin: 0 0 1rem;
+  opacity: 1;
 }
-.et-newsletter-benefits {
-  display: grid;
-  gap: 0.45rem;
-  margin: 0 0 1.15rem;
-}
-.et-newsletter-benefits li {
-  position: relative;
-  padding-left: 1.25rem;
+.et-newsletter-band--panel .et-newsletter-form input[type="email"],
+.et-newsletter-band--panel .et-newsletter-form input[type="text"] {
+  border: 1px solid var(--et-border);
+  background: var(--et-bg);
   color: var(--et-text);
-  font-weight: 600;
-  font-size: 0.92rem;
 }
-.et-newsletter-benefits li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.45rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 999px;
-  background: var(--et-accent);
+.et-newsletter-band--panel .et-newsletter-form input[type="email"]:focus,
+.et-newsletter-band--panel .et-newsletter-form input[type="text"]:focus {
+  border-color: var(--et-accent);
+  box-shadow: 0 0 0 3px var(--et-accent-soft);
 }
+.et-newsletter-band--panel .et-newsletter-form .et-btn {
+  background: linear-gradient(135deg, var(--et-teal-900), var(--et-teal-700));
+  color: #fff;
+}
+.et-newsletter-band--panel .et-newsletter-form .et-btn:hover {
+  filter: brightness(1.05);
+  background: linear-gradient(135deg, var(--et-teal-900), var(--et-teal-700));
+}
+.et-newsletter-band--panel .et-newsletter-form__msg.is-error { color: #b91c1c; }
+.et-newsletter-band--panel .et-newsletter-form__msg.is-ok { color: #047857; }
 .et-newsletter-band__art img {
   width: min(100%, 320px);
   margin-inline: auto;
+  display: block;
 }
 [data-reveal] {
   animation: et-fade-up 520ms ease both;

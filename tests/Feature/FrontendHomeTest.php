@@ -41,12 +41,21 @@ test('newsletter subscription stores email', function () {
     $this->postJson(route('frontend.newsletter.store'), [
         'email' => 'aspirant@examtube.in',
         'name' => 'Aspirant',
+        'source' => 'home',
     ])->assertCreated();
 
     $this->assertDatabaseHas('newsletter_subscribers', [
         'email' => 'aspirant@examtube.in',
+        'name' => 'Aspirant',
         'status' => 'subscribed',
+        'source' => 'home',
     ]);
+});
+
+test('home page does not render partners section', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertDontSee('Partners & sponsors', false);
 });
 
 test('search suggest returns json payload', function () {

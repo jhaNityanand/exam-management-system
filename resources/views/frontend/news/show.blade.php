@@ -19,6 +19,7 @@
     $shareText = urlencode($article->title);
     $shareRawUrl = url()->current();
     $summary = $article->short_description ?? $article->excerpt;
+    $banner = $article->bannerUrl();
     $crumbs = [
         ['label' => 'Home', 'url' => route('home')],
         ['label' => 'News', 'url' => route('frontend.news.index')],
@@ -175,15 +176,18 @@
             @endif
 
             <section class="et-article__newsletter">
-                <div class="et-newsletter-band et-newsletter-band--compact">
+                <div class="et-newsletter-band et-newsletter-band--panel">
                     <div class="et-newsletter-band__copy">
-                        <p class="et-eyebrow">News alerts</p>
+                        <p class="et-eyebrow">Newsletter</p>
                         <h2>Don’t miss exam updates</h2>
                         <p>Breaking alerts, trending stories, and weekly digests — straight to your inbox.</p>
                         @include('frontend.partials.newsletter-form', [
                             'cta' => 'Subscribe',
                             'source' => 'news_detail',
                         ])
+                    </div>
+                    <div class="et-newsletter-band__art" aria-hidden="true">
+                        <img src="{{ asset('frontend/images/newsletter.svg') }}" alt="" loading="lazy" width="320" height="240">
                     </div>
                 </div>
             </section>

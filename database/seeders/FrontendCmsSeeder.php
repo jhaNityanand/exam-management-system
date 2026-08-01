@@ -7,7 +7,6 @@ use App\Models\Cms\Faq;
 use App\Models\Cms\FaqCategory;
 use App\Models\Cms\HeroBanner;
 use App\Models\Cms\HomeSection;
-use App\Models\Cms\Partner;
 use App\Models\Cms\SiteMenu;
 use App\Models\Cms\SiteMenuItem;
 use App\Models\Cms\SitePage;
@@ -16,6 +15,8 @@ use App\Models\Cms\SocialLink;
 use App\Models\Cms\Testimonial;
 use App\Models\Organization;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class FrontendCmsSeeder extends Seeder
 {
@@ -32,7 +33,6 @@ class FrontendCmsSeeder extends Seeder
         $this->seedTestimonials($orgId);
         $this->seedFaqs($orgId);
         $this->seedSocial($orgId);
-        $this->seedPartners($orgId);
         $this->seedAnnouncements($orgId);
 
         // Active banner ads with images are created by DemoMediaSeeder.
@@ -252,7 +252,6 @@ class FrontendCmsSeeder extends Seeder
             ['key' => 'news', 'title' => 'Education news desk', 'subtitle' => 'Breaking alerts and trending updates for candidates', 'sort_order' => 60],
             ['key' => 'testimonials', 'title' => 'Stories from learners', 'subtitle' => 'Real outcomes from students and job seekers', 'sort_order' => 70],
             ['key' => 'faqs', 'title' => 'Frequently asked questions', 'subtitle' => 'Quick answers before you begin', 'sort_order' => 80],
-            ['key' => 'partners', 'title' => 'Partners & sponsors', 'subtitle' => 'Institutes and brands supporting quality preparation', 'sort_order' => 90],
             ['key' => 'newsletter', 'title' => null, 'subtitle' => null, 'sort_order' => 100],
             ['key' => 'cta', 'title' => null, 'subtitle' => null, 'sort_order' => 110],
         ];
@@ -268,6 +267,18 @@ class FrontendCmsSeeder extends Seeder
                     'settings' => [],
                 ]
             );
+        }
+
+        // Remove legacy partners section if it still exists from older seeds.
+        HomeSection::query()
+            ->where('organization_id', $orgId)
+            ->where('key', 'partners')
+            ->delete();
+
+        if (Schema::hasTable('partners')) {
+            DB::table('partners')
+                ->where('organization_id', $orgId)
+                ->delete();
         }
     }
 
@@ -441,23 +452,6 @@ class FrontendCmsSeeder extends Seeder
             SocialLink::query()->create(array_merge($row, [
                 'organization_id' => $orgId,
                 'is_visible' => true,
-            ]));
-        }
-    }
-
-    protected function seedPartners(?int $orgId): void
-    {
-        Partner::query()->where('organization_id', $orgId)->delete();
-
-        foreach ([
-            ['name' => 'SkillVista Academy', 'url' => 'https://examtube.in', 'sort_order' => 1],
-            ['name' => 'CampusBridge India', 'url' => 'https://examtube.in', 'sort_order' => 2],
-            ['name' => 'HireReady Labs', 'url' => 'https://examtube.in', 'sort_order' => 3],
-            ['name' => 'EduPulse Media', 'url' => 'https://examtube.in', 'sort_order' => 4],
-        ] as $row) {
-            Partner::query()->create(array_merge($row, [
-                'organization_id' => $orgId,
-                'status' => 'active',
             ]));
         }
     }

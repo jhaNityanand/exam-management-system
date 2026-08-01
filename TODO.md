@@ -64,7 +64,7 @@ Attempt creation and stable question assignment are implemented. Remaining:
 ## Priority 2 — CMS and settings administration
 
 - [ ] Expand Settings beyond cache clearing to validated `SystemSetting`/site configuration updates.
-- [ ] Add protected administration screens for CMS pages, menus, hero banners, FAQs, testimonials, partners, advertisements, contact submissions, and newsletter subscribers.
+- [ ] Add protected administration screens for CMS pages, menus, hero banners, FAQs, testimonials, advertisements, contact submissions, and newsletter subscribers.
 - [ ] Add cache invalidation for CMS/site-setting changes.
 - [ ] Add preview and revision/history behavior for published content where needed.
 - [ ] Add sitemap, robots, and structured-data generation.

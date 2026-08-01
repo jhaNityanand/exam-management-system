@@ -26,7 +26,6 @@
             'news',
             'testimonials',
             'faqs',
-            'partners',
             'newsletter',
             'cta',
         ];

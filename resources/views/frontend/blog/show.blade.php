@@ -29,6 +29,7 @@
     $shareUrl = urlencode(url()->current());
     $shareText = urlencode($blog->title);
     $shareRawUrl = url()->current();
+    $banner = $blog->bannerUrl();
 @endphp
 
 @section('content')
@@ -165,15 +166,18 @@
             @endif
 
             <section class="et-article__newsletter">
-                <div class="et-newsletter-band et-newsletter-band--compact">
+                <div class="et-newsletter-band et-newsletter-band--panel">
                     <div class="et-newsletter-band__copy">
-                        <p class="et-eyebrow">Stay exam-ready</p>
+                        <p class="et-eyebrow">Newsletter</p>
                         <h2>Get new blogs in your inbox</h2>
                         <p>Weekly prep tips, strategy notes, and updates — no spam.</p>
                         @include('frontend.partials.newsletter-form', [
                             'cta' => 'Subscribe',
                             'source' => 'blog_detail',
                         ])
+                    </div>
+                    <div class="et-newsletter-band__art" aria-hidden="true">
+                        <img src="{{ asset('frontend/images/newsletter.svg') }}" alt="" loading="lazy" width="320" height="240">
                     </div>
                 </div>
             </section>

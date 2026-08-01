@@ -6,7 +6,6 @@ use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\Cms\Faq;
 use App\Models\Cms\HeroBanner;
-use App\Models\Cms\Partner;
 use App\Models\Cms\Testimonial;
 use App\Models\Exam;
 use App\Models\ExamCategory;
@@ -55,7 +54,6 @@ class HomePageService
             'latestNews' => $randomNews,
             'testimonials' => $this->testimonials($orgId, 12),
             'faqs' => $this->faqs($orgId),
-            'partners' => $this->partners($orgId),
             'newsletter' => [
                 'title' => $this->cms->setting('newsletter.title', 'Stay Exam-Ready Every Week'),
                 'subtitle' => $this->cms->setting(
@@ -63,11 +61,6 @@ class HomePageService
                     'Get curated practice tips, new exams, and career-ready updates delivered to your inbox.'
                 ),
                 'cta' => $this->cms->setting('newsletter.cta', 'Subscribe'),
-                'benefits' => [
-                    'Weekly exam alerts',
-                    'Practice tips from mentors',
-                    'New blogs & news digests',
-                ],
             ],
             'cta' => [
                 'title' => $this->cms->setting('cta.title', 'Ready to start your next exam?'),
@@ -462,19 +455,4 @@ class HomePageService
             ->get();
     }
 
-    /**
-     * @return Collection<int, Partner>
-     */
-    public function partners(?int $orgId = null, int $limit = 12): Collection
-    {
-        return Partner::query()
-            ->active()
-            ->ordered()
-            ->with('logo')
-            ->when($orgId, fn ($q) => $q->where(function ($inner) use ($orgId) {
-                $inner->where('organization_id', $orgId)->orWhereNull('organization_id');
-            }))
-            ->limit($limit)
-            ->get();
-    }
 }

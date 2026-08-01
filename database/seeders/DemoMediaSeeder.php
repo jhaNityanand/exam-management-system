@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Cms\Advertisement;
 use App\Models\Cms\HeroBanner;
-use App\Models\Cms\Partner;
 use App\Models\Cms\SitePage;
 use App\Models\Cms\SiteSetting;
 use App\Models\Cms\Testimonial;
@@ -18,7 +17,7 @@ use Illuminate\Database\Seeder;
 use Throwable;
 
 /**
- * Attaches branding, hero, exam, page, partner, testimonial,
+ * Attaches branding, hero, exam, page, testimonial,
  * advertisement, and gallery media using frontend SEO default images.
  */
 class DemoMediaSeeder extends Seeder
@@ -42,7 +41,6 @@ class DemoMediaSeeder extends Seeder
 
         $brand = $this->seedBrand($org, $editor->id, $images);
         $this->seedHeroes($org->id, $editor->id, $images);
-        $this->seedPartners($org->id, $editor->id, $images);
         $this->seedTestimonials($org->id, $editor->id, $images);
         $this->seedExamBanners($org->id, $editor->id, $images);
         $this->seedPageBanners($org->id, $editor->id, $images);
@@ -52,7 +50,7 @@ class DemoMediaSeeder extends Seeder
 
         app(\App\Services\Advertisement\AdvertisementService::class)->forgetCache($org->id);
 
-        $this->command?->info('DemoMediaSeeder: branding, heroes, partners, testimonials, exams, pages, ads, and gallery attached.');
+        $this->command?->info('DemoMediaSeeder: branding, heroes, testimonials, exams, pages, ads, and gallery attached.');
     }
 
     /**
@@ -136,16 +134,6 @@ class DemoMediaSeeder extends Seeder
                 'sort_order' => $index + 1,
                 'status' => 'active',
             ]);
-        }
-    }
-
-    private function seedPartners(int $orgId, int $userId, SeedImageLibrary $images): void
-    {
-        foreach (Partner::query()->where('organization_id', $orgId)->get() as $index => $partner) {
-            $logo = $this->safeSeo($images, $orgId, 'organization', $userId, $partner->name.' logo', 'partner-'.$index);
-            if ($logo) {
-                $partner->update(['logo_id' => $logo->id]);
-            }
         }
     }
 
