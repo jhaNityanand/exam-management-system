@@ -1,18 +1,28 @@
 @extends('frontend.layouts.app')
 
 @php
+    $status = 419;
+    $meta = \App\Support\FrontendErrorPages::meta($status, $message ?? null);
+    $pageTitle = $title ?? $meta['title'];
+    $pageMessage = $message ?? $meta['message'];
     $seo = [
-        'title' => 'Page expired',
-        'description' => 'Your session timed out. Refresh the page and try again.',
+        'title' => $pageTitle,
+        'description' => \Illuminate\Support\Str::limit(strip_tags($pageMessage), 160),
         'robots' => 'noindex, follow',
         'image_type' => 'organization',
     ];
 @endphp
 
 @section('content')
-@include('errors.partials.content', [
+@include('errors.partials.page', [
     'code' => '419',
-    'title' => 'Page expired',
-    'message' => 'Your session timed out for security. Refresh the page and try again.',
+    'title' => $pageTitle,
+    'message' => $pageMessage,
+    'showHome' => true,
+    'showRefresh' => true,
 ])
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/frontend/errors.css') }}">
+@endpush

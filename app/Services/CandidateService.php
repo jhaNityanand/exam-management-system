@@ -22,8 +22,10 @@ class CandidateService
     ) {}
 
     /**
-     * List users who have exam attempts in the organization (any role).
-     * Optionally scoped to a specific exam.
+     * List candidates for the organization:
+     * - org members with the candidate role, and/or
+     * - anyone with exam attempts in this organization (any role).
+     * Optionally scoped to a specific exam (attempt-based only).
      */
     public function queryForOrganization(int $organizationId, string $trash = 'active', ?int $examId = null): Builder
     {
@@ -35,7 +37,18 @@ class CandidateService
         };
 
         $query = User::query()
-            ->whereHas('examAttempts', $attemptsConstraint)
+            ->where(function (Builder $q) use ($organizationId, $examId, $attemptsConstraint) {
+                if ($examId) {
+                    $q->whereHas('examAttempts', $attemptsConstraint);
+
+                    return;
+                }
+
+                $q->whereHas('organizations', function (Builder $org) use ($organizationId) {
+                    $org->where('organizations.id', $organizationId)
+                        ->where('user_organizations.role', OrganizationRoles::CANDIDATE);
+                })->orWhereHas('examAttempts', $attemptsConstraint);
+            })
             ->with(['profile', 'organizations' => function ($q) use ($organizationId) {
                 $q->where('organizations.id', $organizationId);
             }])

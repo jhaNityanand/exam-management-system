@@ -128,7 +128,7 @@ class StoreExamRequest extends FormRequest
             'parts.*.shuffle_categories' => ['sometimes', 'boolean'],
             'parts.*.shuffle_options' => ['sometimes', 'boolean'],
             'parts.*.category_question_rules' => ['nullable', 'array'],
-            'parts.*.category_question_rules.*.category_id' => ['required_with:parts.*.category_question_rules', 'integer'],
+            'parts.*.category_question_rules.*.category_id' => ['required_with:parts.*.category_question_rules', 'integer', $categoryExists],
             'parts.*.category_question_rules.*.marks' => ['required_with:parts.*.category_question_rules', 'integer', 'min:1', 'max:10'],
             'parts.*.category_question_rules.*.required' => ['required_with:parts.*.category_question_rules', 'integer', 'min:1'],
 

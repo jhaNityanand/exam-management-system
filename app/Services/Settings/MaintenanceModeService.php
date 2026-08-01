@@ -20,11 +20,9 @@ class MaintenanceModeService
         'message' => [
             'type' => 'text',
             'label' => 'Maintenance message',
-            'default' => "We are currently performing scheduled maintenance to improve your experience.\nPlease check back shortly.",
+            'default' => '<p>We are currently performing scheduled maintenance to improve your experience.</p><p>Please check back shortly.</p>',
         ],
-        'estimated_at' => ['type' => 'string', 'label' => 'Estimated availability', 'default' => ''],
-        'contact_email' => ['type' => 'string', 'label' => 'Contact email', 'default' => ''],
-        'contact_phone' => ['type' => 'string', 'label' => 'Contact phone', 'default' => ''],
+        'estimated_at' => ['type' => 'string', 'label' => 'Restore date and time', 'default' => ''],
         'social_facebook' => ['type' => 'string', 'label' => 'Facebook URL', 'default' => ''],
         'social_instagram' => ['type' => 'string', 'label' => 'Instagram URL', 'default' => ''],
         'social_linkedin' => ['type' => 'string', 'label' => 'LinkedIn URL', 'default' => ''],
@@ -68,21 +66,25 @@ class MaintenanceModeService
             $config[$key] = $value;
         }
 
-        if (! empty($config['estimated_at'])) {
-            try {
-                $config['estimated_at'] = Carbon::parse((string) $config['estimated_at'])
-                    ->timezone(config('app.timezone'))
-                    ->format('Y-m-d H:i');
-            } catch (\Throwable) {
-                // keep raw value for the form
-            }
+        $estimated = $this->parseEstimatedAt((string) ($config['estimated_at'] ?? ''));
+        if ($estimated) {
+            $config['estimated_at'] = $estimated->timezone(config('app.timezone'))->format('Y-m-d H:i');
+            $config['estimated_at_iso'] = $estimated->toIso8601String();
+            $config['estimated_at_unix'] = $estimated->getTimestamp();
+            $config['estimated_at_formatted'] = $estimated->timezone(config('app.timezone'))
+                ->format('D, M j, Y · g:i A T');
+        } else {
+            $config['estimated_at_iso'] = null;
+            $config['estimated_at_unix'] = null;
+            $config['estimated_at_formatted'] = null;
         }
 
         $config['logo_url'] = $this->galleryUrl($config['logo_gallery_id'] ?? null);
         $config['background_url'] = $this->galleryUrl($config['background_gallery_id'] ?? null);
         $config['social_links'] = $this->socialLinksFromConfig($config);
-        $config['estimated_at_formatted'] = $this->formatEstimatedAt($config['estimated_at'] ?? '');
         $config['site_name'] = (string) ($all['brand.site_name'] ?? config('app.name', 'Examtube'));
+        $plain = strip_tags((string) ($config['message'] ?? ''));
+        $config['message_plain'] = trim(preg_replace('/\s+/u', ' ', $plain) ?: '');
 
         return $config;
     }
@@ -196,7 +198,7 @@ class MaintenanceModeService
         return $links;
     }
 
-    protected function formatEstimatedAt(string $value): ?string
+    protected function parseEstimatedAt(string $value): ?Carbon
     {
         $value = trim($value);
         if ($value === '') {
@@ -204,9 +206,9 @@ class MaintenanceModeService
         }
 
         try {
-            return Carbon::parse($value)->timezone(config('app.timezone'))->format('D, M j, Y · g:i A T');
+            return Carbon::parse($value)->timezone(config('app.timezone'));
         } catch (\Throwable) {
-            return $value;
+            return null;
         }
     }
 }

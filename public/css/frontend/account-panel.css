@@ -431,7 +431,7 @@ html.dark span.ca-req {
 }
 
 
-.ca-field input,
+.ca-field input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
 .ca-field select,
 .ca-field textarea {
   width: 100%;
@@ -443,6 +443,11 @@ html.dark span.ca-req {
   background: var(--et-surface, #fff);
   color: var(--et-text, #0f172a);
   font: inherit;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  outline: none;
 }
 
 .ca-field textarea { min-height: 6rem; resize: vertical; }

@@ -63,7 +63,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer(
-            ['frontend.*'],
+            ['frontend.*', 'errors.*'],
             \App\View\Composers\FrontendLayoutComposer::class
         );
     }

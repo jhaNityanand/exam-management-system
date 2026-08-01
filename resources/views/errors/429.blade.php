@@ -1,18 +1,27 @@
 @extends('frontend.layouts.app')
 
 @php
+    $status = 429;
+    $meta = \App\Support\FrontendErrorPages::meta($status, $message ?? null);
+    $pageTitle = $title ?? $meta['title'];
+    $pageMessage = $message ?? $meta['message'];
     $seo = [
-        'title' => 'Too many requests',
-        'description' => 'Rate limit exceeded. Please wait a moment and try again.',
+        'title' => $pageTitle,
+        'description' => \Illuminate\Support\Str::limit(strip_tags($pageMessage), 160),
         'robots' => 'noindex, follow',
         'image_type' => 'organization',
     ];
 @endphp
 
 @section('content')
-@include('errors.partials.content', [
+@include('errors.partials.page', [
     'code' => '429',
-    'title' => 'Too many requests',
-    'message' => 'You are moving a little too fast. Please wait a moment and try again.',
+    'title' => $pageTitle,
+    'message' => $pageMessage,
+    'showHome' => true,
 ])
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/frontend/errors.css') }}">
+@endpush

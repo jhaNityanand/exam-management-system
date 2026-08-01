@@ -175,7 +175,7 @@ class AuthorController extends Controller
             });
 
         foreach ($authors as $author) {
-            $author->setAttribute('public_role', $roles[$author->id] ?? OrganizationRoles::EDITOR);
+            $author->setAttribute('public_role', $roles[$author->id] ?? OrganizationRoles::ORG_ADMIN);
         }
     }
 }

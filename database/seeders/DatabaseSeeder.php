@@ -31,13 +31,13 @@ class DatabaseSeeder extends Seeder
             ExamAttemptSeeder::class,
         ]);
 
-        $this->command->info('Demo logins (password: password):');
+        $this->command->info('Seeded accounts (password: password):');
         $this->command->table(
             ['Email', 'Role', 'Access'],
             [
-                [\Database\Seeders\Support\SeederContact::EMAIL_ADMIN, 'Application Admin', '/admin — full admin panel'],
-                [\Database\Seeders\Support\SeederContact::EMAIL_INFO, 'Org Admin', '/admin — organization management'],
-                ['candidate@examtube.in', 'Candidate', '/account — exams & results'],
+                [\Database\Seeders\Support\SeederContact::EMAIL_ADMIN, 'admin', '/admin — application admin'],
+                [\Database\Seeders\Support\SeederContact::EMAIL_INFO, 'org_admin', '/admin — organization admin'],
+                ['candidate@examtube.in', 'candidate', '/account — exams & results'],
             ]
         );
     }

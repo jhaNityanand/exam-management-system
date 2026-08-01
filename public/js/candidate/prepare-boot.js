@@ -89,7 +89,6 @@
 
     function firstError(payload, fallback) {
         if (!payload) return fallback;
-        if (typeof payload.message === 'string' && payload.message) return payload.message;
         if (payload.errors) {
             var keys = Object.keys(payload.errors);
             for (var i = 0; i < keys.length; i += 1) {
@@ -97,6 +96,7 @@
                 if (list && list.length) return list[0];
             }
         }
+        if (typeof payload.message === 'string' && payload.message) return payload.message;
         return fallback;
     }
 

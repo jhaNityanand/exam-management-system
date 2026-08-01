@@ -30,8 +30,8 @@ class UserSeeder extends Seeder
         $users = [
             [
                 'email' => SeederContact::EMAIL_ADMIN,
-                'name' => 'Application Admin',
-                'username' => 'app-admin',
+                'name' => 'Admin',
+                'username' => 'admin',
                 'legacy_emails' => ['admin@example.in'],
             ],
             [
@@ -42,7 +42,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email' => 'candidate@examtube.in',
-                'name' => 'Candidate User',
+                'name' => 'Candidate',
                 'username' => 'candidate',
                 'legacy_emails' => [],
             ],

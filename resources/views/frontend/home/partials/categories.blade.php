@@ -30,8 +30,8 @@
 <section class="et-section et-section--alt" data-reveal>
     <div class="et-container">
         @include('frontend.components.section-heading', [
-            'title' => 'Browse by category',
-            'subtitle' => 'Explore exams, blogs, news, and questions by topic — one group at a time.',
+            'title' => filled($section?->title) ? $section->title : 'Browse by category',
+            'subtitle' => filled($section?->subtitle) ? $section->subtitle : 'Explore exams, blogs, news, and questions by topic — one group at a time.',
             'actionUrl' => route('frontend.categories.index'),
             'actionLabel' => 'All categories',
         ])

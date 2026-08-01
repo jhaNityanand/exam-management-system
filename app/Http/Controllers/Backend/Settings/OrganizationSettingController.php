@@ -50,14 +50,10 @@ class OrganizationSettingController extends Controller
 
     public function storeHero(StoreHeroBannerRequest $request): JsonResponse
     {
-        $hero = $this->settings->saveHero($request->validated(), $this->currentOrgId());
-
         return response()->json([
-            'success' => true,
-            'message' => 'Hero banner created.',
-            'hero' => $this->serializeHero($hero),
-            'heroes' => $this->settings->heroes($this->currentOrgId())->map(fn ($h) => $this->serializeHero($h))->values(),
-        ]);
+            'success' => false,
+            'message' => 'Adding new hero banners is disabled. Edit an existing banner instead.',
+        ], 403);
     }
 
     public function updateHero(StoreHeroBannerRequest $request, int $hero): JsonResponse
@@ -74,13 +70,10 @@ class OrganizationSettingController extends Controller
 
     public function destroyHero(int $hero): JsonResponse
     {
-        $this->settings->deleteHero($hero, $this->currentOrgId());
-
         return response()->json([
-            'success' => true,
-            'message' => 'Hero banner deleted.',
-            'heroes' => $this->settings->heroes($this->currentOrgId())->map(fn ($h) => $this->serializeHero($h))->values(),
-        ]);
+            'success' => false,
+            'message' => 'Deleting hero banners is disabled. Edit an existing banner instead.',
+        ], 403);
     }
 
     public function reorderHeroes(Request $request): JsonResponse

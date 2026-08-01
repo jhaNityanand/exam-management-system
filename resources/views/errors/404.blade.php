@@ -1,18 +1,28 @@
 @extends('frontend.layouts.app')
 
 @php
+    $status = 404;
+    $meta = \App\Support\FrontendErrorPages::meta($status, $message ?? null);
+    $pageTitle = $title ?? $meta['title'];
+    $pageMessage = $message ?? $meta['message'];
     $seo = [
-        'title' => 'Page not found',
-        'description' => 'The page you are looking for does not exist or may have moved.',
+        'title' => $pageTitle,
+        'description' => \Illuminate\Support\Str::limit(strip_tags($pageMessage), 160),
         'robots' => 'noindex, follow',
         'image_type' => 'organization',
     ];
 @endphp
 
 @section('content')
-@include('errors.partials.content', [
+@include('errors.partials.page', [
     'code' => '404',
-    'title' => 'Page not found',
-    'message' => 'We looked everywhere, but this page seems to have taken a break. Try searching or head back home.',
+    'title' => $pageTitle,
+    'message' => $pageMessage,
+    'showHome' => true,
+    'showSearch' => true,
 ])
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/frontend/errors.css') }}">
+@endpush

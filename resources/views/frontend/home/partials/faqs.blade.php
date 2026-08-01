@@ -2,8 +2,8 @@
 <section class="et-section">
     <div class="et-container et-container--narrow">
         @include('frontend.components.section-heading', [
-            'title' => 'Frequently asked questions',
-            'subtitle' => 'Quick answers about exams, accounts, and preparation on Examtube.',
+            'title' => filled($section?->title) ? $section->title : 'Frequently asked questions',
+            'subtitle' => filled($section?->subtitle) ? $section->subtitle : 'Quick answers about exams, accounts, and preparation on Examtube.',
         ])
         @if($faqs->isEmpty())
             @include('frontend.partials.empty-state', ['title' => 'No FAQs yet', 'message' => ''])

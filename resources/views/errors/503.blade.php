@@ -1,18 +1,28 @@
 @extends('frontend.layouts.app')
 
 @php
+    $status = 503;
+    $meta = \App\Support\FrontendErrorPages::meta($status, $message ?? null);
+    $pageTitle = $title ?? $meta['title'];
+    $pageMessage = $message ?? $meta['message'];
     $seo = [
-        'title' => 'Service unavailable',
-        'description' => 'We are temporarily offline for maintenance.',
+        'title' => $pageTitle,
+        'description' => \Illuminate\Support\Str::limit(strip_tags($pageMessage), 160),
         'robots' => 'noindex, follow',
         'image_type' => 'organization',
     ];
 @endphp
 
 @section('content')
-@include('errors.partials.content', [
+@include('errors.partials.page', [
     'code' => '503',
-    'title' => 'Service unavailable',
-    'message' => 'We are temporarily offline for maintenance. Please check back in a few minutes.',
+    'title' => $pageTitle,
+    'message' => $pageMessage,
+    'showHome' => true,
+    'showRefresh' => true,
 ])
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/frontend/errors.css') }}">
+@endpush

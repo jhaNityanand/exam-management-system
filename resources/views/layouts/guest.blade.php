@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sign in') · {{ site_setting('brand.site_name', 'Examtube.in') }}</title>
+    <link rel="icon" href="{{ asset('images/brand/admin-favicon.svg') }}" type="image/svg+xml">
     <meta name="description" content="{{ site_setting('brand.tagline', 'Practice smarter. Score higher.') }}">
     <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="{{ url()->current() }}">

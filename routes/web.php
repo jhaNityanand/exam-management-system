@@ -28,6 +28,7 @@ use App\Http\Controllers\Backend\Settings\IntegrationsSettingController;
 use App\Http\Controllers\Backend\Settings\MaintenanceSettingController;
 use App\Http\Controllers\Backend\Settings\OrganizationSettingController;
 use App\Http\Controllers\Backend\Settings\OrganizationFaqController;
+use App\Http\Controllers\Backend\Settings\OrganizationMemberController;
 use App\Http\Controllers\Backend\Settings\SecuritySettingController;
 use App\Http\Controllers\Backend\Settings\SeoSettingController;
 use App\Http\Controllers\Frontend\AuthorController;
@@ -292,6 +293,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('organization/faqs', [OrganizationFaqController::class, 'store'])->name('organization.faqs.store');
         Route::put('organization/faqs/{faq}', [OrganizationFaqController::class, 'update'])->name('organization.faqs.update')->whereNumber('faq');
         Route::delete('organization/faqs/{faq}', [OrganizationFaqController::class, 'destroy'])->name('organization.faqs.destroy')->whereNumber('faq');
+        Route::get('organization/members', [OrganizationMemberController::class, 'index'])->name('organization.members.index');
+        Route::post('organization/members', [OrganizationMemberController::class, 'store'])->name('organization.members.store');
+        Route::put('organization/members/{member}', [OrganizationMemberController::class, 'update'])->name('organization.members.update')->whereNumber('member');
+        Route::delete('organization/members/{member}', [OrganizationMemberController::class, 'destroy'])->name('organization.members.destroy')->whereNumber('member');
         Route::get('seo', [SeoSettingController::class, 'edit'])->name('seo');
         Route::put('seo', [SeoSettingController::class, 'update'])->name('seo.update');
         Route::post('seo/regenerate', [SeoSettingController::class, 'regenerate'])->name('seo.regenerate');

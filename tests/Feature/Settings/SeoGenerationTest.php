@@ -35,6 +35,7 @@ class SeoGenerationTest extends TestCase
     {
         foreach ([
             public_path('sitemap.xml'),
+            public_path('image-sitemap.xml'),
             public_path('robots.txt'),
             public_path('humans.txt'),
             public_path('manifest.json'),
@@ -60,6 +61,8 @@ class SeoGenerationTest extends TestCase
             ->assertSuccessful();
 
         $this->assertFileExists(public_path('sitemap.xml'));
+        $this->assertFileExists(public_path('image-sitemap.xml'));
+        $this->assertFileExists(public_path('sitemaps/images.xml'));
         $this->assertFileExists(public_path('robots.txt'));
         $this->assertFileExists(public_path('feeds/rss.xml'));
         $this->assertFileExists(public_path('feeds/atom.xml'));
@@ -70,11 +73,73 @@ class SeoGenerationTest extends TestCase
 
         $robots = File::get(public_path('robots.txt'));
         $this->assertStringContainsString('Disallow: /admin', $robots);
-        $this->assertStringContainsString('Sitemap:', $robots);
+        $this->assertStringContainsString('Sitemap: ', $robots);
+        $this->assertStringContainsString('image-sitemap.xml', $robots);
 
         $sitemap = File::get(public_path('sitemap.xml'));
         $this->assertStringContainsString('<sitemapindex', $sitemap);
         $this->assertStringContainsString('sitemaps/static.xml', $sitemap);
+        $this->assertStringContainsString('image-sitemap.xml', $sitemap);
+    }
+
+    public function test_image_sitemap_includes_gallery_images_for_published_content(): void
+    {
+        $admin = User::factory()->create(['email' => 'seo-images@example.test', 'status' => 'active']);
+        UniqueUserSlug::ensureFor($admin);
+        UserOrganization::query()->create([
+            'user_id' => $admin->id,
+            'organization_id' => $this->organization->id,
+            'role' => OrganizationRoles::ADMIN,
+            'status' => 'active',
+        ]);
+
+        $gallery = \App\Models\Gallery::query()->create([
+            'organization_id' => $this->organization->id,
+            'original_name' => 'seo-banner.png',
+            'file_name' => 'seo-banner.png',
+            'file_path' => 'gallery/seo/seo-banner.png',
+            'file_url' => '/storage/gallery/seo/seo-banner.png',
+            'original_file_path' => 'gallery/seo/seo-banner.png',
+            'mime_type' => 'image/png',
+            'kind' => 'image',
+            'file_size' => 2048,
+            'alt_text' => 'UPSC mock exam banner',
+            'description' => 'Hero image for the featured mock exam guide.',
+            'status' => 'active',
+            'source' => 'gallery_ui',
+            'module' => 'blog',
+            'uploaded_by' => $admin->id,
+            'created_by' => $admin->id,
+        ]);
+
+        \App\Models\Blog::query()->create([
+            'organization_id' => $this->organization->id,
+            'title' => 'Featured Mock Exam Guide',
+            'slug' => 'featured-mock-exam-guide',
+            'excerpt' => 'Prepare smarter with timed mocks.',
+            'content' => '<p>Guide content</p>',
+            'status' => 'published',
+            'published_at' => now()->subHour(),
+            'banner_image_id' => $gallery->id,
+            'og_image_id' => $gallery->id,
+            'author_id' => $admin->id,
+            'created_by' => $admin->id,
+        ]);
+
+        $this->artisan('seo:generate', ['--org' => $this->organization->id])
+            ->assertSuccessful();
+
+        $imageSitemap = File::get(public_path('image-sitemap.xml'));
+        $this->assertStringContainsString('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', $imageSitemap);
+        $this->assertStringContainsString('<image:loc>', $imageSitemap);
+        $this->assertStringContainsString('gallery/seo/seo-banner.png', $imageSitemap);
+        $this->assertStringContainsString('<image:title>UPSC mock exam banner</image:title>', $imageSitemap);
+        $this->assertStringContainsString('<image:caption>Hero image for the featured mock exam guide.</image:caption>', $imageSitemap);
+        $this->assertStringContainsString('featured-mock-exam-guide', $imageSitemap);
+
+        $blogsSitemap = File::get(public_path('sitemaps/blogs.xml'));
+        $this->assertStringContainsString('xmlns:image=', $blogsSitemap);
+        $this->assertStringContainsString('<image:image>', $blogsSitemap);
     }
 
     public function test_admin_can_regenerate_seo_files_via_ajax(): void

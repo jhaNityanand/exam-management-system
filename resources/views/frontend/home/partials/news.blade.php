@@ -2,8 +2,8 @@
 <section class="et-section" data-reveal>
     <div class="et-container">
         @include('frontend.components.section-heading', [
-            'title' => 'Latest News',
-            'subtitle' => 'Stay updated with announcements and exam-world headlines.',
+            'title' => filled($section?->title) ? $section->title : 'Latest News',
+            'subtitle' => filled($section?->subtitle) ? $section->subtitle : 'Stay updated with announcements and exam-world headlines.',
             'actionUrl' => route('frontend.news.index'),
             'actionLabel' => 'Show All News',
         ])

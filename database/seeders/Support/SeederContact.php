@@ -11,7 +11,7 @@ final class SeederContact
 
     public const PHONE_DIGITS = '910000000000';
 
-    public const ADDRESS = 'Mumbai Dock Yard';
+    public const ADDRESS = 'Lion Gate, Fort, Mumbai, Maharashtra 400001';
 
     public const EMAIL_SUPPORT = 'support@examtube.in';
 
@@ -23,11 +23,13 @@ final class SeederContact
 
     public const WHATSAPP_URL = 'https://wa.me/'.self::PHONE_DIGITS;
 
-    public const MAPS_URL = 'https://www.google.com/maps?q=Mumbai+Dock+Yard&output=embed';
+    public const MAPS_URL = 'https://www.google.com/maps?q=Lion+Gate,+Fort,+Mumbai,+Maharashtra+400001&output=embed';
 
     public const CITY = 'Mumbai';
 
     public const STATE = 'Maharashtra';
+
+    public const PIN = '400001';
 
     public const COUNTRY = 'IN';
 }

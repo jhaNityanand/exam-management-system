@@ -31,6 +31,7 @@ class SeoSiteGenerator
 
     public function __construct(
         protected SiteCmsService $siteCms,
+        protected SitemapImageBuilder $images,
     ) {}
 
     /**
@@ -64,11 +65,7 @@ class SeoSiteGenerator
         }
 
         foreach ($sections as $name => $urls) {
-            /** @var Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}> $urls */
-            if ($urls->isEmpty() && ! str_starts_with($name, 'questions-')) {
-                // Still emit empty optional files only when they had static index entries
-            }
-
+            /** @var Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}> $urls */
             if ($urls->isEmpty()) {
                 continue;
             }
@@ -102,6 +99,30 @@ class SeoSiteGenerator
         ];
         $urlCounts['static'] = $static->count();
 
+        $imageEntries = collect($sections)
+            ->only(['pages', 'blogs', 'news', 'exams', 'categories'])
+            ->flatten(1)
+            ->filter(fn ($entry) => is_array($entry) && ! empty($entry['images']))
+            ->values()
+            ->map(fn (array $entry) => [
+                'loc' => $entry['loc'],
+                'lastmod' => $entry['lastmod'] ?? null,
+                'changefreq' => $entry['changefreq'] ?? 'weekly',
+                'priority' => $entry['priority'] ?? '0.5',
+                'images' => $entry['images'],
+            ]);
+
+        $imageCount = $imageEntries->sum(fn (array $entry) => count($entry['images'] ?? []));
+        $imageXml = $this->renderUrlset($imageEntries);
+        $this->writeFile(public_path('sitemaps/images.xml'), $imageXml);
+        $this->writeFile(public_path('image-sitemap.xml'), $imageXml);
+        $childSitemaps[] = [
+            'loc' => $baseUrl.'/image-sitemap.xml',
+            'lastmod' => now()->toAtomString(),
+        ];
+        $urlCounts['images'] = $imageEntries->count();
+        $urlCounts['image_assets'] = $imageCount;
+
         $this->writeFile(public_path('sitemap.xml'), $this->renderSitemapIndex($childSitemaps));
         $this->writeFile(public_path('robots.txt'), $this->renderRobots($baseUrl, $orgId));
         $this->writeFile(public_path('humans.txt'), $this->renderHumans($orgId));
@@ -121,7 +142,7 @@ class SeoSiteGenerator
 
         return [
             'files' => array_merge(
-                ['sitemap.xml', 'robots.txt', 'humans.txt', '.well-known/security.txt', 'feeds/rss.xml', 'feeds/atom.xml', 'manifest.json'],
+                ['sitemap.xml', 'image-sitemap.xml', 'robots.txt', 'humans.txt', '.well-known/security.txt', 'feeds/rss.xml', 'feeds/atom.xml', 'manifest.json'],
                 array_map(fn ($s) => str_replace($baseUrl.'/', '', $s['loc']), $childSitemaps)
             ),
             'generated_at' => $generatedAt,
@@ -147,6 +168,7 @@ class SeoSiteGenerator
             'chunk_size' => (int) $this->setting('chunk_size', self::DEFAULT_CHUNK, $orgId),
             'files_exist' => [
                 'sitemap' => is_file(public_path('sitemap.xml')),
+                'image_sitemap' => is_file(public_path('image-sitemap.xml')),
                 'robots' => is_file(public_path('robots.txt')),
                 'rss' => is_file(public_path('feeds/rss.xml')),
                 'atom' => is_file(public_path('feeds/atom.xml')),
@@ -156,6 +178,7 @@ class SeoSiteGenerator
             ],
             'public_urls' => [
                 'sitemap' => url('/sitemap.xml'),
+                'image_sitemap' => url('/image-sitemap.xml'),
                 'robots' => url('/robots.txt'),
                 'rss' => url('/feeds/rss.xml'),
                 'atom' => url('/feeds/atom.xml'),
@@ -246,20 +269,43 @@ class SeoSiteGenerator
     }
 
     /**
-     * @param  Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}>  $urls
+     * @param  Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}>  $urls
      */
     protected function renderUrlset(Collection $urls): string
     {
+        $hasImages = $urls->contains(fn (array $url) => ! empty($url['images']));
+
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+        $xml .= $hasImages
+            ? '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'."\n"
+            : '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+
         foreach ($urls as $url) {
             $xml .= "  <url>\n";
             $xml .= '    <loc>'.$this->escape($url['loc'])."</loc>\n";
             if (! empty($url['lastmod'])) {
                 $xml .= '    <lastmod>'.$this->escape($url['lastmod'])."</lastmod>\n";
             }
-            $xml .= '    <changefreq>'.$this->escape($url['changefreq'])."</changefreq>\n";
-            $xml .= '    <priority>'.$this->escape($url['priority'])."</priority>\n";
+            if (! empty($url['changefreq'])) {
+                $xml .= '    <changefreq>'.$this->escape($url['changefreq'])."</changefreq>\n";
+            }
+            if (! empty($url['priority'])) {
+                $xml .= '    <priority>'.$this->escape($url['priority'])."</priority>\n";
+            }
+            foreach ($url['images'] ?? [] as $image) {
+                if (empty($image['loc'])) {
+                    continue;
+                }
+                $xml .= "    <image:image>\n";
+                $xml .= '      <image:loc>'.$this->escape((string) $image['loc'])."</image:loc>\n";
+                if (! empty($image['title'])) {
+                    $xml .= '      <image:title>'.$this->escape((string) $image['title'])."</image:title>\n";
+                }
+                if (! empty($image['caption'])) {
+                    $xml .= '      <image:caption>'.$this->escape((string) $image['caption'])."</image:caption>\n";
+                }
+                $xml .= "    </image:image>\n";
+            }
             $xml .= "  </url>\n";
         }
         $xml .= '</urlset>';
@@ -305,6 +351,7 @@ class SeoSiteGenerator
             'Disallow: /up',
             '',
             'Sitemap: '.$baseUrl.'/sitemap.xml',
+            'Sitemap: '.$baseUrl.'/image-sitemap.xml',
         ];
 
         if ($extra !== '') {
@@ -480,68 +527,90 @@ class SeoSiteGenerator
     }
 
     /**
-     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}>
+     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}>
      */
     protected function pageUrls(?int $orgId): Collection
     {
         return SitePage::query()
             ->published()
+            ->with(['bannerImage'])
             ->when($orgId, fn ($q) => $q->where(function ($inner) use ($orgId) {
                 $inner->where('organization_id', $orgId)->orWhereNull('organization_id');
             }))
-            ->get(['slug', 'updated_at'])
-            ->map(fn ($page) => $this->url(url('/'.$page->slug), $page->updated_at, 'monthly', '0.6'));
+            ->get(['id', 'slug', 'title', 'excerpt', 'seo_title', 'seo_description', 'banner_image_id', 'updated_at'])
+            ->map(fn ($page) => $this->url(
+                url('/'.$page->slug),
+                $page->updated_at,
+                'monthly',
+                '0.6',
+                $this->images->forPage($page)
+            ));
     }
 
     /**
-     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}>
+     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}>
      */
     protected function blogUrls(?int $orgId): Collection
     {
         return Blog::query()
             ->published()
+            ->with(['ogImage', 'bannerImage', 'banners', 'galleryAttachments'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->get(['slug', 'updated_at', 'published_at'])
+            ->get([
+                'id', 'slug', 'title', 'excerpt', 'seo_title', 'og_title',
+                'banner_image_id', 'og_image_id', 'updated_at', 'published_at',
+            ])
             ->map(fn ($blog) => $this->url(
                 route('frontend.blogs.show', $blog->slug),
                 $blog->updated_at ?? $blog->published_at,
                 'weekly',
-                '0.7'
+                '0.7',
+                $this->images->forBlog($blog)
             ));
     }
 
     /**
-     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}>
+     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}>
      */
     protected function newsUrls(?int $orgId): Collection
     {
         return News::query()
             ->published()
+            ->with(['ogImage', 'featuredImage', 'bannerImage', 'banners', 'galleryAttachments'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->get(['slug', 'updated_at', 'published_at'])
+            ->get([
+                'id', 'slug', 'title', 'excerpt', 'seo_title', 'og_title',
+                'banner_image_id', 'featured_image_id', 'og_image_id', 'updated_at', 'published_at',
+            ])
             ->map(fn ($news) => $this->url(
                 route('frontend.news.show', $news->slug),
                 $news->updated_at ?? $news->published_at,
                 'daily',
-                '0.7'
+                '0.7',
+                $this->images->forNews($news)
             ));
     }
 
     /**
-     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}>
+     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}>
      */
     protected function examUrls(?int $orgId): Collection
     {
         return Exam::query()
             ->publicCatalog()
+            ->with(['ogImage', 'bannerImage'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->whereNotNull('slug')
-            ->get(['slug', 'updated_at'])
+            ->get([
+                'id', 'slug', 'title', 'description', 'meta_title', 'meta_description', 'og_title',
+                'banner_image_id', 'og_image_id', 'updated_at',
+            ])
             ->map(fn ($exam) => $this->url(
                 route('frontend.exams.show', $exam->slug),
                 $exam->updated_at,
                 'weekly',
-                '0.8'
+                '0.8',
+                $this->images->forExam($exam)
             ));
     }
 
@@ -563,46 +632,74 @@ class SeoSiteGenerator
     }
 
     /**
-     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}>
+     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}>
      */
     protected function categoryUrls(?int $orgId): Collection
     {
         $urls = collect();
 
         $examCats = ExamCategory::query()
+            ->with(['ogImage'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('status', 'active')
             ->whereNotNull('slug')
-            ->get(['slug', 'updated_at']);
+            ->get(['id', 'slug', 'name', 'description', 'meta_title', 'meta_description', 'og_image_id', 'updated_at']);
         foreach ($examCats as $cat) {
-            $urls->push($this->url(route('frontend.categories.show', $cat->slug), $cat->updated_at, 'weekly', '0.6'));
+            $urls->push($this->url(
+                route('frontend.categories.show', $cat->slug),
+                $cat->updated_at,
+                'weekly',
+                '0.6',
+                $this->images->forCategory($cat)
+            ));
         }
 
         $blogCats = BlogCategory::query()
+            ->with(['ogImage'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('status', 'active')
             ->whereNotNull('slug')
-            ->get(['slug', 'updated_at']);
+            ->get(['id', 'slug', 'name', 'description', 'meta_title', 'meta_description', 'og_image_id', 'updated_at']);
         foreach ($blogCats as $cat) {
-            $urls->push($this->url(route('frontend.blogs.category', $cat->slug), $cat->updated_at, 'weekly', '0.5'));
+            $urls->push($this->url(
+                route('frontend.blogs.category', $cat->slug),
+                $cat->updated_at,
+                'weekly',
+                '0.5',
+                $this->images->forCategory($cat)
+            ));
         }
 
         $newsCats = NewsCategory::query()
+            ->with(['ogImage'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('status', 'active')
             ->whereNotNull('slug')
-            ->get(['slug', 'updated_at']);
+            ->get(['id', 'slug', 'name', 'description', 'meta_title', 'meta_description', 'og_image_id', 'updated_at']);
         foreach ($newsCats as $cat) {
-            $urls->push($this->url(route('frontend.news.category', $cat->slug), $cat->updated_at, 'weekly', '0.5'));
+            $urls->push($this->url(
+                route('frontend.news.category', $cat->slug),
+                $cat->updated_at,
+                'weekly',
+                '0.5',
+                $this->images->forCategory($cat)
+            ));
         }
 
         $questionCats = QuestionCategory::query()
+            ->with(['ogImage'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->publiclyVisible()
             ->whereNotNull('slug')
-            ->get(['slug', 'updated_at']);
+            ->get(['id', 'slug', 'name', 'description', 'meta_title', 'meta_description', 'og_image_id', 'updated_at']);
         foreach ($questionCats as $cat) {
-            $urls->push($this->url(route('frontend.questions.category', $cat->slug), $cat->updated_at, 'weekly', '0.5'));
+            $urls->push($this->url(
+                route('frontend.questions.category', $cat->slug),
+                $cat->updated_at,
+                'weekly',
+                '0.5',
+                $this->images->forCategory($cat)
+            ));
         }
 
         return $urls;
@@ -644,7 +741,7 @@ class SeoSiteGenerator
     protected function authorUrls(?int $orgId): Collection
     {
         $authorIds = UserOrganization::query()
-            ->whereIn('role', [OrganizationRoles::ADMIN, OrganizationRoles::ORG_ADMIN, OrganizationRoles::EDITOR])
+            ->whereIn('role', [OrganizationRoles::ADMIN, OrganizationRoles::ORG_ADMIN])
             ->where('status', 'active')
             ->when($orgId, fn ($q) => $q->where('organization_id', $orgId))
             ->pluck('user_id')
@@ -669,9 +766,10 @@ class SeoSiteGenerator
     }
 
     /**
-     * @return array{loc: string, lastmod: ?string, changefreq: string, priority: string}
+     * @param  list<array{loc: string, title: ?string, caption: ?string}>  $images
+     * @return array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}
      */
-    protected function url(string $loc, mixed $lastmod, string $changefreq, string $priority): array
+    protected function url(string $loc, mixed $lastmod, string $changefreq, string $priority, array $images = []): array
     {
         $formatted = null;
         if ($lastmod) {
@@ -682,12 +780,18 @@ class SeoSiteGenerator
             }
         }
 
-        return [
+        $entry = [
             'loc' => $loc,
             'lastmod' => $formatted,
             'changefreq' => $changefreq,
             'priority' => $priority,
         ];
+
+        if ($images !== []) {
+            $entry['images'] = $images;
+        }
+
+        return $entry;
     }
 
     protected function escape(string $value): string

@@ -288,8 +288,6 @@
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-import.css') }}?v={{ filemtime(public_path('css/backend/question-import.css')) }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
@@ -298,7 +296,6 @@
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ time() }}"></script>

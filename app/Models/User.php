@@ -73,6 +73,10 @@ class User extends Authenticatable
         return OrganizationRoles::canAccessAdminPanel($this->activeOrganizationRole());
     }
 
+    /**
+     * Attach the user as a candidate to an organization when no membership exists yet.
+     * Does not create or assign a profile picture.
+     */
     public function ensureCandidateMembership(?int $organizationId = null): void
     {
         $organizationId = $organizationId ?: Organization::query()->value('id');

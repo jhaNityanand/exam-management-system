@@ -4,6 +4,18 @@
   width: 100%;
 }
 
+/* Avoid double borders when the native select carried panel-input / form classes */
+.ts-wrapper.panel-input,
+.ts-wrapper.org-contact-input,
+.ts-wrapper.org-brand-input {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
+}
+
 .ts-wrapper.single .ts-control,
 .ts-wrapper.multi .ts-control {
   min-height: 2.65rem;

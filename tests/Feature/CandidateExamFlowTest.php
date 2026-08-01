@@ -176,7 +176,11 @@ test('authenticated exam show shows empty previous attempts state', function () 
 test('candidate cannot access admin panel', function () {
     $this->actingAs($this->candidate)
         ->get(route('admin.dashboard'))
-        ->assertRedirect(route('frontend.account.dashboard'));
+        ->assertForbidden()
+        ->assertSee('You do not have permission to access this page.', false)
+        ->assertSee('Home', false)
+        ->assertSee('My account', false)
+        ->assertDontSee('Whoops', false);
 });
 
 test('guest attempting rules is redirected to login with intended url', function () {
@@ -205,6 +209,7 @@ test('candidate can start attempt save answers and submit for grading', function
             'microphone' => true,
             'fullscreen' => true,
             'selfie' => true,
+            'rules_agreed' => true,
         ],
         'device' => [
             'browser' => 'phpunit',
@@ -367,6 +372,7 @@ test('required selfie blocks start when identity rule is enabled', function () {
                 'microphone' => true,
                 'fullscreen' => true,
                 'selfie' => true,
+                'rules_agreed' => true,
             ],
             'device' => ['browser' => 'phpunit', 'session_token' => 'tok-2'],
         ])
@@ -643,6 +649,7 @@ test('start returns runner html for in-place modal mount and started resumes', f
             'microphone' => true,
             'fullscreen' => true,
             'selfie' => true,
+            'rules_agreed' => true,
         ],
         'device' => [
             'browser' => 'phpunit',

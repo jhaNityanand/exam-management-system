@@ -64,6 +64,10 @@
 
 <section class="et-sp-section">
     <div class="et-container">
+        @include('frontend.components.section-heading', [
+            'title' => 'Contact details',
+            'subtitle' => 'Reach us by email, phone, WhatsApp, or visit the office.',
+        ])
         <div class="et-contact-cards">
             @if ($email)
                 <a class="et-contact-card" href="mailto:{{ $email }}">

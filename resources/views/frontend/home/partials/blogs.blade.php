@@ -4,8 +4,8 @@
 <section class="et-section et-section--alt" data-reveal>
     <div class="et-container">
         @include('frontend.components.section-heading', [
-            'title' => 'From the Blog',
-            'subtitle' => 'Guides and insights to keep your preparation on track.',
+            'title' => filled($section?->title) ? $section->title : 'From the Blog',
+            'subtitle' => filled($section?->subtitle) ? $section->subtitle : 'Guides and insights to keep your preparation on track.',
             'actionUrl' => route('frontend.blogs.index'),
             'actionLabel' => 'Show All Blogs',
         ])

@@ -33,22 +33,26 @@
         }
     };
 
+    const plainFromHtml = (html) => String(html || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
     const updateStatusPill = (enabled) => {
         if (!statusPill) return;
         const label = statusPill.querySelector('[data-status-label]');
-        const dot = statusPill.querySelector('span.h-2');
-        statusPill.className = 'inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-xs font-semibold ' +
-            (enabled
-                ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'
-                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300');
-        if (dot) {
-            dot.className = 'h-2 w-2 rounded-full ' + (enabled ? 'bg-amber-500' : 'bg-emerald-500');
-        }
+        statusPill.className = 'maint-status ' + (enabled ? 'maint-status--on' : 'maint-status--off');
         if (label) label.textContent = enabled ? 'Enabled' : 'Disabled';
+    };
+
+    const syncEditors = () => {
+        window.EmsRichTextEditor?.syncAll?.();
     };
 
     const clientValidate = () => {
         clearErrors();
+        syncEditors();
         let valid = true;
         const title = form.querySelector('#title');
         const message = form.querySelector('#message');
@@ -57,18 +61,9 @@
             showFieldError('title', 'Title is required.');
             valid = false;
         }
-        if (!message?.value?.trim()) {
+        if (!plainFromHtml(message?.value || '')) {
             showFieldError('message', 'Message is required.');
             valid = false;
-        }
-
-        const email = form.querySelector('#contact_email');
-        if (email?.value?.trim()) {
-            const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
-            if (!ok) {
-                showFieldError('contact_email', 'Enter a valid email address.');
-                valid = false;
-            }
         }
 
         ['social_facebook', 'social_instagram', 'social_linkedin', 'social_twitter', 'social_youtube', 'social_telegram']
@@ -88,21 +83,23 @@
             });
 
         if (!valid) {
-            form.querySelector('.is-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            form.querySelector('.is-invalid, [data-error-for].is-visible')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            });
         }
 
         return valid;
     };
 
     const collectPayload = () => {
+        syncEditors();
         const fd = new FormData(form);
-        const payload = {
+        return {
             enabled: form.querySelector('#enabled')?.checked ? 1 : 0,
             title: (fd.get('title') || '').toString().trim(),
             message: (fd.get('message') || '').toString().trim(),
             estimated_at: (fd.get('estimated_at') || '').toString().trim(),
-            contact_email: (fd.get('contact_email') || '').toString().trim(),
-            contact_phone: (fd.get('contact_phone') || '').toString().trim(),
             social_facebook: (fd.get('social_facebook') || '').toString().trim(),
             social_instagram: (fd.get('social_instagram') || '').toString().trim(),
             social_linkedin: (fd.get('social_linkedin') || '').toString().trim(),
@@ -112,8 +109,6 @@
             logo_gallery_id: (fd.get('logo_gallery_id') || '').toString().trim() || null,
             background_gallery_id: (fd.get('background_gallery_id') || '').toString().trim() || null,
         };
-
-        return payload;
     };
 
     form.addEventListener('submit', async (event) => {
@@ -196,7 +191,10 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (window.EmsRichTextEditor?.initAll) {
+            await window.EmsRichTextEditor.initAll(document);
+        }
         if (window.EmsContentForm?.initGalleryPickers) {
             window.EmsContentForm.initGalleryPickers({});
         }

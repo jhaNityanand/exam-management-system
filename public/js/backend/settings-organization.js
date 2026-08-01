@@ -1,5 +1,5 @@
 /**
- * Organization Settings — AJAX save + hero banner CRUD.
+ * Organization Settings — AJAX save + hero banner edit.
  */
 (function () {
     'use strict';
@@ -320,7 +320,7 @@
             window.Swal?.fire?.({
                 icon: 'warning',
                 title: 'Check support hours',
-                text: 'Each day needs a valid from/to time, and end time must be after start time. Add 1–7 days.',
+                text: 'Each day needs a valid from/to time, and end time must be after start time. Add 1â€“7 days.',
             });
             return;
         }
@@ -339,7 +339,7 @@
         const original = saveBtn?.textContent;
         if (saveBtn) {
             saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving…';
+            saveBtn.textContent = 'Savingâ€¦';
         }
 
         try {
@@ -376,8 +376,16 @@
 
     const openHeroModal = (hero = null) => {
         if (!heroModal || !heroForm) return;
+        if (!hero?.id) {
+            window.Swal?.fire?.({
+                icon: 'info',
+                title: 'Edit only',
+                text: 'New hero banners cannot be added. Edit an existing banner instead.',
+            });
+            return;
+        }
         heroForm.reset();
-        heroForm.querySelector('#hero_id').value = hero?.id || '';
+        heroForm.querySelector('#hero_id').value = hero.id;
         heroForm.querySelector('#hero_title').value = hero?.title || '';
         heroForm.querySelector('#hero_subtitle').value = hero?.subtitle || '';
         heroForm.querySelector('#hero_description').value = hero?.description || '';
@@ -389,7 +397,7 @@
         heroForm.querySelector('#hero_status').value = hero?.status || 'active';
         heroForm.querySelector('#hero_sort_order').value = hero?.sort_order ?? 1;
         heroForm.querySelector('#hero_show_search').checked = hero?.show_search !== false;
-        document.getElementById('hero-modal-title').textContent = hero?.id ? 'Edit hero banner' : 'Add hero banner';
+        document.getElementById('hero-modal-title').textContent = 'Edit hero banner';
 
         const setDt = (id, value) => {
             if (window.EmsDateTimePicker?.setValue) {
@@ -436,7 +444,7 @@
     const renderHeroes = (heroes) => {
         if (!heroList) return;
         if (!heroes?.length) {
-            heroList.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400" id="hero-empty">No hero banners yet. Add your first slide.</p>';
+            heroList.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400" id="hero-empty">No hero banners are available to edit yet.</p>';
             return;
         }
 
@@ -453,7 +461,6 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" class="panel-button-secondary text-sm hero-edit-btn">Edit</button>
-                    <button type="button" class="panel-button-secondary text-sm text-red-600 hero-delete-btn" data-id="${hero.id}">Delete</button>
                 </div>
             </div>
         `).join('');
@@ -462,44 +469,8 @@
             const hero = heroes[index];
             row.querySelector('.hero-edit-btn')?.addEventListener('click', () => openHeroModal(hero));
         });
-        bindHeroDeleteButtons();
     };
 
-    const bindHeroDeleteButtons = () => {
-        heroList?.querySelectorAll('.hero-delete-btn').forEach((btn) => {
-            btn.addEventListener('click', async () => {
-                const id = btn.getAttribute('data-id');
-                const confirm = await window.Swal?.fire?.({
-                    icon: 'warning',
-                    title: 'Delete this banner?',
-                    text: 'This removes the hero slide from the homepage.',
-                    showCancelButton: true,
-                    confirmButtonText: 'Delete',
-                    confirmButtonColor: '#dc2626',
-                });
-                if (confirm && !confirm.isConfirmed) return;
-
-                try {
-                    const response = await fetch(`${config.heroDeleteUrl}/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            Accept: 'application/json',
-                            'X-CSRF-TOKEN': config.csrf,
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                    });
-                    const data = await response.json().catch(() => ({}));
-                    if (!response.ok) throw new Error(data.message || 'Delete failed.');
-                    renderHeroes(data.heroes || []);
-                    window.EmsToast?.success?.(data.message || 'Deleted.');
-                } catch (error) {
-                    window.Swal?.fire?.({ icon: 'error', title: 'Delete failed', text: error.message || 'Could not delete banner.' });
-                }
-            });
-        });
-    };
-
-    document.getElementById('hero-add-btn')?.addEventListener('click', () => openHeroModal(null));
     heroModal?.querySelectorAll('[data-hero-modal-close]').forEach((el) => el.addEventListener('click', closeHeroModal));
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && heroModal && !heroModal.classList.contains('hidden')) {
@@ -510,13 +481,14 @@
     document.querySelectorAll('.hero-edit-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
             try {
-                openHeroModal(JSON.parse(btn.getAttribute('data-hero') || '{}'));
-            } catch {
-                openHeroModal(null);
+                const raw = btn.getAttribute('data-hero') || '{}';
+                openHeroModal(JSON.parse(raw));
+            } catch (error) {
+                console.error('Hero payload parse failed', error);
+                window.Swal?.fire?.({ icon: 'error', title: 'Could not open banner' });
             }
         });
     });
-    bindHeroDeleteButtons();
 
     heroForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -527,6 +499,15 @@
         }
 
         const id = heroForm.querySelector('#hero_id')?.value;
+        if (!id) {
+            window.Swal?.fire?.({
+                icon: 'info',
+                title: 'Edit only',
+                text: 'New hero banners cannot be added. Edit an existing banner instead.',
+            });
+            return;
+        }
+
         const payload = {
             title,
             subtitle: heroForm.querySelector('#hero_subtitle')?.value?.trim() || '',
@@ -554,10 +535,8 @@
         }
 
         try {
-            const url = id ? `${config.heroUpdateUrl}/${id}` : config.heroStoreUrl;
-            const method = id ? 'PUT' : 'POST';
-            const response = await fetch(url, {
-                method,
+            const response = await fetch(`${config.heroUpdateUrl}/${id}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',

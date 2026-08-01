@@ -1,18 +1,28 @@
 @extends('frontend.layouts.app')
 
 @php
+    $status = 500;
+    $meta = \App\Support\FrontendErrorPages::meta($status, $message ?? null);
+    $pageTitle = $title ?? $meta['title'];
+    $pageMessage = $message ?? $meta['message'];
     $seo = [
-        'title' => 'Something went wrong',
-        'description' => 'An unexpected server error occurred. Please try again shortly.',
+        'title' => $pageTitle,
+        'description' => \Illuminate\Support\Str::limit(strip_tags($pageMessage), 160),
         'robots' => 'noindex, follow',
         'image_type' => 'organization',
     ];
 @endphp
 
 @section('content')
-@include('errors.partials.content', [
+@include('errors.partials.page', [
     'code' => '500',
-    'title' => 'Something went wrong',
-    'message' => 'Our servers hit an unexpected bump. We are on it — please try again shortly.',
+    'title' => $pageTitle,
+    'message' => $pageMessage,
+    'showHome' => true,
+    'showRefresh' => true,
 ])
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/frontend/errors.css') }}">
+@endpush

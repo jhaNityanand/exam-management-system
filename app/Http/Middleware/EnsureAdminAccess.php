@@ -2,19 +2,30 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Responses\PermissionDeniedResponse;
 use App\Models\UserOrganization;
 use App\Support\OrganizationRoles;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Restricts /admin routes to users with an admin-panel organization role.
+ *
+ * Unauthorized authenticated users (e.g. candidates) receive a friendly
+ * permission page at the same URL — they are not redirected away.
+ */
 class EnsureAdminAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+
         if (! $user) {
-            abort(403);
+            return PermissionDeniedResponse::toResponse(
+                $request,
+                'You do not have permission to access this page. Please sign in with an authorized account.'
+            );
         }
 
         $membership = UserOrganization::query()
@@ -24,9 +35,7 @@ class EnsureAdminAccess
             ->first();
 
         if (! $membership || ! OrganizationRoles::canAccessAdminPanel($membership->role)) {
-            return redirect()
-                ->route('frontend.account.dashboard')
-                ->with('error', 'You do not have access to the admin panel.');
+            return PermissionDeniedResponse::toResponse($request);
         }
 
         return $next($request);

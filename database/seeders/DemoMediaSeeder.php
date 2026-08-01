@@ -41,7 +41,7 @@ class DemoMediaSeeder extends Seeder
 
         $brand = $this->seedBrand($org, $editor->id, $images);
         $this->seedHeroes($org->id, $editor->id, $images);
-        $this->seedTestimonials($org->id, $editor->id, $images);
+        $this->seedTestimonials($org->id);
         $this->seedExamBanners($org->id, $editor->id, $images);
         $this->seedPageBanners($org->id, $editor->id, $images);
         $this->seedAdvertisements($org->id, $editor->id, $images);
@@ -137,14 +137,13 @@ class DemoMediaSeeder extends Seeder
         }
     }
 
-    private function seedTestimonials(int $orgId, int $userId, SeedImageLibrary $images): void
+    private function seedTestimonials(int $orgId): void
     {
-        foreach (Testimonial::query()->where('organization_id', $orgId)->get() as $index => $row) {
-            $avatar = $this->safeSeo($images, $orgId, 'profile', $userId, $row->name.' avatar', 'testimonial-'.$index);
-            if ($avatar) {
-                $row->update(['avatar_id' => $avatar->id]);
-            }
-        }
+        // Testimonials intentionally have no seeded avatars — UI falls back to initials.
+        Testimonial::query()
+            ->where('organization_id', $orgId)
+            ->whereNotNull('avatar_id')
+            ->update(['avatar_id' => null]);
     }
 
     private function seedExamBanners(int $orgId, int $userId, SeedImageLibrary $images): void

@@ -120,7 +120,7 @@ class CandidateController extends Controller
     public function resetPassword(Request $request, int $candidate): RedirectResponse
     {
         $request->validate([
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'password' => ['nullable', 'string', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
         ]);
 
         $user = $this->service->findForOrganization($candidate, $this->currentOrgId());

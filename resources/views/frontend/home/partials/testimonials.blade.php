@@ -53,8 +53,8 @@
 <section class="et-section" data-reveal>
     <div class="et-container">
         @include('frontend.components.section-heading', [
-            'title' => 'Stories from learners',
-            'subtitle' => 'Real outcomes from students and job seekers preparing with Examtube.',
+            'title' => filled($section?->title) ? $section->title : 'Stories from learners',
+            'subtitle' => filled($section?->subtitle) ? $section->subtitle : 'Real outcomes from students and job seekers preparing with Examtube.',
         ])
         <div class="et-review-grid">
             @foreach($testimonials as $item)

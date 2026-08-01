@@ -121,32 +121,7 @@
 @endsection
 
 @push('styles')
-<style>
-    .cache-action-icon {
-        color: #fff !important;
-        border: 1px solid transparent;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
-    }
-    .cache-action-icon svg {
-        color: inherit;
-        stroke: currentColor;
-    }
-    .cache-action-icon--indigo { background: linear-gradient(145deg, #6366f1, #4f46e5); }
-    .cache-action-icon--violet { background: linear-gradient(145deg, #8b5cf6, #7c3aed); }
-    .cache-action-icon--sky { background: linear-gradient(145deg, #0ea5e9, #0284c7); }
-    .cache-action-icon--cyan { background: linear-gradient(145deg, #06b6d4, #0891b2); }
-    .cache-action-icon--amber { background: linear-gradient(145deg, #f59e0b, #d97706); }
-    .cache-action-icon--emerald { background: linear-gradient(145deg, #10b981, #059669); }
-    .cache-action-icon--teal { background: linear-gradient(145deg, #14b8a6, #0d9488); }
-    .cache-action-icon--blue { background: linear-gradient(145deg, #3b82f6, #2563eb); }
-    .cache-action-icon--orange { background: linear-gradient(145deg, #f97316, #ea580c); }
-    .cache-action-icon--rose { background: linear-gradient(145deg, #f43f5e, #e11d48); }
-    .cache-action-icon--fuchsia { background: linear-gradient(145deg, #d946ef, #c026d3); }
-
-    .dark .cache-action-icon {
-        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
-    }
-</style>
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/settings-cache.css') }}">
 @endpush
 
 @push('scripts')

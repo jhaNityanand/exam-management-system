@@ -4,6 +4,7 @@ namespace App\Http\Requests\Backend\Settings;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateMaintenanceSettingRequest extends FormRequest
 {
@@ -22,10 +23,8 @@ class UpdateMaintenanceSettingRequest extends FormRequest
         return [
             'enabled' => ['required', 'boolean'],
             'title' => ['required', 'string', 'max:160'],
-            'message' => ['required', 'string', 'max:2000'],
+            'message' => ['required', 'string', 'max:50000'],
             'estimated_at' => ['nullable', 'string', 'max:50'],
-            'contact_email' => ['nullable', 'email', 'max:190'],
-            'contact_phone' => ['nullable', 'string', 'max:40'],
             'social_facebook' => ['nullable', 'url', 'max:255'],
             'social_instagram' => ['nullable', 'url', 'max:255'],
             'social_linkedin' => ['nullable', 'url', 'max:255'],
@@ -55,6 +54,16 @@ class UpdateMaintenanceSettingRequest extends FormRequest
         ];
     }
 
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $plain = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $this->input('message', ''))) ?? '');
+            if ($plain === '') {
+                $validator->errors()->add('message', 'Please enter a maintenance message.');
+            }
+        });
+    }
+
     protected function prepareForValidation(): void
     {
         $this->merge([
@@ -72,7 +81,6 @@ class UpdateMaintenanceSettingRequest extends FormRequest
         return [
             'title.required' => 'Please enter a maintenance title.',
             'message.required' => 'Please enter a maintenance message.',
-            'contact_email.email' => 'Enter a valid contact email address.',
         ];
     }
 }

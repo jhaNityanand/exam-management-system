@@ -301,8 +301,8 @@
                     <label for="drawer-sort" class="filter-label">Sort By</label>
                     <select id="drawer-sort" name="sort" class="panel-input w-full text-sm">
                         <option value="updated_at:desc" selected>Recently Updated</option>
-                        <option value="title:asc">Title A → Z</option>
-                        <option value="title:desc">Title Z → A</option>
+                        <option value="title:asc">Title A â†’ Z</option>
+                        <option value="title:desc">Title Z â†’ A</option>
                         <option value="parts_count:desc">Most Parts</option>
                         <option value="questions_count:desc">Most Questions</option>
                         <option value="total_marks:desc">Highest Marks</option>
@@ -326,8 +326,6 @@
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}?v={{ filemtime(public_path('css/backend/tom-select-theme.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-list.css') }}?v={{ filemtime(public_path('css/backend/question-list.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/exam-list.css') }}?v={{ filemtime(public_path('css/backend/exam-list.css')) }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
@@ -336,7 +334,6 @@
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}?v={{ filemtime(public_path('js/components/tom-select-blur.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-hierarchy.js') }}?v={{ filemtime(public_path('js/components/tom-select-hierarchy.js')) }}"></script>

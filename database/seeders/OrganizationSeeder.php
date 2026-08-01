@@ -11,13 +11,13 @@ class OrganizationSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::where('email', SeederContact::EMAIL_ADMIN)->first();
+        $admin = User::query()->where('email', SeederContact::EMAIL_ADMIN)->first();
 
-        Organization::firstOrCreate(
+        Organization::query()->updateOrCreate(
             ['slug' => 'demo-org'],
             [
-                'name' => 'Demo Organization',
-                'description' => 'Default organization for development and testing.',
+                'name' => 'Examtube',
+                'description' => 'Primary organization workspace for Examtube.',
                 'status' => 'active',
                 'user_id' => $admin?->id,
             ]

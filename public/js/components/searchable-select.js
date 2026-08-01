@@ -61,6 +61,12 @@
     // Keep dropdown usable inside modals/overflow containers
     opts.dropdownParent = 'body';
 
+    opts.onInitialize = function () {
+      this.wrapper.classList.add('ems-select-wrapper');
+      this.wrapper.classList.remove('panel-input');
+      this.wrapper.classList.remove('org-contact-input', 'org-brand-input');
+    };
+
     try {
       var instance = new TomSelect(select, opts);
       select.classList.add('is-searchable');

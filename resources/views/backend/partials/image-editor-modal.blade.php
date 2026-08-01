@@ -1,4 +1,4 @@
-﻿{{-- Shared image editor modal (gallery, banners, editor uploads) --}}
+{{-- Shared image editor modal (gallery, banners, editor uploads) --}}
 <div id="gallery-image-editor" class="gallery-editor-modal" hidden aria-hidden="true">
     <div class="gallery-editor-modal__backdrop" data-gie-close></div>
     <div class="gallery-editor-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="gallery-editor-title">

@@ -9,6 +9,7 @@ use App\Models\UserOrganization;
 use App\Services\Settings\MaintenanceModeService;
 use App\Support\OrganizationRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class MaintenanceModeTest extends TestCase
@@ -28,7 +29,7 @@ class MaintenanceModeTest extends TestCase
         ]);
 
         app(MaintenanceModeService::class)->seedDefaults($this->organization->id, [
-            'contact_email' => 'hello@examtube.in',
+            'social_facebook' => 'https://facebook.com/examtube',
         ]);
     }
 
@@ -39,16 +40,31 @@ class MaintenanceModeTest extends TestCase
 
     public function test_public_site_shows_maintenance_page_when_enabled(): void
     {
+        $restoreAt = Carbon::now()->addHours(2);
+
         app(MaintenanceModeService::class)->update([
             'enabled' => true,
             'title' => 'Down for maintenance',
-            'message' => 'Please check back shortly.',
+            'message' => '<p>Please check back shortly.</p>',
+            'estimated_at' => $restoreAt->format('Y-m-d H:i'),
+            'social_facebook' => 'https://facebook.com/examtube',
         ], $this->organization->id);
 
-        $this->get('/')
-            ->assertStatus(503)
+        $response = $this->get('/');
+
+        $response->assertStatus(503)
             ->assertSee('Down for maintenance')
-            ->assertSee('Please check back shortly.');
+            ->assertSee('Please check back shortly.', false)
+            ->assertSee('Back online in')
+            ->assertSee('Expected back')
+            ->assertSee('Facebook')
+            ->assertSee('data-maintenance-countdown', false)
+            ->assertHeader('Retry-After');
+
+        $this->assertFalse(
+            str_contains($response->getContent(), 'mailto:'),
+            'Maintenance page should not include a contact form or mailto contact block.'
+        );
     }
 
     public function test_admin_can_access_panel_during_maintenance(): void
@@ -56,7 +72,7 @@ class MaintenanceModeTest extends TestCase
         app(MaintenanceModeService::class)->update([
             'enabled' => true,
             'title' => 'Down for maintenance',
-            'message' => 'Please check back shortly.',
+            'message' => '<p>Please check back shortly.</p>',
         ], $this->organization->id);
 
         $admin = $this->makeUser(OrganizationRoles::ADMIN);
@@ -64,7 +80,10 @@ class MaintenanceModeTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.settings.maintenance'))
             ->assertOk()
-            ->assertSee('Maintenance Mode');
+            ->assertSee('Maintenance Mode')
+            ->assertSee('Page content')
+            ->assertSee('Restore date')
+            ->assertDontSee('Contact information');
     }
 
     public function test_login_remains_available_during_maintenance(): void
@@ -72,29 +91,45 @@ class MaintenanceModeTest extends TestCase
         app(MaintenanceModeService::class)->update([
             'enabled' => true,
             'title' => 'Down for maintenance',
-            'message' => 'Please check back shortly.',
+            'message' => '<p>Please check back shortly.</p>',
         ], $this->organization->id);
 
         $this->get(route('login'))->assertOk();
     }
 
+    public function test_register_is_blocked_during_maintenance(): void
+    {
+        app(MaintenanceModeService::class)->update([
+            'enabled' => true,
+            'title' => 'Down for maintenance',
+            'message' => '<p>Please check back shortly.</p>',
+        ], $this->organization->id);
+
+        $this->get(route('register'))
+            ->assertStatus(503)
+            ->assertSee('Down for maintenance');
+    }
+
     public function test_admin_can_update_maintenance_settings_via_ajax(): void
     {
         $admin = $this->makeUser(OrganizationRoles::ORG_ADMIN);
+        $restoreAt = Carbon::now()->addDay()->format('Y-m-d H:i');
 
         $response = $this->actingAs($admin)
             ->putJson(route('admin.settings.maintenance.update'), [
                 'enabled' => true,
                 'title' => 'Scheduled upgrade',
-                'message' => "We are currently performing scheduled maintenance to improve your experience.\nPlease check back shortly.",
-                'contact_email' => 'hello@examtube.in',
-                'contact_phone' => '+91 98765 43210',
+                'message' => '<p>We are currently performing scheduled maintenance to improve your experience.</p><p>Please check back shortly.</p>',
+                'estimated_at' => $restoreAt,
                 'social_facebook' => 'https://facebook.com/examtube',
             ]);
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('settings.enabled', true);
+            ->assertJsonPath('settings.enabled', true)
+            ->assertJsonPath('settings.estimated_at', $restoreAt);
+
+        $this->assertNotEmpty($response->json('settings.estimated_at_iso'));
 
         $this->assertTrue(
             (bool) SiteSetting::query()

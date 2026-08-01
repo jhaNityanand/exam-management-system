@@ -5,8 +5,8 @@
         <form id="hero-form" class="ems-dialog__form">
             <header class="ems-dialog__header">
                 <div class="min-w-0">
-                    <h3 id="hero-modal-title" class="ems-dialog__title">Add hero banner</h3>
-                    <p class="ems-dialog__subtitle">Configure slide content, CTAs, schedule, and images.</p>
+                    <h3 id="hero-modal-title" class="ems-dialog__title">Edit hero banner</h3>
+                    <p class="ems-dialog__subtitle">Update slide content, CTAs, schedule, and images.</p>
                 </div>
                 <button type="button" class="ems-dialog__close" data-hero-modal-close aria-label="Close">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -266,234 +266,91 @@
     </div>
 </div>
 
-{{-- FAQ modal styles --}}
-<style>
-    /* ── Modal header icon ── */
-    .faq-modal-header {
-        gap: 0.85rem;
-        align-items: flex-start;
-        background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
-        border-bottom-color: #e0e7ff;
-    }
-    .dark .faq-modal-header {
-        background: linear-gradient(135deg, rgb(15 23 42 / 0.95) 0%, rgb(49 46 129 / 0.22) 100%);
-        border-bottom-color: rgb(99 102 241 / 0.2);
-    }
-    .faq-modal-header__icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 0.75rem;
-        background: #4f46e5;
-        color: #fff;
-        flex-shrink: 0;
-        box-shadow: 0 4px 12px rgb(79 70 229 / 0.3);
-    }
+{{-- Member modal --}}
+<div id="member-modal" class="ems-dialog hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="member-modal-title">
+    <div class="ems-dialog__backdrop" data-member-modal-close></div>
+    <div class="ems-dialog__panel ems-dialog__panel--lg" role="document">
+        <form id="member-form" class="ems-dialog__form">
+            <header class="ems-dialog__header faq-modal-header">
+                <div class="faq-modal-header__icon" aria-hidden="true">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h3 id="member-modal-title" class="ems-dialog__title">Add member</h3>
+                    <p class="ems-dialog__subtitle">New members receive the <strong>org_admin</strong> role automatically.</p>
+                </div>
+                <button type="button" class="ems-dialog__close" data-member-modal-close aria-label="Close">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </header>
 
-    /* ── Modal body ── */
-    .faq-modal-body { padding-bottom: 0; }
+            <div class="ems-dialog__body faq-modal-body">
+                <input type="hidden" id="member_id" name="id" value="">
 
-    /* ── Field group ── */
-    .faq-field-group {
-        display: flex;
-        flex-direction: column;
-        gap: 1.1rem;
-    }
-    .faq-field { min-width: 0; }
-    .faq-field__label-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        margin-bottom: 0.45rem;
-    }
-    .faq-field__label {
-        font-size: 0.825rem;
-        font-weight: 600;
-        color: #334155;
-    }
-    .dark .faq-field__label { color: #e2e8f0; }
-    .faq-field__req { color: #f43f5e; margin-left: .1rem; }
-    .faq-field__count {
-        font-size: 0.7rem;
-        font-weight: 500;
-        color: #94a3b8;
-        font-variant-numeric: tabular-nums;
-    }
-    .dark .faq-field__count { color: #64748b; }
-    .faq-field__input,
-    .faq-field__select {
-        width: 100%;
-        min-height: 2.75rem;
-        padding: 0.6rem 0.85rem;
-        border: 1px solid #cbd5e1;
-        border-radius: 0.75rem;
-        background: #fff;
-        color: #0f172a;
-        font-size: 0.875rem;
-        line-height: 1.5;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        appearance: auto;
-    }
-    .dark .faq-field__input,
-    .dark .faq-field__select {
-        border-color: #475569;
-        background: #0f172a;
-        color: #e2e8f0;
-    }
-    .faq-field__input:focus,
-    .faq-field__select:focus {
-        outline: none;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgb(99 102 241 / 0.18);
-    }
-    .faq-field__textarea {
-        min-height: 8rem;
-        resize: vertical;
-    }
-    .faq-field__number { max-width: 8rem; }
+                <section class="ems-dialog__section">
+                    <h4 class="ems-dialog__section-title">Account</h4>
+                    <div class="faq-field-group">
+                        <div class="faq-field">
+                            <label for="member_name" class="faq-field__label">Name <span class="faq-field__req">*</span></label>
+                            <input type="text" id="member_name" name="name" required maxlength="120" class="faq-field__input" placeholder="Full name" autocomplete="name">
+                            <p class="qcat-field-error" data-error-for="name" hidden></p>
+                        </div>
+                        <div class="faq-field">
+                            <label for="member_email" class="faq-field__label">Email <span class="faq-field__req">*</span></label>
+                            <input type="email" id="member_email" name="email" required maxlength="190" class="faq-field__input" placeholder="member@example.com" autocomplete="email">
+                            <p class="qcat-field-error" data-error-for="email" hidden></p>
+                        </div>
+                        <div class="faq-field">
+                            <label for="member_password" class="faq-field__label">
+                                Password <span class="faq-field__req" id="member_password_req">*</span>
+                            </label>
+                            <input type="password" id="member_password" name="password" maxlength="120" class="faq-field__input" placeholder="••••••••" autocomplete="new-password">
+                            <p class="faq-featured-toggle__hint" id="member_password_hint">Required for brand-new accounts. Optional when inviting an existing user (their current password is kept). Leave blank when editing to keep the current password.</p>
+                            <p class="qcat-field-error" data-error-for="password" hidden></p>
+                        </div>
+                    </div>
+                </section>
 
-    /* ── Metadata grid ── */
-    .faq-meta-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
+                <section class="ems-dialog__section">
+                    <h4 class="ems-dialog__section-title">Membership</h4>
+                    <div class="faq-meta-grid">
+                        <div class="faq-field">
+                            <label for="member_role_display" class="faq-field__label">Role</label>
+                            <input type="text" id="member_role_display" class="faq-field__input" value="Organization Admin (org_admin)" disabled>
+                        </div>
+                        <div class="faq-field">
+                            <label for="member_status" class="faq-field__label">Status <span class="faq-field__req">*</span></label>
+                            <select id="member_status" name="status" required class="faq-field__select">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                            <p class="qcat-field-error" data-error-for="status" hidden></p>
+                        </div>
+                    </div>
+                </section>
 
-    /* ── Featured toggle ── */
-    .faq-featured-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.65rem;
-        cursor: pointer;
-        user-select: none;
-        padding: 0.6rem 0.85rem;
-        border-radius: 0.75rem;
-        background: #f8fafc;
-        transition: border-color 0.15s, background 0.15s;
-    }
-    .dark .faq-featured-toggle {
-        border-color: #334155;
-        background: rgb(15 23 42 / 0.45);
-    }
-    .faq-featured-toggle:has(.faq-featured-toggle__input:checked) {
-        border-color: #fcd34d;
-        background: #fffbeb;
-    }
-    .dark .faq-featured-toggle:has(.faq-featured-toggle__input:checked) {
-        border-color: rgb(251 191 36 / 0.45);
-        background: rgb(245 158 11 / 0.1);
-    }
-    .faq-featured-toggle__input {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
-    }
-    .faq-featured-toggle__track {
-        position: relative;
-        display: inline-block;
-        width: 2.5rem;
-        height: 1.4rem;
-        border-radius: 999px;
-        background: #cbd5e1;
-        flex-shrink: 0;
-        transition: background 0.2s;
-    }
-    .dark .faq-featured-toggle__track { background: #475569; }
-    .faq-featured-toggle__track::after {
-        content: '';
-        position: absolute;
-        top: 0.2rem;
-        left: 0.2rem;
-        width: 1rem;
-        height: 1rem;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
-        transition: transform 0.2s;
-    }
-    .faq-featured-toggle__input:checked ~ .faq-featured-toggle__track {
-        background: #f59e0b;
-    }
-    .faq-featured-toggle__input:checked ~ .faq-featured-toggle__track::after {
-        transform: translateX(1.1rem);
-    }
-    .faq-featured-toggle__text {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: #475569;
-    }
-    .dark .faq-featured-toggle__text { color: #94a3b8; }
-    .faq-featured-toggle__input:checked ~ .faq-featured-toggle__text { color: #b45309; }
-    .dark .faq-featured-toggle__input:checked ~ .faq-featured-toggle__text { color: #fcd34d; }
-    .faq-featured-toggle__hint {
-        margin: 0.4rem 0 0;
-        font-size: 0.72rem;
-        color: #94a3b8;
-        line-height: 1.4;
-    }
-    .dark .faq-featured-toggle__hint { color: #64748b; }
+                <div class="faq-modal-tip" role="note">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;color:#6366f1;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p>Members listed here can access the admin panel for this organization. Removing a member only detaches their membership.</p>
+                </div>
+            </div>
 
-    /* ── Tip block ── */
-    .faq-modal-tip {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.6rem;
-        margin: 1rem 0 0.5rem;
-        padding: 0.75rem 1rem;
-        border-radius: 0.75rem;
-        background: #eef2ff;
-        border: 1px solid #c7d2fe;
-        font-size: 0.8rem;
-        color: #4338ca;
-        line-height: 1.5;
-    }
-    .dark .faq-modal-tip {
-        background: rgb(99 102 241 / 0.1);
-        border-color: rgb(99 102 241 / 0.25);
-        color: #a5b4fc;
-    }
-    .faq-modal-tip p { margin: 0; }
-
-    /* ── Footer buttons ── */
-    .faq-modal-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        min-height: 2.35rem;
-        padding: 0 1.1rem;
-        border-radius: 0.75rem;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        cursor: pointer;
-        border: 1px solid transparent;
-        transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-    }
-    .faq-modal-btn--cancel {
-        background: #f1f5f9;
-        color: #475569;
-        border-color: #e2e8f0;
-    }
-    .dark .faq-modal-btn--cancel {
-        background: #1e293b;
-        color: #94a3b8;
-        border-color: #334155;
-    }
-    .faq-modal-btn--cancel:hover { background: #e2e8f0; }
-    .dark .faq-modal-btn--cancel:hover { background: #334155; }
-    .faq-modal-btn--save {
-        background: #4f46e5;
-        color: #fff;
-        border-color: #4f46e5;
-        box-shadow: 0 2px 8px rgb(79 70 229 / 0.3);
-    }
-    .faq-modal-btn--save:hover {
-        background: #4338ca;
-        border-color: #4338ca;
-        box-shadow: 0 4px 12px rgb(79 70 229 / 0.4);
-    }
-</style>
+            <footer class="ems-dialog__footer">
+                <button type="button" class="faq-modal-btn faq-modal-btn--cancel" data-member-modal-close>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Cancel
+                </button>
+                <button type="submit" class="faq-modal-btn faq-modal-btn--save" id="member-save-btn">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Save member
+                </button>
+            </footer>
+        </form>
+    </div>
+</div>

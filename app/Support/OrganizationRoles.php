@@ -8,26 +8,48 @@ final class OrganizationRoles
 
     public const ORG_ADMIN = 'org_admin';
 
-    public const EDITOR = 'editor';
-
-    public const VIEWER = 'viewer';
-
     public const CANDIDATE = 'candidate';
 
     /**
+     * Legacy roles retained for existing rows / labels only.
+     *
+     * @deprecated Prefer ADMIN, ORG_ADMIN, or CANDIDATE.
+     */
+    public const EDITOR = 'editor';
+
+    /**
+     * @deprecated Prefer CANDIDATE.
+     */
+    public const VIEWER = 'viewer';
+
+    /**
+     * Roles that may access the admin panel.
+     *
      * @return list<string>
      */
     public static function adminPanelRoles(): array
     {
-        return [self::ADMIN, self::ORG_ADMIN, self::EDITOR];
+        return [self::ADMIN, self::ORG_ADMIN];
     }
 
     /**
+     * Roles treated as exam candidates (frontend account area).
+     *
      * @return list<string>
      */
     public static function candidateRoles(): array
     {
-        return [self::VIEWER, self::CANDIDATE, self::EDITOR, self::ORG_ADMIN, self::ADMIN];
+        return [self::CANDIDATE];
+    }
+
+    /**
+     * All supported organization roles.
+     *
+     * @return list<string>
+     */
+    public static function all(): array
+    {
+        return [self::ADMIN, self::ORG_ADMIN, self::CANDIDATE];
     }
 
     public static function canAccessAdminPanel(?string $role): bool
@@ -43,10 +65,10 @@ final class OrganizationRoles
         return match ((string) $role) {
             self::ADMIN => 'Administrator',
             self::ORG_ADMIN => 'Organization Admin',
+            self::CANDIDATE => 'Candidate',
             self::EDITOR => 'Editor',
             self::VIEWER => 'Viewer',
-            self::CANDIDATE => 'Candidate',
-            default => 'Author',
+            default => 'Member',
         };
     }
 
@@ -58,8 +80,9 @@ final class OrganizationRoles
         return match ((string) $role) {
             self::ADMIN => 'Admin',
             self::ORG_ADMIN => 'Org Admin',
+            self::CANDIDATE => 'Candidate',
             self::EDITOR => 'Editor',
-            default => 'Author',
+            default => 'Member',
         };
     }
 
@@ -71,7 +94,6 @@ final class OrganizationRoles
         return [
             self::ADMIN => self::label(self::ADMIN),
             self::ORG_ADMIN => self::label(self::ORG_ADMIN),
-            self::EDITOR => self::label(self::EDITOR),
         ];
     }
 }

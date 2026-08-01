@@ -51,7 +51,9 @@ class OrganizationSettingsTest extends TestCase
             ->assertSee('Organization Settings')
             ->assertSee('Hero banners')
             ->assertSee('FAQs')
-            ->assertSee('Frequently asked questions');
+            ->assertSee('Frequently Asked Questions')
+            ->assertSee('Members')
+            ->assertSee('Organization members');
     }
 
     public function test_admin_can_update_organization_settings(): void
@@ -123,30 +125,32 @@ class OrganizationSettingsTest extends TestCase
         $this->assertSame('Examtube Academy', $this->organization->fresh()->name);
     }
 
-    public function test_admin_can_manage_hero_banners(): void
+    public function test_admin_can_update_existing_hero_banners_only(): void
     {
-        $create = $this->actingAs($this->admin)
-            ->postJson(route('admin.settings.organization.heroes.store'), [
-                'title' => 'Master every exam',
-                'subtitle' => 'Mock tests',
-                'description' => 'Practice with confidence',
-                'primary_cta_label' => 'Explore',
-                'primary_cta_url' => '/exams',
-                'status' => 'active',
-                'show_search' => true,
-                'sort_order' => 1,
-            ]);
-
-        $create->assertOk()->assertJsonPath('success', true);
-        $heroId = (int) $create->json('hero.id');
-        $this->assertDatabaseHas('hero_banners', [
-            'id' => $heroId,
-            'title' => 'Master every exam',
+        $hero = HeroBanner::query()->create([
             'organization_id' => $this->organization->id,
+            'title' => 'Master every exam',
+            'subtitle' => 'Mock tests',
+            'description' => 'Practice with confidence',
+            'primary_cta_label' => 'Explore',
+            'primary_cta_url' => '/exams',
+            'status' => 'active',
+            'show_search' => true,
+            'sort_order' => 1,
         ]);
 
         $this->actingAs($this->admin)
-            ->putJson(route('admin.settings.organization.heroes.update', $heroId), [
+            ->postJson(route('admin.settings.organization.heroes.store'), [
+                'title' => 'Should not create',
+                'status' => 'active',
+                'show_search' => true,
+                'sort_order' => 9,
+            ])
+            ->assertForbidden()
+            ->assertJsonPath('success', false);
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.settings.organization.heroes.update', $hero->id), [
                 'title' => 'Updated hero',
                 'status' => 'active',
                 'show_search' => false,
@@ -156,16 +160,181 @@ class OrganizationSettingsTest extends TestCase
             ->assertJsonPath('hero.title', 'Updated hero');
 
         $this->actingAs($this->admin)
-            ->deleteJson(route('admin.settings.organization.heroes.destroy', $heroId))
+            ->deleteJson(route('admin.settings.organization.heroes.destroy', $hero->id))
+            ->assertForbidden()
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseHas('hero_banners', [
+            'id' => $hero->id,
+            'title' => 'Updated hero',
+        ]);
+        $this->assertNull($hero->fresh()->deleted_at);
+    }
+
+    public function test_admin_can_manage_organization_members(): void
+    {
+        $create = $this->actingAs($this->admin)
+            ->postJson(route('admin.settings.organization.members.store'), [
+                'name' => 'Org Member',
+                'email' => 'org-member@example.test',
+                'password' => 'Password1!',
+                'status' => 'active',
+            ]);
+
+        $create->assertCreated()->assertJsonPath('success', true);
+        $memberId = (int) $create->json('member.id');
+
+        $this->assertDatabaseHas('user_organizations', [
+            'id' => $memberId,
+            'organization_id' => $this->organization->id,
+            'role' => OrganizationRoles::ORG_ADMIN,
+            'status' => 'active',
+        ]);
+
+        $this->assertSame(
+            OrganizationRoles::ORG_ADMIN,
+            $create->json('member.role')
+        );
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.settings.organization.members.index', [
+                'search' => 'org-member',
+                'status' => 'active',
+            ]))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data');
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.settings.organization.members.update', $memberId), [
+                'name' => 'Org Member Updated',
+                'email' => 'org-member@example.test',
+                'status' => 'inactive',
+            ])
+            ->assertOk()
+            ->assertJsonPath('member.status', 'inactive')
+            ->assertJsonPath('member.role', OrganizationRoles::ORG_ADMIN);
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('admin.settings.organization.members.destroy', $memberId))
             ->assertOk()
             ->assertJsonPath('success', true);
 
-        $this->assertSoftDeleted('hero_banners', ['id' => $heroId]);
+        $this->assertSoftDeleted('user_organizations', ['id' => $memberId]);
+    }
+
+    public function test_admin_can_invite_existing_user_without_resetting_password(): void
+    {
+        $existing = User::factory()->create([
+            'name' => 'Existing User',
+            'email' => 'existing-member@example.test',
+            'password' => 'OriginalPass1!',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.settings.organization.members.store'), [
+                'name' => 'Should Not Overwrite',
+                'email' => 'existing-member@example.test',
+                'status' => 'active',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('member.role', OrganizationRoles::ORG_ADMIN)
+            ->assertJsonPath('member.email', 'existing-member@example.test');
+
+        $existing->refresh();
+        $this->assertSame('Existing User', $existing->name);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('OriginalPass1!', $existing->password));
+
+        $this->assertDatabaseHas('user_organizations', [
+            'user_id' => $existing->id,
+            'organization_id' => $this->organization->id,
+            'role' => OrganizationRoles::ORG_ADMIN,
+        ]);
+    }
+
+    public function test_new_member_still_requires_password(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.settings.organization.members.store'), [
+                'name' => 'New Person',
+                'email' => 'brand-new@example.test',
+                'status' => 'active',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_admin_can_reinvite_soft_deleted_member_and_promote_candidate(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'promote-me@example.test',
+            'password' => 'OriginalPass1!',
+        ]);
+
+        $candidate = UserOrganization::query()->create([
+            'user_id' => $user->id,
+            'organization_id' => $this->organization->id,
+            'role' => OrganizationRoles::CANDIDATE,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.settings.organization.members.store'), [
+                'name' => 'Promote Me',
+                'email' => 'promote-me@example.test',
+                'status' => 'active',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('member.role', OrganizationRoles::ORG_ADMIN)
+            ->assertJsonPath('member.id', $candidate->id);
+
+        $this->assertSame(OrganizationRoles::ORG_ADMIN, $candidate->fresh()->role);
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('admin.settings.organization.members.destroy', $candidate->id))
+            ->assertOk();
+
+        $this->assertSoftDeleted('user_organizations', ['id' => $candidate->id]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.settings.organization.members.store'), [
+                'name' => 'Promote Me',
+                'email' => 'promote-me@example.test',
+                'status' => 'inactive',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('member.id', $candidate->id)
+            ->assertJsonPath('member.status', 'inactive')
+            ->assertJsonPath('member.role', OrganizationRoles::ORG_ADMIN);
+
+        $this->assertNull($candidate->fresh()->deleted_at);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('OriginalPass1!', $user->fresh()->password));
+    }
+
+    public function test_organization_settings_page_embeds_parseable_hero_payload(): void
+    {
+        HeroBanner::query()->create([
+            'organization_id' => $this->organization->id,
+            'title' => 'Hero "Quoted" Title',
+            'subtitle' => "Line with 'apostrophe'",
+            'status' => 'active',
+            'show_search' => true,
+            'sort_order' => 1,
+        ]);
+
+        $html = $this->actingAs($this->admin)
+            ->get(route('admin.settings.organization'))
+            ->assertOk()
+            ->assertSee('data-hero=', false)
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/data-hero="[^"]+"/', $html);
     }
 
     public function test_admin_can_manage_faqs_via_modal_api(): void
-    {
-        $category = \App\Models\Cms\FaqCategory::query()->create([
+    {        $category = \App\Models\Cms\FaqCategory::query()->create([
             'organization_id' => $this->organization->id,
             'name' => 'General',
             'slug' => 'general',

@@ -2273,14 +2273,18 @@ html.dark .et-prose code,
   font-weight: 600;
   font-size: 0.9rem;
 }
-.et-form input,
+.et-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
 .et-form textarea,
 .et-form select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   border: 1px solid var(--et-border);
-  background: var(--et-bg);
+  background: var(--et-surface, #fff);
   color: var(--et-text);
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
+  box-shadow: none;
 }
 .et-form textarea { min-height: 140px; resize: vertical; }
 
@@ -2451,24 +2455,31 @@ html.dark .et-prose code,
   color: var(--et-text-muted);
   font-size: 0.8rem;
 }
-.et-field input,
+.et-field input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
 .et-field textarea,
 .et-field select,
-.et-form input,
+.et-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
 .et-form textarea,
 .et-form select {
   width: 100%;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   border: 1px solid var(--et-border);
-  background: var(--et-bg);
+  background: var(--et-surface, #fff);
   color: var(--et-text);
   border-radius: 12px;
   padding: 0.8rem 0.95rem;
+  box-shadow: none;
+  outline: none;
   transition: border-color var(--et-transition), box-shadow var(--et-transition);
 }
-.et-field input:focus,
+.et-field input:not([type="checkbox"]):not([type="radio"]):focus,
 .et-field textarea:focus,
-.et-form input:focus,
-.et-form textarea:focus {
+.et-field select:focus,
+.et-form input:not([type="checkbox"]):not([type="radio"]):focus,
+.et-form textarea:focus,
+.et-form select:focus {
   outline: none;
   border-color: var(--et-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--et-accent) 22%, transparent);

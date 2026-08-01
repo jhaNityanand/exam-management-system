@@ -39,8 +39,6 @@
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/backend/tom-select-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/category-manager.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/blog-create.css') }}?v={{ filemtime(public_path('css/backend/blog-create.css')) }}">
@@ -52,7 +50,6 @@
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
     <script src="{{ asset('js/backend/gallery-editor.js') }}?v={{ filemtime(public_path('js/backend/gallery-editor.js')) }}"></script>
     <script src="{{ asset('js/components/tom-select-blur.js') }}"></script>

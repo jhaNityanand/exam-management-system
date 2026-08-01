@@ -1,9 +1,15 @@
-@php $exams = $page['featuredExams'] ?? collect(); @endphp
+@php
+    $exams = $page['featuredExams'] ?? collect();
+    $title = filled($section?->title) ? $section->title : 'Featured exams';
+    $subtitle = filled($section?->subtitle)
+        ? $section->subtitle
+        : 'Latest and popular exams to sharpen your preparation.';
+@endphp
 <section class="et-section et-section--alt" data-reveal>
     <div class="et-container">
         @include('frontend.components.section-heading', [
-            'title' => 'Practice Exams',
-            'subtitle' => 'Latest and popular exams to sharpen your preparation.',
+            'title' => $title,
+            'subtitle' => $subtitle,
             'actionUrl' => route('frontend.exams.index'),
             'actionLabel' => 'Show All Exams',
         ])

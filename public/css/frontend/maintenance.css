@@ -35,7 +35,7 @@
 .et-maintenance__card {
   position: relative;
   z-index: 1;
-  width: min(40rem, 100%);
+  width: min(42rem, 100%);
   padding: clamp(1.75rem, 4vw, 2.75rem);
   border-radius: 1.5rem;
   border: 1px solid rgba(226, 232, 240, 0.14);
@@ -94,11 +94,88 @@
   color: #cbd5e1;
   font-size: 1.02rem;
   line-height: 1.7;
-  white-space: pre-line;
+  text-align: left;
+}
+
+.et-maintenance__message > :first-child { margin-top: 0; }
+.et-maintenance__message > :last-child { margin-bottom: 0; }
+.et-maintenance__message p { margin: 0 0 0.85rem; }
+.et-maintenance__message a {
+  color: #5eead4;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.et-maintenance__message ul,
+.et-maintenance__message ol {
+  margin: 0 0 0.85rem;
+  padding-left: 1.25rem;
+}
+.et-maintenance__message li { margin: 0.2rem 0; }
+.et-maintenance__message strong { color: #f1f5f9; }
+
+.et-maintenance__countdown {
+  margin: 1.6rem auto 0;
+  width: min(100%, 28rem);
+}
+
+.et-maintenance__countdown-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.et-maintenance__countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.et-maintenance__countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.35rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  background: rgba(248, 250, 252, 0.06);
+}
+
+.et-maintenance__countdown-value {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+  line-height: 1;
+}
+
+.et-maintenance__countdown-caption {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.et-maintenance__countdown-done {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  background: rgba(45, 212, 191, 0.12);
+  color: #99f6e4;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .et-maintenance__eta {
-  margin: 1.5rem auto 0;
+  margin: 1rem auto 0;
   display: inline-flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -121,31 +198,9 @@
   font-size: 0.98rem;
 }
 
-.et-maintenance__contact {
-  margin-top: 1.4rem;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem 1.25rem;
-}
-
-.et-maintenance__contact a {
-  color: #5eead4;
-  font-weight: 600;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 160ms ease, color 160ms ease;
-}
-
-.et-maintenance__contact a:hover,
-.et-maintenance__contact a:focus-visible {
-  color: #99f6e4;
-  border-bottom-color: currentColor;
-}
-
 .et-maintenance__social {
   list-style: none;
-  margin: 1.5rem 0 0;
+  margin: 1.6rem 0 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
@@ -153,9 +208,10 @@
   gap: 0.55rem;
 }
 
-.et-maintenance__social a {
+.et-maintenance__social-link {
   display: inline-flex;
   align-items: center;
+  gap: 0.45rem;
   min-height: 2.35rem;
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
@@ -164,14 +220,21 @@
   color: #e2e8f0;
   font-size: 0.85rem;
   font-weight: 600;
+  text-decoration: none;
   transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
-.et-maintenance__social a:hover,
-.et-maintenance__social a:focus-visible {
+.et-maintenance__social-link:hover,
+.et-maintenance__social-link:focus-visible {
   background: rgba(45, 212, 191, 0.14);
   border-color: rgba(45, 212, 191, 0.35);
   transform: translateY(-1px);
+  color: #f8fafc;
+}
+
+.et-maintenance__social-icon {
+  display: inline-flex;
+  color: #5eead4;
 }
 
 .et-maintenance__footnote {
@@ -194,5 +257,32 @@
 @media (prefers-reduced-motion: reduce) {
   .et-maintenance__card {
     animation: none;
+  }
+
+  .et-maintenance__social-link {
+    transition: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .et-maintenance__countdown-grid {
+    gap: 0.4rem;
+  }
+
+  .et-maintenance__countdown-unit {
+    padding: 0.65rem 0.2rem;
+  }
+
+  .et-maintenance__social-link span:not(.et-maintenance__social-icon) {
+    display: none;
+  }
+
+  .et-maintenance__social-link {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-height: 0;
+    padding: 0;
+    justify-content: center;
+    border-radius: 999px;
   }
 }

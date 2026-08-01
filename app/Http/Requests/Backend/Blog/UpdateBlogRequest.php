@@ -54,7 +54,16 @@ class UpdateBlogRequest extends FormRequest
             'banner_ids' => ['nullable', 'array', 'max:12'],
             'banner_ids.*' => ['integer', $orgScoped('galleries')],
             'og_image_id' => ['nullable', 'integer', $orgScoped('galleries')],
-            'author_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'author_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('user_organizations', 'user_id')->where(function ($query) use ($orgId) {
+                    if ($orgId) {
+                        $query->where('organization_id', $orgId)->where('status', 'active');
+                    }
+                    $query->whereNull('deleted_at');
+                }),
+            ],
             'author_name' => ['nullable', 'string', 'max:255'],
             'status' => ['sometimes', Rule::in(array_keys(Blog::statuses()))],
             'published_at' => ['nullable', 'date'],

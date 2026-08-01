@@ -21,7 +21,7 @@
             <div>
                 <h1 class="text-lg font-semibold text-slate-900 dark:text-white">Generated SEO files</h1>
                 <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Sitemap index, robots.txt, RSS/Atom feeds, humans.txt, security.txt, and web app manifest.
+                    Sitemap index, image sitemap, robots.txt, RSS/Atom feeds, humans.txt, security.txt, and web app manifest.
                 </p>
                 <p class="mt-2 text-xs text-slate-500 dark:text-slate-400" id="seo-last-generated">
                     @if(!empty($status['last_generated_at']))

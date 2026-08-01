@@ -26,15 +26,27 @@ class DashboardService
             ->limit(8)
             ->get(['id', 'name']);
 
-        $attemptDays = collect(range(6, 0))->map(function (int $daysAgo) use ($orgId) {
+        $from = Carbon::today()->subDays(6)->startOfDay();
+        $to = Carbon::today()->endOfDay();
+
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $dayExpression = $driver === 'sqlite'
+            ? "strftime('%Y-%m-%d', created_at)"
+            : 'DATE(created_at)';
+
+        $countsByDay = ExamAttempt::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->whereHas('exam', fn ($q) => $q->where('organization_id', $orgId))
+            ->selectRaw("{$dayExpression} as day, COUNT(*) as aggregate")
+            ->groupBy('day')
+            ->pluck('aggregate', 'day');
+
+        $attemptDays = collect(range(6, 0))->map(function (int $daysAgo) use ($countsByDay) {
             $day = Carbon::today()->subDays($daysAgo);
 
             return [
                 'label' => $day->format('D'),
-                'count' => ExamAttempt::query()
-                    ->whereDate('created_at', $day)
-                    ->whereHas('exam', fn ($q) => $q->where('organization_id', $orgId))
-                    ->count(),
+                'count' => (int) ($countsByDay[$day->toDateString()] ?? 0),
             ];
         });
 
