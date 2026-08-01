@@ -26,8 +26,8 @@ class RegisteredUserController extends Controller
             404
         );
 
-        $redirect = $request->query('redirect');
-        if (is_string($redirect) && str_starts_with($redirect, url('/'))) {
+        $redirect = safe_intended_url($request->query('redirect'));
+        if ($redirect !== null) {
             $request->session()->put('url.intended', $redirect);
         }
 

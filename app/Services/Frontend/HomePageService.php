@@ -34,10 +34,12 @@ class HomePageService
         $randomBlogs = $this->randomBlogsWithBanner($orgId, 9);
         $randomNews = $this->randomNewsWithBanner($orgId, 9);
 
+        $banners = $this->banners($orgId);
+
         return [
             'sections' => $sections,
-            'banners' => $this->banners($orgId),
-            'heroSlides' => $this->heroSlides($orgId, $featuredExams, $randomBlogs, $randomNews, $randomQuestions),
+            'banners' => $banners,
+            'heroSlides' => $this->heroSlides($orgId, $featuredExams, $randomBlogs, $randomNews, $randomQuestions, $banners),
             'stats' => $this->stats($orgId),
             'featuredExams' => $featuredExams,
             'upcomingExams' => $this->upcomingExams($orgId),
@@ -101,11 +103,12 @@ class HomePageService
         Collection $exams,
         Collection $blogs,
         Collection $news,
-        Collection $questions
+        Collection $questions,
+        ?Collection $banners = null
     ): array {
         $slides = [];
 
-        foreach ($this->banners($orgId) as $banner) {
+        foreach ($banners ?? $this->banners($orgId) as $banner) {
             $slides[] = [
                 'badge' => $banner->badge_text,
                 'title' => $banner->title,

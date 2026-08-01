@@ -406,9 +406,16 @@ class SeoSiteGenerator
             'scope' => '/',
             'icons' => [
                 [
-                    'src' => $baseUrl.'/favicon.ico',
-                    'sizes' => '48x48',
-                    'type' => 'image/x-icon',
+                    'src' => $baseUrl.'/images/brand/favicon.svg',
+                    'sizes' => 'any',
+                    'type' => 'image/svg+xml',
+                    'purpose' => 'any',
+                ],
+                [
+                    'src' => $baseUrl.'/images/brand/admin-mark.svg',
+                    'sizes' => '512x512',
+                    'type' => 'image/svg+xml',
+                    'purpose' => 'any maskable',
                 ],
             ],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n";

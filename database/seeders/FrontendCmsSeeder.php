@@ -109,6 +109,11 @@ class FrontendCmsSeeder extends Seeder
         ]);
 
         app(\App\Services\Seo\SeoSiteGenerator::class)->seedDefaults($orgId);
+        try {
+            app(\App\Services\Seo\SeoSiteGenerator::class)->generate($orgId);
+        } catch (\Throwable) {
+            // SEO file generation is best-effort during seeding (filesystem/URL config).
+        }
 
         app(\App\Services\Settings\EmailConfigurationService::class)->seedDefaults($orgId, [
             'from_address' => \Database\Seeders\Support\SeederContact::EMAIL_SUPPORT,

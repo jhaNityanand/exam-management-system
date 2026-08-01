@@ -1,6 +1,6 @@
 @php
-    $brandName = 'Examtube.in';
-    $logoSrc = asset('images/brand/logo.svg');
+    $brandName = $siteBrand['name'] ?? 'Examtube.in';
+    $logoSrc = $siteBrand['logo_url'] ?? asset('images/brand/logo.svg');
     $currentSlug = request()->routeIs('frontend.pages.show') ? request()->route('slug') : null;
 
     $navItems = [

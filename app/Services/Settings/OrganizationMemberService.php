@@ -68,6 +68,12 @@ class OrganizationMemberService
                     ]);
                 }
 
+                if ($existing && ! $existing->trashed() && $existing->role === OrganizationRoles::ADMIN) {
+                    throw ValidationException::withMessages([
+                        'email' => 'This account already has administrator access and cannot be invited as a member.',
+                    ]);
+                }
+
                 // Existing accounts are only attached — never overwrite name/password/status.
                 // Reuse the unique user+org row: restore if soft-deleted, or promote candidate → org_admin.
                 if ($existing) {

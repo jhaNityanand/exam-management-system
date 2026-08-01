@@ -30,7 +30,7 @@ return [
     'max_video_kb' => (int) env('EDITOR_MAX_VIDEO_KB', 20480),     // 20 MB
     'max_file_kb' => (int) env('EDITOR_MAX_FILE_KB', 10240),       // 10 MB
 
-    'image_mimes' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
+    'image_mimes' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
     'video_mimes' => ['mp4', 'webm', 'ogg'],
     'file_mimes' => [
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',

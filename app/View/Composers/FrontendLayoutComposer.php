@@ -2,6 +2,7 @@
 
 namespace App\View\Composers;
 
+use App\Models\Gallery;
 use App\Services\Frontend\SiteCmsService;
 use Illuminate\View\View;
 
@@ -16,14 +17,20 @@ class FrontendLayoutComposer
         $faviconGalleryId = (int) ($settings['brand.favicon_gallery_id'] ?? 0);
         $ogGalleryId = (int) ($settings['brand.og_image_gallery_id'] ?? 0);
 
-        $logoUrl = $logoGalleryId > 0
-            ? \App\Models\Gallery::query()->find($logoGalleryId)?->file_url
-            : null;
-        $faviconUrl = $faviconGalleryId > 0
-            ? \App\Models\Gallery::query()->find($faviconGalleryId)?->file_url
-            : null;
+        $galleryIds = array_values(array_unique(array_filter([
+            $logoGalleryId,
+            $faviconGalleryId,
+            $ogGalleryId,
+        ])));
+
+        $galleries = $galleryIds === []
+            ? collect()
+            : Gallery::query()->whereIn('id', $galleryIds)->get()->keyBy('id');
+
+        $logoUrl = $logoGalleryId > 0 ? ($galleries->get($logoGalleryId)?->file_url) : null;
+        $faviconUrl = $faviconGalleryId > 0 ? ($galleries->get($faviconGalleryId)?->file_url) : null;
         $ogImageUrl = $ogGalleryId > 0
-            ? \App\Models\Gallery::query()->find($ogGalleryId)?->file_url
+            ? ($galleries->get($ogGalleryId)?->file_url)
             : ($settings['seo.og_image'] ?? null);
 
         $view->with([

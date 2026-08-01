@@ -45,7 +45,7 @@ return [
     'max_video_kb' => (int) env('GALLERY_MAX_VIDEO_KB', 51200),
     'max_file_kb' => (int) env('GALLERY_MAX_FILE_KB', 20480),
 
-    'image_mimes' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'],
+    'image_mimes' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
     'video_mimes' => ['mp4', 'webm', 'ogg', 'mov'],
     'document_mimes' => [
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',

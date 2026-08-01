@@ -57,6 +57,46 @@ if (! function_exists('user_can_access_admin')) {
     }
 }
 
+if (! function_exists('safe_intended_url')) {
+    /**
+     * Accept only same-origin absolute URLs or relative app paths for post-auth redirects.
+     */
+    function safe_intended_url(mixed $redirect): ?string
+    {
+        if (! is_string($redirect)) {
+            return null;
+        }
+
+        $redirect = trim($redirect);
+        if ($redirect === '' || str_starts_with($redirect, '//')) {
+            return null;
+        }
+
+        if (str_starts_with($redirect, '/') && ! str_starts_with($redirect, '//')) {
+            return $redirect;
+        }
+
+        $appUrl = rtrim((string) config('app.url'), '/');
+        if ($appUrl === '') {
+            return null;
+        }
+
+        $appHost = parse_url($appUrl, PHP_URL_HOST);
+        $redirectHost = parse_url($redirect, PHP_URL_HOST);
+        $redirectScheme = parse_url($redirect, PHP_URL_SCHEME);
+
+        if (! in_array($redirectScheme, ['http', 'https'], true) || ! $appHost || ! $redirectHost) {
+            return null;
+        }
+
+        if (strcasecmp((string) $appHost, (string) $redirectHost) !== 0) {
+            return null;
+        }
+
+        return $redirect;
+    }
+}
+
 if (! function_exists('site_setting')) {
     /**
      * Read a CMS site setting (group.key), e.g. site_setting('brand.site_name').

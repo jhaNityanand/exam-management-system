@@ -2,20 +2,17 @@
 
 namespace App\Http\Controllers\Backend;
 
-use App\Exceptions\AttemptQuestionShortageException;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Exam\StoreExamRequest;
 use App\Http\Requests\Backend\Exam\UpdateExamRequest;
 use App\Models\Exam;
-use App\Services\ExamAttemptService;
 use App\Services\ExamService;
 use App\Services\QuestionBankService;
 use App\Support\ExamFormOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ExamController extends Controller
@@ -25,7 +22,6 @@ class ExamController extends Controller
     public function __construct(
         protected ExamService $examService,
         protected QuestionBankService $questionBankService,
-        protected ExamAttemptService $examAttemptService,
     ) {}
 
     // ── List ──────────────────────────────────────────────────────────────────
@@ -202,33 +198,6 @@ class ExamController extends Controller
         return redirect()
             ->route('admin.exams.show', $exam)
             ->with('success', 'Exam updated successfully.');
-    }
-
-    /**
-     * Start or resume an attempt with stable assigned questions (no correct answers).
-     */
-    public function startAttempt(Request $request, $exam): \Illuminate\Http\JsonResponse
-    {
-        $examModel = $this->findExamOrFail((int) $exam);
-        abort_if($examModel->organization_id !== $this->currentOrgId(), 403, 'Unauthorized access to this exam.');
-
-        try {
-            $attempt = $this->examAttemptService->start($examModel, $request->user());
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => collect($e->errors())->flatten()->first() ?: 'Unable to start attempt.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (AttemptQuestionShortageException $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-                'shortages' => $e->report(),
-            ], 422);
-        }
-
-        return response()->json(
-            $this->examAttemptService->toCandidateStartPayload($attempt)
-        );
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────────

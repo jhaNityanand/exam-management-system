@@ -243,7 +243,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('exams/{exam}/attempts', [ExamAttemptListController::class, 'index'])->name('exams.attempts.index')->whereNumber('exam');
     Route::resource('exams', ExamController::class);
     Route::patch('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish');
-    Route::post('exams/{exam}/attempts/start', [ExamController::class, 'startAttempt'])->name('exams.attempts.start');
 
     // ── Blogs ─────────────────────────────────────────────────────────────────
     Route::prefix('blogs')->name('blogs.')->group(function () {

@@ -1,6 +1,6 @@
 @php
-    $brandName = 'Examtube.in';
-    $logoSrc = asset('images/brand/logo.svg');
+    $brandName = $siteBrand['name'] ?? 'Examtube.in';
+    $logoSrc = $siteBrand['logo_url'] ?? asset('images/brand/logo.svg');
     $year = (string) now()->year;
     $appVersion = config('app.version', '1.0.0');
 

@@ -23,7 +23,6 @@ class AppServiceProvider extends ServiceProvider
         View::composer([
             'backend.layouts.base',
             'backend.layouts.app',
-            'layouts.app',
             'layouts.guest',
         ], function ($view) {
             $user = auth()->user();

@@ -39,7 +39,11 @@ class CandidateService
         $query = User::query()
             ->where(function (Builder $q) use ($organizationId, $examId, $attemptsConstraint) {
                 if ($examId) {
-                    $q->whereHas('examAttempts', $attemptsConstraint);
+                    $q->whereHas('examAttempts', $attemptsConstraint)
+                        ->whereDoesntHave('organizations', function (Builder $org) use ($organizationId) {
+                            $org->where('organizations.id', $organizationId)
+                                ->whereIn('user_organizations.role', OrganizationRoles::adminPanelRoles());
+                        });
 
                     return;
                 }
@@ -47,7 +51,13 @@ class CandidateService
                 $q->whereHas('organizations', function (Builder $org) use ($organizationId) {
                     $org->where('organizations.id', $organizationId)
                         ->where('user_organizations.role', OrganizationRoles::CANDIDATE);
-                })->orWhereHas('examAttempts', $attemptsConstraint);
+                })->orWhere(function (Builder $inner) use ($organizationId, $attemptsConstraint) {
+                    $inner->whereHas('examAttempts', $attemptsConstraint)
+                        ->whereDoesntHave('organizations', function (Builder $org) use ($organizationId) {
+                            $org->where('organizations.id', $organizationId)
+                                ->whereIn('user_organizations.role', OrganizationRoles::adminPanelRoles());
+                        });
+                });
             })
             ->with(['profile', 'organizations' => function ($q) use ($organizationId) {
                 $q->where('organizations.id', $organizationId);
@@ -62,8 +72,8 @@ class CandidateService
     }
 
     /**
-     * Resolve a user for candidate admin screens: org member or anyone with
-     * attempts in this organization (admins/editors who sat an exam, etc.).
+     * Resolve a candidate for admin screens.
+     * Excludes users with admin-panel roles in this organization (prevents IDOR).
      */
     public function findForOrganization(int $candidateId, int $organizationId, bool $withTrashed = false): User
     {
@@ -71,9 +81,15 @@ class CandidateService
             ->when($withTrashed, fn (Builder $q) => $q->withTrashed())
             ->where(function (Builder $q) use ($organizationId) {
                 $q->whereHas('organizations', function (Builder $org) use ($organizationId) {
-                    $org->where('organizations.id', $organizationId);
-                })->orWhereHas('examAttempts', function (Builder $attempts) use ($organizationId) {
-                    $attempts->where('exam_attempts.organization_id', $organizationId);
+                    $org->where('organizations.id', $organizationId)
+                        ->where('user_organizations.role', OrganizationRoles::CANDIDATE);
+                })->orWhere(function (Builder $inner) use ($organizationId) {
+                    $inner->whereHas('examAttempts', function (Builder $attempts) use ($organizationId) {
+                        $attempts->where('exam_attempts.organization_id', $organizationId);
+                    })->whereDoesntHave('organizations', function (Builder $org) use ($organizationId) {
+                        $org->where('organizations.id', $organizationId)
+                            ->whereIn('user_organizations.role', OrganizationRoles::adminPanelRoles());
+                    });
                 });
             })
             ->with(['profile', 'organizations' => function ($q) use ($organizationId) {
@@ -85,6 +101,8 @@ class CandidateService
 
     public function setStatus(User $candidate, int $organizationId, string $status): User
     {
+        $this->assertMutableCandidate($candidate, $organizationId);
+
         $status = $status === 'active' ? 'active' : 'inactive';
         $candidate->status = $status;
         $candidate->save();
@@ -162,6 +180,8 @@ class CandidateService
      */
     public function update(User $candidate, array $data, int $organizationId): User
     {
+        $this->assertMutableCandidate($candidate, $organizationId);
+
         return DB::transaction(function () use ($candidate, $data, $organizationId) {
             $candidate->fill([
                 'name' => $data['name'],
@@ -227,6 +247,8 @@ class CandidateService
 
     public function delete(User $candidate): void
     {
+        $this->assertMutableCandidate($candidate);
+
         $candidate->delete();
 
         $this->logActivity(
@@ -276,6 +298,8 @@ class CandidateService
 
     public function resetPassword(User $candidate, ?string $password = null): string
     {
+        $this->assertMutableCandidate($candidate);
+
         $plain = $password ?: Str::password(12);
         $candidate->password = $plain;
         $candidate->save();
@@ -545,6 +569,22 @@ class CandidateService
                 ->filter()
                 ->all(),
         ];
+    }
+
+    protected function assertMutableCandidate(User $candidate, ?int $organizationId = null): void
+    {
+        $query = $candidate->organizations()
+            ->whereIn('user_organizations.role', OrganizationRoles::adminPanelRoles());
+
+        if ($organizationId !== null) {
+            $query->where('organizations.id', $organizationId);
+        }
+
+        abort_if(
+            $query->exists(),
+            403,
+            'Administrator accounts cannot be managed from the Candidates module.'
+        );
     }
 
     protected function assertSnapshotBelongsToCandidate(User $candidate, ExamAttemptSnapshot $snapshot): void

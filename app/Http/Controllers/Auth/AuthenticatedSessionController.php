@@ -16,8 +16,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(Request $request): View
     {
-        $redirect = $request->query('redirect');
-        if (is_string($redirect) && str_starts_with($redirect, url('/'))) {
+        $redirect = safe_intended_url($request->query('redirect'));
+        if ($redirect !== null) {
             $request->session()->put('url.intended', $redirect);
         }
 
