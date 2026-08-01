@@ -1,0 +1,74 @@
+/* Shared admin detail field display */
+.detail-field {
+    min-width: 0;
+}
+
+.detail-field__label {
+    display: block;
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.dark .detail-field__label {
+    color: #94a3b8;
+}
+
+.detail-field__value {
+    display: block;
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.dark .detail-field__value {
+    color: #e2e8f0;
+}
+
+.detail-field__value--empty {
+    font-weight: 600;
+    font-style: italic;
+    color: #94a3b8;
+}
+
+.dark .detail-field__value--empty {
+    color: #64748b;
+}
+
+.detail-field__link {
+    color: #4f46e5;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.dark .detail-field__link {
+    color: #818cf8;
+}
+
+.detail-field__image {
+    display: block;
+    width: 100%;
+    max-width: 18rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    object-fit: cover;
+}
+
+.dark .detail-field__image {
+    border-color: #334155;
+}
+
+.detail-field-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .detail-field-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

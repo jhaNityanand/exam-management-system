@@ -75,7 +75,7 @@
             </div>
             <div>
                 <label for="gender" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Gender</label>
-                <select id="gender" name="gender" class="panel-input mt-1 block w-full">
+                <select id="gender" name="gender" class="panel-input mt-1 block w-full" data-placeholder="Select gender">
                     <option value="">Select gender</option>
                     @foreach (['male' => 'Male', 'female' => 'Female', 'other' => 'Other', 'prefer_not_to_say' => 'Prefer not to say'] as $value => $label)
                         <option value="{{ $value }}" @selected(old('gender', $profile?->gender) === $value)>{{ $label }}</option>
@@ -167,8 +167,8 @@
             </div>
             <div>
                 <label for="country" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Country</label>
-                <select id="country" name="country" class="panel-input mt-1 block w-full">
-                    <option value="">Choose country</option>
+                <select id="country" name="country" class="panel-input mt-1 block w-full" data-placeholder="Select country">
+                    <option value="">Select country</option>
                     @foreach ($countries as $code => $label)
                         <option value="{{ $code }}" @selected(old('country', $profile?->country) === $code)>{{ $label }}</option>
                     @endforeach

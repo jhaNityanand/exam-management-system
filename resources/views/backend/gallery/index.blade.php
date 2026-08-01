@@ -77,49 +77,51 @@
                     <input type="search" id="gallery-search" class="panel-input w-full pl-9 text-sm" placeholder="Search by name, alt text…">
                 </div>
                 <div class="gallery-toolbar__filters list-toolbar__controls">
-                    <select id="gallery-kind" class="panel-input text-sm w-auto min-w-[8rem]">
-                        <option value="all">All types</option>
-                        <option value="image">Images</option>
-                        <option value="video">Videos</option>
-                        <option value="document">Documents</option>
-                        <option value="file">Other</option>
-                    </select>
-                    <select id="gallery-sort" class="panel-input text-sm w-auto min-w-[9rem]">
-                        <option value="newest">Newest first</option>
-                        <option value="oldest">Oldest first</option>
-                        <option value="name_asc">Name A–Z</option>
-                        <option value="name_desc">Name Z–A</option>
-                        <option value="size_desc">Largest</option>
-                        <option value="size_asc">Smallest</option>
-                    </select>
-                    <select id="gallery-per-page" class="panel-input text-sm w-auto min-w-[7rem]">
-                        @foreach ($perPageOptions as $n)
-                            <option value="{{ $n }}" @selected($n == 24)>{{ $n }} / page</option>
-                        @endforeach
-                    </select>
+                    <div class="list-toolbar__per-page">
+                        <select id="gallery-per-page" class="panel-input per-page-select w-full text-sm" data-disable-search data-placeholder="Select page size">
+                            @foreach ($perPageOptions as $n)
+                                <option value="{{ $n }}" @selected($n == 24)>{{ $n }} / page</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <x-list-view-tabs
                         id="gallery-trash-toggle"
                         active-label="Library"
                         aria-label="Library or bin"
                     />
+                    <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/>
+                        </svg>
+                        <span>Filters</span>
+                    </button>
                 </div>
             </div>
         </div>
 
         {{-- Bulk bar --}}
-        <div id="gallery-bulk-bar" class="gallery-bulk-bar" hidden>
-            <div class="gallery-bulk-bar__inner">
-                <label class="gallery-bulk-bar__select">
-                    <input type="checkbox" id="gallery-select-all" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span><span id="gallery-selected-count">0</span> selected</span>
-                </label>
-                <div class="flex flex-wrap gap-2" id="gallery-bulk-actions-active">
-                    <button type="button" data-bulk="delete" class="gallery-bulk-btn gallery-bulk-btn--danger">Move to bin</button>
+        <div id="gallery-bulk-bar" class="list-bulk-bar gallery-bulk-bar" hidden>
+            <div class="list-bulk-bar__inner gallery-bulk-bar__inner">
+                <div class="list-bulk-bar__meta">
+                    <label class="list-bulk-bar__select-all gallery-bulk-bar__select">
+                        <input type="checkbox" id="gallery-select-all" class="list-select-all rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" aria-label="Select all gallery items">
+                        <span class="list-bulk-bar__badge" aria-live="polite">
+                            <span class="list-bulk-bar__count" id="gallery-selected-count">0</span>
+                            <span class="list-bulk-bar__label">selected</span>
+                        </span>
+                    </label>
                 </div>
-                <div class="flex flex-wrap gap-2" id="gallery-bulk-actions-bin" hidden>
-                    <button type="button" data-bulk="restore" class="gallery-bulk-btn">Restore</button>
+                <div class="list-bulk-bar__actions">
+                    <div class="list-bulk-bar__group" id="gallery-bulk-actions-active">
+                        <button type="button" data-bulk="delete" class="list-bulk-btn list-bulk-btn--danger gallery-bulk-btn gallery-bulk-btn--danger">Move to Bin</button>
+                    </div>
+                    <div class="list-bulk-bar__group" id="gallery-bulk-actions-bin" hidden>
+                        <button type="button" data-bulk="restore" class="list-bulk-btn gallery-bulk-btn">Restore</button>
+                    </div>
                 </div>
-                <button type="button" id="gallery-clear-selection" class="gallery-bulk-btn gallery-bulk-btn--ghost">Clear</button>
+                <div class="list-bulk-bar__aside">
+                    <button type="button" id="gallery-clear-selection" class="list-bulk-btn list-bulk-btn--ghost gallery-bulk-btn gallery-bulk-btn--ghost" data-list-clear-selection>Clear selection</button>
+                </div>
             </div>
         </div>
 
@@ -238,17 +240,46 @@
 
     @include('backend.partials.image-editor-modal')
 </div>
+
+<x-filter-drawer
+    title="Filter Gallery"
+    subtitle="Narrow media by type and sort order"
+>
+    <div class="filter-group">
+        <label for="gallery-kind" class="filter-label">Media type</label>
+        <select id="gallery-kind" name="filters[kind]" class="panel-input w-full text-sm" data-disable-search data-placeholder="Select media type">
+            <option value="all">All types</option>
+            <option value="image">Images</option>
+            <option value="video">Videos</option>
+            <option value="document">Documents</option>
+            <option value="file">Other</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="gallery-sort" class="filter-label">Sort by</label>
+        <select id="gallery-sort" name="filters[sort]" class="panel-input w-full text-sm" data-disable-search data-placeholder="Select sort order">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="name_asc">Name A–Z</option>
+            <option value="name_desc">Name Z–A</option>
+            <option value="size_desc">Largest</option>
+            <option value="size_asc">Smallest</option>
+        </select>
+    </div>
+</x-filter-drawer>
 @endsection
 
 @push('styles')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
     <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+    <script src="{{ versioned_asset('js/components/filter-drawer.js') }}"></script>
     <script src="{{ asset('js/backend/gallery-editor.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/backend/gallery.js') }}?v={{ time() }}"></script>
 @endpush

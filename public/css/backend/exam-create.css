@@ -2834,9 +2834,11 @@ span.flatpickr-weekday,
 }
 
 .question-accordion[data-expanded="true"] .question-accordion__panel[data-role="accordion-panel"] {
-    max-height: 600px;
+    max-height: none;
     opacity: 1;
     transform: translateY(0);
+    overflow: visible;
+    padding-bottom: 1.15rem;
 }
 
 /* When the panel is hidden attribute is present, avoid layout shift */
@@ -2913,13 +2915,13 @@ span.flatpickr-weekday,
 
 .question-accordion__list {
     margin: 0;
-    padding: 0;
+    padding: 0 0.25rem 1rem 0;
     display: grid;
     gap: 0;
     list-style: none;
-    max-height: 400px;
+    max-height: min(70vh, 720px);
     overflow-y: auto;
-    padding-right: 0.25rem;
+    scroll-padding-bottom: 1rem;
 }
 
 .question-accordion__item + .question-accordion__item {

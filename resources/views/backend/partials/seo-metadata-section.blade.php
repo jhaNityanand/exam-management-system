@@ -157,7 +157,7 @@
                 <div class="qcat-seo-row qcat-seo-row--two-cols">
                     <div class="qcat-meta-field col-lg-6">
                         <label class="qcat-meta-label" for="meta-robots">Robots</label>
-                        <select id="meta-robots" name="robots" class="qcat-meta-input">
+                        <select id="meta-robots" name="robots" class="panel-input qcat-meta-input" data-no-search aria-label="Robots directive">
                             @foreach (['index,follow', 'noindex,follow', 'index,nofollow', 'noindex,nofollow'] as $robots)
                                 <option value="{{ $robots }}" {{ old('robots', $seoItem?->robots ?? 'index,follow') === $robots ? 'selected' : '' }}>{{ $robots }}</option>
                             @endforeach

@@ -49,8 +49,8 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div>
             <label for="news_category_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
-            <select id="news_category_id" name="news_category_id" class="mt-1 block w-full">
-                <option value="">None</option>
+            <select id="news_category_id" name="news_category_id" class="panel-input mt-1 block w-full" data-placeholder="Select category" data-option-style="hierarchy" data-ems-select="manual">
+                <option value="">Select category</option>
                 @foreach ($categories as $cat)
                     <option value="{{ $cat->id }}"
                         data-level="{{ $cat->depth }}"
@@ -64,7 +64,7 @@
         </div>
         <div>
             <label for="status" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
-            <select id="status" name="status" class="mt-1 block w-full">
+            <select id="status" name="status" class="panel-input mt-1 block w-full" data-placeholder="Select status" data-no-search data-ems-select="manual">
                 @foreach ($statuses as $key => $label)
                     <option value="{{ $key }}" {{ old('status', $news?->status ?? 'published') == $key ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
@@ -73,7 +73,7 @@
         </div>
         <div>
             <label for="visibility" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Visibility</label>
-            <select id="visibility" name="visibility" class="mt-1 block w-full">
+            <select id="visibility" name="visibility" class="panel-input mt-1 block w-full" data-placeholder="Select visibility" data-no-search data-ems-select="manual">
                 @foreach ($visibilities as $key => $label)
                     <option value="{{ $key }}" {{ old('visibility', $news?->visibility ?? 'public') == $key ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
@@ -166,8 +166,8 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
             <label for="author_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Author</label>
-            <select id="author_id" name="author_id" class="mt-1 block w-full">
-                <option value="">Select author…</option>
+            <select id="author_id" name="author_id" class="panel-input mt-1 block w-full" data-placeholder="Select author" data-ems-select="manual">
+                <option value="">Select author</option>
                 @foreach ($authors as $author)
                     <option value="{{ $author->id }}"
                         data-name="{{ $author->name }}"

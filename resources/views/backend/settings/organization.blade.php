@@ -689,7 +689,7 @@
                     </div>
                     <div class="faq-toolbar__field">
                         <label for="faq_filter_status" class="faq-toolbar__label">Status</label>
-                        <select id="faq_filter_status" name="status" class="faq-toolbar__select">
+                        <select id="faq_filter_status" name="status" class="faq-toolbar__select" data-placeholder="Select status">
                             <option value="">All statuses</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
@@ -697,7 +697,7 @@
                     </div>
                     <div class="faq-toolbar__field faq-toolbar__field--category">
                         <label for="faq_filter_category" class="faq-toolbar__label">Category</label>
-                        <select id="faq_filter_category" name="category_id" class="faq-toolbar__select">
+                        <select id="faq_filter_category" name="category_id" class="faq-toolbar__select" data-placeholder="Select category">
                             <option value="">All categories</option>
                             @foreach($faqCategories as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -811,7 +811,7 @@
                     </div>
                     <div class="faq-toolbar__field">
                         <label for="member_filter_status" class="faq-toolbar__label">Status</label>
-                        <select id="member_filter_status" name="status" class="faq-toolbar__select">
+                        <select id="member_filter_status" name="status" class="faq-toolbar__select" data-placeholder="Select status">
                             <option value="">All statuses</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>

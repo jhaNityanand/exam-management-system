@@ -212,3 +212,72 @@ html, body {
 [data-sidebar-collapsed="1"] [data-sidebar-avatar-details] { display: none !important; }
 [data-sidebar-collapsed="1"] .sidebar-link { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
 [data-sidebar-collapsed="1"] .sidebar-link svg { margin-right: 0; }
+
+/* Backend Back to Top */
+.admin-back-top {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1.15rem, env(safe-area-inset-bottom));
+    z-index: 70;
+    display: inline-grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid #c7d2fe;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #4338ca;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition:
+        opacity 220ms ease,
+        transform 220ms ease,
+        visibility 220ms ease,
+        background-color 180ms ease,
+        color 180ms ease,
+        border-color 180ms ease;
+}
+
+.admin-back-top.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.admin-back-top:hover {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+    color: #3730a3;
+}
+
+.admin-back-top:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+}
+
+.dark .admin-back-top {
+    border-color: rgb(129 140 248 / 0.45);
+    background: #0f172a;
+    color: #c7d2fe;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+}
+
+.dark .admin-back-top:hover {
+    background: #1e1b4b;
+    border-color: #818cf8;
+    color: #e0e7ff;
+}
+
+@media (max-width: 640px) {
+    .admin-back-top {
+        right: max(0.75rem, env(safe-area-inset-right));
+        bottom: max(0.85rem, env(safe-area-inset-bottom));
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}

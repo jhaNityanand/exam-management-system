@@ -12,9 +12,16 @@
         if (select.dataset.placeholder) {
             return safeTrim(select.dataset.placeholder);
         }
+        if (select.getAttribute('aria-label')) {
+            return safeTrim(select.getAttribute('aria-label'));
+        }
 
         const firstOption = select.options[0];
-        return firstOption ? safeTrim(firstOption.textContent) : 'Select option';
+        if (firstOption && firstOption.disabled && firstOption.value === '') {
+            return safeTrim(firstOption.textContent) || (global.EmsSelectConfig?.placeholder || 'Select an option');
+        }
+
+        return global.EmsSelectConfig?.placeholder || 'Select an option';
     }
 
     function ensureSelectId(select, index) {
@@ -91,8 +98,19 @@
         const isMultiple = select.multiple || select.dataset.selectMode === 'multiple';
         const maxItems = isMultiple ? resolvePositiveInt(select.dataset.maxItems) : 1;
         const hierarchyOptions = select.dataset.optionStyle === 'hierarchy';
+        const searchMin = Number(global.EmsSelectConfig?.searchMinOptions) || 8;
+        const optionCount = Array.prototype.filter.call(select.options || [], (option) => {
+            if (option.disabled && option.value === '') return false;
+            return true;
+        }).length;
+        const forceSearch = select.dataset.forceSearch != null || select.hasAttribute('data-force-search');
+        const disableSearch = select.dataset.disableSearch != null
+            || select.hasAttribute('data-disable-search')
+            || select.dataset.noSearch != null
+            || select.hasAttribute('data-no-search');
+        const includeSearch = forceSearch || (!disableSearch && optionCount >= searchMin);
 
-        return {
+        const config = {
             create: false,
             allowEmptyOption: true,
             maxItems: isMultiple ? (maxItems ?? null) : 1,
@@ -101,7 +119,9 @@
             hideSelected: !isMultiple,
             closeAfterSelect: !isMultiple,
             dropdownParent: 'body',
-            plugins: isMultiple ? ['remove_button'] : ['dropdown_input'],
+            plugins: isMultiple
+                ? (includeSearch ? ['remove_button', 'dropdown_input'] : ['remove_button'])
+                : (includeSearch ? ['dropdown_input'] : []),
             sortField: [{ field: '$order' }],
             searchField: ['text'],
             placeholder: getPlaceholder(select),
@@ -140,9 +160,23 @@
             },
             onDropdownOpen() {
                 this.dropdown.classList.add('is-open');
+                if (typeof global.EmsFilterDrawer?.positionTomSelectDropdown === 'function') {
+                    global.EmsFilterDrawer.positionTomSelectDropdown(this);
+                } else if (typeof global.EmsSearchableSelect?.positionDropdown === 'function') {
+                    global.EmsSearchableSelect.positionDropdown(this);
+                }
             },
             onDropdownClose() {
                 this.dropdown.classList.remove('is-open');
+                this.dropdown.classList.remove('ts-dropdown--up');
+                this.dropdown.style.top = '';
+                this.dropdown.style.bottom = '';
+                this.dropdown.style.maxHeight = '';
+                const content = this.dropdown_content
+                    || this.dropdown?.querySelector?.('.ts-dropdown-content');
+                if (content) {
+                    content.style.maxHeight = '';
+                }
             },
             onChange(value) {
                 if (isMultiple) {
@@ -159,6 +193,14 @@
                 }, 0);
             },
         };
+
+        if (!includeSearch) {
+            config.plugins = (config.plugins || []).filter((plugin) => plugin !== 'dropdown_input');
+            config.searchField = ['text'];
+            config.score = () => () => 1;
+        }
+
+        return config;
     }
 
     function initOne(select, index) {

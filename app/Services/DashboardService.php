@@ -2,15 +2,24 @@
 
 namespace App\Services;
 
+use App\Models\Blog;
+use App\Models\BlogCategory;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\ExamCategory;
+use App\Models\ExamPayment;
+use App\Models\Gallery;
+use App\Models\News;
+use App\Models\NewsCategory;
 use App\Models\Organization;
 use App\Models\Question;
 use App\Models\QuestionCategory;
 use App\Models\User;
+use App\Support\OrganizationRoles;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardService
 {
@@ -19,6 +28,14 @@ class DashboardService
      */
     public function workspaceStats(int $orgId): array
     {
+        $driver = DB::connection()->getDriverName();
+        $dayExpression = $driver === 'sqlite'
+            ? "strftime('%Y-%m-%d', created_at)"
+            : 'DATE(created_at)';
+        $monthExpression = $driver === 'sqlite'
+            ? "strftime('%Y-%m', created_at)"
+            : "DATE_FORMAT(created_at, '%Y-%m')";
+
         $topCategories = QuestionCategory::query()
             ->forOrg($orgId)
             ->withCount('questions')
@@ -26,16 +43,11 @@ class DashboardService
             ->limit(8)
             ->get(['id', 'name']);
 
-        $from = Carbon::today()->subDays(6)->startOfDay();
-        $to = Carbon::today()->endOfDay();
-
-        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
-        $dayExpression = $driver === 'sqlite'
-            ? "strftime('%Y-%m-%d', created_at)"
-            : 'DATE(created_at)';
+        $attemptFrom = Carbon::today()->subDays(6)->startOfDay();
+        $attemptTo = Carbon::today()->endOfDay();
 
         $countsByDay = ExamAttempt::query()
-            ->whereBetween('created_at', [$from, $to])
+            ->whereBetween('created_at', [$attemptFrom, $attemptTo])
             ->whereHas('exam', fn ($q) => $q->where('organization_id', $orgId))
             ->selectRaw("{$dayExpression} as day, COUNT(*) as aggregate")
             ->groupBy('day')
@@ -50,48 +62,135 @@ class DashboardService
             ];
         });
 
+        $examStatusCounts = [
+            'draft' => Exam::query()->forOrg($orgId)->where('status', 'draft')->count(),
+            'published' => Exam::query()->forOrg($orgId)->where('status', 'published')->count(),
+            'active' => Exam::query()->forOrg($orgId)->where('status', 'active')->count(),
+            'other' => Exam::query()->forOrg($orgId)->whereNotIn('status', ['draft', 'published', 'active'])->count(),
+        ];
+
+        $totalBlogs = Blog::query()->forOrg($orgId)->count();
+        $totalNews = News::query()->forOrg($orgId)->count();
+        $totalQuestions = Question::query()->forOrg($orgId)->count();
+        $totalExams = Exam::query()->forOrg($orgId)->count();
+        $totalGallery = Gallery::query()->forOrg($orgId)->where(function ($q) {
+            $q->where('kind', 'image')->orWhere('mime_type', 'like', 'image/%');
+        })->count();
+
+        $roleCounts = DB::table('user_organizations')
+            ->where('organization_id', $orgId)
+            ->where('status', 'active')
+            ->select('role', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('role')
+            ->pluck('aggregate', 'role');
+
+        $candidateCount = (int) ($roleCounts[OrganizationRoles::CANDIDATE] ?? 0)
+            + (int) ($roleCounts[OrganizationRoles::VIEWER] ?? 0);
+        $orgMemberCount = (int) ($roleCounts[OrganizationRoles::ADMIN] ?? 0)
+            + (int) ($roleCounts[OrganizationRoles::ORG_ADMIN] ?? 0)
+            + (int) ($roleCounts[OrganizationRoles::EDITOR] ?? 0);
+
+        $growthMonths = collect(range(5, 0))->map(fn (int $ago) => Carbon::today()->startOfMonth()->subMonths($ago));
+        $monthKeys = $growthMonths->map(fn (Carbon $m) => $m->format('Y-m'));
+
+        $contentGrowth = [
+            'questions' => $this->monthlyCounts(Question::query()->forOrg($orgId), $monthExpression, $monthKeys),
+            'blogs' => $this->monthlyCounts(Blog::query()->forOrg($orgId), $monthExpression, $monthKeys),
+            'news' => $this->monthlyCounts(News::query()->forOrg($orgId), $monthExpression, $monthKeys),
+        ];
+
+        $candidateGrowth = $this->monthlyCounts(
+            DB::table('user_organizations')
+                ->where('organization_id', $orgId)
+                ->whereIn('role', OrganizationRoles::candidateRoles()),
+            $monthExpression,
+            $monthKeys,
+            'created_at'
+        );
+
         return [
-            'total_questions' => Question::query()->forOrg($orgId)->count(),
-            'total_categories' => QuestionCategory::query()->forOrg($orgId)->count(),
+            'total_questions' => $totalQuestions,
+            'total_question_categories' => QuestionCategory::query()->forOrg($orgId)->count(),
+            'total_exams' => $totalExams,
             'total_exam_categories' => ExamCategory::query()->forOrg($orgId)->count(),
-            'total_members' => User::query()
-                ->whereHas('organizations', fn ($q) => $q->where('organizations.id', $orgId))
-                ->count(),
-            'total_exams' => Exam::query()->forOrg($orgId)->count(),
-            'active_exams' => Exam::query()
+            'total_blogs' => $totalBlogs,
+            'total_blog_categories' => BlogCategory::query()->forOrg($orgId)->count(),
+            'total_news' => $totalNews,
+            'total_news_categories' => NewsCategory::query()->forOrg($orgId)->count(),
+            'total_gallery_images' => $totalGallery,
+            'total_gallery_categories' => (int) Gallery::query()
                 ->forOrg($orgId)
-                ->whereIn('status', ['active', 'published'])
-                ->count(),
-            'draft_exams' => Exam::query()->forOrg($orgId)->where('status', 'draft')->count(),
-            'published_exams' => Exam::query()->forOrg($orgId)->where('status', 'published')->count(),
-            'recent_members' => User::query()
-                ->whereHas('organizations', fn ($q) => $q->where('organizations.id', $orgId))
-                ->latest()
-                ->limit(5)
-                ->get(['id', 'name', 'email', 'created_at']),
-            'recent_exams' => Exam::query()
-                ->forOrg($orgId)
-                ->latest()
-                ->limit(5)
-                ->get(['id', 'title', 'status', 'duration', 'pass_percentage', 'updated_at']),
-            'category_chart' => [
-                'labels' => $topCategories->pluck('name')->all(),
-                'values' => $topCategories->pluck('questions_count')->all(),
-            ],
-            'attempts_chart' => [
-                'labels' => $attemptDays->pluck('label')->all(),
-                'values' => $attemptDays->pluck('count')->all(),
-            ],
-            'exam_chart' => [
-                'labels' => ['Draft', 'Published', 'Active', 'Other'],
-                'values' => [
-                    Exam::query()->forOrg($orgId)->where('status', 'draft')->count(),
-                    Exam::query()->forOrg($orgId)->where('status', 'published')->count(),
-                    Exam::query()->forOrg($orgId)->where('status', 'active')->count(),
-                    Exam::query()->forOrg($orgId)->whereNotIn('status', ['draft', 'published', 'active'])->count(),
+                ->whereNotNull('folder')
+                ->where('folder', '!=', '')
+                ->distinct()
+                ->count('folder'),
+            'total_candidates' => $candidateCount,
+            'total_organization_members' => $orgMemberCount,
+            'total_organizations' => Organization::query()->count(),
+            'total_notifications' => 0,
+            'total_transactions' => Schema::hasTable('exam_payments')
+                ? ExamPayment::query()->where('organization_id', $orgId)->count()
+                : 0,
+            'active_exams' => $examStatusCounts['published'] + $examStatusCounts['active'],
+            'charts' => [
+                'questions_by_category' => [
+                    'labels' => $topCategories->pluck('name')->all(),
+                    'values' => $topCategories->pluck('questions_count')->all(),
+                ],
+                'exam_attempts' => [
+                    'labels' => $attemptDays->pluck('label')->all(),
+                    'values' => $attemptDays->pluck('count')->all(),
+                ],
+                'exams_by_status' => [
+                    'labels' => ['Draft', 'Published', 'Active', 'Other'],
+                    'values' => array_values($examStatusCounts),
+                ],
+                'blog_vs_news' => [
+                    'labels' => ['Blogs', 'News'],
+                    'values' => [$totalBlogs, $totalNews],
+                ],
+                'members_by_role' => [
+                    'labels' => ['Admin', 'Org Admin', 'Candidate'],
+                    'values' => [
+                        (int) ($roleCounts[OrganizationRoles::ADMIN] ?? 0),
+                        (int) ($roleCounts[OrganizationRoles::ORG_ADMIN] ?? 0),
+                        $candidateCount,
+                    ],
+                ],
+                'candidate_registrations' => [
+                    'labels' => $growthMonths->map(fn (Carbon $m) => $m->format('M Y'))->all(),
+                    'values' => $candidateGrowth,
+                ],
+                'monthly_content_growth' => [
+                    'labels' => $growthMonths->map(fn (Carbon $m) => $m->format('M Y'))->all(),
+                    'datasets' => [
+                        ['label' => 'Questions', 'values' => $contentGrowth['questions']],
+                        ['label' => 'Blogs', 'values' => $contentGrowth['blogs']],
+                        ['label' => 'News', 'values' => $contentGrowth['news']],
+                    ],
+                ],
+                'content_distribution' => [
+                    'labels' => ['Questions', 'Exams', 'Blogs', 'News', 'Gallery'],
+                    'values' => [$totalQuestions, $totalExams, $totalBlogs, $totalNews, $totalGallery],
                 ],
             ],
         ];
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder  $query
+     * @param  \Illuminate\Support\Collection<int, string>  $monthKeys
+     * @return list<int>
+     */
+    protected function monthlyCounts($query, string $monthExpression, $monthKeys, string $dateColumn = 'created_at'): array
+    {
+        $raw = (clone $query)
+            ->where($dateColumn, '>=', Carbon::today()->startOfMonth()->subMonths(5)->startOfDay())
+            ->selectRaw("{$monthExpression} as month_key, COUNT(*) as aggregate")
+            ->groupBy('month_key')
+            ->pluck('aggregate', 'month_key');
+
+        return $monthKeys->map(fn (string $key) => (int) ($raw[$key] ?? 0))->values()->all();
     }
 
     public function adminStats(): array

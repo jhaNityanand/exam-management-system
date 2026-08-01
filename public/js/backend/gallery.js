@@ -1056,12 +1056,26 @@
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => loadItems(1), 280);
     });
-    els.kind.addEventListener('change', () => {
-        syncStatFilters();
-        loadItems(1);
-    });
-    els.sort.addEventListener('change', () => loadItems(1));
     els.perPage.addEventListener('change', () => loadItems(1));
+
+    window.EmsFilterDrawer?.bindShell({
+        onApply: () => {
+            syncStatFilters();
+            loadItems(1);
+        },
+        onReset: () => {
+            if (els.kind) {
+                if (els.kind.tomselect) els.kind.tomselect.setValue('all', true);
+                else els.kind.value = 'all';
+            }
+            if (els.sort) {
+                if (els.sort.tomselect) els.sort.tomselect.setValue('newest', true);
+                else els.sort.value = 'newest';
+            }
+            syncStatFilters();
+            loadItems(1);
+        },
+    });
 
     document.getElementById('gallery-refresh')?.addEventListener('click', () => loadItems(state.page));
 
@@ -1088,13 +1102,18 @@
         const btn = event.target.closest('[data-stat-filter]');
         if (!btn) return;
         const filter = btn.getAttribute('data-stat-filter');
+        const kindValue = filter === 'bin' || filter === 'all' ? 'all' : filter;
 
         if (filter === 'bin') {
             state.trash = 'bin';
-            els.kind.value = 'all';
         } else {
             state.trash = 'active';
-            els.kind.value = filter === 'all' ? 'all' : filter;
+        }
+
+        if (els.kind?.tomselect) {
+            els.kind.tomselect.setValue(kindValue, true);
+        } else if (els.kind) {
+            els.kind.value = kindValue;
         }
 
         state.selected.clear();
@@ -1110,15 +1129,26 @@
         loadItems(Number(btn.getAttribute('data-page')));
     });
 
+    function closeAllCardMenus() {
+        document.querySelectorAll('[data-menu]').forEach((menu) => menu.classList.remove('is-open'));
+        document.querySelectorAll('.gallery-card.has-open-menu').forEach((card) => {
+            card.classList.remove('has-open-menu');
+        });
+    }
+
     els.grid.addEventListener('click', async (event) => {
         const menuToggle = event.target.closest('[data-menu-toggle]');
         if (menuToggle) {
+            event.preventDefault();
             event.stopPropagation();
             const id = menuToggle.getAttribute('data-menu-toggle');
-            document.querySelectorAll('[data-menu]').forEach((menu) => {
-                const shouldOpen = menu.getAttribute('data-menu') === id && !menu.classList.contains('is-open');
-                menu.classList.toggle('is-open', shouldOpen);
-            });
+            const targetMenu = els.grid.querySelector(`[data-menu="${id}"]`);
+            const willOpen = targetMenu && !targetMenu.classList.contains('is-open');
+            closeAllCardMenus();
+            if (willOpen && targetMenu) {
+                targetMenu.classList.add('is-open');
+                menuToggle.closest('.gallery-card')?.classList.add('has-open-menu');
+            }
             return;
         }
 
@@ -1126,7 +1156,7 @@
         if (actionBtn) {
             const action = actionBtn.getAttribute('data-action');
             const item = findItem(actionBtn.getAttribute('data-id'));
-            document.querySelectorAll('[data-menu]').forEach((menu) => menu.classList.remove('is-open'));
+            closeAllCardMenus();
             await runItemAction(action, item);
         }
     });
@@ -1159,7 +1189,13 @@
 
     document.addEventListener('click', (event) => {
         if (!event.target.closest('.gallery-card__menu')) {
-            document.querySelectorAll('[data-menu]').forEach((menu) => menu.classList.remove('is-open'));
+            closeAllCardMenus();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeAllCardMenus();
         }
     });
 

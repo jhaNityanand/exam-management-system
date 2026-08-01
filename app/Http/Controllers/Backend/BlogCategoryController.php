@@ -45,6 +45,9 @@ class BlogCategoryController extends Controller
         $status = $request->query('status', '');
         $sort   = $request->query('sort', 'name_asc');
         $trash  = $request->query('trash', 'active');
+        $createdFrom = $request->query('created_from', '');
+        $createdTo = $request->query('created_to', '');
+        $createdBy = array_values(array_filter((array) $request->query('created_by', []), fn ($id) => $id !== null && $id !== ''));
 
         if ($request->ajax()) {
             $query = BlogCategory::forOrg($orgId);
@@ -60,65 +63,30 @@ class BlogCategoryController extends Controller
             };
 
             $allCategories = $query->orderBy($col, $dir)->get();
-
-            // Perform in-memory tree building & filtering
-            $matchedIds = [];
-            foreach ($allCategories as $cat) {
-                $statusMatches = empty($status) || $cat->status === $status;
-                $searchMatches = empty($search) ||
-                    (\Illuminate\Support\Str::contains(strtolower($cat->name), strtolower($search)) ||
-                     \Illuminate\Support\Str::contains(strtolower($cat->description ?? ''), strtolower($search)));
-
-                if ($statusMatches && $searchMatches) {
-                    $matchedIds[$cat->id] = true;
-                }
-            }
-
-            $keptIds = [];
-            $catMap = [];
-            foreach ($allCategories as $cat) {
-                $catMap[$cat->id] = $cat;
-            }
-
-            foreach ($matchedIds as $id => $true) {
-                $curr = $catMap[$id] ?? null;
-                while ($curr) {
-                    $keptIds[$curr->id] = true;
-                    $curr = $curr->parent_id ? ($catMap[$curr->parent_id] ?? null) : null;
-                }
-            }
-
-            $roots = [];
-            $childrenMap = [];
-            foreach ($allCategories as $cat) {
-                if (!isset($keptIds[$cat->id])) {
-                    continue;
-                }
-                $cat->setRelation('children', collect([]));
-                if (empty($cat->parent_id)) {
-                    $roots[] = $cat;
-                } else {
-                    $childrenMap[$cat->parent_id][] = $cat;
-                }
-            }
-
-            foreach ($allCategories as $cat) {
-                if (isset($childrenMap[$cat->id])) {
-                    $cat->setRelation('children', collect($childrenMap[$cat->id]));
-                }
-            }
-
-            $categories = collect($roots);
+            $categories = $this->buildFilteredCategoryTree(
+                $allCategories,
+                $search,
+                (string) $status,
+                $createdBy,
+                is_string($createdFrom) ? $createdFrom : null,
+                is_string($createdTo) ? $createdTo : null,
+            );
 
             return view('backend.blog-categories.partials.tree-list', compact('categories'))->render();
         }
 
         $categories = collect([]);
+        $creators = $this->organizationCreators($orgId);
+
         return view('backend.blog-categories.index', compact(
             'categories',
             'search',
             'status',
             'sort',
+            'creators',
+            'createdBy',
+            'createdFrom',
+            'createdTo',
         ));
     }
 

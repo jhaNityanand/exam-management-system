@@ -24,6 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const clearSelection = () => {
+        selectedIds.clear();
+        tableBody?.querySelectorAll('.blog-row-check').forEach((checkbox) => {
+            checkbox.checked = false;
+            checkbox.closest('tr')?.classList.remove('is-selected');
+        });
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+        updateBulkBar();
+    };
+
+    bulkBar?.addEventListener('click', (event) => {
+        const clearBtn = event.target.closest('[data-list-clear-selection]');
+        if (!clearBtn || !bulkBar.contains(clearBtn)) return;
+        event.preventDefault();
+        clearSelection();
+    });
+
     const syncTrashUi = (trash) => {
         currentTrash = trash;
         if (drawerTrashInput) drawerTrashInput.value = trash;
@@ -40,8 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bulkActionsBin.hidden = trash !== 'bin';
             bulkActionsBin.classList.toggle('hidden', trash !== 'bin');
         }
-        selectedIds.clear();
-        updateBulkBar();
+        clearSelection();
     };
 
     const newsTable = new AjaxTable({

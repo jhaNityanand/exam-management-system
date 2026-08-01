@@ -1,20 +1,30 @@
 <div id="category-bulk-bar" class="list-bulk-bar" hidden>
-    <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-        <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            <input type="checkbox" id="category-select-all" class="list-select-all">
-            <span><span id="category-selected-count">0</span> selected</span>
-        </label>
-        <div id="category-bulk-actions-active" class="flex flex-wrap items-center gap-2">
-            <button type="button" id="category-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
-            <select id="category-bulk-status" class="panel-input w-40 text-sm">
-                <option value="">Update Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-            </select>
+    <div class="list-bulk-bar__inner">
+        <div class="list-bulk-bar__meta">
+            <label class="list-bulk-bar__select-all">
+                <input type="checkbox" id="category-select-all" class="list-select-all" aria-label="Select all categories">
+                <span class="list-bulk-bar__badge" aria-live="polite">
+                    <span class="list-bulk-bar__count" id="category-selected-count">0</span>
+                    <span class="list-bulk-bar__label">selected</span>
+                </span>
+            </label>
         </div>
-        <div id="category-bulk-actions-bin" hidden>
-            <button type="button" id="category-bulk-restore" class="list-bulk-btn">Restore</button>
+        <div class="list-bulk-bar__actions">
+            <div id="category-bulk-actions-active" class="list-bulk-bar__group">
+                <button type="button" id="category-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                <select id="category-bulk-status" class="panel-input text-sm" data-no-search aria-label="New status">
+                    <option value="">Update Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+            <div id="category-bulk-actions-bin" class="list-bulk-bar__group" hidden>
+                <button type="button" id="category-bulk-restore" class="list-bulk-btn">Restore</button>
+            </div>
+        </div>
+        <div class="list-bulk-bar__aside">
+            <button type="button" class="list-bulk-btn list-bulk-btn--ghost" data-list-clear-selection>Clear selection</button>
         </div>
     </div>
 </div>

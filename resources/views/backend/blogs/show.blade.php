@@ -21,29 +21,9 @@
 @endphp
 
 <div class="blog-show space-y-6">
+    {{-- 1. Title & basic information --}}
     <div class="blog-show__hero bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-        @if ($bannerCollection->isNotEmpty())
-            <div class="blog-show-carousel" data-blog-carousel>
-                <div class="blog-show-carousel__track">
-                    @foreach ($bannerCollection as $index => $banner)
-                        <figure class="blog-show-carousel__slide {{ $index === 0 ? 'is-active' : '' }}" data-slide="{{ $index }}">
-                            <img src="{{ $banner->file_url }}" alt="{{ $banner->original_name ?: $blog->title }}">
-                        </figure>
-                    @endforeach
-                </div>
-                @if ($bannerCollection->count() > 1)
-                    <button type="button" class="blog-show-carousel__nav blog-show-carousel__nav--prev" data-carousel-prev aria-label="Previous banner">‹</button>
-                    <button type="button" class="blog-show-carousel__nav blog-show-carousel__nav--next" data-carousel-next aria-label="Next banner">›</button>
-                    <div class="blog-show-carousel__dots" data-carousel-dots>
-                        @foreach ($bannerCollection as $index => $banner)
-                            <button type="button" class="{{ $index === 0 ? 'is-active' : '' }}" data-carousel-dot="{{ $index }}" aria-label="Banner {{ $index + 1 }}"></button>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        @endif
-
-        <div class="p-5 sm:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div class="blog-show__title-block p-5 sm:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">#{{ $blog->id }}</span>
@@ -79,10 +59,39 @@
                 <a href="{{ route('admin.blogs.index') }}" class="panel-button-secondary">Back</a>
             </div>
         </div>
+
+        {{-- 2. Banner image(s) — below title --}}
+        @if ($bannerCollection->isNotEmpty())
+            <div class="blog-show__banner px-5 sm:px-7 pb-5 sm:pb-7">
+                <div class="blog-show-carousel" data-blog-carousel>
+                    <div class="blog-show-carousel__track">
+                        @foreach ($bannerCollection as $index => $banner)
+                            <figure class="blog-show-carousel__slide {{ $index === 0 ? 'is-active' : '' }}" data-slide="{{ $index }}">
+                                <img
+                                    src="{{ $banner->file_url }}"
+                                    alt="{{ $banner->original_name ?: $blog->title }}"
+                                    loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
+                                >
+                            </figure>
+                        @endforeach
+                    </div>
+                    @if ($bannerCollection->count() > 1)
+                        <button type="button" class="blog-show-carousel__nav blog-show-carousel__nav--prev" data-carousel-prev aria-label="Previous banner">‹</button>
+                        <button type="button" class="blog-show-carousel__nav blog-show-carousel__nav--next" data-carousel-next aria-label="Next banner">›</button>
+                        <div class="blog-show-carousel__dots" data-carousel-dots>
+                            @foreach ($bannerCollection as $index => $banner)
+                                <button type="button" class="{{ $index === 0 ? 'is-active' : '' }}" data-carousel-dot="{{ $index }}" aria-label="Banner {{ $index + 1 }}"></button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div class="lg:col-span-8 space-y-6 min-w-0">
+            {{-- 3. Summary --}}
             @if ($summary)
                 <section class="blog-show__panel blog-show__panel--summary">
                     <header class="blog-show__panel-header">
@@ -92,6 +101,7 @@
                 </section>
             @endif
 
+            {{-- 4. Content --}}
             <section class="blog-show__panel blog-show__panel--content">
                 <header class="blog-show__panel-header">
                     <span class="blog-show__panel-label">Content</span>
@@ -99,6 +109,7 @@
                 <x-rich-text-content :content="$blog->content" class="blog-show__prose" />
             </section>
 
+            {{-- 5. Remaining details (attachments in main column) --}}
             @if ($blog->galleryAttachments->isNotEmpty())
                 <section class="blog-show__panel">
                     <header class="blog-show__panel-header">
@@ -186,14 +197,16 @@
                         <dt>Canonical</dt>
                         <dd class="break-all">{{ $blog->canonical_url ?: '—' }}</dd>
                     </div>
-                    @if ($blog->ogImage)
-                        <div class="blog-show__meta-row blog-show__meta-row--stack">
-                            <dt>OG Image</dt>
-                            <dd>
+                    <div class="blog-show__meta-row blog-show__meta-row--stack">
+                        <dt>OG Image</dt>
+                        <dd>
+                            @if ($blog->ogImage)
                                 <img src="{{ $blog->ogImage->file_url }}" alt="" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 mt-1">
-                            </dd>
-                        </div>
-                    @endif
+                            @else
+                                <span class="italic text-slate-400 dark:text-slate-500">Not Set</span>
+                            @endif
+                        </dd>
+                    </div>
                 </dl>
             </section>
         </aside>

@@ -201,7 +201,7 @@
                                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:-.1em;margin-right:.25rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
                                 Category
                             </label>
-                            <select id="faq_category_id" name="faq_category_id" class="faq-field__select">
+                            <select id="faq_category_id" name="faq_category_id" class="faq-field__select" data-placeholder="Select category">
                                 <option value="">Uncategorized</option>
                                 @foreach($faqCategories as $cat)
                                     <option value="{{ $cat->id }}">{{ $cat->name }}</option>

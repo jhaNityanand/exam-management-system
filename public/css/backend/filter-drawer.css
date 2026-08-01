@@ -204,6 +204,11 @@
     color: inherit !important;
 }
 
+#filter-drawer .ts-control input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1;
+}
+
 #filter-drawer .ts-control .item {
     margin: 0.15rem 0.35rem 0.15rem 0;
     padding: 0.25rem 0.55rem 0.25rem 0.75rem;
@@ -235,6 +240,19 @@
     box-shadow: 0 12px 28px rgb(15 23 42 / 0.16);
     color: #0f172a;
     overflow: hidden;
+}
+
+/* Body-portaled filter menus still use ems-filter-dropdown — keep one scrollbar */
+.ts-dropdown.ems-filter-dropdown,
+.ts-dropdown.ems-select-dropdown {
+    overflow: hidden;
+}
+
+.ts-dropdown.ems-filter-dropdown .ts-dropdown-content,
+.ts-dropdown.ems-select-dropdown .ts-dropdown-content,
+#filter-drawer .ts-dropdown .ts-dropdown-content {
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 #filter-drawer .ts-dropdown .option {
@@ -281,6 +299,42 @@
 
 .filter-custom-range {
     margin-top: 0.35rem;
+}
+
+/* Native date-preset select (not Tom Select) — always opens on-screen */
+.filter-date-range .filter-date-preset,
+#filter-drawer select.filter-date-preset {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    min-height: 2.65rem;
+    padding: 0.55rem 2.4rem 0.55rem 0.85rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+    color: #0f172a;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    cursor: pointer;
+}
+
+.filter-date-range .filter-date-preset:focus,
+#filter-drawer select.filter-date-preset:focus {
+    outline: none;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgb(99 102 241 / 0.2);
+}
+
+.dark .filter-date-range .filter-date-preset,
+.dark #filter-drawer select.filter-date-preset {
+    border-color: #334155;
+    background-color: #0f172a;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    color: #f8fafc;
 }
 
 .filter-date-grid {

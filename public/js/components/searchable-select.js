@@ -22,7 +22,7 @@
     hideSelected: false,
     closeAfterSelect: true,
     searchField: ['text'],
-    placeholder: 'Select…',
+    placeholder: 'Select an option',
     plugins: ['dropdown_input'],
     render: {
       no_results: function () {
@@ -30,6 +30,84 @@
       },
     },
   };
+
+  function searchMinOptions() {
+    var cfg = window.EmsSelectConfig || {};
+    var value = Number(cfg.searchMinOptions);
+    return Number.isFinite(value) && value > 0 ? value : 8;
+  }
+
+  function defaultPlaceholder() {
+    var cfg = window.EmsSelectConfig || {};
+    return cfg.placeholder || 'Select an option';
+  }
+
+  function resolvePlaceholder(select) {
+    if (select.dataset.placeholder) return select.dataset.placeholder;
+    if (select.getAttribute('placeholder')) return select.getAttribute('placeholder');
+
+    var first = select.options && select.options[0];
+    if (first && first.value === '' && first.textContent.trim()) {
+      var text = first.textContent.trim().replace(/[.…]+$/, '').trim();
+      if (first.disabled || /^(select|choose|pick|search|type)\b/i.test(text)) {
+        return text;
+      }
+    }
+
+    var aria = select.getAttribute('aria-label');
+    if (aria && aria.trim()) {
+      var label = aria.trim();
+      if (/^(select|choose|pick|search)\b/i.test(label)) return label;
+      return 'Select ' + label.charAt(0).toLowerCase() + label.slice(1);
+    }
+
+    return defaultPlaceholder();
+  }
+
+  function scrubSwalSelects(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var nodes = [];
+    if (scope.querySelectorAll) {
+      nodes = scope.querySelectorAll('#swal2-select, select.swal2-select, select.flatpickr-monthDropdown-months, .flatpickr-calendar select');
+    }
+    Array.prototype.forEach.call(nodes, function (select) {
+      if (select.tomselect) {
+        try {
+          select.tomselect.destroy();
+        } catch (err) {
+          /* ignore */
+        }
+      }
+      select.classList.remove('tomselected', 'is-searchable', 'ts-hidden-accessible');
+    });
+    if (scope.querySelectorAll) {
+      Array.prototype.forEach.call(
+        scope.querySelectorAll(
+          '.swal2-container .ts-wrapper.swal2-select, .swal2-popup .ts-wrapper.swal2-select, .flatpickr-calendar .ts-wrapper'
+        ),
+        function (el) {
+          el.remove();
+        }
+      );
+    }
+  }
+
+  function countableOptions(select) {
+    return Array.prototype.filter.call(select.options || [], function (option) {
+      if (option.disabled && option.value === '') return false;
+      return true;
+    }).length;
+  }
+
+  function shouldIncludeSearch(select) {
+    if (select.dataset.forceSearch != null || select.hasAttribute('data-force-search')) {
+      return true;
+    }
+    if (select.dataset.disableSearch != null || select.hasAttribute('data-disable-search')) {
+      return false;
+    }
+    return countableOptions(select) >= searchMinOptions();
+  }
 
   function shouldEnhance(select) {
     if (!select || select.tagName !== 'SELECT') return false;
@@ -43,6 +121,12 @@
     if (select.disabled && select.dataset.searchableForce == null) return false;
     if (select.tomselect) return false;
     if (select.classList.contains('tomselected')) return false;
+    // SweetAlert2 keeps hidden input widgets in every popup; never enhance them.
+    if (select.id === 'swal2-select' || select.classList.contains('swal2-select')) return false;
+    if (select.closest('.swal2-container, .swal2-popup')) return false;
+    // Flatpickr month/year controls — must stay native for theme + option visibility.
+    if (select.classList.contains('flatpickr-monthDropdown-months')) return false;
+    if (select.closest('.flatpickr-calendar')) return false;
     // Hidden selects used as Tom Select sources after init
     if (select.style && select.style.display === 'none' && select.classList.contains('is-searchable')) {
       return false;
@@ -50,21 +134,126 @@
     return true;
   }
 
+  /**
+   * Flip Tom Select menus above the control when space below is tight
+   * (filter drawers, near viewport bottom, overflow panels).
+   * Scroll only .ts-dropdown-content to avoid duplicate scrollbars.
+   */
+  function positionDropdown(instance) {
+    if (!instance || !instance.dropdown || !instance.control) return;
+
+    // Prefer the shared helper when the filter drawer script is present.
+    if (window.EmsFilterDrawer && typeof window.EmsFilterDrawer.positionTomSelectDropdown === 'function') {
+      window.EmsFilterDrawer.positionTomSelectDropdown(instance);
+      return;
+    }
+
+    var dropdown = instance.dropdown;
+    var content = instance.dropdown_content
+      || dropdown.querySelector('.ts-dropdown-content');
+
+    dropdown.classList.remove('ts-dropdown--up');
+    dropdown.style.maxHeight = '';
+    dropdown.style.overflow = 'hidden';
+    if (content) {
+      content.style.maxHeight = '';
+    }
+
+    window.requestAnimationFrame(function () {
+      var controlRect = instance.control.getBoundingClientRect();
+      var viewportH = window.innerHeight || document.documentElement.clientHeight;
+      var spaceBelow = Math.max(0, viewportH - controlRect.bottom - 8);
+      var spaceAbove = Math.max(0, controlRect.top - 8);
+      var contentNatural = content
+        ? Math.max(content.scrollHeight || 0, 120)
+        : Math.max(dropdown.scrollHeight || 200, 160);
+      var chrome = Math.max(0, (dropdown.offsetHeight || 0) - (content ? content.offsetHeight || contentNatural : contentNatural));
+      var naturalHeight = Math.min(320, contentNatural + chrome);
+      var openUp = spaceBelow < Math.min(naturalHeight, 240) && spaceAbove > spaceBelow;
+      var shellMax = Math.max(120, Math.min(naturalHeight, openUp ? spaceAbove : spaceBelow));
+      var contentMax = Math.max(96, shellMax - chrome);
+
+      if (content) {
+        content.style.maxHeight = contentMax + 'px';
+        content.style.overflowX = 'hidden';
+        content.style.overflowY = 'auto';
+      } else {
+        dropdown.style.maxHeight = shellMax + 'px';
+      }
+
+      dropdown.classList.toggle('ts-dropdown--up', openUp);
+
+      if (openUp) {
+        var height = Math.min(dropdown.offsetHeight || shellMax, shellMax);
+        dropdown.style.top = Math.max(8, controlRect.top - height - 6) + 'px';
+      }
+    });
+  }
+
   function enhanceSelect(select) {
     if (!shouldEnhance(select)) return null;
 
-    var opts = Object.assign({}, DEFAULTS);
-    if (select.dataset.placeholder) {
-      opts.placeholder = select.dataset.placeholder;
-    }
+    var opts = Object.assign({}, DEFAULTS, {
+      placeholder: resolvePlaceholder(select),
+    });
 
     // Keep dropdown usable inside modals/overflow containers
     opts.dropdownParent = 'body';
+
+    if (!shouldIncludeSearch(select)) {
+      opts.plugins = (opts.plugins || []).filter(function (plugin) {
+        return plugin !== 'dropdown_input';
+      });
+      // Keep searchField valid for Tom Select internals; disable filtering via score.
+      opts.searchField = ['text'];
+      opts.score = function () {
+        return function () {
+          return 1;
+        };
+      };
+    }
 
     opts.onInitialize = function () {
       this.wrapper.classList.add('ems-select-wrapper');
       this.wrapper.classList.remove('panel-input');
       this.wrapper.classList.remove('org-contact-input', 'org-brand-input');
+      this.dropdown.classList.add('ems-select-dropdown');
+      if (!shouldIncludeSearch(select)) {
+        this.wrapper.classList.add('ems-select-wrapper--no-search');
+      }
+    };
+
+    opts.onDropdownOpen = function () {
+      var self = this;
+      if (shouldIncludeSearch(select)) {
+        // Clear any stale query that can hide all options (common with dropdown_input).
+        if (typeof self.setTextboxValue === 'function') {
+          self.setTextboxValue('');
+        }
+        self.lastQuery = '';
+        setTimeout(function () {
+          if (!self.isOpen) return;
+          try {
+            self.refreshOptions(false);
+          } catch (err) {
+            /* ignore mid-open race */
+          }
+        }, 0);
+      }
+      positionDropdown(self);
+    };
+
+    opts.onDropdownClose = function () {
+      if (!this.dropdown) return;
+      this.dropdown.classList.remove('ts-dropdown--up');
+      this.dropdown.style.top = '';
+      this.dropdown.style.bottom = '';
+      this.dropdown.style.maxHeight = '';
+      var content = this.dropdown_content
+        || this.dropdown.querySelector('.ts-dropdown-content');
+      if (content) {
+        content.style.maxHeight = '';
+      }
     };
 
     try {
@@ -103,6 +292,11 @@
 
   window.initSearchableSelects = initSearchableSelects;
   window.destroySearchableSelects = destroySearchableSelects;
+  window.EmsSearchableSelect = {
+    init: initSearchableSelects,
+    destroy: destroySearchableSelects,
+    positionDropdown: positionDropdown,
+  };
 
   document.addEventListener('DOMContentLoaded', function () {
     initSearchableSelects(document);
@@ -123,6 +317,7 @@
         if (!needs) return;
         clearTimeout(timer);
         timer = setTimeout(function () {
+          scrubSwalSelects(document);
           initSearchableSelects(document);
         }, 60);
       });

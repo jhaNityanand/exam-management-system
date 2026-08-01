@@ -306,21 +306,83 @@
     width: 100%;
 }
 
-select.qcat-meta-input {
+select.qcat-meta-input,
+select.panel-input.qcat-meta-input {
+    appearance: none;
+    -webkit-appearance: none;
     min-height: 2.625rem;
-    padding: 0.625rem 1rem;
+    padding: 0.625rem 2.25rem 0.625rem 1rem;
     border: 1px solid rgb(226 232 240);
     border-radius: 1rem;
-    background-color: white;
+    background-color: #ffffff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 0.9rem 0.9rem;
     color: rgb(15 23 42);
     font-size: 0.875rem;
     outline: none;
+    color-scheme: light;
 }
 
-.dark select.qcat-meta-input {
+select.qcat-meta-input:hover,
+select.qcat-meta-input:focus,
+select.panel-input.qcat-meta-input:hover,
+select.panel-input.qcat-meta-input:focus {
+    border-color: rgb(129 140 248);
+}
+
+.dark select.qcat-meta-input,
+html.dark select.qcat-meta-input,
+.dark select.panel-input.qcat-meta-input,
+html.dark select.panel-input.qcat-meta-input {
     border-color: rgb(51 65 85);
     background-color: rgb(15 23 42);
-    color: white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23cbd5e1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    color: #f8fafc;
+    color-scheme: dark;
+}
+
+.dark select.qcat-meta-input option,
+html.dark select.qcat-meta-input option,
+.dark select.panel-input.qcat-meta-input option,
+html.dark select.panel-input.qcat-meta-input option {
+    background: rgb(15 23 42);
+    color: #f8fafc;
+}
+
+/* Status selects on create/edit */
+#qcat-status-select,
+#edit-status-select,
+select.panel-input[name="status"] {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 0.85rem 0.85rem;
+    padding-right: 2rem;
+    color-scheme: light;
+}
+
+.dark #qcat-status-select,
+.dark #edit-status-select,
+html.dark #qcat-status-select,
+html.dark #edit-status-select,
+.dark select.panel-input[name="status"],
+html.dark select.panel-input[name="status"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23cbd5e1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    color-scheme: dark;
+}
+
+.dark #qcat-status-select option,
+.dark #edit-status-select option,
+html.dark #qcat-status-select option,
+html.dark #edit-status-select option,
+.dark select.panel-input[name="status"] option,
+html.dark select.panel-input[name="status"] option {
+    background: #0f172a;
+    color: #f8fafc;
 }
 
 .qcat-meta-textarea {

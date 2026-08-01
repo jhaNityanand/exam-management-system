@@ -426,7 +426,7 @@
 
 /* ── Per Page Selector ──────────────────────────────────────────────── */
 
-.per-page-select {
+select.per-page-select {
     height: 2.5rem;
     padding: 0 2rem 0 0.75rem;
     background-position: right 0.75rem center;

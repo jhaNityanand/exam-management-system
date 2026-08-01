@@ -30,7 +30,7 @@
                class="sidebar-brand flex min-w-0 items-center gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40 dark:focus-visible:ring-teal-400/40"
                title="{{ $brandName }} Admin">
                 <span id="sidebar-logo-mark" class="sidebar-brand__mark shrink-0" aria-hidden="true">
-                    <img src="{{ asset('images/brand/admin-mark.svg') }}"
+                    <img src="{{ versioned_asset('images/brand/admin-mark.svg') }}"
                          alt=""
                          width="36"
                          height="36"

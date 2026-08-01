@@ -80,46 +80,9 @@
     color: #c7d2fe;
 }
 
-.blog-bulk-bar {
-    border-bottom: 1px solid #e2e8f0;
-    background: #f8fafc;
-}
-
+/* Bulk bar visuals come from list-ui.css (.list-bulk-bar). Keep hidden helper only. */
 .blog-bulk-bar [hidden] {
     display: none !important;
-}
-
-.dark .blog-bulk-bar {
-    border-color: #334155;
-    background: rgba(15, 23, 42, 0.6);
-}
-
-.blog-bulk-btn {
-    padding: 0.35rem 0.85rem;
-    border-radius: 0.5rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border: 1px solid #cbd5e1;
-    background: #fff;
-    color: #334155;
-}
-
-.blog-bulk-btn--danger {
-    border-color: #fecdd3;
-    background: #fff1f2;
-    color: #e11d48;
-}
-
-.dark .blog-bulk-btn {
-    border-color: #475569;
-    background: #1e293b;
-    color: #e2e8f0;
-}
-
-.dark .blog-bulk-btn--danger {
-    border-color: rgba(244, 63, 94, 0.4);
-    background: rgba(244, 63, 94, 0.12);
-    color: #fda4af;
 }
 
 .blog-refresh-btn.is-refreshing .blog-refresh-btn__icon {
@@ -237,7 +200,7 @@
     color: #c7d2fe;
 }
 
-.per-page-select {
+select.per-page-select {
     height: 2.5rem;
     padding: 0 2rem 0 0.75rem;
     background-position: right 0.75rem center;

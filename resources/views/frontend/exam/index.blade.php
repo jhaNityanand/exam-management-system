@@ -98,7 +98,7 @@
                             <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M4 7h6l2-2h8v14H4V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             </svg>
-                            <select name="category_id" aria-label="Category">
+                            <select name="category_id" aria-label="Category" data-placeholder="Select category">
                                 <option value="">All categories</option>
                                 @foreach(($categories ?? collect()) as $cat)
                                     <option value="{{ $cat->id }}" @selected((string) request('category_id') === (string) $cat->id)>{{ $cat->name }}</option>
@@ -113,7 +113,7 @@
                             <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M12 3l2.2 6.6H21l-5.4 4 2.1 6.4L12 16.8 6.3 20l2.1-6.4L3 9.6h6.8L12 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                             </svg>
-                            <select name="difficulty_level" aria-label="Difficulty">
+                            <select name="difficulty_level" aria-label="Difficulty" data-placeholder="Select difficulty">
                                 <option value="">All levels</option>
                                 @foreach(['easy' => 'Easy', 'medium' => 'Medium', 'hard' => 'Hard'] as $val => $label)
                                     <option value="{{ $val }}" @selected(request('difficulty_level') === $val)>{{ $label }}</option>
@@ -129,7 +129,7 @@
                                 <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/>
                                 <path d="M8 9h8M8 12h8M8 15h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <select name="exam_mode" aria-label="Exam type">
+                            <select name="exam_mode" aria-label="Exam type" data-placeholder="Select exam type">
                                 <option value="">All types</option>
                                 @foreach($examModes as $val => $label)
                                     <option value="{{ $val }}" @selected(request('exam_mode') === $val)>{{ $label }}</option>
@@ -145,7 +145,7 @@
                                 <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/>
                                 <path d="M12 8v8M9.5 10.5c.6-1 1.5-1.5 2.5-1.5s1.8.5 2.2 1.3c.4.8-.1 1.7-1.7 2.2-1.6.5-2.2 1.2-2.2 2.2 0 .9.9 1.8 2.7 1.8s2.3-.7 2.7-1.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                             </svg>
-                            <select name="pricing" aria-label="Pricing">
+                            <select name="pricing" aria-label="Pricing" data-placeholder="Select pricing">
                                 <option value="">Free &amp; Paid</option>
                                 <option value="free" @selected(request('pricing') === 'free')>Free</option>
                                 <option value="paid" @selected(request('pricing') === 'paid')>Paid</option>
@@ -159,7 +159,7 @@
                             <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M8 7h12M8 12h8M8 17h4M4 7h.01M4 12h.01M4 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <select name="sort" aria-label="Sort">
+                            <select name="sort" aria-label="Sort" data-placeholder="Select sort order">
                                 <option value="latest" @selected(request('sort', 'latest') === 'latest')>Latest</option>
                                 <option value="oldest" @selected(request('sort') === 'oldest')>Oldest</option>
                                 <option value="title" @selected(request('sort') === 'title')>Title A–Z</option>

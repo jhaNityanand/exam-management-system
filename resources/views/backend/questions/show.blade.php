@@ -153,54 +153,32 @@
                 </div>
 
                 <!-- Answer Explanation -->
-                @if ($question->explanation)
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
-                        <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Answer Explanation</h3>
+                <div class="border-t border-slate-100 dark:border-slate-800 pt-6">
+                    <h3 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Answer Explanation</h3>
+                    @if (filled($question->explanation))
                         <div class="p-5 bg-amber-50/30 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
                             <x-rich-text-content :content="$question->explanation" class="prose-sm text-slate-800 dark:text-slate-200 leading-relaxed" />
                         </div>
-                    </div>
-                @endif
+                    @else
+                        <p class="detail-field__value detail-field__value--empty">Not Set</p>
+                    @endif
+                </div>
             </div>
 
             <!-- SEO / Metadata Details -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
                 <h2 class="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-800">SEO &amp; Metadata details</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                    <div>
-                        <span class="text-slate-450 dark:text-slate-400 block font-medium">Meta Title</span>
-                        <span class="font-bold text-slate-850 dark:text-slate-200 mt-1 block">{{ $question->meta_title ?: 'N/A' }}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-450 dark:text-slate-400 block font-medium">Slug</span>
-                        <span class="font-bold text-slate-850 dark:text-slate-200 mt-1 block">{{ $question->slug ?: 'N/A' }}</span>
-                    </div>
-                    <div class="md:col-span-2">
-                        <span class="text-slate-450 dark:text-slate-400 block font-medium">Meta Description</span>
-                        <span class="font-semibold text-slate-800 dark:text-slate-200 block mt-1 leading-relaxed">{{ $question->meta_description ?: 'N/A' }}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-450 dark:text-slate-400 block font-medium">Meta Keywords</span>
-                        <span class="font-bold text-slate-850 dark:text-slate-200 mt-1 block">{{ $question->meta_keywords ?: 'N/A' }}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-450 dark:text-slate-400 block font-medium">Canonical URL</span>
-                        @if($question->canonical_url)
-                            <a href="{{ $question->canonical_url }}" target="_blank" class="text-indigo-600 hover:text-indigo-700 underline font-semibold mt-1 block">{{ $question->canonical_url }}</a>
-                        @else
-                            <span class="font-bold text-slate-850 dark:text-slate-200 mt-1 block">N/A</span>
-                        @endif
-                    </div>
-                    <div>
-                        <span class="text-slate-450 dark:text-slate-400 block font-medium">OG Title</span>
-                        <span class="font-bold text-slate-850 dark:text-slate-200 mt-1 block">{{ $question->og_title ?: 'N/A' }}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-450 dark:text-slate-400 block font-medium">OG Description</span>
-                        <span class="font-bold text-slate-850 dark:text-slate-200 mt-1 block">{{ $question->og_description ?: 'N/A' }}</span>
-                    </div>
-                </div>
+
+                <dl class="detail-field-grid text-sm">
+                    <x-detail-field label="Meta Title" :value="$question->meta_title" />
+                    <x-detail-field label="Slug" :value="$question->slug" />
+                    <x-detail-field label="Meta Description" :value="$question->meta_description" :span="2" />
+                    <x-detail-field label="Meta Keywords" :value="$question->meta_keywords" />
+                    <x-detail-field label="Canonical URL" :value="$question->canonical_url" :href="$question->canonical_url" />
+                    <x-detail-field label="OG Title" :value="$question->og_title" />
+                    <x-detail-field label="OG Description" :value="$question->og_description" />
+                    <x-detail-og-image :image="$question->ogImage" />
+                </dl>
             </div>
         </div>
 
@@ -209,97 +187,73 @@
             <!-- Classification Card -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                 <h3 class="text-sm font-semibold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">Classification</h3>
-                <div class="space-y-4">
-                    <!-- Category -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-slate-450 dark:text-slate-400 font-semibold">Category</span>
-                        <span class="text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-950/20 px-3 py-1 rounded-xl border border-slate-200/40 dark:border-slate-800">
-                            {{ $question->category ? $question->category->name : 'Uncategorized' }}
-                        </span>
-                    </div>
+                <dl class="space-y-4">
+                    @php
+                        $typeLabels = \App\Support\ExamFormats::questionTypeLabels();
+                        $typeClasses = \App\Support\ExamFormats::questionTypeBadgeClasses();
+                        $diffLabels = [
+                            'easy' => 'Easy',
+                            'medium' => 'Medium',
+                            'hard' => 'Hard',
+                            'very_hard' => 'Very Hard',
+                        ];
+                        $marksDisplay = ($question->marks_type === 'multiple' && is_array($question->marks_list))
+                            ? (implode(', ', $question->marks_list).' pts')
+                            : (($question->marks !== null && $question->marks !== '') ? $question->marks.' pts' : null);
+                    @endphp
 
-                    <!-- Type -->
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-sm text-slate-500 dark:text-slate-400 font-semibold">Question Type</span>
-                        @php
-                            $typeLabels = \App\Support\ExamFormats::questionTypeLabels();
-                            $typeClasses = \App\Support\ExamFormats::questionTypeBadgeClasses();
-                        @endphp
-                        <span class="question-type-badge {{ $typeClasses[$question->type] ?? '' }}">
-                            {{ $typeLabels[$question->type] ?? ucfirst(str_replace('_', ' ', $question->type)) }}
-                        </span>
+                    <x-detail-field label="Category" :value="$question->category?->name" />
+                    <div class="detail-field">
+                        <dt class="detail-field__label">Question Type</dt>
+                        <dd class="detail-field__value mt-1">
+                            <span class="question-type-badge {{ $typeClasses[$question->type] ?? '' }}">
+                                {{ $typeLabels[$question->type] ?? display_value($question->type) }}
+                            </span>
+                        </dd>
                     </div>
-
-                    <!-- Difficulty -->
-                    <div class="flex items-center justify-between gap-3">
-                        <span class="text-sm text-slate-500 dark:text-slate-400 font-semibold">Difficulty</span>
-                        @php
-                            $diffLabels = [
-                                'easy' => 'Easy',
-                                'medium' => 'Medium',
-                                'hard' => 'Hard',
-                                'very_hard' => 'Very Hard',
-                            ];
-                            $diffClasses = [
+                    <div class="detail-field">
+                        <dt class="detail-field__label">Difficulty</dt>
+                        <dd class="detail-field__value mt-1">
+                            <span class="question-diff-badge {{ match($question->difficulty) {
                                 'easy' => 'question-diff-easy',
                                 'medium' => 'question-diff-medium',
                                 'hard' => 'question-diff-hard',
                                 'very_hard' => 'question-diff-very-hard',
-                            ];
-                        @endphp
-                        <span class="question-diff-badge {{ $diffClasses[$question->difficulty] ?? '' }}">
-                            {{ $diffLabels[$question->difficulty] ?? $question->difficulty }}
-                        </span>
-                    </div>
-
-                    <!-- Marks -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-slate-450 dark:text-slate-400 font-semibold">Marks / Points</span>
-                        <span class="text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-950/20 px-3 py-1 rounded-xl border border-slate-200/40 dark:border-slate-800">
-                            @if($question->marks_type === 'multiple' && is_array($question->marks_list))
-                                {{ implode(', ', $question->marks_list) }} pts
-                            @else
-                                {{ $question->marks }} pts
-                            @endif
-                        </span>
-                    </div>
-
-                    <!-- Reference -->
-                    @if($question->reference)
-                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <span class="text-sm text-slate-450 dark:text-slate-400 font-semibold">Reference</span>
-                            <span class="text-xs font-bold text-slate-600 dark:text-slate-350">
-                                {{ $question->reference }}
+                                default => '',
+                            } }}">
+                                {{ $diffLabels[$question->difficulty] ?? display_value($question->difficulty) }}
                             </span>
-                        </div>
-                    @endif
-                </div>
+                        </dd>
+                    </div>
+                    <x-detail-field label="Status" :value="ucfirst((string) $question->status)" />
+                    <x-detail-field label="Marks Type" :value="$question->marks_type === 'multiple' ? 'Multiple Marks' : ($question->marks_type === 'single' ? 'Single Marks' : $question->marks_type)" />
+                    <x-detail-field label="Marks / Points" :value="$marksDisplay" />
+                    <x-detail-field label="Allows Multiple Answers" :value="$question->allows_multiple" />
+                    <x-detail-field label="Reference" :value="$question->reference" />
+                    <x-detail-field label="Created" :value="$question->created_at" />
+                    <x-detail-field label="Updated" :value="$question->updated_at" />
+                </dl>
             </div>
 
             <!-- AI Integration Details -->
-            @if($question->ai_generated || $question->ai_improve)
-                <div class="bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-500/30 rounded-2xl p-6 space-y-4 shadow-sm">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <h4 class="font-bold text-lg text-indigo-950 dark:text-white">AI Co-pilot active</h4>
-                    </div>
-                    <p class="text-xs text-indigo-900/80 dark:text-indigo-200/90 leading-relaxed font-medium">
-                        This item leverages automated indexing pipelines. AI details assist search queries and index SEO classifications.
-                    </p>
-                    <div class="flex flex-wrap gap-2 pt-2">
-                        @if($question->ai_generated)
-                            <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20">AI Generated</span>
-                        @endif
-                        @if($question->ai_improve)
-                            <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20">AI Improve</span>
-                        @endif
-                    </div>
+            <div class="bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-500/30 rounded-2xl p-6 space-y-4 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <h4 class="font-bold text-lg text-indigo-950 dark:text-white">AI Co-pilot</h4>
                 </div>
-            @endif
+                <dl class="space-y-3">
+                    <x-detail-field label="AI Generated" :value="$question->ai_generated" />
+                    <x-detail-field label="AI Improve" :value="$question->ai_improve" />
+                </dl>
+            </div>
         </div>
 
     </div>
 </div>
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/detail-fields.css') }}">
+@endpush

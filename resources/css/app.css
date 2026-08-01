@@ -37,6 +37,30 @@
         @apply w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-none outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-500/20;
     }
 
+    select.panel-input {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 0.9rem 0.9rem;
+        padding-right: 2.25rem;
+        color-scheme: light;
+    }
+
+    .dark select.panel-input {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23cbd5e1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        color-scheme: dark;
+    }
+
+    .dark select.panel-input option {
+        background-color: #0f172a;
+        color: #f8fafc;
+    }
+
+    .panel-input:disabled,
+    .panel-input[readonly] {
+        @apply cursor-not-allowed opacity-70 dark:bg-slate-950/60;
+    }
+
     .panel-button-primary {
         @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200;
     }
@@ -71,19 +95,33 @@
 
     /* Tom Select — global dark mode overrides */
     .dark .ts-wrapper .ts-control,
+    .dark .ts-wrapper.single .ts-control,
+    .dark .ts-wrapper.multi .ts-control,
     .dark .ts-wrapper.single.input-active .ts-control,
     .dark .ts-wrapper.focus .ts-control {
         @apply border-slate-600 bg-slate-900 text-slate-100;
+        background-image: none !important;
+        box-shadow: none !important;
     }
 
     .dark .ts-wrapper .ts-control input,
     .dark .ts-wrapper .ts-control .item {
         @apply text-slate-100 !important;
         background: transparent !important;
+        background-image: none !important;
+        text-shadow: none !important;
     }
 
     .dark .ts-wrapper .ts-control input::placeholder {
         @apply text-slate-400;
+    }
+
+    .dark .ts-wrapper.single .ts-control::after {
+        border-color: #94a3b8 transparent transparent transparent !important;
+    }
+
+    .dark .ts-wrapper.single.dropdown-active .ts-control::after {
+        border-color: transparent transparent #94a3b8 transparent !important;
     }
 
     .dark .ts-dropdown {

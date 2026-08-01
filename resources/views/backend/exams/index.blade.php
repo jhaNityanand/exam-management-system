@@ -57,8 +57,8 @@
                 </div>
 
                 <div class="list-toolbar__controls">
-                    <div class="relative w-28 sm:w-32">
-                        <select id="exams-per-page" class="panel-input per-page-select w-full text-sm">
+                    <div class="list-toolbar__per-page">
+                        <select id="exams-per-page" class="panel-input per-page-select w-full text-sm" data-disable-search data-placeholder="Select page size">
                             <option value="10" selected>10 / Page</option>
                             <option value="20">20 / Page</option>
                             <option value="50">50 / Page</option>
@@ -92,21 +92,31 @@
         </div>
 
         <div id="exams-bulk-bar" class="list-bulk-bar" hidden>
-            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="exams-selected-count">0</span> selected</span>
-                <div id="exams-bulk-actions-active" class="flex flex-wrap items-center gap-2">
-                    <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
-                    <select id="exams-bulk-status" class="panel-input text-sm w-40" aria-label="New status">
-                        <option value="">Update Status</option>
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="suspended">Suspended</option>
-                    </select>
+            <div class="list-bulk-bar__inner">
+                <div class="list-bulk-bar__meta">
+                    <span class="list-bulk-bar__badge" aria-live="polite">
+                        <span class="list-bulk-bar__count" id="exams-selected-count">0</span>
+                        <span class="list-bulk-bar__label">selected</span>
+                    </span>
                 </div>
-                <div id="exams-bulk-actions-bin" hidden>
-                    <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                <div class="list-bulk-bar__actions">
+                    <div id="exams-bulk-actions-active" class="list-bulk-bar__group">
+                        <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                        <select id="exams-bulk-status" class="panel-input text-sm" data-no-search aria-label="New status">
+                            <option value="">Update Status</option>
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div id="exams-bulk-actions-bin" class="list-bulk-bar__group" hidden>
+                        <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                    </div>
+                </div>
+                <div class="list-bulk-bar__aside">
+                    <button type="button" class="list-bulk-btn list-bulk-btn--ghost" data-list-clear-selection>Clear selection</button>
                 </div>
             </div>
         </div>
@@ -177,7 +187,7 @@
                 <h4 class="filter-section__title">Identity</h4>
                 <div class="filter-group">
                     <label for="drawer-category-filter" class="filter-label">Category</label>
-                    <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
+                    <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories">
                         @foreach ($categories as $cat)
                             <option value="{{ $cat->id }}"
                                 data-level="{{ $cat->depth }}"
@@ -191,7 +201,7 @@
 
                 <div class="filter-group">
                     <label for="drawer-status-filter" class="filter-label">Status</label>
-                    <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
+                    <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="Select statuses">
                         <option value="draft">Draft</option>
                         <option value="published">Published</option>
                         <option value="active">Active</option>
@@ -202,7 +212,7 @@
 
                 <div class="filter-group">
                     <label for="drawer-mode-filter" class="filter-label">Exam Mode</label>
-                    <select id="drawer-mode-filter" name="filters[exam_mode][]" multiple data-filter-multiple data-placeholder="All exam modes">
+                    <select id="drawer-mode-filter" name="filters[exam_mode][]" multiple data-filter-multiple data-placeholder="Select exam modes">
                         <option value="standard">Standard</option>
                         <option value="practice">Practice</option>
                         <option value="proctored">Proctored</option>
@@ -211,7 +221,7 @@
 
                 <div class="filter-group">
                     <label for="drawer-format-filter" class="filter-label">Exam Format</label>
-                    <select id="drawer-format-filter" name="filters[exam_format][]" multiple data-filter-multiple data-placeholder="All exam formats">
+                    <select id="drawer-format-filter" name="filters[exam_format][]" multiple data-filter-multiple data-placeholder="Select exam formats">
                         @foreach (\App\Support\ExamFormOptions::formatLabels() as $val => $label)
                             <option value="{{ $val }}">{{ $label }}</option>
                         @endforeach
@@ -220,7 +230,7 @@
 
                 <div class="filter-group">
                     <label for="drawer-difficulty-filter" class="filter-label">Difficulty</label>
-                    <select id="drawer-difficulty-filter" name="filters[difficulty_level][]" multiple data-filter-multiple data-placeholder="All difficulties">
+                    <select id="drawer-difficulty-filter" name="filters[difficulty_level][]" multiple data-filter-multiple data-placeholder="Select difficulties">
                         <option value="easy">Easy</option>
                         <option value="medium">Medium</option>
                         <option value="hard">Hard</option>
@@ -229,7 +239,7 @@
 
                 <div class="filter-group">
                     <label for="drawer-visibility-filter" class="filter-label">Visibility</label>
-                    <select id="drawer-visibility-filter" name="filters[visibility][]" multiple data-filter-multiple data-placeholder="All visibility">
+                    <select id="drawer-visibility-filter" name="filters[visibility][]" multiple data-filter-multiple data-placeholder="Select visibility">
                         <option value="public">Public</option>
                         <option value="private">Private</option>
                         <option value="invite_only">Invite Only</option>
@@ -299,7 +309,7 @@
                 <h4 class="filter-section__title">Meta</h4>
                 <div class="filter-group">
                     <label for="drawer-sort" class="filter-label">Sort By</label>
-                    <select id="drawer-sort" name="sort" class="panel-input w-full text-sm">
+                    <select id="drawer-sort" name="sort" class="panel-input w-full text-sm" data-placeholder="Select sort order">
                         <option value="updated_at:desc" selected>Recently Updated</option>
                         <option value="title:asc">Title A â†’ Z</option>
                         <option value="title:desc">Title Z â†’ A</option>

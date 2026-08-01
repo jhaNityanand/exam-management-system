@@ -83,7 +83,7 @@
                                 <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                     <path d="M8 7h12M8 12h8M8 17h4M4 7h.01M4 12h.01M4 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
-                                <select name="sort" aria-label="Sort">
+                                <select name="sort" aria-label="Sort" data-placeholder="Select sort order">
                                     @foreach(($listingSortOptions ?? ['latest' => 'Latest', 'oldest' => 'Oldest', 'title' => 'Title A–Z', 'popular' => 'Most viewed']) as $val => $label)
                                         <option value="{{ $val }}" @selected(request('sort', $listingDefaultSort ?? 'latest') === $val)>{{ $label }}</option>
                                     @endforeach

@@ -66,6 +66,13 @@
                 });
                 this.render();
             });
+
+            this.bulkBar?.addEventListener('click', (event) => {
+                const clearBtn = event.target.closest('[data-list-clear-selection]');
+                if (!clearBtn || !this.bulkBar.contains(clearBtn)) return;
+                event.preventDefault();
+                this.clear();
+            });
         }
 
         setMode(mode) {
@@ -87,6 +94,10 @@
                 checkbox.checked = false;
                 checkbox.closest(this.rowSelector)?.classList.remove('is-selected');
             });
+            if (this.selectAll) {
+                this.selectAll.checked = false;
+                this.selectAll.indeterminate = false;
+            }
             this.render();
         }
 

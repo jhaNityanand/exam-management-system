@@ -55,8 +55,8 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
                     <div>
                         <label for="category_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category <span class="text-red-500">*</span></label>
-                        <select id="category_id" name="category_id" class="mt-1 block w-full" data-option-style="hierarchy" data-ems-select="manual">
-                            <option value="">Search or select...</option>
+                        <select id="category_id" name="category_id" class="mt-1 block w-full" data-option-style="hierarchy" data-ems-select="manual" data-placeholder="Select category">
+                            <option value="">Select category</option>
                             @foreach ($categories as $cat)
                             <option value="{{ $cat->id }}"
                                 data-level="{{ $cat->depth }}"

@@ -43,12 +43,14 @@
                     </div>
                 </div>
                 <div class="list-toolbar__controls">
-                    <select id="news-per-page" class="panel-input per-page-select w-32 text-sm">
-                        <option value="10" selected>10 / Page</option>
-                        <option value="20">20 / Page</option>
-                        <option value="50">50 / Page</option>
-                        <option value="100">100 / Page</option>
-                    </select>
+                    <div class="list-toolbar__per-page">
+                        <select id="news-per-page" class="panel-input per-page-select w-full text-sm" data-disable-search data-placeholder="Select page size">
+                            <option value="10" selected>10 / Page</option>
+                            <option value="20">20 / Page</option>
+                            <option value="50">50 / Page</option>
+                            <option value="100">100 / Page</option>
+                        </select>
+                    </div>
                     <x-list-view-tabs class="blog-trash-toggle" aria-label="News visibility" />
                     <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="btn-filters inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/></svg>
@@ -58,20 +60,30 @@
             </div>
         </div>
 
-        <div id="news-bulk-bar" class="blog-bulk-bar" hidden>
-            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="news-selected-count">0</span> selected</span>
-                <div id="news-bulk-actions-active" class="flex flex-wrap items-center gap-2">
-                    <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
-                    <select id="news-bulk-status" class="panel-input text-sm w-40" aria-label="New status">
-                        <option value="">Update Status</option>
-                        @foreach ($statuses as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
+        <div id="news-bulk-bar" class="list-bulk-bar blog-bulk-bar" hidden>
+            <div class="list-bulk-bar__inner">
+                <div class="list-bulk-bar__meta">
+                    <span class="list-bulk-bar__badge" aria-live="polite">
+                        <span class="list-bulk-bar__count" id="news-selected-count">0</span>
+                        <span class="list-bulk-bar__label">selected</span>
+                    </span>
                 </div>
-                <div id="news-bulk-actions-bin" hidden>
-                    <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                <div class="list-bulk-bar__actions">
+                    <div id="news-bulk-actions-active" class="list-bulk-bar__group">
+                        <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                        <select id="news-bulk-status" class="panel-input text-sm" data-no-search aria-label="New status">
+                            <option value="">Update Status</option>
+                            @foreach ($statuses as $key => $label)
+                                <option value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div id="news-bulk-actions-bin" class="list-bulk-bar__group" hidden>
+                        <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                    </div>
+                </div>
+                <div class="list-bulk-bar__aside">
+                    <button type="button" class="list-bulk-btn list-bulk-btn--ghost" data-list-clear-selection>Clear selection</button>
                 </div>
             </div>
         </div>
@@ -128,7 +140,7 @@
 >
             <div class="filter-group">
                 <label for="drawer-status-filter" class="filter-label">Status</label>
-                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
+                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="Select statuses">
                     @foreach ($statuses as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
@@ -137,7 +149,7 @@
 
             <div class="filter-group">
                 <label for="drawer-category-filter" class="filter-label">Categories</label>
-                <select id="drawer-category-filter" name="filters[news_category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
+                <select id="drawer-category-filter" name="filters[news_category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories">
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}" data-level="{{ $cat->depth }}" data-category-name="{{ $cat->name }}">{{ $cat->name }}</option>
                     @endforeach
@@ -147,7 +159,7 @@
 
             <div class="filter-group">
                 <label for="drawer-author-filter" class="filter-label">Author</label>
-                <select id="drawer-author-filter" name="filters[author_id][]" multiple data-filter-multiple data-placeholder="All authors" data-max-options="200">
+                <select id="drawer-author-filter" name="filters[author_id][]" multiple data-filter-multiple data-placeholder="Select authors" data-max-options="200">
                     @foreach ($authors as $author)
                         <option value="{{ $author->id }}">{{ $author->name }}</option>
                     @endforeach
@@ -156,7 +168,7 @@
 
             <div class="filter-group">
                 <label for="drawer-tag-filter" class="filter-label">Tag</label>
-                <select id="drawer-tag-filter" name="filters[tag_id][]" multiple data-filter-multiple data-placeholder="All tags" data-max-options="300">
+                <select id="drawer-tag-filter" name="filters[tag_id][]" multiple data-filter-multiple data-placeholder="Select tags" data-max-options="300">
                     @foreach ($tags as $tag)
                         <option value="{{ $tag->id }}">{{ $tag->name }}</option>
                     @endforeach
@@ -166,21 +178,21 @@
             <div class="grid grid-cols-1 gap-5">
                 <div class="filter-group">
                     <label for="drawer-featured-filter" class="filter-label">Featured</label>
-                    <select id="drawer-featured-filter" name="filters[is_featured][]" multiple data-filter-multiple data-placeholder="Any">
+                    <select id="drawer-featured-filter" name="filters[is_featured][]" multiple data-filter-multiple data-placeholder="Select featured">
                         <option value="1">Featured only</option>
                         <option value="0">Not featured</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="drawer-breaking-filter" class="filter-label">Breaking</label>
-                    <select id="drawer-breaking-filter" name="filters[is_breaking][]" multiple data-filter-multiple data-placeholder="Any">
+                    <select id="drawer-breaking-filter" name="filters[is_breaking][]" multiple data-filter-multiple data-placeholder="Select breaking">
                         <option value="1">Breaking only</option>
                         <option value="0">Not breaking</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="drawer-trending-filter" class="filter-label">Trending</label>
-                    <select id="drawer-trending-filter" name="filters[is_trending][]" multiple data-filter-multiple data-placeholder="Any">
+                    <select id="drawer-trending-filter" name="filters[is_trending][]" multiple data-filter-multiple data-placeholder="Select trending">
                         <option value="1">Trending only</option>
                         <option value="0">Not trending</option>
                     </select>

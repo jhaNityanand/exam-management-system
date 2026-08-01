@@ -387,12 +387,27 @@
 }
 
 .qimport-ghost-btn {
-    border: 1px solid var(--qi-border);
+    border: 1px solid var(--qi-input-border);
+    background: var(--qi-subtle);
+    color: var(--qi-text);
+    box-shadow: inset 0 0 0 1px rgb(148 163 184 / 0.35);
+}
+
+.dark .qimport-ghost-btn {
+    border-color: var(--qi-border);
     background: transparent;
     color: var(--qi-muted);
+    box-shadow: none;
 }
 
 .qimport-ghost-btn:hover {
+    border-color: var(--qi-accent);
+    color: var(--qi-accent);
+    background: var(--qi-accent-soft);
+    box-shadow: none;
+}
+
+.dark .qimport-ghost-btn:hover {
     border-color: #94a3b8;
     color: var(--qi-text);
     background: var(--qi-subtle);

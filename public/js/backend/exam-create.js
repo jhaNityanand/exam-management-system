@@ -1110,6 +1110,9 @@ document.addEventListener('DOMContentLoaded', () => {
             seedRules = defaultInstructionRuleIds();
         }
         state.selectedInstructionRules = new Set(normalizeInstructionRuleSelection(seedRules));
+        getInstructionRulesConfig()
+            .filter((rule) => rule.is_required)
+            .forEach((rule) => state.selectedInstructionRules.add(rule.id));
         renderInstructionRules();
 
         refs.manualEmailFeedback.textContent = 'Type email and press Enter to add.';
@@ -4651,23 +4654,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ruleId = cleanText(checkbox.dataset.ruleId || '');
                 if (!ruleId) return;
 
-                const card = checkbox.closest('.instruction-rule-card');
                 const isRequired = checkbox.dataset.required === '1';
 
                 if (checkbox.checked) {
                     state.selectedInstructionRules.add(ruleId);
-                    card?.classList.add('is-active');
                 } else if (isRequired) {
                     checkbox.checked = true;
                     state.selectedInstructionRules.add(ruleId);
-                    card?.classList.add('is-active');
                 } else {
                     state.selectedInstructionRules.delete(ruleId);
-                    card?.classList.remove('is-active');
                 }
 
-                if (refs.instructionRulesCount) refs.instructionRulesCount.textContent = String(state.selectedInstructionRules.size);
-                syncInstructionRulesHidden();
+                renderInstructionRules();
                 updateWorkflowAndSnapshot();
             });
         }

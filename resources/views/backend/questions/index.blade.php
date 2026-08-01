@@ -65,17 +65,9 @@
                 </div>
 
                 <div class="list-toolbar__controls">
-                    <div class="relative w-44">
-                        <select id="questions-source-filter" class="panel-input w-full text-sm" aria-label="Question source">
-                            <option value="all">All questions</option>
-                            <option value="imported">Imported questions</option>
-                            <option value="manual">Manually created</option>
-                        </select>
-                    </div>
-
                     {{-- Per Page Dropdown --}}
-                    <div class="relative w-28 sm:w-32">
-                        <select id="questions-per-page" class="panel-input per-page-select w-full text-sm">
+                    <div class="list-toolbar__per-page">
+                        <select id="questions-per-page" class="panel-input per-page-select w-full text-sm" data-disable-search data-placeholder="Select page size">
                             <option value="10" selected>10 / Page</option>
                             <option value="20">20 / Page</option>
                             <option value="50">50 / Page</option>
@@ -97,19 +89,29 @@
         </div>
 
         <div id="questions-bulk-bar" class="list-bulk-bar" hidden>
-            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="questions-selected-count">0</span> selected</span>
-                <div id="questions-bulk-actions-active" class="flex flex-wrap items-center gap-2">
-                    <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
-                    <select id="questions-bulk-status" class="panel-input text-sm w-36" aria-label="New status">
-                        <option value="">Update Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="suspended">Suspended</option>
-                    </select>
+            <div class="list-bulk-bar__inner">
+                <div class="list-bulk-bar__meta">
+                    <span class="list-bulk-bar__badge" aria-live="polite">
+                        <span class="list-bulk-bar__count" id="questions-selected-count">0</span>
+                        <span class="list-bulk-bar__label">selected</span>
+                    </span>
                 </div>
-                <div id="questions-bulk-actions-bin" hidden>
-                    <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                <div class="list-bulk-bar__actions">
+                    <div id="questions-bulk-actions-active" class="list-bulk-bar__group">
+                        <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                        <select id="questions-bulk-status" class="panel-input text-sm" data-no-search aria-label="New status">
+                            <option value="">Update Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div id="questions-bulk-actions-bin" class="list-bulk-bar__group" hidden>
+                        <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                    </div>
+                </div>
+                <div class="list-bulk-bar__aside">
+                    <button type="button" class="list-bulk-btn list-bulk-btn--ghost" data-list-clear-selection>Clear selection</button>
                 </div>
             </div>
         </div>
@@ -173,12 +175,26 @@
 {{-- Right-Side Filter Drawer --}}
 <x-filter-drawer
     title="Filter Questions"
-    subtitle="Narrow results by category, type, difficulty, marks, status, and created date"
+    subtitle="Narrow results by source, category, type, difficulty, marks, status, and created date"
 >
+            {{-- Source Filter --}}
+            <div class="filter-group">
+                <label for="drawer-source-filter" class="filter-label">Source</label>
+                <select id="drawer-source-filter"
+                        name="filters[import_source]"
+                        class="panel-input w-full text-sm"
+                        data-disable-search
+                        data-placeholder="Select source">
+                    <option value="all">All questions</option>
+                    <option value="imported">Imported questions</option>
+                    <option value="manual">Manually created</option>
+                </select>
+            </div>
+
             {{-- Category Filter --}}
             <div class="filter-group">
                 <label for="drawer-category-filter" class="filter-label">Category</label>
-                <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories…">
+                <select id="drawer-category-filter" name="filters[category_id][]" multiple data-filter-multiple data-filter-hierarchy="1" data-placeholder="Select categories">
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}"
                             data-level="{{ $cat->depth }}"
@@ -194,7 +210,7 @@
             {{-- Type Filter --}}
             <div class="filter-group">
                 <label for="drawer-type-filter" class="filter-label">Question Type</label>
-                <select id="drawer-type-filter" name="filters[type][]" multiple data-filter-multiple data-placeholder="All question types">
+                <select id="drawer-type-filter" name="filters[type][]" multiple data-filter-multiple data-placeholder="Select question types">
                     @foreach(\App\Support\ExamFormats::questionTypes() as $type)
                         <option value="{{ $type['id'] }}">{{ $type['label'] }}</option>
                     @endforeach
@@ -204,7 +220,7 @@
             {{-- Difficulty Filter --}}
             <div class="filter-group">
                 <label for="drawer-difficulty-filter" class="filter-label">Difficulty</label>
-                <select id="drawer-difficulty-filter" name="filters[difficulty][]" multiple data-filter-multiple data-placeholder="All difficulties">
+                <select id="drawer-difficulty-filter" name="filters[difficulty][]" multiple data-filter-multiple data-placeholder="Select difficulties">
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
@@ -215,7 +231,7 @@
             {{-- Marks Type Filter --}}
             <div class="filter-group">
                 <label for="drawer-marks-type-filter" class="filter-label">Marks Type</label>
-                <select id="drawer-marks-type-filter" name="filters[marks_type][]" multiple data-filter-multiple data-placeholder="All marks types">
+                <select id="drawer-marks-type-filter" name="filters[marks_type][]" multiple data-filter-multiple data-placeholder="Select marks types">
                     <option value="single">Single Mark</option>
                     <option value="multiple">Multiple Marks</option>
                 </select>
@@ -249,7 +265,7 @@
             {{-- Status Filter --}}
             <div class="filter-group">
                 <label for="drawer-status-filter" class="filter-label">Status</label>
-                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="All statuses">
+                <select id="drawer-status-filter" name="filters[status][]" multiple data-filter-multiple data-placeholder="Select statuses">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                     <option value="suspended">Suspended</option>
@@ -259,7 +275,7 @@
             {{-- Multi-select MCQ Filter --}}
             <div class="filter-group">
                 <label for="drawer-allows-multiple-filter" class="filter-label">Answer Selection</label>
-                <select id="drawer-allows-multiple-filter" name="filters[allows_multiple][]" multiple data-filter-multiple data-placeholder="All answer types">
+                <select id="drawer-allows-multiple-filter" name="filters[allows_multiple][]" multiple data-filter-multiple data-placeholder="Select answer types">
                     <option value="0">Single Correct</option>
                     <option value="1">Multiple Correct</option>
                 </select>

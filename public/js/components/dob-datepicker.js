@@ -81,11 +81,27 @@
         return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
 
+    function scrubMonthSelects(cal) {
+        if (!cal) return;
+        cal.querySelectorAll('select.flatpickr-monthDropdown-months').forEach(function (select) {
+            select.setAttribute('data-no-search', '');
+            if (select.tomselect) {
+                try { select.tomselect.destroy(); } catch (e) { /* ignore */ }
+            }
+            select.classList.remove('tomselected', 'is-searchable', 'ts-hidden-accessible');
+            select.style.display = '';
+            select.style.visibility = '';
+        });
+        cal.querySelectorAll('.ts-wrapper').forEach(function (el) { el.remove(); });
+    }
+
     function syncCalendarTheme(instance) {
         if (!instance || !instance.calendarContainer) return;
         var dark = isDarkMode();
         instance.calendarContainer.classList.toggle('dob-calendar--dark', dark);
         instance.calendarContainer.classList.toggle('ems-dtp-calendar--dark', dark);
+        instance.calendarContainer.style.colorScheme = dark ? 'dark' : 'light';
+        scrubMonthSelects(instance.calendarContainer);
     }
 
     function syncAllCalendars() {
@@ -94,6 +110,8 @@
             var dark = isDarkMode();
             cal.classList.toggle('dob-calendar--dark', dark);
             cal.classList.toggle('ems-dtp-calendar--dark', dark);
+            cal.style.colorScheme = dark ? 'dark' : 'light';
+            scrubMonthSelects(cal);
         });
     }
 
@@ -207,11 +225,22 @@
             allowInput: true,
             maxDate: 'today',
             disableMobile: false,
+            monthSelectorType: 'static',
             onReady: function (selectedDates, dateStr, fp) {
                 syncCalendarTheme(fp);
+                if (window.EmsDateTimePicker && typeof window.EmsDateTimePicker.enhanceCalendar === 'function') {
+                    window.EmsDateTimePicker.enhanceCalendar(fp);
+                } else {
+                    scrubMonthSelects(fp.calendarContainer);
+                }
             },
             onOpen: function (selectedDates, dateStr, fp) {
                 syncCalendarTheme(fp);
+                if (window.EmsDateTimePicker && typeof window.EmsDateTimePicker.enhanceCalendar === 'function') {
+                    window.EmsDateTimePicker.enhanceCalendar(fp);
+                } else {
+                    scrubMonthSelects(fp.calendarContainer);
+                }
             },
             onChange: function (selectedDates, dateStr) {
                 if (isFutureDate(dateStr)) {

@@ -54,16 +54,85 @@
     const createSearchableSelect = (selector, options = {}, root = document) => {
         if (typeof global.TomSelect === 'undefined') return null;
         const el = typeof selector === 'string' ? root.querySelector(selector) : selector;
-        if (!(el instanceof HTMLSelectElement) || el.tomselect) return el?.tomselect || null;
+        if (!(el instanceof HTMLSelectElement)) return null;
 
-        const instance = new global.TomSelect(el, {
+        // Prefer a fresh instance so theme wrappers / dropdownParent always apply.
+        if (el.tomselect) {
+            try {
+                el.tomselect.destroy();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        const disableSearch = el.dataset.noSearch != null
+            || el.hasAttribute('data-no-search')
+            || el.dataset.disableSearch != null
+            || el.hasAttribute('data-disable-search')
+            || options.disableSearch === true;
+
+        const userOnInitialize = options.onInitialize;
+        const userOnDropdownOpen = options.onDropdownOpen;
+        const userOnDropdownClose = options.onDropdownClose;
+
+        const config = {
             create: false,
             closeAfterSelect: true,
             allowEmptyOption: true,
             maxOptions: 250,
-            placeholder: options.placeholder || 'Search or select…',
+            placeholder: options.placeholder || el.dataset.placeholder || 'Search or select…',
+            dropdownParent: 'body',
+            plugins: disableSearch ? [] : ['dropdown_input'],
             ...options,
-        });
+            onInitialize() {
+                this.wrapper.classList.add('ems-select-wrapper');
+                this.wrapper.classList.remove('panel-input', 'qcat-meta-input');
+                this.dropdown.classList.add('ems-select-dropdown');
+                if (disableSearch) {
+                    this.wrapper.classList.add('ems-select-wrapper--no-search');
+                }
+                if (typeof userOnInitialize === 'function') {
+                    userOnInitialize.call(this);
+                }
+            },
+            onDropdownOpen() {
+                if (typeof global.EmsFilterDrawer?.positionTomSelectDropdown === 'function') {
+                    global.EmsFilterDrawer.positionTomSelectDropdown(this);
+                } else if (typeof global.EmsSearchableSelect?.positionDropdown === 'function') {
+                    global.EmsSearchableSelect.positionDropdown(this);
+                }
+                if (typeof userOnDropdownOpen === 'function') {
+                    userOnDropdownOpen.call(this);
+                }
+            },
+            onDropdownClose() {
+                this.dropdown?.classList.remove('ts-dropdown--up');
+                if (this.dropdown) {
+                    this.dropdown.style.top = '';
+                    this.dropdown.style.bottom = '';
+                    this.dropdown.style.maxHeight = '';
+                }
+                const content = this.dropdown_content
+                    || this.dropdown?.querySelector?.('.ts-dropdown-content');
+                if (content) {
+                    content.style.maxHeight = '';
+                }
+                if (typeof userOnDropdownClose === 'function') {
+                    userOnDropdownClose.call(this);
+                }
+            },
+        };
+
+        if (disableSearch) {
+            config.plugins = (config.plugins || []).filter((plugin) => plugin !== 'dropdown_input');
+            config.searchField = ['text'];
+            config.score = () => () => 1;
+        }
+
+        // Strip helper flags that are not Tom Select options.
+        delete config.disableSearch;
+
+        const instance = new global.TomSelect(el, config);
         global.EmsTomSelectBlur?.attach(instance);
         return instance;
     };
@@ -78,10 +147,10 @@
         }
 
         const selects = [
-            { selector: '#status', placeholder: 'Select status…', allowEmptyOption: false },
+            { selector: '#status', placeholder: 'Select status…', allowEmptyOption: false, disableSearch: true },
             { selector: '#author_id', placeholder: 'Search or select author…' },
-            { selector: '#visibility', placeholder: 'Select visibility…', allowEmptyOption: false },
-            { selector: '#meta-robots', placeholder: 'Select robots directive…', allowEmptyOption: false },
+            { selector: '#visibility', placeholder: 'Select visibility…', allowEmptyOption: false, disableSearch: true },
+            { selector: '#meta-robots', placeholder: 'Select robots directive…', allowEmptyOption: false, disableSearch: true },
         ];
 
         selects.forEach(({ selector, ...opts }) => {
@@ -96,6 +165,14 @@
         const tagsEl = document.getElementById('tags');
         if (!tagsEl || !global.TomSelect) return null;
 
+        if (tagsEl.tomselect) {
+            try {
+                tagsEl.tomselect.destroy();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
         const itemClass = config.tagItemClass || 'content-tag-item';
         const seen = new Set();
 
@@ -107,10 +184,16 @@
             duplicates: false,
             delimiter: '',
             separator: '',
+            dropdownParent: 'body',
             placeholder: 'Type a tag and press Enter…',
             render: {
                 item: (data, escape) => `<div class="item ${itemClass}">${escape(data.text)}</div>`,
                 option: (data, escape) => `<div class="option">${escape(data.text)}</div>`,
+            },
+            onInitialize() {
+                this.wrapper.classList.add('ems-select-wrapper', 'is-multiple');
+                this.dropdown.classList.add('ems-select-dropdown');
+                this.items.forEach((value) => seen.add(String(value).trim().toLowerCase()));
             },
             onItemAdd(value) {
                 const normalized = String(value || '').trim().toLowerCase();
@@ -124,11 +207,28 @@
                 }
                 seen.add(normalized);
             },
-            onInitialize() {
-                this.items.forEach((value) => seen.add(String(value).trim().toLowerCase()));
-            },
             onItemRemove(value) {
                 seen.delete(String(value || '').trim().toLowerCase());
+            },
+            onDropdownOpen() {
+                if (typeof global.EmsFilterDrawer?.positionTomSelectDropdown === 'function') {
+                    global.EmsFilterDrawer.positionTomSelectDropdown(this);
+                } else if (typeof global.EmsSearchableSelect?.positionDropdown === 'function') {
+                    global.EmsSearchableSelect.positionDropdown(this);
+                }
+            },
+            onDropdownClose() {
+                this.dropdown?.classList.remove('ts-dropdown--up');
+                if (this.dropdown) {
+                    this.dropdown.style.top = '';
+                    this.dropdown.style.bottom = '';
+                    this.dropdown.style.maxHeight = '';
+                }
+                const content = this.dropdown_content
+                    || this.dropdown?.querySelector?.('.ts-dropdown-content');
+                if (content) {
+                    content.style.maxHeight = '';
+                }
             },
         });
         global.EmsTomSelectBlur?.attach(tagsSelect);

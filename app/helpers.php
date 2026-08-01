@@ -145,6 +145,34 @@ if (! function_exists('user_initials')) {
     }
 }
 
+if (! function_exists('display_value')) {
+    /**
+     * Admin detail display helper — always show a value, or a clear empty label.
+     */
+    function display_value(mixed $value, string $empty = 'Not Set'): string
+    {
+        if ($value instanceof \Illuminate\Support\Carbon) {
+            return $value->format('M j, Y g:i A');
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Yes' : 'No';
+        }
+
+        if (is_array($value)) {
+            $value = collect($value)
+                ->filter(fn ($item) => $item !== null && $item !== '')
+                ->map(fn ($item) => is_scalar($item) ? (string) $item : '')
+                ->filter()
+                ->implode(', ');
+        }
+
+        $string = trim((string) ($value ?? ''));
+
+        return $string !== '' ? $string : $empty;
+    }
+}
+
 if (! function_exists('build_article_toc')) {
     /**
      * Inject heading IDs and build a table-of-contents list from article HTML.

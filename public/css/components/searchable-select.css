@@ -21,7 +21,8 @@
   min-height: 2.65rem;
   border-radius: 12px;
   border: 1px solid #cbd5e1;
-  background: #fff;
+  background-color: #fff;
+  background-image: none;
   box-shadow: none;
   padding: 0.45rem 0.75rem;
   gap: 0.35rem;
@@ -37,7 +38,38 @@
   border: 1px solid #cbd5e1;
   box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.35);
   z-index: 120;
+  /* Outer shell never scrolls — scrolling lives on .ts-dropdown-content only */
   overflow: hidden;
+}
+
+/* Keep Tom Select menus above filter drawers / modals when appended to body */
+body:has(.offcanvas-drawer.is-open) .ts-dropdown,
+body:has(.modal.show) .ts-dropdown {
+  z-index: 12000 !important;
+}
+
+/* Flip menu above the control when near the bottom of the viewport */
+.ts-dropdown.ts-dropdown--up {
+  margin-top: 0 !important;
+  box-shadow: 0 -14px 36px -18px rgba(15, 23, 42, 0.38);
+}
+
+.dark .ts-dropdown.ts-dropdown--up {
+  box-shadow: 0 -14px 36px -18px rgba(0, 0, 0, 0.55);
+}
+
+.ts-dropdown.ems-filter-dropdown,
+.ts-dropdown.ems-select-dropdown {
+  overflow: hidden;
+}
+
+/* Single scrollbar: only the options list scrolls */
+.ts-dropdown .ts-dropdown-content {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  max-height: min(320px, 50vh);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .ts-dropdown .dropdown-input-wrap {
@@ -77,6 +109,28 @@
   font-size: 0.9rem;
 }
 
+/* SweetAlert2 always embeds a hidden #swal2-select — never enhance or show it */
+.swal2-container select.swal2-select,
+.swal2-container #swal2-select,
+.swal2-container .ts-wrapper.swal2-select,
+.swal2-container .ts-wrapper:has(> select.swal2-select),
+.swal2-container .ts-wrapper:has(> #swal2-select),
+.swal2-popup > .ts-wrapper.swal2-select,
+.swal2-popup select.swal2-select + .ts-wrapper,
+.swal2-popup .swal2-html-container + .ts-wrapper.swal2-select {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
 /* Icon-prefixed controls (exam filter modal, etc.) */
 .et-field__control .ts-wrapper {
   width: 100%;
@@ -110,37 +164,39 @@ html.dark .ts-wrapper.single .ts-control,
 html.dark .ts-wrapper.multi .ts-control,
 .dark .ts-wrapper.single .ts-control,
 .dark .ts-wrapper.multi .ts-control {
-  background: #0b1220;
-  border-color: #334155;
-  color: #e2e8f0;
+  background-color: #0b1220 !important;
+  background-image: none !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+  box-shadow: none !important;
 }
 
 html.dark .ts-dropdown,
 .dark .ts-dropdown {
-  background: #0f172a;
-  border-color: #334155;
-  color: #e2e8f0;
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
 }
 
 html.dark .ts-dropdown .dropdown-input-wrap,
 .dark .ts-dropdown .dropdown-input-wrap {
-  background: #111827;
-  border-bottom-color: #334155;
+  background: #111827 !important;
+  border-bottom-color: #334155 !important;
 }
 
 html.dark .ts-dropdown .dropdown-input,
 .dark .ts-dropdown .dropdown-input {
-  background: #0b1220;
-  border-color: #334155;
-  color: #e2e8f0;
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
 }
 
 html.dark .ts-dropdown .option.active,
 html.dark .ts-dropdown .option:hover,
 .dark .ts-dropdown .option.active,
 .dark .ts-dropdown .option:hover {
-  background: rgba(45, 212, 191, 0.14);
-  color: #5eead4;
+  background: rgba(45, 212, 191, 0.14) !important;
+  color: #5eead4 !important;
 }
 
 /* Backend Tailwind-ish form selects */

@@ -76,7 +76,7 @@
                                 <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                     <path d="M4 7h6l2-2h8v14H4V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                                 </svg>
-                                <select name="category_id" aria-label="Category">
+                                <select name="category_id" aria-label="Category" data-placeholder="Select category">
                                     <option value="">All categories</option>
                                     @foreach(($categories ?? collect()) as $cat)
                                         <option value="{{ $cat->id }}" @selected((string) request('category_id') === (string) $cat->id)>{{ $cat->name }}</option>
@@ -91,7 +91,7 @@
                                 <svg class="et-field__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                     <path d="M8 7h12M8 12h8M8 17h4M4 7h.01M4 12h.01M4 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
-                                <select name="sort" aria-label="Sort">
+                                <select name="sort" aria-label="Sort" data-placeholder="Select sort order">
                                     <option value="latest" @selected(request('sort', 'latest') === 'latest')>Latest</option>
                                     <option value="oldest" @selected(request('sort') === 'oldest')>Oldest</option>
                                     <option value="title" @selected(request('sort') === 'title')>Title A–Z</option>

@@ -35,7 +35,17 @@
                             Browse, search, and manage the parent-child question category structure.
                         </p>
                     </div>
-                    <div class="shrink-0">
+                    <div class="shrink-0 flex items-center gap-2">
+                        <button type="button"
+                                id="btn-refresh-categories"
+                                class="list-refresh-btn inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                                title="Refresh list"
+                                aria-label="Refresh category list">
+                            <svg class="list-refresh-btn__icon h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </button>
                         <a href="{{ route('admin.questions.categories.create') }}"
                            class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition shadow-sm">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,12 +79,6 @@
                     </div>
 
                     <div class="list-toolbar__controls">
-                        <select name="status" id="status-filter" class="panel-input w-40">
-                            <option value="">All Statuses</option>
-                            @foreach (['active', 'inactive', 'suspended'] as $s)
-                                <option value="{{ $s }}" @selected($status === $s)>{{ ucfirst($s) }}</option>
-                            @endforeach
-                        </select>
                         <x-list-view-tabs aria-label="Question category visibility" />
                         {{-- Expand All --}}
                         <button id="expand-all-btn" type="button"
@@ -85,6 +89,12 @@
                             </svg>
                             <span>Expand All</span>
                         </button>
+                        <button id="btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filter-drawer" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 13.707A1 1 0 013 13V4z"/>
+                            </svg>
+                            <span>Filters</span>
+                        </button>
                     </div>
                 </form>
 
@@ -92,22 +102,32 @@
         </div>
 
         <div id="category-bulk-bar" class="list-bulk-bar" hidden>
-            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-                <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    <input type="checkbox" id="category-select-all" class="list-select-all">
-                    <span><span id="category-selected-count">0</span> selected</span>
-                </label>
-                <div id="category-bulk-actions-active" class="flex flex-wrap items-center gap-2">
-                    <button type="button" id="category-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
-                    <select id="category-bulk-status" class="panel-input w-40 text-sm">
-                        <option value="">Update Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="suspended">Suspended</option>
-                    </select>
+            <div class="list-bulk-bar__inner">
+                <div class="list-bulk-bar__meta">
+                    <label class="list-bulk-bar__select-all">
+                        <input type="checkbox" id="category-select-all" class="list-select-all" aria-label="Select all categories">
+                        <span class="list-bulk-bar__badge" aria-live="polite">
+                            <span class="list-bulk-bar__count" id="category-selected-count">0</span>
+                            <span class="list-bulk-bar__label">selected</span>
+                        </span>
+                    </label>
                 </div>
-                <div id="category-bulk-actions-bin" hidden>
-                    <button type="button" id="category-bulk-restore" class="list-bulk-btn">Restore</button>
+                <div class="list-bulk-bar__actions">
+                    <div id="category-bulk-actions-active" class="list-bulk-bar__group">
+                        <button type="button" id="category-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                        <select id="category-bulk-status" class="panel-input text-sm" data-no-search aria-label="New status">
+                            <option value="">Update Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div id="category-bulk-actions-bin" class="list-bulk-bar__group" hidden>
+                        <button type="button" id="category-bulk-restore" class="list-bulk-btn">Restore</button>
+                    </div>
+                </div>
+                <div class="list-bulk-bar__aside">
+                    <button type="button" class="list-bulk-btn list-bulk-btn--ghost" data-list-clear-selection>Clear selection</button>
                 </div>
             </div>
         </div>
@@ -309,16 +329,29 @@
 <form id="category-bulk-status-form" action="{{ route('admin.questions.categories.bulk-status') }}" method="POST" class="hidden">@csrf @method('PATCH')<input type="hidden" name="status"></form>
 <form id="category-restore-form" action="" method="POST" class="hidden">@csrf @method('PATCH')</form>
 
+@include('backend.partials.category-filter-drawer', [
+    'title' => 'Filter Question Categories',
+    'status' => $status ?? '',
+    'creators' => $creators ?? [],
+    'createdBy' => $createdBy ?? [],
+    'createdFrom' => $createdFrom ?? '',
+    'createdTo' => $createdTo ?? '',
+])
+
 @endsection
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/backend/category-hierarchy.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/category-list.css') }}">
     <link rel="stylesheet" href="{{ asset('css/backend/list-ui.css') }}?v={{ filemtime(public_path('css/backend/list-ui.css')) }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/backend/filter-drawer.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('js/components/datetime-picker.js') }}?v={{ filemtime(public_path('js/components/datetime-picker.js')) }}"></script>
+    <script src="{{ versioned_asset('js/components/filter-drawer.js') }}"></script>
     <script>
         window.categoryTreeConfig = {
             indexUrl: @json(route('admin.questions.categories.index')),

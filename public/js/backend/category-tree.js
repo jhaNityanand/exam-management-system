@@ -18,11 +18,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const persistentContainer = document.getElementById('category-tree-container');
     const searchInput = document.getElementById('category-search');
     const statusFilter = document.getElementById('status-filter');
+    const createdByFilter = document.getElementById('created-by-filter');
+    const createdFromInput = document.getElementById('category-created-from');
+    const createdToInput = document.getElementById('category-created-to');
+    const refreshBtn = document.getElementById('btn-refresh-categories');
     const expandAllButton = document.getElementById('expand-all-btn');
     const expandAllIcon = document.getElementById('expand-all-icon');
     const detailsModalEl = document.getElementById('categoryDetailsModal');
 
     if (!persistentContainer) return;
+
+    const selectedCreatedByIds = () => {
+        if (!createdByFilter) return [];
+        if (createdByFilter.tomselect) {
+            return (createdByFilter.tomselect.getValue() || []).map(String).filter(Boolean);
+        }
+        return Array.from(createdByFilter.selectedOptions || [])
+            .map((opt) => String(opt.value))
+            .filter(Boolean);
+    };
+
+    const readDateValue = (input) => {
+        if (!input) return '';
+        return String(input.value || '').trim();
+    };
 
     const selection = window.EmsListUi ? new window.EmsListUi.ListSelection({
         bodySelector: '#category-tree-container',
@@ -171,20 +190,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadCategories = () => {
         const query = searchInput ? searchInput.value.trim() : '';
         const status = statusFilter ? statusFilter.value : '';
+        const createdBy = selectedCreatedByIds();
+        const createdFrom = readDateValue(createdFromInput);
+        const createdTo = readDateValue(createdToInput);
+
+        if (refreshBtn) {
+            refreshBtn.classList.add('is-refreshing');
+            refreshBtn.disabled = true;
+        }
 
         persistentContainer.innerHTML = skeletonHTML;
 
         const url = new URL(indexUrl, window.location.origin);
-        if (query) {
-            url.searchParams.set('search', query);
-        } else {
-            url.searchParams.delete('search');
-        }
-        if (status) {
-            url.searchParams.set('status', status);
-        } else {
-            url.searchParams.delete('status');
-        }
+        if (query) url.searchParams.set('search', query);
+        else url.searchParams.delete('search');
+
+        if (status) url.searchParams.set('status', status);
+        else url.searchParams.delete('status');
+
+        url.searchParams.delete('created_by');
+        url.searchParams.delete('created_by[]');
+        createdBy.forEach((id) => url.searchParams.append('created_by[]', id));
+
+        if (createdFrom) url.searchParams.set('created_from', createdFrom);
+        else url.searchParams.delete('created_from');
+
+        if (createdTo) url.searchParams.set('created_to', createdTo);
+        else url.searchParams.delete('created_to');
+
         url.searchParams.set('trash', currentTrash);
         url.searchParams.set('tab', currentTrash);
 
@@ -230,6 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="mt-1 text-sm text-rose-500 dark:text-rose-400">Please refresh or verify backend services.</p>
                 </div>
             `;
+            })
+            .finally(() => {
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('is-refreshing');
+                    refreshBtn.disabled = false;
+                }
             });
     };
 
@@ -486,10 +525,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (statusFilter) {
-        statusFilter.addEventListener('change', () => {
-            loadCategories();
-        });
+        // Status is applied via the Filter Drawer (Apply / Reset).
     }
+
+    refreshBtn?.addEventListener('click', () => {
+        loadCategories();
+    });
+
+    window.EmsFilterDrawer?.bindShell({
+        onApply: () => loadCategories(),
+        onReset: () => {
+            if (statusFilter) {
+                if (statusFilter.tomselect) statusFilter.tomselect.clear(true);
+                else statusFilter.value = '';
+            }
+            if (createdByFilter) {
+                if (createdByFilter.tomselect) {
+                    createdByFilter.tomselect.clear(true);
+                    createdByFilter.tomselect.setValue([], true);
+                } else {
+                    Array.from(createdByFilter.options || []).forEach((opt) => {
+                        opt.selected = false;
+                    });
+                }
+            }
+            loadCategories();
+        },
+    });
 
     expandAllButton?.addEventListener('click', () => {
         const shouldExpand = expandAllButton.dataset.expanded !== 'true';

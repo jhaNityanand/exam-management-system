@@ -96,9 +96,72 @@
             }
         }
 
+        const userOnInitialize = extra.onInitialize;
+        const userOnDropdownOpen = extra.onDropdownOpen;
+        const userOnDropdownClose = extra.onDropdownClose;
+
         const config = createConfig(select, {
+            dropdownParent: 'body',
             ...extra,
             plugins: ['dropdown_input', ...((extra && extra.plugins) || [])],
+            onInitialize() {
+                this.wrapper.classList.add('ems-select-wrapper');
+                this.wrapper.classList.toggle('is-multiple', !!select.multiple);
+                this.wrapper.classList.remove('panel-input');
+                this.dropdown.classList.add('ems-select-dropdown');
+                if (typeof userOnInitialize === 'function') {
+                    userOnInitialize.call(this);
+                }
+            },
+            onDropdownOpen() {
+                this.dropdown.classList.add('is-open');
+                if (typeof global.EmsFilterDrawer?.positionTomSelectDropdown === 'function') {
+                    global.EmsFilterDrawer.positionTomSelectDropdown(this);
+                } else if (typeof global.EmsSearchableSelect?.positionDropdown === 'function') {
+                    global.EmsSearchableSelect.positionDropdown(this);
+                } else {
+                    // Lightweight flip when helpers are not on the page
+                    const controlRect = this.control.getBoundingClientRect();
+                    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+                    const spaceBelow = Math.max(0, viewportH - controlRect.bottom - 8);
+                    const spaceAbove = Math.max(0, controlRect.top - 8);
+                    const openUp = spaceBelow < 260 && spaceAbove > spaceBelow;
+                    const content = this.dropdown_content
+                        || this.dropdown.querySelector('.ts-dropdown-content');
+                    this.dropdown.classList.toggle('ts-dropdown--up', openUp);
+                    this.dropdown.style.overflow = 'hidden';
+                    if (openUp) {
+                        const height = Math.min(this.dropdown.offsetHeight || 240, spaceAbove);
+                        const chrome = content
+                            ? Math.max(0, (this.dropdown.offsetHeight || height) - (content.offsetHeight || 0))
+                            : 0;
+                        if (content) {
+                            content.style.maxHeight = `${Math.max(96, height - chrome)}px`;
+                        } else {
+                            this.dropdown.style.maxHeight = `${Math.max(120, height)}px`;
+                        }
+                        this.dropdown.style.top = `${Math.max(8, controlRect.top - height - 6)}px`;
+                    }
+                }
+                if (typeof userOnDropdownOpen === 'function') {
+                    userOnDropdownOpen.call(this);
+                }
+            },
+            onDropdownClose() {
+                this.dropdown.classList.remove('is-open');
+                this.dropdown.classList.remove('ts-dropdown--up');
+                this.dropdown.style.top = '';
+                this.dropdown.style.bottom = '';
+                this.dropdown.style.maxHeight = '';
+                const content = this.dropdown_content
+                    || this.dropdown?.querySelector?.('.ts-dropdown-content');
+                if (content) {
+                    content.style.maxHeight = '';
+                }
+                if (typeof userOnDropdownClose === 'function') {
+                    userOnDropdownClose.call(this);
+                }
+            },
         });
         const instance = new global.TomSelect(select, config);
         global.EmsTomSelectBlur?.attach(instance);

@@ -60,8 +60,8 @@
                 </div>
 
                 <div class="list-toolbar__controls">
-                    <div class="relative w-28 sm:w-32">
-                        <select id="attempts-per-page" class="panel-input per-page-select w-full text-sm">
+                    <div class="list-toolbar__per-page">
+                        <select id="attempts-per-page" class="panel-input per-page-select w-full text-sm" data-disable-search data-placeholder="Select page size">
                             <option value="10" selected>10 / Page</option>
                             <option value="15">15 / Page</option>
                             <option value="25">25 / Page</option>
@@ -145,7 +145,7 @@
     <div class="space-y-4">
         <div class="filter-group">
             <label for="drawer-status" class="filter-label">Status</label>
-            <select id="drawer-status" name="filters[status]" class="panel-input w-full text-sm">
+            <select id="drawer-status" name="filters[status]" class="panel-input w-full text-sm" data-placeholder="Select status">
                 <option value="">All statuses</option>
                 <option value="passed">Passed</option>
                 <option value="failed">Failed</option>
@@ -157,7 +157,7 @@
         </div>
         <div class="filter-group">
             <label for="drawer-result" class="filter-label">Result</label>
-            <select id="drawer-result" name="filters[result]" class="panel-input w-full text-sm">
+            <select id="drawer-result" name="filters[result]" class="panel-input w-full text-sm" data-placeholder="Select result">
                 <option value="">All results</option>
                 <option value="passed">Pass</option>
                 <option value="failed">Fail</option>
@@ -165,7 +165,7 @@
         </div>
         <div class="filter-group">
             <label for="drawer-email-verified" class="filter-label">Email verification</label>
-            <select id="drawer-email-verified" name="filters[email_verified]" class="panel-input w-full text-sm">
+            <select id="drawer-email-verified" name="filters[email_verified]" class="panel-input w-full text-sm" data-placeholder="Select verification">
                 <option value="">All</option>
                 <option value="1">Verified</option>
                 <option value="0">Unverified</option>
@@ -173,7 +173,7 @@
         </div>
         <div class="filter-group">
             <label for="drawer-sort" class="filter-label">Sort By</label>
-            <select id="drawer-sort" name="sort" class="panel-input w-full text-sm">
+            <select id="drawer-sort" name="sort" class="panel-input w-full text-sm" data-placeholder="Select sort order">
                 <option value="last_attempt_at:desc" selected>Latest attempt</option>
                 <option value="last_attempt_at:asc">Oldest attempt</option>
                 <option value="attempts_count:desc">Most attempts</option>

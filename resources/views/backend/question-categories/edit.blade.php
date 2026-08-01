@@ -53,7 +53,7 @@
                             {{-- Status select --}}
                             <div class="qcat-status-toggle-container">
                                 <span class="qcat-status-label">Status</span>
-                                <select name="status" id="edit-status-select" class="panel-input text-sm" style="width: auto; min-width: 8rem;">
+                                <select name="status" id="edit-status-select" class="panel-input text-sm" data-no-search style="width: auto; min-width: 8rem;">
                                     @foreach (['active' => 'Active', 'inactive' => 'Inactive', 'suspended' => 'Suspended'] as $val => $label)
                                         <option value="{{ $val }}" @selected(old('status', $category->status) === $val)>{{ $label }}</option>
                                     @endforeach

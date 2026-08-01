@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('questions-table-body');
     const questionTypeMeta = window.questionTypeMeta || {};
-    const sourceFilter = document.getElementById('questions-source-filter');
     let currentTrash = 'active';
     const selection = new window.EmsListUi.ListSelection({
         bodySelector: '#questions-table-body',
@@ -12,6 +11,23 @@ document.addEventListener('DOMContentLoaded', () => {
         activeActionsSelector: '#questions-bulk-actions-active',
         binActionsSelector: '#questions-bulk-actions-bin',
     });
+
+    const closeOpenSelectDropdowns = () => {
+        document.querySelectorAll('select').forEach((select) => {
+            if (select.id === 'swal2-select' || select.classList.contains('swal2-select')) {
+                if (select.tomselect) {
+                    select.tomselect.destroy();
+                }
+                return;
+            }
+            if (select.tomselect) {
+                select.tomselect.close();
+                select.tomselect.blur();
+            }
+        });
+        document.querySelectorAll('.swal2-popup .ts-wrapper.swal2-select').forEach((el) => el.remove());
+        document.activeElement?.blur?.();
+    };
 
     const getTypeBadge = (type) => {
         const activeType = questionTypeMeta[type] || { label: type, class: '' };
@@ -173,15 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
         this.filters = {
             ...this.filters,
             trash: currentTrash,
-            import_source: sourceFilter?.value || 'all',
+            import_source: this.filters?.import_source || 'all',
         };
         return originalFetch();
     };
-
-    sourceFilter?.addEventListener('change', () => {
-        questionsTable.page = 1;
-        questionsTable.fetch();
-    });
 
     document.addEventListener('questions:imported', () => {
         currentTrash = 'active';
@@ -435,6 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!btn) return;
 
             const id = btn.dataset.id;
+            closeOpenSelectDropdowns();
             Swal.fire({
                 title: 'Delete Question?',
                 text: 'This will soft-delete the question. You can restore it later from the database if needed.',
@@ -443,6 +455,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#64748b',
                 confirmButtonText: 'Yes, delete it',
+                didOpen: () => {
+                    closeOpenSelectDropdowns();
+                },
             }).then((result) => {
                 if (result.isConfirmed) {
                     const form = document.getElementById('delete-question-form');

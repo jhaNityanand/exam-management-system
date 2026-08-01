@@ -790,22 +790,26 @@
                         <dt class="text-slate-500 dark:text-slate-400">Robots</dt>
                         <dd class="mt-0.5 font-medium text-slate-800 dark:text-slate-200">{{ $exam->robots ?: 'index,follow' }}</dd>
                     </div>
-                    @if ($exam->ogImage)
-                        <div>
-                            <dt class="text-slate-500 dark:text-slate-400 mb-1">OG Image</dt>
-                            <dd>
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400 mb-1">OG Image</dt>
+                        <dd>
+                            @if ($exam->ogImage)
                                 <img src="{{ $exam->ogImage->file_url }}" alt="" class="w-full rounded-lg border border-slate-200 dark:border-slate-700">
-                            </dd>
-                        </div>
-                    @endif
-                    @if (filled($exam->schema_markup))
-                        <div>
-                            <dt class="text-slate-500 dark:text-slate-400 mb-1">Schema Markup</dt>
-                            <dd>
+                            @else
+                                <span class="italic text-slate-400 dark:text-slate-500">Not Set</span>
+                            @endif
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400 mb-1">Schema Markup</dt>
+                        <dd>
+                            @if (filled($exam->schema_markup))
                                 <pre class="text-xs overflow-x-auto rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800 p-3 text-slate-700 dark:text-slate-300">{{ $exam->schema_markup }}</pre>
-                            </dd>
-                        </div>
-                    @endif
+                            @else
+                                <span class="italic text-slate-400 dark:text-slate-500">Not Set</span>
+                            @endif
+                        </dd>
+                    </div>
                     <div class="flex items-center justify-between gap-3 pt-1">
                         <span class="text-slate-500 dark:text-slate-400">Create with AI</span>
                         <span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold {{ $flagClass((bool) $exam->ai_generated) }}">{{ $exam->ai_generated ? 'Yes' : 'No' }}</span>

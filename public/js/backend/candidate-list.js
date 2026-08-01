@@ -5,7 +5,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const trashToggle = document.querySelector('.list-view-tabs');
     const drawerTrashInput = document.getElementById('drawer-trash-filter');
-    const examToolbar = document.getElementById('candidates-exam-filter');
     const examDrawer = document.getElementById('drawer-exam-filter');
     let currentTrash = 'active';
 
@@ -61,16 +60,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="cand-role-badge">${escapeHtml(label)}</span>`;
     };
 
-    const selectedExamId = () => {
-        const fromToolbar = examToolbar?.value || '';
-        if (fromToolbar) return fromToolbar;
-        return examDrawer?.value || '';
-    };
+    const selectedExamId = () => examDrawer?.value || '';
 
-    const syncExamSelectors = (examId) => {
+    const syncExamDrawer = (examId) => {
         const value = examId || '';
-        if (examToolbar && examToolbar.value !== value) examToolbar.value = value;
-        if (examDrawer && examDrawer.value !== value) examDrawer.value = value;
+        if (!examDrawer || examDrawer.value === value) return;
+        if (examDrawer.tomselect) {
+            examDrawer.tomselect.setValue(value, true);
+        } else {
+            examDrawer.value = value;
+        }
     };
 
     const syncTrashUi = (trash) => {
@@ -215,14 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.EmsListUi.bindSortButtons(candidatesTable);
 
     const applyExamFilter = (examId) => {
-        syncExamSelectors(examId);
+        syncExamDrawer(examId);
         candidatesTable.page = 1;
         candidatesTable.fetch();
     };
-
-    examToolbar?.addEventListener('change', () => {
-        applyExamFilter(examToolbar.value);
-    });
 
     const applyTrashFilter = (trash) => {
         syncTrashUi(trash);
@@ -241,22 +236,18 @@ document.addEventListener('DOMContentLoaded', () => {
     filterForm?.addEventListener('reset', () => {
         window.setTimeout(() => {
             if (drawerTrashInput) drawerTrashInput.value = currentTrash;
-            syncExamSelectors('');
+            syncExamDrawer('');
         }, 0);
     });
     filterForm?.addEventListener('submit', () => {
         if (drawerTrashInput) drawerTrashInput.value = currentTrash;
-        // Keep toolbar in sync with drawer exam selection after apply
-        window.setTimeout(() => {
-            syncExamSelectors(examDrawer?.value || '');
-        }, 0);
     });
 
-    // After drawer applies filters, AjaxTable updates filters from form — sync toolbar
+    // After drawer applies filters, AjaxTable updates filters from form — keep drawer select synced
     const originalOnFiltersChange = candidatesTable.onFiltersChange;
     candidatesTable.onFiltersChange = function patchedFiltersChange(filters) {
         if (filters && Object.prototype.hasOwnProperty.call(filters, 'exam_id')) {
-            syncExamSelectors(filters.exam_id || '');
+            syncExamDrawer(filters.exam_id || '');
         }
         if (typeof originalOnFiltersChange === 'function') {
             return originalOnFiltersChange.call(this, filters);

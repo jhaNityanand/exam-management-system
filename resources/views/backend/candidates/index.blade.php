@@ -61,17 +61,8 @@
                 </div>
 
                 <div class="list-toolbar__controls">
-                    <div class="relative w-full sm:w-56 lg:w-64">
-                        <select id="candidates-exam-filter" class="panel-input w-full text-sm" aria-label="Filter by exam">
-                            <option value="">All exams</option>
-                            @foreach ($exams as $exam)
-                                <option value="{{ $exam->id }}">{{ $exam->title }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="relative w-28 sm:w-32">
-                        <select id="candidates-per-page" class="panel-input per-page-select w-full text-sm">
+                    <div class="list-toolbar__per-page">
+                        <select id="candidates-per-page" class="panel-input per-page-select w-full text-sm" data-disable-search data-placeholder="Select page size">
                             <option value="10" selected>10 / Page</option>
                             <option value="20">20 / Page</option>
                             <option value="50">50 / Page</option>
@@ -92,18 +83,28 @@
         </div>
 
         <div id="candidates-bulk-bar" class="list-bulk-bar" hidden>
-            <div class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="candidates-selected-count">0</span> selected</span>
-                <div id="candidates-bulk-actions-active" class="flex flex-wrap items-center gap-2">
-                    <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
-                    <select id="candidates-bulk-status" class="panel-input text-sm w-36" aria-label="New status">
-                        <option value="">Update Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
+            <div class="list-bulk-bar__inner">
+                <div class="list-bulk-bar__meta">
+                    <span class="list-bulk-bar__badge" aria-live="polite">
+                        <span class="list-bulk-bar__count" id="candidates-selected-count">0</span>
+                        <span class="list-bulk-bar__label">selected</span>
+                    </span>
                 </div>
-                <div id="candidates-bulk-actions-bin" hidden>
-                    <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                <div class="list-bulk-bar__actions">
+                    <div id="candidates-bulk-actions-active" class="list-bulk-bar__group">
+                        <button type="button" id="btn-bulk-delete" class="list-bulk-btn list-bulk-btn--danger">Move to Bin</button>
+                        <select id="candidates-bulk-status" class="panel-input text-sm" data-no-search aria-label="New status">
+                            <option value="">Update Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div id="candidates-bulk-actions-bin" class="list-bulk-bar__group" hidden>
+                        <button type="button" id="btn-bulk-restore" class="list-bulk-btn">Restore</button>
+                    </div>
+                </div>
+                <div class="list-bulk-bar__aside">
+                    <button type="button" class="list-bulk-btn list-bulk-btn--ghost" data-list-clear-selection>Clear selection</button>
                 </div>
             </div>
         </div>
@@ -168,7 +169,7 @@
 >
     <div class="filter-group">
         <label for="drawer-exam-filter" class="filter-label">Exam</label>
-        <select id="drawer-exam-filter" name="filters[exam_id]" class="panel-input w-full text-sm">
+        <select id="drawer-exam-filter" name="filters[exam_id]" class="panel-input w-full text-sm" data-placeholder="Select exam">
             <option value="">All exams</option>
             @foreach ($exams as $exam)
                 <option value="{{ $exam->id }}">{{ $exam->title }}</option>
@@ -179,7 +180,7 @@
 
     <div class="filter-group">
         <label for="drawer-status-filter" class="filter-label">Status</label>
-        <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm">
+        <select id="drawer-status-filter" name="filters[status]" class="panel-input w-full text-sm" data-placeholder="Select status">
             <option value="">All statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
@@ -188,7 +189,7 @@
 
     <div class="filter-group">
         <label for="drawer-email-verified-filter" class="filter-label">Email Verification</label>
-        <select id="drawer-email-verified-filter" name="filters[email_verified]" class="panel-input w-full text-sm">
+        <select id="drawer-email-verified-filter" name="filters[email_verified]" class="panel-input w-full text-sm" data-placeholder="Select verification">
             <option value="">All</option>
             <option value="1">Verified</option>
             <option value="0">Unverified</option>
