@@ -3385,12 +3385,9 @@ html.dark .et-logo__img {
 }
 .et-toc[open] .et-toc__chevron { transform: rotate(180deg); }
 .et-toc__nav {
-  padding: 0.35rem 0.45rem 0.45rem;
-  max-height: 11.5rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  padding: 0.35rem 0.45rem 0.55rem;
+  max-height: none;
+  overflow: visible;
 }
 .et-toc__list {
   margin: 0;
@@ -3722,7 +3719,7 @@ html.dark .et-article__share-btn--x,
   .et-article__more-item { grid-template-columns: 4.6rem 1fr; gap: 0.75rem; }
   .et-article__more-thumb { width: 4.6rem; height: 3.5rem; }
   .et-toc__summary { padding: 0.5rem 0.7rem; min-height: 2.4rem; }
-  .et-toc__nav { max-height: 10rem; padding: 0.3rem 0.35rem 0.4rem; }
+  .et-toc__nav { padding: 0.3rem 0.35rem 0.5rem; }
   .et-toast { bottom: 1rem; }
 }
 

@@ -1120,6 +1120,18 @@
     const toc = qs('[data-article-toc]');
     if (!toc) return;
 
+    // Start collapsed; user expands to see the full outline (no inner scroll).
+    toc.open = false;
+    const summary = qs('.et-toc__summary', toc);
+    if (summary) {
+      summary.setAttribute('aria-expanded', 'false');
+      summary.addEventListener('click', function () {
+        window.setTimeout(function () {
+          summary.setAttribute('aria-expanded', toc.open ? 'true' : 'false');
+        }, 0);
+      });
+    }
+
     const links = qsa('[data-toc-link]', toc);
     if (!links.length) return;
 

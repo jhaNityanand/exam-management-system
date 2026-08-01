@@ -3,8 +3,8 @@
 @endphp
 
 @if(count($tocItems) >= 2)
-    <details class="et-toc" open data-article-toc>
-        <summary class="et-toc__summary">
+    <details class="et-toc" data-article-toc>
+        <summary class="et-toc__summary" aria-expanded="false">
             <span class="et-toc__summary-main">
                 <svg class="et-toc__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
                     <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
