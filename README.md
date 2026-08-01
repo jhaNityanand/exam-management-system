@@ -1,10 +1,12 @@
 # Exam Management System
 
-A Laravel 11 application for organization-scoped question banks, exam authoring, content publishing, media management, and a public exam/content website.
+Laravel 11 platform for organization-scoped question banks, exam authoring, content publishing, media management, and a public learning website (Examtube.in).
 
-**Full reference:** open [`public/docs/index.html`](public/docs/index.html) in a browser (or `/docs/` on a running app) for architecture, modules, workflows, APIs, testing, deployment, security, and troubleshooting.
-
-**Backlog:** [`TODO.md`](TODO.md)
+| Resource | Link |
+|----------|------|
+| **Client frontend delivery** | [`public/docs/frontend.html`](public/docs/frontend.html) (or `/docs/frontend.html`) |
+| **Full technical guide** | Open [`public/docs/index.html`](public/docs/index.html) (or `/docs/` when the app is running) |
+| **Product backlog** | [`TODO.md`](TODO.md) |
 
 ---
 
@@ -39,15 +41,13 @@ cp .env.example .env
 copy .env.example .env
 ```
 
-Generate the application key:
-
 ```bash
 php artisan key:generate
 ```
 
 ### 3. Configure `.env`
 
-Minimum values to set:
+Minimum values:
 
 ```env
 APP_NAME="Exam Management System"
@@ -66,9 +66,6 @@ QUEUE_CONNECTION=database
 MAIL_MAILER=log
 
 GALLERY_DISK=public
-GALLERY_MAX_IMAGE_KB=5120
-GALLERY_MAX_VIDEO_KB=51200
-GALLERY_MAX_FILE_KB=20480
 ```
 
 Create the MySQL database named in `DB_DATABASE` before migrating.
@@ -80,71 +77,77 @@ php artisan migrate --seed
 php artisan storage:link
 ```
 
-> **Seeder warning:** `DatabaseSeeder` runs `ClearUploadedMediaSeeder` first and wipes configured demo upload directories under `storage/app/public` before rebuilding sample media. Do **not** run a full reseed against production uploads.
+> **Seeder warning:** Full reseed clears demo upload directories under `storage/app/public` and rebuilds sample media. Do **not** run `--seed` against production uploads.
 
 ### 5. Build frontend assets
 
 ```bash
-# Production / one-shot build
-npm run build
-
-# Or keep Vite watching during development
-npm run dev
+npm run build          # production
+npm run dev            # Vite watch (development)
 ```
 
 ### 6. Run the app
 
-**Option A — Laravel development server**
+**Laravel development server**
 
 ```bash
 php artisan serve
 ```
 
-Then open `http://127.0.0.1:8000`.
+Open `http://127.0.0.1:8000`.
 
-**Option B — All local processes together** (HTTP server, queue worker, log tail, Vite)
+**All local processes** (HTTP, queue, logs, Vite):
 
 ```bash
 composer run dev
 ```
 
-**Option C — WAMP / Apache**
-
-1. Point the vhost (or `http://localhost/exam-management-system/public`) at the `public/` directory.
-2. Set `APP_URL` to that public URL.
-3. Run `npm run dev` (or `npm run build`) for assets.
-4. Optionally run `php artisan queue:work` if you need queued jobs.
+**WAMP / Apache:** point the vhost at `public/`, set `APP_URL` accordingly, run `npm run build` (or `npm run dev`), and optionally `php artisan queue:work`.
 
 ---
 
 ## Demo accounts
 
-After seeding, all of these use password `password`:
+After seeding, password for all accounts is `password`:
 
-| Email | Role label | Typical entry point |
+| Email | Role | Entry |
 |---|---|---|
 | `admin@examtube.in` | Application Admin | `/admin` |
-| `info@examtube.in` | Org Admin | `/admin` |
+| `info@examtube.in` | Organization Admin | `/admin` |
 | `candidate@examtube.in` | Candidate | `/account` |
 
-Role labels are stored on organization memberships. Admin panel access is limited to Application Admin, Org Admin, and Editor roles via middleware.
+Admin panel access is limited to Application Admin, Org Admin, and Editor roles.
+
+Seeded public contact defaults: `support@examtube.in`, phone `+91 0000000000`, address `Mumbai Dock Yard`.
 
 ---
 
 ## What works today
 
-- Authentication (login, register, password reset, email verification), profiles, avatars
-- Organization-scoped admin dashboard with live stats
-- Questions: CRUD, hierarchical categories, bulk actions, filters, tracked XLSX/CSV import
-- Exams: CRUD, categories, question-bank APIs, fixed/pool/dynamic assignment, publish, attempt start snapshots
-- Blog and news publishing with categories, tags, banners, attachments, and public pages
-- Gallery media library (upload, edit, recycle bin, restore, permanent delete)
-- Public CMS home, pages, search, contact, newsletter
-- Backend Settings: maintenance mode, SEO file generation, organization branding, cache tools, advertisements, email/SMTP, analytics/GTM/Pixel, cookie consent, reCAPTCHA, login lockout, feature flags
-- SEO metadata and gallery-backed Open Graph images across supported modules
-- Light / dark / system theme
+### Public website
 
-Still unfinished (see `TODO.md`): deeper candidate scoring polish, organization switching UI, notifications/logs modules.
+- Home, exams, blogs, news, categories, questions, FAQs, search, authors, CMS pages
+- Contact form and newsletter (rate-limited)
+- Light / dark / system theme
+- Full SEO meta, Open Graph / Twitter cards, and branded default share images (`public/frontend/images/seo/`)
+
+### Candidate experience
+
+- Account dashboard, profile (with crop/zoom/rotate avatar editor), settings, results, activity
+- Exam rules, prepare, live runner (timer, autosave, proctoring hooks)
+- Multi-part question palette with paging; rich text for long answers
+- Attempt submit and result views
+
+### Admin
+
+- Organization-scoped dashboard
+- Questions (CRUD, categories, XLSX/CSV import)
+- Exams (authoring, assignment modes, publish)
+- Blog and news publishing
+- Gallery media library
+- Settings: maintenance, SEO files, branding, email/SMTP, analytics, cookie consent, reCAPTCHA, security, feature flags
+
+Still unfinished (see `TODO.md`): deeper scoring polish, organization switching UI, notifications/logs modules, real payment gateway (purchase remains a demo placeholder), advertisement slot redesign.
 
 ---
 
@@ -153,32 +156,27 @@ Still unfinished (see `TODO.md`): deeper candidate scoring polish, organization 
 | URL | Purpose |
 |---|---|
 | `/` | Public home |
-| `/exams`, `/blogs`, `/news` | Public listings |
+| `/exams`, `/blogs`, `/news`, `/categories` | Public listings |
 | `/login` | Sign in |
-| `/account` | Authenticated frontend account area |
+| `/account` | Candidate account |
 | `/admin` | Admin dashboard |
 | `/admin/questions` | Question bank + import |
 | `/admin/exams` | Exam management |
 | `/admin/gallery` | Media library |
-| `/admin/blogs`, `/admin/news` | Content publishing |
-| `/admin/settings` | Cache clear and settings shell |
+| `/admin/settings` | Settings shell |
+| `/docs/` | Technical documentation (when served) |
 
 ---
 
 ## Question import (admin)
 
-1. Open **Admin → Questions → Import Questions**.
-2. Download a sample template if needed.
-3. Upload an `.xlsx` or `.csv` file (max **15 MB**, max **10,000** rows, first Excel sheet only).
-4. Fix validation issues in the editable preview.
-5. Import — rows are sent in AJAX batches of **100**. Keep the window open until completion.
-
-The original file is stored privately (local disk) and linked via `import_questions`. Each imported question stores `import_question_id`. The question list can filter All / Imported / Manual and open import details from the source badge.
+1. **Admin → Questions → Import Questions**
+2. Download a sample template if needed
+3. Upload `.xlsx` or `.csv` (max **15 MB**, max **10,000** rows, first Excel sheet only)
+4. Fix validation issues in the editable preview
+5. Import in AJAX batches of **100** — keep the window open until completion
 
 Required columns: Question, Type, Category, Difficulty, Marks Type, Marks.  
-Conditional: Option A/B for MCQ, Correct Answer / Correct Answers.  
-Optional: Option C–F, Explanation, Reference, Status.
-
 Nested categories use paths like `Development > PHP > Laravel`.
 
 ---
@@ -186,25 +184,18 @@ Nested categories use paths like `Development > PHP > Laravel`.
 ## Common commands
 
 ```bash
-# Tests
 php artisan test
 php artisan test --filter=QuestionImport
-
-# Code style
 vendor/bin/pint
 
-# Assets
 npm run build
 npm run dev
 
-# Diagnostics
 php artisan about
 php artisan route:list --except-vendor
 php artisan migrate:status
 php artisan optimize:clear
-
-# Production-ish cache (after configuring production .env)
-php artisan optimize
+php artisan optimize          # after production .env is set
 ```
 
 ---
@@ -214,10 +205,11 @@ php artisan optimize
 | Kind | Disk | Notes |
 |---|---|---|
 | Gallery images/files | `GALLERY_DISK` (default `public`) | Requires `php artisan storage:link` |
-| Question import source files | `local` (private) | Downloaded only through authenticated admin routes |
-| Profile avatars | Gallery / public storage | Cropped upload flow |
+| Question import sources | `local` (private) | Admin-only download routes |
+| Profile avatars | Public storage / gallery | Cropped upload from account or admin profile |
+| Default SEO images | `public/frontend/images/seo/*.png` | Deploy with the app; used when content has no image |
 
-If gallery images 404, re-run `php artisan storage:link` and confirm `APP_URL` matches the site you are browsing.
+If gallery images 404, re-run `php artisan storage:link` and confirm `APP_URL` matches the URL you browse.
 
 ---
 
@@ -227,21 +219,22 @@ If gallery images 404, re-run `php artisan storage:link` and confirm `APP_URL` m
 php artisan test
 ```
 
-Feature coverage includes auth, profile, questions, imports, exams, attempt assignment, categories, blogs, news, gallery, editor media, and public frontend pages.
+Coverage includes auth, profile, questions, imports, exams, attempts, categories, blogs, news, gallery, editor media, and public frontend pages.
 
 ---
 
 ## Production checklist (short)
 
-1. `APP_ENV=production`, `APP_DEBUG=false`, real `APP_KEY`, canonical `APP_URL`
+1. `APP_ENV=production`, `APP_DEBUG=false`, real `APP_KEY`, HTTPS `APP_URL`
 2. Production database, mail, cache, session, and queue drivers
 3. `composer install --no-dev --optimize-autoloader`
 4. `npm ci && npm run build`
-5. `php artisan migrate --force` (do not seed production with demo data)
+5. `php artisan migrate --force` (**no** demo seed on live data)
 6. `php artisan storage:link`
 7. `php artisan optimize`
-8. Persistent queue worker + scheduler cron if needed
-9. Web root must be `public/` only
+8. Queue worker + scheduler if needed
+9. Document root = `public/` only
+10. Walk through the client checklist in [`public/docs/frontend.html`](public/docs/frontend.html) §9
 
 ---
 
@@ -249,8 +242,9 @@ Feature coverage includes auth, profile, questions, imports, exams, attempt assi
 
 | File | Purpose |
 |---|---|
-| [`README.md`](README.md) | Setup and day-to-day developer entry point |
-| [`public/docs/index.html`](public/docs/index.html) | Complete standalone technical guide (`/docs/` when served) |
-| [`TODO.md`](TODO.md) | Remaining work only |
+| [`README.md`](README.md) | Setup and developer entry point |
+| [`public/docs/frontend.html`](public/docs/frontend.html) | Client-friendly frontend delivery summary (`/docs/frontend.html`) |
+| [`public/docs/index.html`](public/docs/index.html) | Complete technical guide |
+| [`TODO.md`](TODO.md) | Remaining product work |
 
-Organization context currently resolves from the authenticated user’s first active membership (with a first-organization fallback for CLI/guests). A validated multi-org switcher is future work.
+Organization context resolves from the authenticated user’s first active membership (with a first-organization fallback for CLI/guests). A validated multi-org switcher is future work.

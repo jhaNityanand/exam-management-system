@@ -49,17 +49,24 @@
             if (!modal) return;
             modal.hidden = false;
             modal.removeAttribute('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            var focusEl = modal.querySelector('input, button');
+            if (focusEl) focusEl.focus();
         }
         function closeModal() {
             if (!modal) return;
             modal.hidden = true;
             modal.setAttribute('hidden', 'hidden');
+            modal.setAttribute('aria-hidden', 'true');
         }
         document.querySelectorAll('[data-ca-modal-close]').forEach(function (el) {
             el.addEventListener('click', closeModal);
         });
         var openDelete = document.getElementById('ca-delete-open');
         if (openDelete) openDelete.addEventListener('click', openModal);
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal && !modal.hidden) closeModal();
+        });
 
         window.CaAccount.fetchJson(root.getAttribute('data-url'))
             .then(function (data) {

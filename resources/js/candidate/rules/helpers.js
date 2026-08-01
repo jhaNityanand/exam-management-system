@@ -7,7 +7,10 @@ export function isEditableTarget(target) {
     const tag = target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
     if (target.isContentEditable) return true;
-    return !!target.closest('input, textarea, select, [contenteditable="true"]');
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;
+    // TinyMCE editing surface (iframe body).
+    if (target.closest?.('.mce-content-body, .tox-edit-area')) return true;
+    return false;
 }
 
 export function isExamUiTarget(target, examRoot) {
@@ -45,7 +48,12 @@ export function createEventSender({ eventsUrl, api, allowUnloadRef, onAutoSubmit
                 }, data);
             }
             return data;
-        }).catch(() => null);
+        }).catch((error) => {
+            if (typeof console !== 'undefined' && console.warn) {
+                console.warn('[exam-proctor] event failed', event, error?.message || error);
+            }
+            return null;
+        });
     };
 }
 

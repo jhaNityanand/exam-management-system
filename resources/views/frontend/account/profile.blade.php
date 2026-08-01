@@ -5,6 +5,7 @@
 @endphp
 
 @push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 <link rel="stylesheet" href="{{ versioned_asset('css/components/dob-datepicker.css') }}" data-dob-theme="1">
 @endpush
 
@@ -166,10 +167,39 @@
             </form>
         </section>
     </div>
+
+    <div id="ca-avatar-crop-modal" class="ca-crop-modal" hidden aria-hidden="true">
+        <div class="ca-crop-modal__backdrop" data-ca-crop-close></div>
+        <div class="ca-crop-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="ca-avatar-crop-title">
+            <header>
+                <div>
+                    <p class="ca-crop-modal__kicker">Photo editor</p>
+                    <h2 id="ca-avatar-crop-title">Crop your profile photo</h2>
+                </div>
+                <button type="button" class="ca-crop-modal__icon" data-ca-crop-close aria-label="Close photo editor">&times;</button>
+            </header>
+            <div class="ca-crop-stage">
+                <img id="ca-avatar-crop-image" src="" alt="Selected photo to crop">
+            </div>
+            <div class="ca-crop-tools" role="toolbar" aria-label="Crop tools">
+                <button type="button" class="et-btn et-btn--ghost et-btn--sm" data-ca-crop-zoom="-0.1" title="Zoom out">Zoom −</button>
+                <button type="button" class="et-btn et-btn--ghost et-btn--sm" data-ca-crop-zoom="0.1" title="Zoom in">Zoom +</button>
+                <button type="button" class="et-btn et-btn--ghost et-btn--sm" data-ca-crop-rotate="-90" title="Rotate left">Rotate ↺</button>
+                <button type="button" class="et-btn et-btn--ghost et-btn--sm" data-ca-crop-rotate="90" title="Rotate right">Rotate ↻</button>
+                <button type="button" class="et-btn et-btn--ghost et-btn--sm" data-ca-crop-reset title="Reset">Reset</button>
+            </div>
+            <p class="ca-crop-help">Drag to reposition. Use zoom, rotate, or the mouse wheel / pinch gestures.</p>
+            <footer>
+                <button type="button" class="et-btn et-btn--ghost" data-ca-crop-close>Cancel</button>
+                <button type="button" class="et-btn et-btn--primary" data-ca-crop-apply>Use this photo</button>
+            </footer>
+        </div>
+    </div>
 </div>
 @endsection
 
 @push('account-scripts')
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js" defer></script>
 <script src="{{ versioned_asset('js/components/user-avatar.js') }}" defer></script>
 <script src="{{ versioned_asset('js/components/dob-datepicker.js') }}" defer></script>
 <script src="{{ versioned_asset('js/frontend/account-profile.js') }}" defer></script>

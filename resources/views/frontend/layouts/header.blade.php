@@ -12,9 +12,9 @@
 
     $categoryItems = [
         ['label' => 'Show All', 'url' => route('frontend.categories.index')],
-        ['label' => 'Blog Categories', 'url' => route('frontend.categories.index').'#blog-categories'],
-        ['label' => 'News Categories', 'url' => route('frontend.categories.index').'#news-categories'],
-        ['label' => 'Exam Categories', 'url' => route('frontend.categories.index').'#exam-categories'],
+        ['label' => 'Blog Categories', 'url' => route('frontend.categories.index', ['type' => 'blogs'])],
+        ['label' => 'News Categories', 'url' => route('frontend.categories.index', ['type' => 'news'])],
+        ['label' => 'Exam Categories', 'url' => route('frontend.categories.index', ['type' => 'exams'])],
         ['label' => 'Question Categories', 'url' => route('frontend.questions.categories')],
     ];
 
@@ -191,13 +191,13 @@
         @endforeach
 
         <div class="et-drawer__group" data-drawer-accordion>
-            <button type="button" class="et-drawer__link et-drawer__accordion-trigger {{ $categoriesActive ? 'is-active' : '' }}" data-drawer-accordion-trigger aria-expanded="false">
+            <button type="button" class="et-drawer__link et-drawer__accordion-trigger {{ $categoriesActive ? 'is-active' : '' }}" data-drawer-accordion-trigger aria-expanded="false" aria-controls="et-drawer-categories" id="et-drawer-categories-trigger">
                 Categories
                 <svg class="et-nav__chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
                 </svg>
             </button>
-            <div class="et-drawer__submenu" data-drawer-accordion-panel hidden>
+            <div class="et-drawer__submenu" id="et-drawer-categories" role="region" aria-labelledby="et-drawer-categories-trigger" data-drawer-accordion-panel hidden>
                 @foreach($categoryItems as $cat)
                     <a href="{{ $cat['url'] }}" class="et-drawer__sublink">{{ $cat['label'] }}</a>
                 @endforeach
@@ -205,13 +205,13 @@
         </div>
 
         <div class="et-drawer__group" data-drawer-accordion>
-            <button type="button" class="et-drawer__link et-drawer__accordion-trigger {{ $moreActive ? 'is-active' : '' }}" data-drawer-accordion-trigger aria-expanded="false">
+            <button type="button" class="et-drawer__link et-drawer__accordion-trigger {{ $moreActive ? 'is-active' : '' }}" data-drawer-accordion-trigger aria-expanded="false" aria-controls="et-drawer-more" id="et-drawer-more-trigger">
                 More
                 <svg class="et-nav__chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
                 </svg>
             </button>
-            <div class="et-drawer__submenu" data-drawer-accordion-panel hidden>
+            <div class="et-drawer__submenu" id="et-drawer-more" role="region" aria-labelledby="et-drawer-more-trigger" data-drawer-accordion-panel hidden>
                 @foreach($moreItems as $item)
                     <a href="{{ $item['url'] }}" class="et-drawer__sublink">{{ $item['label'] }}</a>
                 @endforeach

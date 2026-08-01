@@ -86,6 +86,7 @@ export function createRuleEngine({
     }
 
     return {
+        send,
         allowNavigation() {
             allowUnloadRef.current = true;
         },

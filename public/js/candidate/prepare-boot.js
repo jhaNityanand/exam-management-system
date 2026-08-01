@@ -828,6 +828,12 @@
             host.removeAttribute('hidden');
             host.setAttribute('aria-hidden', 'false');
 
+            // Avoid duplicate #cx-main when the overlay runner mounts.
+            var prepareShell = document.querySelector('.cx-prepare-main');
+            if (prepareShell && prepareShell.id === 'cx-main') {
+                prepareShell.removeAttribute('id');
+            }
+
             var examRoot = host.querySelector('#cx-exam');
             if (!examRoot) {
                 throw new Error('Exam interface is incomplete. Please refresh and try again.');

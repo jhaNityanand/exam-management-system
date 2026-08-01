@@ -23,6 +23,7 @@
 </head>
 <body class="cx-body">
     <script src="{{ versioned_asset('js/frontend/theme-boot.js') }}" data-sync-body="1"></script>
+    <a class="et-skip-link" href="#cx-main">Skip to exam content</a>
     @yield('content')
     @include('partials.flash-toasts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>

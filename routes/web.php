@@ -119,8 +119,12 @@ Route::get('/sitemap', [SitemapController::class, 'index'])->name('frontend.site
 Route::get('/search', [SearchController::class, 'index'])->name('frontend.search');
 Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('frontend.search.suggest');
 
-Route::post('/newsletter', [NewsletterController::class, 'store'])->name('frontend.newsletter.store');
-Route::post('/contact', [PageController::class, 'contact'])->name('frontend.contact.store');
+Route::post('/newsletter', [NewsletterController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('frontend.newsletter.store');
+Route::post('/contact', [PageController::class, 'contact'])
+    ->middleware('throttle:8,1')
+    ->name('frontend.contact.store');
 
 Route::middleware('auth')->prefix('account')->name('frontend.account.')->group(function () {
     Route::get('/', [AccountController::class, 'dashboard'])->name('dashboard');
@@ -337,9 +341,15 @@ Route::get('/dashboard', function () {
     );
 })->middleware(['auth'])->name('dashboard');
 
-Route::redirect('/profile', '/admin/profile')
-    ->middleware(['auth'])
-    ->name('profile.legacy');
+Route::get('/profile', function () {
+    $user = auth()->user();
+
+    return redirect()->route(
+        $user && $user->canAccessAdminPanel()
+            ? 'profile.edit'
+            : 'frontend.account.profile'
+    );
+})->middleware(['auth'])->name('profile.legacy');
 
 /*
 |--------------------------------------------------------------------------

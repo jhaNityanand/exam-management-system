@@ -279,7 +279,7 @@
                 center: true,
                 movable: true,
                 zoomable: true,
-                rotatable: false,
+                rotatable: true,
                 scalable: false,
             });
         };

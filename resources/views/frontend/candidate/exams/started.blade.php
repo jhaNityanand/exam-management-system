@@ -11,6 +11,11 @@
     ])
 @endsection
 
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/components/rich-text-editor.css') }}">
+@endpush
+
 @push('scripts')
+    <script src="{{ versioned_asset('js/components/editor.js') }}" defer></script>
     @vite(['resources/js/candidate/app.js'])
 @endpush

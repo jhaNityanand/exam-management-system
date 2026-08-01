@@ -42,7 +42,19 @@ function orderedOptions(question) {
 function isAnsweredValue(value) {
     if (value === null || value === undefined || value === '') return false;
     if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'string') {
+        const plain = value.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
+        return plain !== '';
+    }
     return true;
+}
+
+const LONG_ANSWER_TOOLBAR = 'undo redo | bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright | link | removeformat';
+const LONG_ANSWER_PLUGINS = 'lists link autolink';
+const PALETTE_PAGE_SIZE = 25;
+
+function isLongAnswerType(type) {
+    return type === 'long_answer' || type === 'written';
 }
 
 function emptyAnswerFor(question) {
@@ -99,8 +111,11 @@ function renderQuestion(container, question) {
         html += '<input class="cx-field" type="text" name="' + escapeHtml(name) + '" autocomplete="off" placeholder="Type your answer">';
     } else if (type === 'short_answer') {
         html += '<textarea class="cx-field" name="' + escapeHtml(name) + '" rows="4" placeholder="Write your answer"></textarea>';
-    } else if (type === 'long_answer' || type === 'written') {
-        html += '<textarea class="cx-field" name="' + escapeHtml(name) + '" rows="8" placeholder="Write your answer"></textarea>';
+    } else if (isLongAnswerType(type)) {
+        const editorId = 'cx-long-answer-' + question.id;
+        html += '<div class="ems-rich-editor ems-rich-editor--header" data-ems-rich-editor data-editor-height="280">'
+            + '<textarea class="cx-field cx-field--rich" id="' + escapeHtml(editorId) + '" name="' + escapeHtml(name) + '" rows="10" placeholder="Write your answer"></textarea>'
+            + '</div>';
     } else {
         if (allowsMultiple) {
             html += '<p class="cx-hint">Select all that apply.</p>';
@@ -119,7 +134,14 @@ function readAnswer(container, question) {
     const allowsMultiple = !!question.question?.allows_multiple || type === 'multi_select';
     const name = 'q' + question.id;
 
-    if (type === 'fill_blank' || type === 'short_answer' || type === 'long_answer' || type === 'written') {
+    if (type === 'fill_blank' || type === 'short_answer' || isLongAnswerType(type)) {
+        if (isLongAnswerType(type) && window.EmsRichTextEditor) {
+            const editorId = 'cx-long-answer-' + question.id;
+            const adapter = window.EmsRichTextEditor.get(editorId);
+            if (adapter && typeof adapter.getData === 'function') {
+                return adapter.getData();
+            }
+        }
         const el = container.querySelector('[name="' + name + '"]');
         return el ? el.value : '';
     }
@@ -138,13 +160,20 @@ function applyAnswer(container, question, value) {
     const allowsMultiple = !!question.question?.allows_multiple || type === 'multi_select';
     const name = 'q' + question.id;
 
-    if (type === 'fill_blank' || type === 'short_answer' || type === 'long_answer' || type === 'written') {
-        const el = container.querySelector('[name="' + name + '"]');
-        if (el) {
-            el.value = typeof value === 'object' && !Array.isArray(value)
-                ? (value.text || '')
-                : (Array.isArray(value) ? (value[0] || '') : value);
+    if (type === 'fill_blank' || type === 'short_answer' || isLongAnswerType(type)) {
+        const next = typeof value === 'object' && !Array.isArray(value)
+            ? (value.text || '')
+            : (Array.isArray(value) ? (value[0] || '') : value);
+        if (isLongAnswerType(type) && window.EmsRichTextEditor) {
+            const editorId = 'cx-long-answer-' + question.id;
+            const adapter = window.EmsRichTextEditor.get(editorId);
+            if (adapter && typeof adapter.setData === 'function') {
+                adapter.setData(next == null ? '' : String(next));
+                return;
+            }
         }
+        const el = container.querySelector('[name="' + name + '"]');
+        if (el) el.value = next == null ? '' : String(next);
         return;
     }
 
@@ -206,6 +235,11 @@ export function initExamRunner(root) {
         heartbeatTimer: null,
         timerApi: null,
         destroyed: false,
+        activePartKey: null,
+        palettePage: 0,
+        longAnswerEditorId: null,
+        palettePageHold: false,
+        questionRenderToken: 0,
     };
 
     const cleanups = [];
@@ -243,6 +277,11 @@ export function initExamRunner(root) {
 
     const questionEl = root.querySelector('#cx-question');
     const paletteEl = root.querySelector('#cx-palette');
+    const palettePartsEl = root.querySelector('#cx-palette-parts');
+    const palettePagerEl = root.querySelector('#cx-palette-pager');
+    const palettePageLabelEl = root.querySelector('#cx-palette-page-label');
+    const palettePrevBtn = root.querySelector('#cx-palette-prev');
+    const paletteNextBtn = root.querySelector('#cx-palette-next');
     const timerEls = [
         root.querySelector('#cx-timer'),
         root.querySelector('#cx-rail-timer'),
@@ -327,6 +366,9 @@ export function initExamRunner(root) {
     function persistCurrent({ debounceMs } = {}) {
         const q = questions[state.index];
         if (!q || !questionEl) return;
+        if (window.EmsRichTextEditor?.syncAll) {
+            try { window.EmsRichTextEditor.syncAll(); } catch (_) {}
+        }
         const value = readAnswer(questionEl, q);
         state.answers[q.id] = value;
         state.visited[q.id] = true;
@@ -342,17 +384,26 @@ export function initExamRunner(root) {
         updateProgress();
     }
 
+    function isNarrowViewport() {
+        return window.matchMedia('(max-width: 960px)').matches;
+    }
+
     function setDrawer(open) {
         state.drawerOpen = !!open;
         root.classList.toggle('is-drawer-open', state.drawerOpen);
         if (rail) rail.classList.toggle('is-open', state.drawerOpen);
+
+        const showBackdrop = state.drawerOpen && isNarrowViewport();
         if (backdrop) {
-            backdrop.hidden = !state.drawerOpen;
-            if (state.drawerOpen) backdrop.removeAttribute('hidden');
+            backdrop.hidden = !showBackdrop;
+            if (showBackdrop) backdrop.removeAttribute('hidden');
             else backdrop.setAttribute('hidden', 'hidden');
         }
-        if (drawerToggle) drawerToggle.setAttribute('aria-expanded', state.drawerOpen ? 'true' : 'false');
-        document.body.classList.toggle('cx-drawer-lock', state.drawerOpen);
+        if (drawerToggle) {
+            drawerToggle.setAttribute('aria-expanded', state.drawerOpen ? 'true' : 'false');
+            drawerToggle.title = state.drawerOpen ? 'Exam panel open' : 'Open exam panel';
+        }
+        document.body.classList.toggle('cx-drawer-lock', showBackdrop);
     }
 
     function isLockedIndex(idx) {
@@ -362,14 +413,94 @@ export function initExamRunner(root) {
         return !!state.leftAnswered[q.id] && idx !== state.index;
     }
 
+    function buildPartGroups() {
+        const groups = new Map();
+        questions.forEach((q, idx) => {
+            const key = q.part_id != null && q.part_id !== '' ? String(q.part_id) : 'none';
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    key,
+                    id: q.part_id,
+                    name: q.part_name || 'Part',
+                    sort: q.part_sort_order ?? 9999,
+                    items: [],
+                });
+            }
+            groups.get(key).items.push({ q, idx });
+        });
+        return Array.from(groups.values()).sort((a, b) => a.sort - b.sort);
+    }
+
+    function ensureActivePart() {
+        const groups = buildPartGroups();
+        const useParts = groups.length > 1;
+        if (!useParts) {
+            state.activePartKey = null;
+            return { useParts: false, groups };
+        }
+        if (!state.activePartKey || !groups.some((g) => g.key === state.activePartKey)) {
+            const current = questions[state.index];
+            const currentKey = current?.part_id != null && current.part_id !== ''
+                ? String(current.part_id)
+                : groups[0].key;
+            state.activePartKey = currentKey;
+        }
+        return { useParts: true, groups };
+    }
+
     function paintPalette() {
         if (!paletteEl) return;
         paletteEl.innerHTML = '';
 
-        const distinctParts = new Set(
-            questions.map((q) => q.part_id).filter((id) => id != null && id !== ''),
-        );
-        const useParts = distinctParts.size > 1;
+        const { useParts, groups } = ensureActivePart();
+        let entries = questions.map((q, idx) => ({ q, idx }));
+
+        if (useParts && palettePartsEl) {
+            palettePartsEl.hidden = false;
+            palettePartsEl.removeAttribute('hidden');
+            palettePartsEl.innerHTML = '';
+            groups.forEach((group, partIndex) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = group.name && group.name !== 'Part'
+                    ? group.name
+                    : ('Part ' + (partIndex + 1));
+                if (group.key === state.activePartKey) btn.classList.add('is-active');
+                btn.addEventListener('click', () => {
+                    state.activePartKey = group.key;
+                    state.palettePage = 0;
+                    const first = group.items[0];
+                    if (first) {
+                        persistCurrent({ debounceMs: 0 });
+                        goToIndex(first.idx);
+                    } else {
+                        paintPalette();
+                    }
+                });
+                palettePartsEl.appendChild(btn);
+            });
+            const active = groups.find((g) => g.key === state.activePartKey) || groups[0];
+            entries = active ? active.items.slice() : entries;
+        } else if (palettePartsEl) {
+            palettePartsEl.hidden = true;
+            palettePartsEl.setAttribute('hidden', 'hidden');
+            palettePartsEl.innerHTML = '';
+        }
+
+        const totalPages = Math.max(1, Math.ceil(entries.length / PALETTE_PAGE_SIZE));
+        if (state.palettePage > totalPages - 1) state.palettePage = totalPages - 1;
+        if (state.palettePage < 0) state.palettePage = 0;
+
+        // Keep the current question's page visible unless the user is manually paging.
+        if (!state.palettePageHold) {
+            const currentPos = entries.findIndex((item) => item.idx === state.index);
+            if (currentPos >= 0) {
+                state.palettePage = Math.floor(currentPos / PALETTE_PAGE_SIZE);
+            }
+        }
+
+        const start = state.palettePage * PALETTE_PAGE_SIZE;
+        const pageEntries = entries.slice(start, start + PALETTE_PAGE_SIZE);
 
         const appendButton = (q, idx) => {
             const btn = document.createElement('button');
@@ -400,50 +531,104 @@ export function initExamRunner(root) {
                 btn.addEventListener('click', () => {
                     persistCurrent({ debounceMs: 0 });
                     if (!goToIndex(idx)) return;
-                    if (window.matchMedia('(max-width: 960px)').matches) setDrawer(false);
+                    if (isNarrowViewport()) setDrawer(false);
                 });
             }
             return btn;
         };
 
-        if (!useParts) {
-            questions.forEach((q, idx) => {
-                paletteEl.appendChild(appendButton(q, idx));
-            });
+        pageEntries.forEach(({ q, idx }) => {
+            paletteEl.appendChild(appendButton(q, idx));
+        });
+
+        if (palettePagerEl) {
+            const showPager = entries.length > PALETTE_PAGE_SIZE;
+            palettePagerEl.hidden = !showPager;
+            if (showPager) palettePagerEl.removeAttribute('hidden');
+            else palettePagerEl.setAttribute('hidden', 'hidden');
+            if (palettePageLabelEl) {
+                palettePageLabelEl.textContent = (state.palettePage + 1) + ' / ' + totalPages;
+            }
+            if (palettePrevBtn) palettePrevBtn.disabled = state.palettePage <= 0;
+            if (paletteNextBtn) paletteNextBtn.disabled = state.palettePage >= totalPages - 1;
+        }
+    }
+
+    async function destroyLongAnswerEditor() {
+        if (!state.longAnswerEditorId || !window.EmsRichTextEditor) {
+            state.longAnswerEditorId = null;
+            return;
+        }
+        try {
+            await window.EmsRichTextEditor.destroy(state.longAnswerEditorId);
+        } catch (_) {
+            // ignore
+        }
+        state.longAnswerEditorId = null;
+    }
+
+    async function mountLongAnswerEditor(question, renderToken = state.questionRenderToken) {
+        if (!window.EmsRichTextEditor || !questionEl) return;
+        const type = question.question?.type || 'mcq';
+        if (!isLongAnswerType(type)) return;
+        if (renderToken !== state.questionRenderToken || state.destroyed) return;
+
+        const editorId = 'cx-long-answer-' + question.id;
+        const textarea = questionEl.querySelector('#' + editorId);
+        if (!textarea) return;
+
+        const wrapper = textarea.closest('[data-ems-rich-editor]') || textarea.parentElement;
+        await window.EmsRichTextEditor.mount(textarea, {
+            wrapper,
+            height: 280,
+            toolbar: LONG_ANSWER_TOOLBAR,
+            plugins: LONG_ANSWER_PLUGINS,
+            menubar: false,
+            placeholder: 'Write your answer',
+            uploadUrl: '',
+        });
+
+        if (renderToken !== state.questionRenderToken || state.destroyed) {
+            try { await window.EmsRichTextEditor.destroy(editorId); } catch (_) {}
             return;
         }
 
-        const groups = new Map();
-        questions.forEach((q, idx) => {
-            const key = q.part_id != null ? String(q.part_id) : 'none';
-            if (!groups.has(key)) {
-                groups.set(key, {
-                    id: q.part_id,
-                    name: q.part_name || 'Questions',
-                    sort: q.part_sort_order ?? 9999,
-                    items: [],
+        state.longAnswerEditorId = editorId;
+
+        const adapter = window.EmsRichTextEditor.get(editorId);
+        const existing = state.answers[question.id];
+        if (adapter && existing != null && existing !== '') {
+            const text = typeof existing === 'object' && !Array.isArray(existing)
+                ? (existing.text || '')
+                : (Array.isArray(existing) ? (existing[0] || '') : existing);
+            adapter.setData?.(text == null ? '' : String(text));
+        }
+
+        const editor = adapter?.editor;
+        if (editor && typeof editor.on === 'function') {
+            editor.on('change keyup SetContent undo redo', () => {
+                if (renderToken !== state.questionRenderToken) return;
+                persistCurrent({ debounceMs: 800 });
+            });
+
+            // Enforce copy/paste policy inside the TinyMCE iframe document.
+            if (policy.block_copy_paste) {
+                const block = (eventName) => (e) => {
+                    e.preventDefault();
+                    state.proctorApi?.send?.(eventName);
+                };
+                const doc = editor.getDoc?.();
+                if (doc) {
+                    doc.addEventListener('copy', block('copy_attempt'));
+                    doc.addEventListener('cut', block('cut_attempt'));
+                    doc.addEventListener('paste', block('paste_attempt'));
+                }
+                editor.on('paste', (e) => {
+                    e.preventDefault();
+                    state.proctorApi?.send?.('paste_attempt');
                 });
             }
-            groups.get(key).items.push({ q, idx });
-        });
-
-        Array.from(groups.values())
-            .sort((a, b) => a.sort - b.sort)
-            .forEach((group) => {
-                const section = document.createElement('div');
-                section.className = 'cx-palette__group';
-                const title = document.createElement('h4');
-                title.className = 'cx-palette__group-title';
-                title.textContent = group.name;
-                section.appendChild(title);
-                const grid = document.createElement('div');
-                grid.className = 'cx-palette__grid';
-                group.items.forEach(({ q, idx }) => {
-                    grid.appendChild(appendButton(q, idx));
-                });
-                section.appendChild(grid);
-                paletteEl.appendChild(section);
-            });
+        }
     }
 
     function setReconnectVisible(visible) {
@@ -542,30 +727,50 @@ export function initExamRunner(root) {
     function showQuestion() {
         const q = questions[state.index];
         if (!q || !questionEl) return;
-        renderQuestion(questionEl, q);
-        applyAnswer(questionEl, q, state.answers[q.id]);
-        bindOptionHighlight(questionEl);
-        state.visited[q.id] = true;
 
-        const type = q.question?.type || 'mcq';
-        const isText = ['fill_blank', 'short_answer', 'long_answer', 'written'].includes(type);
-        questionEl.onchange = () => persistCurrent();
-        questionEl.oninput = () => persistCurrent({ debounceMs: isText ? 800 : 500 });
+        const renderToken = ++state.questionRenderToken;
 
-        paintPalette();
-        updateProgress();
-        syncLocal();
+        destroyLongAnswerEditor().finally(() => {
+            if (state.destroyed || renderToken !== state.questionRenderToken) return;
 
-        const qno = root.querySelector('#cx-qno');
-        const kicker = root.querySelector('#cx-question-kicker');
-        const marksEl = root.querySelector('#cx-question-marks');
-        const label = 'Question ' + (state.index + 1) + ' of ' + questions.length;
-        if (qno) qno.textContent = label;
-        if (kicker) kicker.textContent = label;
-        if (marksEl) {
-            const marks = q.marks ?? q.question?.marks;
-            marksEl.textContent = marks != null ? (marks + ' mark' + (Number(marks) === 1 ? '' : 's')) : '';
-        }
+            // Keep active part in sync with the current question.
+            if (q.part_id != null && q.part_id !== '') {
+                state.activePartKey = String(q.part_id);
+            }
+
+            renderQuestion(questionEl, q);
+            applyAnswer(questionEl, q, state.answers[q.id]);
+            bindOptionHighlight(questionEl);
+            state.visited[q.id] = true;
+
+            const type = q.question?.type || 'mcq';
+            const isText = ['fill_blank', 'short_answer', 'long_answer', 'written'].includes(type);
+            questionEl.onchange = () => persistCurrent();
+            questionEl.oninput = () => persistCurrent({ debounceMs: isText ? 800 : 500 });
+
+            paintPalette();
+            updateProgress();
+            syncLocal();
+
+            const qno = root.querySelector('#cx-qno');
+            const kicker = root.querySelector('#cx-question-kicker');
+            const marksEl = root.querySelector('#cx-question-marks');
+            const partLabel = q.part_name ? (q.part_name + ' · ') : '';
+            const label = partLabel + 'Question ' + (state.index + 1) + ' of ' + questions.length;
+            if (qno) qno.textContent = label;
+            if (kicker) kicker.textContent = label;
+            if (marksEl) {
+                const marks = q.marks ?? q.question?.marks;
+                marksEl.textContent = marks != null ? (marks + ' mark' + (Number(marks) === 1 ? '' : 's')) : '';
+            }
+
+            if (isLongAnswerType(type)) {
+                mountLongAnswerEditor(q, renderToken).catch((e) => {
+                    if (renderToken !== state.questionRenderToken) return;
+                    notify(e?.message || 'Rich editor unavailable. Using plain text.', 'warn', 4000);
+                });
+            }
+        });
     }
 
     function canNavigateTo(nextIndex) {
@@ -590,6 +795,7 @@ export function initExamRunner(root) {
         if (!canNavigateTo(next)) return false;
         if (next !== state.index) leaveCurrentIfAnswered();
         state.index = next;
+        state.palettePageHold = false;
         showQuestion();
         return true;
     }
@@ -775,6 +981,12 @@ export function initExamRunner(root) {
             return;
         }
 
+        const type = q.question?.type || 'mcq';
+        if (isLongAnswerType(type) && window.EmsRichTextEditor) {
+            const adapter = window.EmsRichTextEditor.get('cx-long-answer-' + q.id);
+            adapter?.setData?.('');
+        }
+
         const name = 'q' + q.id;
         questionEl.querySelectorAll('[name="' + name + '"]').forEach((el) => {
             if (el.type === 'checkbox' || el.type === 'radio') {
@@ -844,6 +1056,16 @@ export function initExamRunner(root) {
     on(drawerToggle, 'click', () => setDrawer(!state.drawerOpen));
     on(drawerClose, 'click', () => setDrawer(false));
     on(backdrop, 'click', () => setDrawer(false));
+    on(palettePrevBtn, 'click', () => {
+        state.palettePageHold = true;
+        state.palettePage = Math.max(0, state.palettePage - 1);
+        paintPalette();
+    });
+    on(paletteNextBtn, 'click', () => {
+        state.palettePageHold = true;
+        state.palettePage += 1;
+        paintPalette();
+    });
     on(root.querySelector('#cx-confirm-submit'), 'click', () => {
         closeModal();
         finalizeSubmit();
@@ -1028,11 +1250,24 @@ export function initExamRunner(root) {
     cleanups.push(() => window.removeEventListener('beforeunload', onBeforeUnload));
 
     showQuestion();
+    setDrawer(!isNarrowViewport());
+
+    const onViewportChange = () => {
+        setDrawer(state.drawerOpen);
+    };
+    const mq = window.matchMedia('(max-width: 960px)');
+    if (mq.addEventListener) mq.addEventListener('change', onViewportChange);
+    else mq.addListener?.(onViewportChange);
+    cleanups.push(() => {
+        if (mq.removeEventListener) mq.removeEventListener('change', onViewportChange);
+        else mq.removeListener?.(onViewportChange);
+    });
 
     return function destroy() {
         if (state.destroyed) return;
         state.destroyed = true;
         root.dataset.cxReady = '0';
+        destroyLongAnswerEditor().catch(() => {});
         if (state.toastTimer) window.clearTimeout(state.toastTimer);
         if (state.heartbeatTimer) window.clearInterval(state.heartbeatTimer);
         state.timerApi?.stop?.();

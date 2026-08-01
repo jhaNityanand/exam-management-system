@@ -84,12 +84,21 @@
 
             @foreach ($sections as $index => $section)
                 <section class="et-legal-card" id="privacy-{{ $section['id'] }}" data-legal-item @if($index === 0) data-open @endif>
-                    <button type="button" class="et-legal-card__trigger" data-legal-trigger aria-expanded="{{ $index === 0 ? 'true' : 'false' }}">
+                    <button type="button"
+                            class="et-legal-card__trigger"
+                            id="privacy-trigger-{{ $section['id'] }}"
+                            data-legal-trigger
+                            aria-expanded="{{ $index === 0 ? 'true' : 'false' }}"
+                            aria-controls="privacy-panel-{{ $section['id'] }}">
                         <span class="et-legal-card__index">{{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
                         <span class="et-legal-card__title">{{ $section['title'] }}</span>
                         <span class="et-legal-card__chevron" aria-hidden="true"></span>
                     </button>
-                    <div class="et-legal-card__panel et-prose" @if($index !== 0) hidden @endif>
+                    <div class="et-legal-card__panel et-prose"
+                         id="privacy-panel-{{ $section['id'] }}"
+                         role="region"
+                         aria-labelledby="privacy-trigger-{{ $section['id'] }}"
+                         @if($index !== 0) hidden @endif>
                         {!! $section['body'] !!}
                     </div>
                 </section>

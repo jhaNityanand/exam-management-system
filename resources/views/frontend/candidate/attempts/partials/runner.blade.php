@@ -114,7 +114,13 @@
                     <h3>Questions</h3>
                     <p id="cx-palette-summary" class="cx-rail__summary">0 answered</p>
                 </div>
+                <div id="cx-palette-parts" class="cx-palette-parts" hidden></div>
                 <div class="cx-palette" id="cx-palette" role="list"></div>
+                <div id="cx-palette-pager" class="cx-palette-pager" hidden>
+                    <button type="button" id="cx-palette-prev">Prev</button>
+                    <span id="cx-palette-page-label">1 / 1</span>
+                    <button type="button" id="cx-palette-next">Next</button>
+                </div>
                 <ul class="cx-legend">
                     <li><span class="cx-legend__swatch is-answered"></span> Answered</li>
                     <li><span class="cx-legend__swatch is-pending"></span> Save pending</li>

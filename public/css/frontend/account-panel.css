@@ -581,6 +581,123 @@ html.dark span.ca-req {
   object-fit: cover;
 }
 
+.ca-crop-modal[hidden] {
+  display: none !important;
+}
+
+.ca-crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ca-crop-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(2 6 23 / 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.ca-crop-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 42rem);
+  overflow: hidden;
+  border: 1px solid var(--et-border, #e2e8f0);
+  border-radius: 1.25rem;
+  background: var(--et-surface, #fff);
+  box-shadow: 0 28px 80px rgb(0 0 0 / 0.35);
+  color: var(--et-text, #0f172a);
+}
+
+.ca-crop-modal__dialog > header,
+.ca-crop-modal__dialog > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.ca-crop-modal__dialog > header {
+  border-bottom: 1px solid var(--et-border, #e2e8f0);
+}
+
+.ca-crop-modal__dialog > footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--et-border, #e2e8f0);
+}
+
+.ca-crop-modal__kicker {
+  margin: 0 0 .15rem;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--et-text-muted, #64748b);
+}
+
+.ca-crop-modal__dialog h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.ca-crop-modal__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--et-border, #e2e8f0);
+  border-radius: .7rem;
+  background: transparent;
+  color: var(--et-text-muted, #64748b);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.ca-crop-stage {
+  height: min(50vh, 26rem);
+  margin: 1rem 1.25rem 0;
+  overflow: hidden;
+  border-radius: .9rem;
+  background:
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+.ca-crop-stage img {
+  display: block;
+  max-width: 100%;
+}
+
+.ca-crop-stage img.ca-crop-fallback-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0f172a;
+}
+
+.ca-crop-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .75rem 1.25rem 0;
+}
+
+.ca-crop-help {
+  margin: .55rem 1.25rem 0;
+  font-size: .85rem;
+  color: var(--et-text-muted, #64748b);
+}
+
 .ca-section-nav {
   display: flex;
   flex-wrap: wrap;

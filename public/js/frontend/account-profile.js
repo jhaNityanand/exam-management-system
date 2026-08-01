@@ -14,15 +14,6 @@
         if (el) el.value = value == null ? '' : value;
     }
 
-    function fileToDataUrl(file) {
-        return new Promise(function (resolve, reject) {
-            var reader = new FileReader();
-            reader.onload = function () { resolve(reader.result); };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
     function setAvatarPreview(url, initials) {
         var box = document.getElementById('ca-avatar-preview');
         if (!box) return;
@@ -154,21 +145,153 @@
             });
 
         var fileInput = document.getElementById('ca-avatar-input');
-        if (fileInput) {
-            fileInput.addEventListener('change', async function () {
-                var file = fileInput.files && fileInput.files[0];
-                if (!file) return;
-                if (file.size > 2 * 1024 * 1024) {
-                    window.CaAccount.showAlert(alertEl, 'error', 'Image must be smaller than 2MB.');
+        var cropModal = document.getElementById('ca-avatar-crop-modal');
+        var cropImage = document.getElementById('ca-avatar-crop-image');
+        var cropper = null;
+        var objectUrl = null;
+
+        function closeCropModal() {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            if (cropModal) {
+                cropModal.hidden = true;
+                cropModal.setAttribute('aria-hidden', 'true');
+            }
+            document.body.style.overflow = '';
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                objectUrl = null;
+            }
+            if (fileInput) fileInput.value = '';
+            if (cropImage) {
+                cropImage.removeAttribute('src');
+                cropImage.classList.remove('ca-crop-fallback-image');
+            }
+        }
+
+        function openCropModal(file) {
+            if (!cropModal || !cropImage) return;
+            objectUrl = URL.createObjectURL(file);
+            cropImage.src = objectUrl;
+            cropModal.hidden = false;
+            cropModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            var applyFocus = cropModal.querySelector('[data-ca-crop-apply]');
+            window.setTimeout(function () {
+                (applyFocus || cropModal.querySelector('button'))?.focus?.();
+            }, 40);
+
+            var initializeCropper = function () {
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                if (!window.Cropper) {
+                    cropImage.classList.add('ca-crop-fallback-image');
                     return;
                 }
-                try {
-                    var dataUrl = await fileToDataUrl(file);
-                    document.getElementById('ca-cropped-avatar').value = dataUrl;
-                    document.getElementById('ca-remove-avatar').value = '0';
-                    setAvatarPreview(dataUrl);
-                } catch (e) {
-                    window.CaAccount.showAlert(alertEl, 'error', 'Unable to read image.');
+                cropper = new window.Cropper(cropImage, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.92,
+                    background: false,
+                    responsive: true,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    movable: true,
+                    zoomable: true,
+                    rotatable: true,
+                    scalable: false,
+                });
+            };
+
+            if (cropImage.complete) initializeCropper();
+            else cropImage.addEventListener('load', initializeCropper, { once: true });
+        }
+
+        function applyCroppedAvatar() {
+            var canvas;
+            if (cropper) {
+                canvas = cropper.getCroppedCanvas({
+                    width: 512,
+                    height: 512,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high',
+                });
+            } else if (cropImage && cropImage.naturalWidth) {
+                canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                var ctx = canvas.getContext('2d');
+                var size = Math.min(cropImage.naturalWidth, cropImage.naturalHeight);
+                var sx = (cropImage.naturalWidth - size) / 2;
+                var sy = (cropImage.naturalHeight - size) / 2;
+                ctx.drawImage(cropImage, sx, sy, size, size, 0, 0, 512, 512);
+            }
+
+            if (!canvas) {
+                window.CaAccount.showAlert(alertEl, 'error', 'Unable to crop image. Please try another photo.');
+                return;
+            }
+
+            var dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            document.getElementById('ca-cropped-avatar').value = dataUrl;
+            document.getElementById('ca-remove-avatar').value = '0';
+            setAvatarPreview(dataUrl);
+            closeCropModal();
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                var file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                    window.CaAccount.showAlert(alertEl, 'error', 'Choose a JPG, PNG, or WebP image.');
+                    fileInput.value = '';
+                    return;
+                }
+                if (file.size > 2 * 1024 * 1024) {
+                    window.CaAccount.showAlert(alertEl, 'error', 'Image must be smaller than 2MB.');
+                    fileInput.value = '';
+                    return;
+                }
+                openCropModal(file);
+            });
+        }
+
+        if (cropModal) {
+            cropModal.querySelectorAll('[data-ca-crop-close]').forEach(function (btn) {
+                btn.addEventListener('click', closeCropModal);
+            });
+            var applyBtn = cropModal.querySelector('[data-ca-crop-apply]');
+            if (applyBtn) applyBtn.addEventListener('click', applyCroppedAvatar);
+
+            cropModal.querySelectorAll('[data-ca-crop-zoom]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (!cropper) return;
+                    cropper.zoom(parseFloat(btn.getAttribute('data-ca-crop-zoom') || '0'));
+                });
+            });
+            cropModal.querySelectorAll('[data-ca-crop-rotate]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (!cropper) return;
+                    cropper.rotate(parseFloat(btn.getAttribute('data-ca-crop-rotate') || '0'));
+                });
+            });
+            var resetBtn = cropModal.querySelector('[data-ca-crop-reset]');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function () {
+                    if (cropper) cropper.reset();
+                });
+            }
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && cropModal && !cropModal.hidden) {
+                    closeCropModal();
                 }
             });
         }

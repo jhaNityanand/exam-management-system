@@ -14,6 +14,7 @@
 @endphp
 
 @section('content')
+<div id="cx-main" class="cx-prepare-main" tabindex="-1">
 <div class="cx-page-boot" id="cx-page-boot" role="status" aria-live="polite" aria-busy="true" aria-label="Loading exam readiness">
     <span class="cx-visually-hidden">Loading exam readiness</span>
     <div class="cx-page-boot__skeleton" aria-hidden="true">
@@ -213,9 +214,15 @@
 </div>
 
 <div id="cx-runner-host" class="cx-runner-host" hidden aria-hidden="true"></div>
+</div>
 @endsection
 
+@push('styles')
+    <link rel="stylesheet" href="{{ versioned_asset('css/components/rich-text-editor.css') }}">
+@endpush
+
 @push('scripts')
+    <script src="{{ versioned_asset('js/components/editor.js') }}" defer></script>
     @vite(['resources/js/candidate/app.js'])
     <script src="{{ versioned_asset('js/candidate/prepare-boot.js') }}" defer></script>
 @endpush

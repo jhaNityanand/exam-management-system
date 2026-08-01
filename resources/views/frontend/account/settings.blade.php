@@ -127,7 +127,7 @@
                 <input id="ca-delete-confirm" name="confirmation" type="text" required placeholder="DELETE">
             </div>
             <div class="ca-actions">
-                <button type="button" class="et-btn et-btn--ghost" data-ca-modal-close">Cancel</button>
+                <button type="button" class="et-btn et-btn--ghost" data-ca-modal-close>Cancel</button>
                 <button type="submit" class="et-btn et-btn--primary et-btn--danger" id="ca-delete-submit">Delete account</button>
             </div>
         </form>
