@@ -1,3 +1,4 @@
+{{-- Client does not need visible breadcrumbs. Re-enable by uncommenting below.
 @if(!empty($breadcrumbs) && count($breadcrumbs))
     <nav class="et-breadcrumbs" aria-label="Breadcrumb">
         @foreach($breadcrumbs as $i => $crumb)
@@ -12,3 +13,4 @@
         @endforeach
     </nav>
 @endif
+--}}
