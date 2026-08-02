@@ -13,6 +13,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="exam_rules">
 <div class="et-page-hero">
     <div class="et-container">
         @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
@@ -25,6 +26,8 @@
     </div>
 </div>
 
+<x-ad-slot page="exam_rules" position="below_title" />
+
 <div class="et-container et-page-stack">
     <div class="et-grid et-grid--4">
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_questions }}</span><span class="et-stat__label">Questions</span></div>
@@ -32,6 +35,8 @@
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_marks }}</span><span class="et-stat__label">Total marks</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->passing_marks }}</span><span class="et-stat__label">Passing marks</span></div>
     </div>
+
+    <x-ad-slot page="exam_rules" position="after_stats" />
 
     <div class="et-callout et-callout--warning et-warning-limit" role="note">
         <strong>Warnings allowed: {{ $warningLimit }}</strong>
@@ -41,6 +46,8 @@
             <p>You may receive up to <strong>{{ $warningLimit }}</strong> monitored warning{{ $warningLimit === 1 ? '' : 's' }} (tab switch, focus loss, etc.). Reaching this limit auto-submits your exam.</p>
         @endif
     </div>
+
+    <x-ad-slot page="exam_rules" position="after_about" />
 
     <div class="et-card et-card--padded">
         <h2 class="et-heading-flush">Assessment summary</h2>
@@ -64,6 +71,8 @@
         </ul>
     </div>
 
+    <x-ad-slot page="exam_rules" position="after_details" />
+
     <div class="et-card et-card--padded">
         <h2 class="et-heading-flush">Instructions for candidates</h2>
         <div class="et-prose">
@@ -75,7 +84,11 @@
         </div>
     </div>
 
+    <x-ad-slot page="exam_rules" position="between_sections" />
+
     @include('frontend.partials.exam-rules', ['rules' => $rules])
+
+    <x-ad-slot page="exam_rules" position="after_content" />
 
     <div class="et-card et-rules-actions" id="cx-rules-actions"
          data-agree-url="{{ $agreeUrl }}"
@@ -111,7 +124,10 @@
             <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Back to exam details</a>
         </div>
     </div>
+
+    <x-ad-slot page="exam_rules" position="after_cta" />
 </div>
+</x-ad-layout>
 @endsection
 
 @push('scripts')

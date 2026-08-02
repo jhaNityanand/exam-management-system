@@ -51,15 +51,16 @@
     </header>
 
     @php
-        $leftAdHtml = ad_slot('exam_attempt_left');
-        $bottomAdHtml = ad_slot('exam_attempt_bottom');
-        $rightAdHtml = ad_slot('exam_attempt_right');
+        $leftAdHtml = ad_slot('exam_attempt', 'left_sidebar');
+        $bottomAdHtml = ad_slot('exam_attempt', 'below_content');
+        $rightAdHtml = ad_slot('exam_attempt', 'right_sidebar');
     @endphp
     <div class="cx-exam__body {{ $leftAdHtml !== '' ? 'cx-exam__body--with-left' : '' }}">
         @if($leftAdHtml !== '')
             <aside class="cx-ad cx-ad--left" data-exam-ad="left" aria-label="Sponsored">{!! $leftAdHtml !!}</aside>
         @endif
         <main class="cx-main" id="cx-main">
+            <x-ad-slot page="exam_attempt" position="above_title" />
             <div class="cx-question-head">
                 <div>
                     <p class="cx-question-kicker" id="cx-question-kicker">Question 1</p>

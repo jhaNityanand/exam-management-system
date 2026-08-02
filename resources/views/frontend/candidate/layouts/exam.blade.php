@@ -13,12 +13,25 @@
     <meta property="og:image" content="{{ seo_default_image('exam') }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="{{ seo_default_image('exam') }}">
+    @php
+        $faviconUrl = $siteBrand['favicon_url'] ?? null;
+        if (! filled($faviconUrl)) {
+            $faviconUrl = asset('images/brand/favicon.svg');
+        }
+        $faviconType = str_ends_with(parse_url($faviconUrl, PHP_URL_PATH) ?? '', '.svg') ? 'image/svg+xml' : 'image/png';
+        $adCodes = ad_custom_code();
+    @endphp
+    <link rel="icon" href="{{ $faviconUrl }}" type="{{ $faviconType }}">
+    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
     @include('frontend.partials.theme-init')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/app.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/candidate-exam.css') }}">
+    @if(trim($adCodes['header_code'] ?? '') !== '')
+        {!! $adCodes['header_code'] !!}
+    @endif
     @stack('styles')
 </head>
 <body class="cx-body">
@@ -29,5 +42,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
     <script src="{{ versioned_asset('js/frontend/utils.js') }}" defer></script>
     @stack('scripts')
+    @if(trim($adCodes['footer_code'] ?? '') !== '')
+        {!! $adCodes['footer_code'] !!}
+    @endif
 </body>
 </html>

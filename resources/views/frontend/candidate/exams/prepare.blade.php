@@ -14,6 +14,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="exam_prepare" :show-above-footer="false">
 <div id="cx-main" class="cx-prepare-main" tabindex="-1">
 <div class="cx-page-boot" id="cx-page-boot" role="status" aria-live="polite" aria-busy="true" aria-label="Loading exam readiness">
     <span class="cx-visually-hidden">Loading exam readiness</span>
@@ -75,6 +76,8 @@
             </div>
         </div>
     </div>
+
+    <x-ad-slot page="exam_prepare" position="below_title" />
 
     <div class="cx-prepare__panel">
         <div id="cx-prepare-alert" class="cx-alert" hidden></div>
@@ -187,6 +190,8 @@
             </label>
         </section>
 
+        <x-ad-slot page="exam_prepare" position="between_sections" />
+
         <div class="cx-prepare__footer">
             <a href="{{ route('frontend.exams.rules', $exam) }}" class="et-btn et-btn--ghost">Back to rules</a>
             <button type="button"
@@ -199,6 +204,8 @@
             </button>
         </div>
         <p id="cx-prepare-error" class="cx-error" hidden role="alert"></p>
+
+        <x-ad-slot page="exam_prepare" position="after_cta" />
     </div>
 
     <div class="cx-loading" id="cx-loading" hidden>
@@ -215,6 +222,7 @@
 
 <div id="cx-runner-host" class="cx-runner-host" hidden aria-hidden="true"></div>
 </div>
+</x-ad-layout>
 @endsection
 
 @push('styles')

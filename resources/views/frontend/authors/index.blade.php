@@ -18,6 +18,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="authors">
     <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.authors.index') }}">
         <div class="et-page-hero et-page-hero--listing et-page-hero--authors">
             <div class="et-container">
@@ -118,6 +119,8 @@
                     @endforeach
                 </div>
 
+                <x-ad-slot page="authors" position="below_items" />
+
                 <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $authors,
@@ -127,4 +130,5 @@
             </div>
         </div>
     </div>
+</x-ad-layout>
 @endsection

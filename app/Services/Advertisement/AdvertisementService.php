@@ -447,20 +447,8 @@ HTML;
             return;
         }
 
-        $pageKeys = [
-            'home',
-            'blog_list',
-            'blog_detail',
-            'news_list',
-            'news_detail',
-            'question_list',
-            'question_detail',
-            'exam_list',
-            'exam_detail',
-            'categories',
-            'category_detail',
-            'search',
-        ];
+        // Seed placements for every catalog page (attempt, result, rules, FAQs, account, CMS, errors, etc.).
+        $pageKeys = AdvertisementCatalog::pageKeys();
 
         if ($replaceExisting) {
             AdPlacement::query()

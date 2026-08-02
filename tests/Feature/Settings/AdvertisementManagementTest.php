@@ -170,6 +170,21 @@ class AdvertisementManagementTest extends TestCase
         $this->assertSame(3, GoogleAdvertisement::query()->forOrg($this->organization->id)->count());
         $this->assertGreaterThan(0, AdPlacement::query()->forOrg($this->organization->id)->count());
 
+        foreach (['exam_attempt', 'exam_result', 'exam_rules', 'exam_prepare', 'faqs', 'account', 'error_404'] as $pageKey) {
+            $this->assertTrue(
+                AdPlacement::query()->forOrg($this->organization->id)->where('page_key', $pageKey)->exists(),
+                "Expected seeded placements for {$pageKey}"
+            );
+        }
+
+        $this->assertTrue(
+            AdPlacement::query()
+                ->forOrg($this->organization->id)
+                ->where('page_key', 'exam_attempt')
+                ->whereIn('position_key', ['left_sidebar', 'right_sidebar', 'below_content'])
+                ->exists()
+        );
+
         $code = app(AdvertisementService::class)->customCode($this->organization->id);
         $this->assertStringContainsString('G-35TPDL6YPR', $code['header_code']);
         $this->assertStringContainsString('ca-pub-3495821309562824', $code['header_code']);

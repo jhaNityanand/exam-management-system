@@ -34,6 +34,7 @@
 @endpush
 
 @section('content')
+<x-ad-layout page="cms_page">
     @if ($viewKey === 'about')
         @include('frontend.pages.about', ['page' => $page, 'eyebrow' => $eyebrow])
     @elseif ($viewKey === 'contact')
@@ -56,6 +57,7 @@
                 @endif
             </div>
         </section>
+        <x-ad-slot page="cms_page" position="below_title" />
         <div class="et-container et-page-body">
             @if ($banner)
                 <figure class="et-article-banner">
@@ -65,6 +67,11 @@
             <article class="et-panel et-panel--article et-cms-article">
                 <div class="et-prose">{!! $page->content !!}</div>
             </article>
+            <x-ad-slot page="cms_page" position="after_content" />
         </div>
     @endif
+    @if (in_array($viewKey, ['about', 'contact', 'privacy', 'terms'], true))
+        <x-ad-slot page="cms_page" position="after_content" />
+    @endif
+</x-ad-layout>
 @endsection

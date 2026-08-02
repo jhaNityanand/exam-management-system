@@ -11,6 +11,7 @@
 @endpush
 
 @section('content')
+<x-ad-layout page="exam_result">
 <div class="rs-page" id="rs-page"
      data-url="{{ $dataUrl }}"
      data-visible="{{ $visible ? '1' : '0' }}"
@@ -33,10 +34,7 @@
             </div>
         </header>
 
-        @php $resultAdHtml = ad_slot('exam_result'); @endphp
-        @if($resultAdHtml !== '')
-            <div class="et-container" style="padding-top:0">{!! $resultAdHtml !!}</div>
-        @endif
+        <x-ad-slot page="exam_result" position="below_title" />
 
         <div id="rs-error" class="rs-error" hidden role="alert"></div>
 
@@ -65,6 +63,9 @@
             </section>
 
             <section id="rs-content" class="rs-content" hidden></section>
+
+            <x-ad-slot page="exam_result" position="after_stats" />
+            <x-ad-slot page="exam_result" position="after_content" />
         @endif
     </div>
 
@@ -88,6 +89,7 @@
         </div>
     @endif
 </div>
+</x-ad-layout>
 @endsection
 
 @push('scripts')
