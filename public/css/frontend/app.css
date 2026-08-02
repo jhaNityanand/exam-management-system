@@ -5449,7 +5449,7 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
 .et-contact__form-head { margin-bottom: 0.35rem; }
 .et-contact__help .et-panel__title { margin-bottom: 0.65rem; }
 
-/* -- Advertisement slots (DB-driven) -- */
+/* -- Advertisement slots (layout only — no decorative empty boxes) -- */
 .et-ad-layout {
   --et-ad-rail: 10.5rem;
   display: grid;
@@ -5476,15 +5476,21 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
     position: sticky;
     top: 5.5rem;
     align-self: start;
+    margin-top: 1.25rem;
   }
 }
 .et-ad-layout__main { min-width: 0; }
 .et-ad-layout__rail { min-width: 0; }
 .et-ad {
-  margin: 0.85rem 0;
   width: 100%;
+  margin: 0;
 }
-.et-ad--rail { margin: 0 0 0.75rem; }
+.et-ad--inline {
+  margin: 0.85rem 0;
+}
+.et-ad--rail {
+  margin: 1.25rem 0 0.75rem;
+}
 .et-ad--footer {
   width: min(100% - 2rem, var(--et-max));
   margin: 1rem auto 1.25rem;
@@ -5492,26 +5498,14 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
 .et-ad-unit {
   display: block;
   width: 100%;
+  max-width: 100%;
   overflow: hidden;
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--et-surface, #fff) 92%, #cbd5e1);
-}
-html.dark .et-ad-unit,
-.dark .et-ad-unit {
-  background: color-mix(in srgb, #0f172a 88%, #334155);
-}
-.et-ad-unit__body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 2.5rem;
-  padding: 0.35rem;
 }
 .et-ad-unit__img {
   display: block;
   max-width: 100%;
   height: auto;
-  border-radius: 0.5rem;
 }
-.et-ad--rail .et-ad-unit__body { padding: 0.25rem; }
-.et-ad-unit ins.adsbygoogle { max-width: 100%; }
+.et-ad-unit ins.adsbygoogle {
+  max-width: 100%;
+}
