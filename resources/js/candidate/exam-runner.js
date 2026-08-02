@@ -51,7 +51,6 @@ function isAnsweredValue(value) {
 
 const LONG_ANSWER_TOOLBAR = 'undo redo | bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright | link | removeformat';
 const LONG_ANSWER_PLUGINS = 'lists link autolink';
-const PALETTE_PAGE_SIZE = 25;
 
 function isLongAnswerType(type) {
     return type === 'long_answer' || type === 'written';
@@ -236,9 +235,7 @@ export function initExamRunner(root) {
         timerApi: null,
         destroyed: false,
         activePartKey: null,
-        palettePage: 0,
         longAnswerEditorId: null,
-        palettePageHold: false,
         questionRenderToken: 0,
     };
 
@@ -278,10 +275,6 @@ export function initExamRunner(root) {
     const questionEl = root.querySelector('#cx-question');
     const paletteEl = root.querySelector('#cx-palette');
     const palettePartsEl = root.querySelector('#cx-palette-parts');
-    const palettePagerEl = root.querySelector('#cx-palette-pager');
-    const palettePageLabelEl = root.querySelector('#cx-palette-page-label');
-    const palettePrevBtn = root.querySelector('#cx-palette-prev');
-    const paletteNextBtn = root.querySelector('#cx-palette-next');
     const timerEls = [
         root.querySelector('#cx-timer'),
         root.querySelector('#cx-rail-timer'),
@@ -468,7 +461,6 @@ export function initExamRunner(root) {
                 if (group.key === state.activePartKey) btn.classList.add('is-active');
                 btn.addEventListener('click', () => {
                     state.activePartKey = group.key;
-                    state.palettePage = 0;
                     const first = group.items[0];
                     if (first) {
                         persistCurrent({ debounceMs: 0 });
@@ -486,21 +478,6 @@ export function initExamRunner(root) {
             palettePartsEl.setAttribute('hidden', 'hidden');
             palettePartsEl.innerHTML = '';
         }
-
-        const totalPages = Math.max(1, Math.ceil(entries.length / PALETTE_PAGE_SIZE));
-        if (state.palettePage > totalPages - 1) state.palettePage = totalPages - 1;
-        if (state.palettePage < 0) state.palettePage = 0;
-
-        // Keep the current question's page visible unless the user is manually paging.
-        if (!state.palettePageHold) {
-            const currentPos = entries.findIndex((item) => item.idx === state.index);
-            if (currentPos >= 0) {
-                state.palettePage = Math.floor(currentPos / PALETTE_PAGE_SIZE);
-            }
-        }
-
-        const start = state.palettePage * PALETTE_PAGE_SIZE;
-        const pageEntries = entries.slice(start, start + PALETTE_PAGE_SIZE);
 
         const appendButton = (q, idx) => {
             const btn = document.createElement('button');
@@ -537,21 +514,17 @@ export function initExamRunner(root) {
             return btn;
         };
 
-        pageEntries.forEach(({ q, idx }) => {
+        entries.forEach(({ q, idx }) => {
             paletteEl.appendChild(appendButton(q, idx));
         });
 
-        if (palettePagerEl) {
-            const showPager = entries.length > PALETTE_PAGE_SIZE;
-            palettePagerEl.hidden = !showPager;
-            if (showPager) palettePagerEl.removeAttribute('hidden');
-            else palettePagerEl.setAttribute('hidden', 'hidden');
-            if (palettePageLabelEl) {
-                palettePageLabelEl.textContent = (state.palettePage + 1) + ' / ' + totalPages;
+        // Keep the active question visible inside the scrollable palette.
+        window.requestAnimationFrame(() => {
+            const currentBtn = paletteEl.querySelector('button.is-current');
+            if (currentBtn && typeof currentBtn.scrollIntoView === 'function') {
+                currentBtn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
             }
-            if (palettePrevBtn) palettePrevBtn.disabled = state.palettePage <= 0;
-            if (paletteNextBtn) paletteNextBtn.disabled = state.palettePage >= totalPages - 1;
-        }
+        });
     }
 
     async function destroyLongAnswerEditor() {
@@ -795,7 +768,6 @@ export function initExamRunner(root) {
         if (!canNavigateTo(next)) return false;
         if (next !== state.index) leaveCurrentIfAnswered();
         state.index = next;
-        state.palettePageHold = false;
         showQuestion();
         return true;
     }
@@ -1056,16 +1028,6 @@ export function initExamRunner(root) {
     on(drawerToggle, 'click', () => setDrawer(!state.drawerOpen));
     on(drawerClose, 'click', () => setDrawer(false));
     on(backdrop, 'click', () => setDrawer(false));
-    on(palettePrevBtn, 'click', () => {
-        state.palettePageHold = true;
-        state.palettePage = Math.max(0, state.palettePage - 1);
-        paintPalette();
-    });
-    on(paletteNextBtn, 'click', () => {
-        state.palettePageHold = true;
-        state.palettePage += 1;
-        paintPalette();
-    });
     on(root.querySelector('#cx-confirm-submit'), 'click', () => {
         closeModal();
         finalizeSubmit();

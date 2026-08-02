@@ -116,11 +116,6 @@
                 </div>
                 <div id="cx-palette-parts" class="cx-palette-parts" hidden></div>
                 <div class="cx-palette" id="cx-palette" role="list"></div>
-                <div id="cx-palette-pager" class="cx-palette-pager" hidden>
-                    <button type="button" id="cx-palette-prev">Prev</button>
-                    <span id="cx-palette-page-label">1 / 1</span>
-                    <button type="button" id="cx-palette-next">Next</button>
-                </div>
                 <ul class="cx-legend" aria-label="Question status legend">
                     <li><span class="cx-legend__swatch is-answered" aria-hidden="true"></span> Answered</li>
                     <li><span class="cx-legend__swatch is-pending" aria-hidden="true"></span> Save pending</li>

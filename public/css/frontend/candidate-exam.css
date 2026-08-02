@@ -784,7 +784,7 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 .cx-rail__palette {
     display: flex;
     flex-direction: column;
-    gap: .55rem;
+    gap: .65rem;
     min-height: 0;
     flex: 1 1 auto;
     overflow: hidden;
@@ -795,6 +795,7 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
     justify-content: space-between;
     gap: .5rem;
     flex: 0 0 auto;
+    padding-inline: .1rem;
 }
 .cx-rail__palette-head h3 { margin: 0; font-size: .9rem; }
 .cx-rail__summary { margin: 0; font-size: .75rem; color: var(--et-text-muted, #64748b); }
@@ -822,29 +823,7 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
     color: var(--et-accent, #0f766e);
 }
 .cx-palette-pager {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .5rem;
-    font-size: .75rem;
-    color: var(--et-text-muted, #64748b);
-    flex: 0 0 auto;
-}
-.cx-palette-pager button {
-    min-height: 1.85rem;
-    padding: 0 .55rem;
-    border-radius: 8px;
-    border: 1px solid var(--et-border, #cbd5e1);
-    background: var(--et-surface, #fff);
-    color: var(--et-text, #0f172a);
-    font: inherit;
-    font-size: .75rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-.cx-palette-pager button:disabled {
-    opacity: .45;
-    cursor: not-allowed;
+    display: none !important;
 }
 .cx-timer {
     font-size: 1.05rem;
@@ -873,28 +852,36 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 }
 @keyframes cxflash { 50% { opacity: .55; } }
 
-/* Question number grid — compact square tiles that never stretch with leftover height */
+/* Question number grid — small circular avatar buttons with even spacing */
 .cx-palette {
-    --cx-q-gap: .32rem;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    --cx-q-size: 2.2rem;
+    --cx-q-gap: .5rem;
+    /* Extra inset so the current-question ring is never clipped by overflow */
+    --cx-q-inset: .5rem;
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--cx-q-gap);
-    align-content: start;
-    align-items: start;
+    align-content: safe center;
+    align-items: center;
+    justify-content: safe center;
     overflow: auto;
     overscroll-behavior: contain;
-    /* ~5 rows visible before scrolling on desktop rail */
-    max-height: min(17.5rem, 42vh);
+    max-height: min(15.5rem, 38vh);
     min-height: 0;
     flex: 1 1 auto;
-    padding: .05rem .15rem .05rem 0;
+    padding: var(--cx-q-inset);
+    margin: 0;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
 }
 .cx-palette:has(.cx-palette__group) {
     display: flex;
     flex-direction: column;
-    gap: .7rem;
-    max-height: min(20rem, 48vh);
+    flex-wrap: nowrap;
+    gap: .65rem;
+    align-content: stretch;
+    justify-content: flex-start;
+    max-height: min(18rem, 44vh);
 }
 .cx-palette__group {
     display: grid;
@@ -909,11 +896,13 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
     color: var(--et-text-muted, #64748b);
 }
 .cx-palette__grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--cx-q-gap);
-    align-content: start;
-    align-items: start;
+    align-content: safe center;
+    align-items: center;
+    justify-content: safe center;
+    padding: var(--cx-q-inset, .5rem);
 }
 .cx-answer .ems-rich-editor,
 .cx-answer [data-ems-rich-editor] {
@@ -929,24 +918,30 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 .cx-palette button,
 .cx-palette__grid button {
     box-sizing: border-box;
-    width: 100%;
+    width: var(--cx-q-size);
+    height: var(--cx-q-size);
+    min-width: var(--cx-q-size);
+    min-height: var(--cx-q-size);
+    flex: 0 0 var(--cx-q-size);
     aspect-ratio: 1 / 1;
-    min-height: 2.2rem;
-    height: auto;
-    align-self: start;
-    display: grid;
+    align-self: center;
+    display: inline-grid;
     place-items: center;
     padding: 0;
-    border-radius: 9px;
+    border-radius: 999px;
     border: 0;
     background: #e2e8f0;
     color: #475569;
     cursor: pointer;
     font: inherit;
-    font-size: .78rem;
+    font-size: .72rem;
     font-weight: 700;
     line-height: 1;
-    transition: background-color .14s ease, color .14s ease, box-shadow .14s ease;
+    transition: background-color .14s ease, color .14s ease, box-shadow .14s ease, transform .12s ease;
+}
+.cx-palette button:hover:not(:disabled),
+.cx-palette__grid button:hover:not(:disabled) {
+    transform: translateY(-1px);
 }
 .cx-palette button.is-answered,
 .cx-palette__grid button.is-answered { background: #bbf7d0; color: #166534; }
@@ -956,7 +951,7 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 .cx-palette__grid button.is-review { background: #fde68a; color: #92400e; }
 .cx-palette button.is-current,
 .cx-palette__grid button.is-current {
-    box-shadow: inset 0 0 0 2px var(--et-accent, #0f766e);
+    box-shadow: 0 0 0 2px var(--et-surface, #fff), 0 0 0 4px var(--et-accent, #0f766e);
     background: color-mix(in srgb, var(--et-accent, #0f766e) 14%, transparent);
     color: var(--et-accent, #0f766e);
 }
@@ -973,16 +968,17 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 .cx-palette__grid button.is-current.is-review,
 .cx-palette button.is-current.is-pending,
 .cx-palette__grid button.is-current.is-pending {
-    box-shadow: inset 0 0 0 2px var(--et-accent, #0f766e);
+    box-shadow: 0 0 0 2px var(--et-surface, #fff), 0 0 0 4px var(--et-accent, #0f766e);
 }
 
 .cx-legend {
     list-style: none;
     margin: 0;
-    padding: .45rem 0 0;
+    padding: .55rem .15rem 0;
     display: flex;
     flex-wrap: wrap;
     gap: .35rem .7rem;
+    justify-content: center;
     font-size: .7rem;
     font-weight: 600;
     color: var(--et-text-muted, #64748b);
@@ -991,9 +987,9 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 }
 .cx-legend li { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
 .cx-legend__swatch {
-    width: .65rem;
-    height: .65rem;
-    border-radius: 3px;
+    width: .7rem;
+    height: .7rem;
+    border-radius: 999px;
     background: #cbd5e1;
     flex-shrink: 0;
 }
@@ -1006,9 +1002,22 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
     background: color-mix(in srgb, var(--et-accent, #0f766e) 25%, transparent);
 }
 
+/* Webcam sits in the vertical middle of leftover rail space */
 .cx-webcam {
     flex: 0 0 auto;
     min-width: 0;
+}
+.cx-rail--with-webcam .cx-webcam {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding-block: .15rem;
+}
+.cx-rail--with-webcam .cx-rail__palette {
+    flex: 0 1 auto;
+    max-height: min(42vh, 16.5rem);
 }
 .cx-webcam__frame {
     position: relative;
@@ -1017,6 +1026,7 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
     background: #0f172a;
     aspect-ratio: 4 / 3;
     max-height: 11.5rem;
+    width: 100%;
 }
 .cx-webcam__frame video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cx-webcam__status {
@@ -1236,7 +1246,7 @@ html.dark .cx-palette button.is-current,
 html.dark .cx-palette__grid button.is-current {
     background: color-mix(in srgb, var(--et-accent, #14b8a6) 18%, transparent);
     color: #5eead4;
-    box-shadow: inset 0 0 0 2px #2dd4bf;
+    box-shadow: 0 0 0 2px var(--et-surface, #121a2b), 0 0 0 4px #2dd4bf;
 }
 .cx-body[data-theme="dark"] .cx-legend,
 html.dark .cx-legend {
@@ -1291,7 +1301,7 @@ html.dark .cx-btn--review { color: #fbbf24; }
         box-shadow: -18px 0 40px rgba(15, 23, 42, 0.18);
         padding: max(0.85rem, env(safe-area-inset-top)) 0.9rem max(0.85rem, env(safe-area-inset-bottom));
         display: flex;
-        gap: .7rem;
+        gap: .65rem;
         overflow: hidden;
     }
     .cx-rail.is-open { transform: translateX(0); }
@@ -1305,34 +1315,41 @@ html.dark .cx-btn--review { color: #fbbf24; }
     }
     .cx-drawer-backdrop[hidden] { display: none !important; }
 
-    /* Palette fills leftover drawer height; tiles stay square and scroll inside */
     .cx-rail__palette {
-        flex: 1 1 auto;
+        flex: 0 1 auto;
         min-height: 0;
+        max-height: min(46vh, 17rem);
     }
     .cx-palette {
-        --cx-q-gap: .3rem;
+        --cx-q-size: 2.3rem;
+        --cx-q-gap: .5rem;
+        --cx-q-inset: .55rem;
         max-height: none;
         flex: 1 1 auto;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        min-height: 5.5rem;
         -webkit-overflow-scrolling: touch;
     }
-    .cx-palette__grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .cx-palette button,
     .cx-palette__grid button {
-        min-height: 2.35rem;
-        border-radius: 8px;
-        font-size: .76rem;
+        font-size: .7rem;
     }
 
-    /* Keep webcam visible; shrink frame so question nav still has room */
+    /* Webcam stays vertically centered in the free space above the question list */
+    .cx-rail--with-webcam .cx-webcam {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-height: 6rem;
+    }
     .cx-rail--with-webcam .cx-webcam__frame {
         aspect-ratio: 16 / 10;
-        max-height: min(9.5rem, 22vh);
+        max-height: min(9rem, 20vh);
+    }
+    .cx-rail--with-webcam .cx-rail__palette {
+        flex: 0 1 auto;
+        max-height: min(42vh, 15.5rem);
     }
     .cx-rail--with-webcam .cx-palette {
-        /* Prefer scrolling the grid over pushing webcam off-screen */
-        min-height: 6.5rem;
+        min-height: 4.5rem;
     }
 
     .cx-legend {
@@ -1364,7 +1381,10 @@ html.dark .cx-btn--review { color: #fbbf24; }
         overflow: auto;
     }
     .cx-rail--with-webcam .cx-webcam__frame {
-        max-height: 10.5rem;
+        max-height: 10rem;
+    }
+    .cx-rail--with-webcam .cx-rail__palette {
+        max-height: min(38vh, 15rem);
     }
 }
 
@@ -1377,25 +1397,24 @@ html.dark .cx-btn--review { color: #fbbf24; }
     .cx-live-badge { font-size: .62rem; padding: 0 .38rem; }
     .cx-rail {
         width: min(320px, 92vw);
-        gap: .6rem;
+        gap: .55rem;
     }
     .cx-palette,
     .cx-palette__grid {
-        --cx-q-gap: .28rem;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        --cx-q-size: 2.25rem;
+        --cx-q-gap: .48rem;
+        --cx-q-inset: .5rem;
     }
     .cx-palette button,
     .cx-palette__grid button {
-        min-height: 2.45rem;
-        border-radius: 8px;
-        font-size: .74rem;
+        font-size: .68rem;
     }
     .cx-rail--with-webcam .cx-webcam__frame {
         aspect-ratio: 16 / 9;
-        max-height: min(7.75rem, 18vh);
+        max-height: min(7.25rem, 17vh);
     }
-    .cx-rail--with-webcam .cx-palette {
-        min-height: 5.5rem;
+    .cx-rail--with-webcam .cx-rail__palette {
+        max-height: min(40vh, 14.5rem);
     }
     .cx-legend {
         gap: .28rem .5rem;
@@ -1404,16 +1423,26 @@ html.dark .cx-btn--review { color: #fbbf24; }
     .cx-footer-actions { flex-direction: column; }
 }
 
-/* Short viewports (landscape phones / short tablets): keep webcam + denser tiles */
+/* Short viewports (landscape phones / short tablets) */
 @media (max-width: 960px) and (max-height: 520px) {
+    .cx-rail--with-webcam .cx-webcam {
+        min-height: 4rem;
+    }
     .cx-rail--with-webcam .cx-webcam__frame {
-        max-height: min(5.5rem, 28vh);
+        max-height: min(5rem, 26vh);
         aspect-ratio: 2 / 1;
+    }
+    .cx-rail--with-webcam .cx-rail__palette {
+        max-height: min(48vh, 11.5rem);
+    }
+    .cx-palette,
+    .cx-palette__grid {
+        --cx-q-size: 2rem;
+        --cx-q-gap: .4rem;
     }
     .cx-palette button,
     .cx-palette__grid button {
-        min-height: 2.1rem;
-        font-size: .7rem;
+        font-size: .65rem;
     }
     .cx-legend {
         gap: .2rem .45rem;
