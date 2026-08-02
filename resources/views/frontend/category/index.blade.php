@@ -19,6 +19,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="categories">
     <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.categories.index') }}">
         <div class="et-page-hero et-page-hero--listing">
             <div class="et-container">
@@ -128,13 +129,18 @@
                     @endforeach
                 </div>
 
+                <x-ad-slot page="categories" position="below_items" />
+
                 <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $categories,
                         'endpoint' => route('frontend.categories.index', request()->query()),
                     ])
                 </div>
+
+                <x-ad-slot page="categories" position="after_content" />
             </div>
         </div>
     </div>
+</x-ad-layout>
 @endsection

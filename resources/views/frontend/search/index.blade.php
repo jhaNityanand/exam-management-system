@@ -19,6 +19,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="search">
     <div class="et-page-hero">
         <div class="et-container">
             @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
@@ -34,6 +35,8 @@
             </form>
         </div>
     </div>
+
+    <x-ad-slot page="search" position="below_title" />
 
     <div class="et-container et-search-results et-section">
         @if($q === '')
@@ -63,6 +66,7 @@
                             @endforeach
                         </div>
                     </section>
+                    <x-ad-slot page="search" position="after_results" />
                 @endif
 
                 @if(count($questions))
@@ -108,7 +112,10 @@
                         </div>
                     </section>
                 @endif
+
+                <x-ad-slot page="search" position="after_content" />
             @endunless
         @endif
     </div>
+</x-ad-layout>
 @endsection

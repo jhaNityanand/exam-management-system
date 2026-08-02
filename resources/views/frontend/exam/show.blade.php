@@ -27,6 +27,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="exam_detail">
     <div class="et-page-hero">
         <div class="et-container">
             @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
@@ -62,6 +63,8 @@
         </div>
     </div>
 
+    <x-ad-slot page="exam_detail" position="below_title" />
+
     <div class="et-container et-page-stack">
         <div class="et-grid et-grid--4">
             <div class="et-stat"><span class="et-stat__value">{{ (int) ($exam->duration ?? 0) }}</span><span class="et-stat__label">Minutes</span></div>
@@ -69,6 +72,8 @@
             <div class="et-stat"><span class="et-stat__value">{{ (int) ($exam->total_marks ?? 0) }}</span><span class="et-stat__label">Total marks</span></div>
             <div class="et-stat"><span class="et-stat__value">{{ (int) ($exam->passing_marks ?? 0) }}</span><span class="et-stat__label">Passing marks</span></div>
         </div>
+
+        <x-ad-slot page="exam_detail" position="after_stats" />
 
         <section class="et-card et-exam-detail__about" aria-labelledby="exam-about-heading">
             <h2 id="exam-about-heading">About this exam</h2>
@@ -80,6 +85,8 @@
                 @endif
             </div>
         </section>
+
+        <x-ad-slot page="exam_detail" position="after_about" />
 
         <div class="et-card et-card--padded">
             <h2 class="et-heading-flush">Exam details</h2>
@@ -120,6 +127,8 @@
                 </div>
             </div>
         </div>
+
+        <x-ad-slot page="exam_detail" position="after_details" />
 
         <div class="et-card et-exam-detail__cta" id="exam-cta" data-return-url="{{ $returnUrl }}">
             @guest
@@ -166,6 +175,8 @@
             @endauth
         </div>
 
+        <x-ad-slot page="exam_detail" position="after_cta" />
+
         @auth
             @include('frontend.exam.partials.previous-attempts', [
                 'exam' => $exam,
@@ -179,9 +190,13 @@
             'userFeedback' => $userFeedback ?? null,
             'canLeaveFeedback' => $canLeaveFeedback ?? false,
         ])
+
+        <x-ad-slot page="exam_detail" position="after_content" />
     </div>
 
-    @include('frontend.partials.detail-sidebar')
+    {{-- Full-width layout: keep related exams in-flow (fixed rail overlaps et-container). --}}
+    @include('frontend.partials.detail-sidebar', ['detailSidebarInline' => true])
+</x-ad-layout>
 @endsection
 
 @push('styles')

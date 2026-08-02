@@ -34,6 +34,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="news_detail">
     <article class="et-article et-article--news">
         <header class="et-article__top">
             <div class="et-container et-article__wrap">
@@ -57,9 +58,11 @@
                     @endif
                 </div>
 
-                {!! ad_slot('news_detail_above_h1') !!}
+                <x-ad-slot page="news_detail" position="above_title" />
 
                 <h1 class="et-article__title">{{ $article->title }}</h1>
+
+                <x-ad-slot page="news_detail" position="below_title" />
             </div>
         </header>
 
@@ -70,7 +73,7 @@
                 </figure>
             @endif
 
-            {!! ad_slot('news_detail_sidebar_top') !!}
+            <x-ad-slot page="news_detail" position="before_content" />
 
             @if($summary)
                 <p class="et-article__lead">{{ $summary }}</p>
@@ -88,6 +91,8 @@
                 {!! $processedContent !!}
             </div>
 
+            <x-ad-slot page="news_detail" position="between_sections" />
+
             @include('frontend.partials.article-author', [
                 'authorUser' => $article->author,
                 'authorName' => $article->author_name ?: ($article->author->name ?? null),
@@ -97,8 +102,6 @@
                     ? 'Published '.$article->published_at->format('d M Y, H:i')
                     : null,
             ])
-
-            {!! ad_slot('news_detail_sidebar_middle') !!}
 
             <div class="et-article__footer-panel">
                 @if(($article->tags ?? collect())->isNotEmpty())
@@ -120,8 +123,7 @@
                 ])
             </div>
 
-            {!! ad_slot('news_detail_before_comments') !!}
-            {!! ad_slot('news_detail_sidebar_bottom') !!}
+            <x-ad-slot page="news_detail" position="after_content" />
 
             @php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
             @if($relatedItems->isNotEmpty())
@@ -173,4 +175,5 @@
     </article>
 
     @include('frontend.partials.detail-sidebar')
+</x-ad-layout>
 @endsection

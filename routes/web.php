@@ -273,8 +273,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('news', NewsController::class);
 
     // ── Advertisements ────────────────────────────────────────────────────────
-    Route::put('advertisements/settings', [AdvertisementController::class, 'updateSettings'])->name('advertisements.settings');
-    Route::resource('advertisements', AdvertisementController::class)->except(['show']);
+    Route::get('advertisements', [AdvertisementController::class, 'index'])->name('advertisements.index');
+    Route::get('advertisements/placements', [AdvertisementController::class, 'placements'])->name('advertisements.placements.index');
+    Route::post('advertisements/placements', [AdvertisementController::class, 'storePlacement'])->name('advertisements.placements.store');
+    Route::put('advertisements/placements/{placement}', [AdvertisementController::class, 'updatePlacement'])->name('advertisements.placements.update');
+    Route::delete('advertisements/placements/{placement}', [AdvertisementController::class, 'destroyPlacement'])->name('advertisements.placements.destroy');
+    Route::put('advertisements/custom-code', [AdvertisementController::class, 'updateCustomCode'])->name('advertisements.custom-code');
+    Route::post('advertisements/google', [AdvertisementController::class, 'storeGoogle'])->name('advertisements.google.store');
+    Route::put('advertisements/google/{googleAdvertisement}', [AdvertisementController::class, 'updateGoogle'])->name('advertisements.google.update');
+    Route::delete('advertisements/google/{googleAdvertisement}', [AdvertisementController::class, 'destroyGoogle'])->name('advertisements.google.destroy');
+    Route::post('advertisements', [AdvertisementController::class, 'store'])->name('advertisements.store');
+    Route::put('advertisements/{advertisement}', [AdvertisementController::class, 'update'])->name('advertisements.update');
+    Route::delete('advertisements/{advertisement}', [AdvertisementController::class, 'destroy'])->name('advertisements.destroy');
 
     // ── Settings ─────────────────────────────────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {

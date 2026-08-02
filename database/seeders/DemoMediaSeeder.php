@@ -10,7 +10,6 @@ use App\Models\Cms\Testimonial;
 use App\Models\Exam;
 use App\Models\Gallery;
 use App\Models\Organization;
-use App\Support\AdvertisementCatalog;
 use Database\Seeders\Concerns\ResolvesDemoContext;
 use Database\Seeders\Support\SeedImageLibrary;
 use Illuminate\Database\Seeder;
@@ -192,94 +191,12 @@ class DemoMediaSeeder extends Seeder
 
     private function seedAdvertisements(int $orgId, int $userId, SeedImageLibrary $images): void
     {
-        Advertisement::query()->where('organization_id', $orgId)->delete();
+        \App\Models\Cms\AdPlacement::query()->where('organization_id', $orgId)->forceDelete();
+        Advertisement::query()->where('organization_id', $orgId)->forceDelete();
+        \App\Models\Cms\GoogleAdvertisement::query()->where('organization_id', $orgId)->forceDelete();
 
-        $ads = [
-            [
-                'name' => 'Home sidebar premium mocks',
-                'placement' => 'home_sidebar',
-                'seo' => 'exam',
-                'headline' => 'Upgrade your mock series',
-                'body' => 'Unlock timed packs with analytics built for serious aspirants.',
-                'cta_label' => 'Browse exams',
-                'cta_url' => '/exams',
-            ],
-            [
-                'name' => 'Exam list banner',
-                'placement' => 'exam_list',
-                'seo' => 'category',
-                'headline' => 'Find your next paper',
-                'body' => 'Aptitude, technical, and HR interview assessments ready to attempt.',
-                'cta_label' => 'View categories',
-                'cta_url' => '/categories',
-            ],
-            [
-                'name' => 'Blog sidebar banner',
-                'placement' => 'blog_detail_sidebar_top',
-                'seo' => 'blog',
-                'headline' => 'Practice after you read',
-                'body' => 'Turn study tips into timed attempts on Examtube.',
-                'cta_label' => 'Start practicing',
-                'cta_url' => '/exams',
-            ],
-            [
-                'name' => 'News sidebar banner',
-                'placement' => 'news_detail_sidebar_top',
-                'seo' => 'news',
-                'headline' => 'News that fuels prep',
-                'body' => 'Stay current, then validate readiness with a mock test.',
-                'cta_label' => 'Open exams',
-                'cta_url' => '/exams',
-            ],
-            [
-                'name' => 'Exam result promo',
-                'placement' => 'exam_result',
-                'seo' => 'exam',
-                'headline' => 'Retake. Improve. Repeat.',
-                'body' => 'Use unlimited practice papers to climb your score curve.',
-                'cta_label' => 'Try another exam',
-                'cta_url' => '/exams',
-            ],
-            [
-                'name' => 'Footer strip banner',
-                'placement' => 'footer',
-                'seo' => 'organization',
-                'headline' => 'Examtube for institutes',
-                'body' => 'Brand your workspace, publish exams, and track candidate results.',
-                'cta_label' => 'Contact us',
-                'cta_url' => '/contact-us',
-            ],
-        ];
-
-        foreach ($ads as $index => $ad) {
-            $image = $this->safeSeo($images, $orgId, $ad['seo'], $userId, $ad['name'], 'ad-'.$index);
-
-            Advertisement::query()->create([
-                'organization_id' => $orgId,
-                'name' => $ad['name'],
-                'type' => AdvertisementCatalog::TYPE_BANNER,
-                'placement' => $ad['placement'],
-                'headline' => $ad['headline'],
-                'body' => $ad['body'],
-                'cta_label' => $ad['cta_label'],
-                'cta_url' => $ad['cta_url'],
-                'image_id' => $image?->id,
-                'mobile_image_id' => $image?->id,
-                'sort_order' => $index + 1,
-                'status' => 'active',
-                'starts_at' => now()->subDay(),
-                'ends_at' => now()->addYear(),
-            ]);
-        }
-
-        SiteSetting::query()->updateOrCreate(
-            ['organization_id' => $orgId, 'group' => 'advertisements', 'key' => 'question_list_every_n'],
-            [
-                'value' => '2',
-                'type' => 'integer',
-                'label' => 'Insert ad every N questions',
-            ]
-        );
+        // Google AdSense units + global header code + default placements only (no custom ads).
+        app(\App\Services\Advertisement\AdvertisementService::class)->seedDefaults($orgId, true);
     }
 
     private function seedStandaloneGallery(int $orgId, int $userId, SeedImageLibrary $images): void

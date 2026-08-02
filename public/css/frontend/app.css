@@ -3452,9 +3452,10 @@ html.dark .et-detail-sidebar__item:hover,
  * Wide desktop: fill the bottom-right gutter beside the ~860px reading column.
  * Left gutter stays empty for ads; main content width/layout is unchanged.
  * When the footer crowds the card, JS caps height and enables inner scroll.
+ * Skip fixed docking for .et-detail-rail--inline (full-width pages like exam detail).
  */
 @media (min-width: 1400px) {
-  .et-detail-rail {
+  .et-detail-rail:not(.et-detail-rail--inline) {
     --et-detail-rail-inset: 1.25rem;
     --et-detail-rail-lift: var(--et-detail-rail-inset);
     position: fixed;
@@ -3470,11 +3471,11 @@ html.dark .et-detail-sidebar__item:hover,
     overscroll-behavior: contain;
     transition: bottom 0.15s ease-out, max-height 0.15s ease-out;
   }
-  .et-detail-rail.is-constrained {
+  .et-detail-rail:not(.et-detail-rail--inline).is-constrained {
     overflow: auto;
     scrollbar-width: thin;
   }
-  .et-detail-sidebar {
+  .et-detail-rail:not(.et-detail-rail--inline) .et-detail-sidebar {
     width: 100%;
     height: auto;
     margin: 0;
@@ -5447,3 +5448,70 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
 .et-contact__side { display: grid; gap: 1rem; }
 .et-contact__form-head { margin-bottom: 0.35rem; }
 .et-contact__help .et-panel__title { margin-bottom: 0.65rem; }
+
+/* -- Advertisement slots (DB-driven) -- */
+.et-ad-layout {
+  --et-ad-rail: 10.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  width: 100%;
+  align-items: start;
+}
+@media (min-width: 1200px) {
+  .et-ad-layout--both {
+    grid-template-columns: var(--et-ad-rail) minmax(0, 1fr) var(--et-ad-rail);
+    padding-inline: 0.75rem;
+    box-sizing: border-box;
+  }
+  .et-ad-layout--left-only {
+    grid-template-columns: var(--et-ad-rail) minmax(0, 1fr);
+    padding-inline: 0.75rem;
+  }
+  .et-ad-layout--right-only {
+    grid-template-columns: minmax(0, 1fr) var(--et-ad-rail);
+    padding-inline: 0.75rem;
+  }
+  .et-ad-layout__rail {
+    position: sticky;
+    top: 5.5rem;
+    align-self: start;
+  }
+}
+.et-ad-layout__main { min-width: 0; }
+.et-ad-layout__rail { min-width: 0; }
+.et-ad {
+  margin: 0.85rem 0;
+  width: 100%;
+}
+.et-ad--rail { margin: 0 0 0.75rem; }
+.et-ad--footer {
+  width: min(100% - 2rem, var(--et-max));
+  margin: 1rem auto 1.25rem;
+}
+.et-ad-unit {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--et-surface, #fff) 92%, #cbd5e1);
+}
+html.dark .et-ad-unit,
+.dark .et-ad-unit {
+  background: color-mix(in srgb, #0f172a 88%, #334155);
+}
+.et-ad-unit__body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.35rem;
+}
+.et-ad-unit__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+.et-ad--rail .et-ad-unit__body { padding: 0.25rem; }
+.et-ad-unit ins.adsbygoogle { max-width: 100%; }

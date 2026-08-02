@@ -41,6 +41,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="question_detail">
     <article class="et-qd">
         <h1 class="et-visually-hidden">{{ $title }}</h1>
 
@@ -60,6 +61,8 @@
             </div>
         </div>
 
+        <x-ad-slot page="question_detail" position="below_title" />
+
         <div class="et-container et-qd__wrap et-qd__main">
             <section class="et-qd__panel et-qd__question" aria-labelledby="et-qd-question-heading">
                 <p class="et-qd__kicker">Question</p>
@@ -71,6 +74,8 @@
                     @endif
                 </h3>
             </section>
+
+            <x-ad-slot page="question_detail" position="before_content" />
 
                     @if(! empty($payload['show_options']))
                         <section class="et-qd__panel et-qd__options" aria-label="Answer options">
@@ -176,6 +181,8 @@
                         </div>
                     </div>
 
+            <x-ad-slot page="question_detail" position="between_sections" />
+
                     @if(($relatedBlogs ?? collect())->isNotEmpty())
                         <section class="et-qd__related">
                             @include('frontend.components.section-heading', [
@@ -189,8 +196,11 @@
                     </div>
                 </section>
             @endif
+
+            <x-ad-slot page="question_detail" position="after_content" />
         </div>
     </article>
 
     @include('frontend.partials.detail-sidebar')
+</x-ad-layout>
 @endsection

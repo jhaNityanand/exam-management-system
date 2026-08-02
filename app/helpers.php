@@ -275,12 +275,33 @@ if (! function_exists('author_role')) {
 
 if (! function_exists('ad_slot')) {
     /**
-     * Render active advertisements for a placement slot.
+     * Render active advertisements for a page/position slot.
+     *
+     * Preferred: ad_slot('home', 'after_hero')
+     * Legacy:    ad_slot('blog_detail_above_h1')
      */
-    function ad_slot(string $placement): string
+    function ad_slot(string $pageOrLegacy, ?string $positionKey = null): string
     {
-        // Advertisement UI temporarily disabled pending redesign.
-        return '';
+        try {
+            return app(\App\Services\Advertisement\AdvertisementService::class)
+                ->renderSlot($pageOrLegacy, $positionKey);
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+}
+
+if (! function_exists('ad_custom_code')) {
+    /**
+     * @return array{header_code: string, footer_code: string}
+     */
+    function ad_custom_code(): array
+    {
+        try {
+            return app(\App\Services\Advertisement\AdvertisementService::class)->frontendCustomCode();
+        } catch (\Throwable) {
+            return ['header_code' => '', 'footer_code' => ''];
+        }
     }
 }
 

@@ -18,6 +18,7 @@
 
 @section('content')
     @include('frontend.partials.listing-page', [
+        'adPage' => 'question_list',
         'listingEndpoint' => route('frontend.questions.category', $category->slug),
         'listingLoadMoreEndpoint' => route('frontend.questions.category', $category->slug).(request()->getQueryString() ? '?'.request()->getQueryString() : ''),
         'listingModalId' => 'et-question-category-filter-modal',

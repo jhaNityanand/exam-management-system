@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Settings;
 
+use App\Models\Cms\AdPlacement;
 use App\Models\Cms\Advertisement;
+use App\Models\Cms\GoogleAdvertisement;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserOrganization;
@@ -49,85 +51,139 @@ class AdvertisementManagementTest extends TestCase
             ->get(route('admin.advertisements.index'))
             ->assertOk()
             ->assertSee('Advertisement management')
-            ->assertSee('Visual placement map')
-            ->assertSee('Insert ad every N questions');
+            ->assertSee('Ads Placement')
+            ->assertSee('Custom Code')
+            ->assertSee('Help &amp; documentation', false);
     }
 
-    public function test_admin_can_create_custom_html_advertisement(): void
+    public function test_admin_can_create_html_advertisement(): void
     {
         $this->actingAs($this->admin)
-            ->post(route('admin.advertisements.store'), [
-                'name' => 'Footer HTML ad',
-                'type' => AdvertisementCatalog::TYPE_CUSTOM_HTML,
-                'placement' => 'footer',
-                'code' => '<div class="test-ad">Sponsored</div>',
+            ->postJson(route('admin.advertisements.store'), [
+                'name' => 'HTML promo',
+                'title' => 'Sponsored card',
+                'type' => AdvertisementCatalog::TYPE_HTML,
+                'html_code' => '<div class="test-ad">Sponsored</div>',
+                'css_code' => '.test-ad{padding:1rem}',
                 'status' => 'active',
-                'sort_order' => 1,
             ])
-            ->assertRedirect(route('admin.advertisements.index'));
+            ->assertCreated()
+            ->assertJsonPath('success', true);
 
         $this->assertDatabaseHas('advertisements', [
             'organization_id' => $this->organization->id,
-            'name' => 'Footer HTML ad',
-            'placement' => 'footer',
-            'type' => AdvertisementCatalog::TYPE_CUSTOM_HTML,
+            'name' => 'HTML promo',
+            'type' => AdvertisementCatalog::TYPE_HTML,
             'status' => 'active',
         ]);
     }
 
-    public function test_admin_can_update_question_list_every_n(): void
+    public function test_admin_can_create_google_ad_and_placement(): void
     {
         $this->actingAs($this->admin)
-            ->putJson(route('admin.advertisements.settings'), [
-                'question_list_every_n' => 3,
+            ->postJson(route('admin.advertisements.google.store'), [
+                'name' => 'Sidebar AdSense',
+                'code' => '<ins class="adsbygoogle"></ins>',
+                'ad_client' => 'ca-pub-123',
+                'ad_slot' => '456',
+                'status' => 'active',
+            ])
+            ->assertCreated();
+
+        $google = GoogleAdvertisement::query()->forOrg($this->organization->id)->first();
+        $this->assertNotNull($google);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.advertisements.placements.store'), [
+                'page_key' => 'home',
+                'position_key' => 'after_hero',
+                'source_type' => AdvertisementCatalog::SOURCE_GOOGLE,
+                'google_advertisement_id' => $google->id,
+                'is_enabled' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('ad_placements', [
+            'organization_id' => $this->organization->id,
+            'page_key' => 'home',
+            'position_key' => 'after_hero',
+            'source_type' => AdvertisementCatalog::SOURCE_GOOGLE,
+            'google_advertisement_id' => $google->id,
+            'is_enabled' => 1,
+        ]);
+    }
+
+    public function test_admin_can_save_custom_code(): void
+    {
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.advertisements.custom-code'), [
+                'header_code' => '<script>/* header */</script>',
+                'footer_code' => '<script>/* footer */</script>',
             ])
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('question_list_every_n', 3);
+            ->assertJsonPath('custom_code.header_code', '<script>/* header */</script>');
 
-        $this->assertSame(3, app(AdvertisementService::class)->questionListEveryN($this->organization->id));
+        $code = app(AdvertisementService::class)->customCode($this->organization->id);
+        $this->assertSame('<script>/* header */</script>', $code['header_code']);
+        $this->assertSame('<script>/* footer */</script>', $code['footer_code']);
     }
 
-    public function test_frontend_renders_active_ad_slot(): void
+    public function test_single_slot_rejects_second_placement(): void
     {
-        Advertisement::query()->create([
+        $ad = Advertisement::query()->create([
             'organization_id' => $this->organization->id,
-            'name' => 'Blog list promo',
-            'type' => AdvertisementCatalog::TYPE_CUSTOM_HTML,
-            'placement' => 'blog_list',
-            'code' => '<div class="phase5-ad-marker">Phase5 Ad Live</div>',
+            'name' => 'Title banner',
+            'title' => 'Title banner',
+            'type' => AdvertisementCatalog::TYPE_HTML,
+            'html_code' => '<div>Ad</div>',
             'status' => 'active',
             'sort_order' => 1,
         ]);
 
-        $this->get(route('frontend.blogs.index'))
-            ->assertOk()
-            ->assertSee('Phase5 Ad Live', false)
-            ->assertSee('data-ad-placement="blog_list"', false);
-    }
-
-    public function test_inactive_ads_are_not_rendered(): void
-    {
-        Advertisement::query()->create([
+        AdPlacement::query()->create([
             'organization_id' => $this->organization->id,
-            'name' => 'Hidden footer',
-            'type' => AdvertisementCatalog::TYPE_CUSTOM_HTML,
-            'placement' => 'footer',
-            'code' => '<div class="should-not-show">Hidden Ad</div>',
-            'status' => 'inactive',
+            'page_key' => 'exam_detail',
+            'position_key' => 'above_title',
+            'source_type' => AdvertisementCatalog::SOURCE_CUSTOM,
+            'advertisement_id' => $ad->id,
             'sort_order' => 1,
+            'is_enabled' => true,
         ]);
 
-        $this->get(route('home'))
-            ->assertOk()
-            ->assertDontSee('Hidden Ad', false);
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.advertisements.placements.store'), [
+                'page_key' => 'exam_detail',
+                'position_key' => 'above_title',
+                'source_type' => AdvertisementCatalog::SOURCE_CUSTOM,
+                'advertisement_id' => $ad->id,
+            ])
+            ->assertStatus(422);
     }
 
-    public function test_seed_defaults_creates_settings_and_sample_ads(): void
+    public function test_seed_defaults_creates_google_ads_and_placements(): void
     {
-        app(AdvertisementService::class)->seedDefaults($this->organization->id);
+        app(AdvertisementService::class)->seedDefaults($this->organization->id, true);
 
-        $this->assertSame(2, app(AdvertisementService::class)->questionListEveryN($this->organization->id));
-        $this->assertGreaterThanOrEqual(1, Advertisement::query()->forOrg($this->organization->id)->count());
+        $this->assertSame(0, Advertisement::query()->forOrg($this->organization->id)->count());
+        $this->assertSame(3, GoogleAdvertisement::query()->forOrg($this->organization->id)->count());
+        $this->assertGreaterThan(0, AdPlacement::query()->forOrg($this->organization->id)->count());
+
+        $code = app(AdvertisementService::class)->customCode($this->organization->id);
+        $this->assertStringContainsString('googletagmanager.com/gtag/js', $code['header_code']);
+        $this->assertStringContainsString('adsbygoogle.js', $code['header_code']);
+        $this->assertStringContainsString('p:domain_verify', $code['header_code']);
+        $this->assertSame('', $code['footer_code']);
+    }
+
+    public function test_frontend_ad_slot_renders_enabled_google_placement(): void
+    {
+        app(AdvertisementService::class)->seedDefaults($this->organization->id, true);
+
+        $html = app(AdvertisementService::class)->renderSlot('home', 'left_sidebar', $this->organization->id);
+        $this->assertStringContainsString('et-ad', $html);
+        $this->assertStringContainsString('adsbygoogle', $html);
+        $this->assertStringContainsString('9013663436', $html);
     }
 }

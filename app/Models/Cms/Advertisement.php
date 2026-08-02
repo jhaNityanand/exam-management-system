@@ -9,6 +9,7 @@ use App\Support\AdvertisementCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Advertisement extends Model
@@ -20,27 +21,32 @@ class Advertisement extends Model
     protected $fillable = [
         'organization_id',
         'name',
+        'title',
         'type',
-        'placement',
-        'headline',
-        'body',
-        'code',
-        'cta_label',
-        'cta_url',
         'image_id',
-        'mobile_image_id',
+        'target_url',
+        'open_in_new_tab',
+        'banner_size',
+        'iframe_url',
+        'width',
+        'height',
+        'is_responsive',
+        'html_code',
+        'css_code',
+        'js_code',
+        'notes',
         'sort_order',
         'status',
-        'starts_at',
-        'ends_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'open_in_new_tab' => 'boolean',
+            'is_responsive' => 'boolean',
+            'width' => 'integer',
+            'height' => 'integer',
             'sort_order' => 'integer',
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
         ];
     }
 
@@ -54,26 +60,14 @@ class Advertisement extends Model
         return $this->belongsTo(Gallery::class, 'image_id');
     }
 
-    public function mobileImage(): BelongsTo
+    public function placements(): HasMany
     {
-        return $this->belongsTo(Gallery::class, 'mobile_image_id');
+        return $this->hasMany(AdPlacement::class, 'advertisement_id');
     }
 
-    public function scopeActive(Builder $query, ?string $placement = null): Builder
+    public function scopeActive(Builder $query): Builder
     {
-        $query->where('status', 'active')
-            ->where(function (Builder $window) {
-                $window->whereNull('starts_at')->orWhere('starts_at', '<=', now());
-            })
-            ->where(function (Builder $window) {
-                $window->whereNull('ends_at')->orWhere('ends_at', '>=', now());
-            });
-
-        if ($placement !== null) {
-            $query->where('placement', $placement);
-        }
-
-        return $query;
+        return $query->where('status', 'active');
     }
 
     public function scopeOrdered(Builder $query): Builder
@@ -86,9 +80,22 @@ class Advertisement extends Model
         return AdvertisementCatalog::types()[$this->type] ?? ucfirst((string) $this->type);
     }
 
-    public function placementLabel(): string
+    public function displayTitle(): string
     {
-        return AdvertisementCatalog::placements()[$this->placement] ?? (string) $this->placement;
+        return (string) ($this->title ?: $this->name);
+    }
+
+    public function bannerSizeLabel(): ?string
+    {
+        if (! $this->banner_size) {
+            return null;
+        }
+        $size = AdvertisementCatalog::bannerSizes()[$this->banner_size] ?? null;
+        if (! $size) {
+            return $this->banner_size;
+        }
+
+        return $size['label'].' ('.$size['width'].'×'.$size['height'].')';
     }
 
     public function isBanner(): bool
@@ -96,12 +103,56 @@ class Advertisement extends Model
         return $this->type === AdvertisementCatalog::TYPE_BANNER;
     }
 
-    public function usesCode(): bool
+    public function isIframe(): bool
     {
-        return in_array($this->type, [
-            AdvertisementCatalog::TYPE_GOOGLE_ADS,
-            AdvertisementCatalog::TYPE_CUSTOM_HTML,
-            AdvertisementCatalog::TYPE_IFRAME,
-        ], true);
+        return $this->type === AdvertisementCatalog::TYPE_IFRAME;
+    }
+
+    public function isHtml(): bool
+    {
+        return $this->type === AdvertisementCatalog::TYPE_HTML;
+    }
+
+    /**
+     * Compact payload for admin AJAX / placement picker.
+     *
+     * @return array<string, mixed>
+     */
+    public function toAdminArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'title' => $this->displayTitle(),
+            'type' => $this->type,
+            'type_label' => $this->typeLabel(),
+            'status' => $this->status,
+            'sort_order' => $this->sort_order,
+            'image_id' => $this->image_id,
+            'image_url' => $this->image?->file_url,
+            'target_url' => $this->target_url,
+            'open_in_new_tab' => (bool) $this->open_in_new_tab,
+            'banner_size' => $this->banner_size,
+            'banner_size_label' => $this->bannerSizeLabel(),
+            'iframe_url' => $this->iframe_url,
+            'width' => $this->width,
+            'height' => $this->height,
+            'is_responsive' => (bool) $this->is_responsive,
+            'html_code' => $this->html_code,
+            'css_code' => $this->css_code,
+            'js_code' => $this->js_code,
+            'notes' => $this->notes,
+            'preview_label' => $this->previewLabel(),
+        ];
+    }
+
+    public function previewLabel(): string
+    {
+        return match ($this->type) {
+            AdvertisementCatalog::TYPE_BANNER => $this->bannerSizeLabel() ?: 'Banner',
+            AdvertisementCatalog::TYPE_IFRAME => 'Iframe'.($this->width && $this->height ? " {$this->width}×{$this->height}" : ''),
+            AdvertisementCatalog::TYPE_HTML => 'HTML / CSS / JS',
+            default => $this->typeLabel(),
+        };
     }
 }

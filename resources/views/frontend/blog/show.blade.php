@@ -33,6 +33,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="blog_detail">
     <article class="et-article">
         <header class="et-article__top">
             <div class="et-container et-article__wrap">
@@ -50,9 +51,11 @@
                     @endif
                 </div>
 
-                {!! ad_slot('blog_detail_above_h1') !!}
+                <x-ad-slot page="blog_detail" position="above_title" />
 
                 <h1 class="et-article__title">{{ $blog->title }}</h1>
+
+                <x-ad-slot page="blog_detail" position="below_title" />
             </div>
         </header>
 
@@ -63,7 +66,7 @@
                 </figure>
             @endif
 
-            {!! ad_slot('blog_detail_sidebar_top') !!}
+            <x-ad-slot page="blog_detail" position="before_content" />
 
             @if($blog->excerpt)
                 <p class="et-article__lead">{{ $blog->excerpt }}</p>
@@ -81,6 +84,8 @@
                 {!! $processedContent !!}
             </div>
 
+            <x-ad-slot page="blog_detail" position="between_sections" />
+
             @include('frontend.partials.article-author', [
                 'authorUser' => $blog->author,
                 'authorName' => $blog->author_name ?: ($blog->author->name ?? null),
@@ -90,8 +95,6 @@
                     ? 'Published '.$blog->published_at->format('d M Y')
                     : null,
             ])
-
-            {!! ad_slot('blog_detail_sidebar_middle') !!}
 
             <div class="et-article__footer-panel">
                 @if(($blog->tags ?? collect())->isNotEmpty())
@@ -113,9 +116,6 @@
                 ])
             </div>
 
-            {!! ad_slot('blog_detail_before_comments') !!}
-            {!! ad_slot('blog_detail_sidebar_bottom') !!}
-
             @php $relatedItems = $relatedBlogs ?? $related ?? collect(); @endphp
             @if($relatedItems->isNotEmpty())
                 <section class="et-article__related">
@@ -130,6 +130,8 @@
                     </div>
                 </section>
             @endif
+
+            <x-ad-slot page="blog_detail" position="after_related" />
 
             <section class="et-article__newsletter">
                 <div class="et-newsletter-band et-newsletter-band--panel">
@@ -148,6 +150,8 @@
                 </div>
             </section>
 
+            <x-ad-slot page="blog_detail" position="after_newsletter" />
+
             <section class="et-article__cta">
                 @include('frontend.components.cta-band', [
                     'title' => 'Keep exploring',
@@ -160,8 +164,12 @@
                         : (Route::has('frontend.exams.index') ? route('frontend.exams.index') : route('home')),
                 ])
             </section>
+
+            <x-ad-slot page="blog_detail" position="after_cta" />
         </div>
     </article>
 
     @include('frontend.partials.detail-sidebar')
+</x-ad-layout>
 @endsection
+

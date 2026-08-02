@@ -42,4 +42,17 @@ return [
         'enabled' => false,
     ],
 
+    /*
+    | AdSense / ads seed defaults. Set ADSENSE_CLIENT_ID to your real ca-pub-… ID.
+    | GA / Pinterest values are only used when seeding advertisements.header_code.
+    */
+    'adsense' => [
+        'client_id' => env('ADSENSE_CLIENT_ID', 'ca-pub-XXXXXXXXXXXXXXXX'),
+    ],
+
+    'advertisements' => [
+        'ga_measurement_id' => env('ADS_GA_MEASUREMENT_ID', env('GOOGLE_ANALYTICS_ID', 'G-XXXXXXXX')),
+        'pinterest_domain_verify' => env('PINTEREST_DOMAIN_VERIFY', 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'),
+    ],
+
 ];

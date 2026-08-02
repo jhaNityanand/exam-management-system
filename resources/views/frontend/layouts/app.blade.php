@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/cookie-consent.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/icon-buttons.css') }}">
     @include('frontend.partials.integrations-head')
+    @php($adCodes = ad_custom_code())
+    @if(trim($adCodes['header_code'] ?? '') !== '')
+        {!! $adCodes['header_code'] !!}
+    @endif
     @stack('styles')
 </head>
 <body class="et-body">
@@ -65,5 +69,8 @@
     <script src="{{ versioned_asset('js/frontend/load-more.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/recaptcha.js') }}" defer></script>
     @stack('scripts')
+    @if(trim($adCodes['footer_code'] ?? '') !== '')
+        {!! $adCodes['footer_code'] !!}
+    @endif
 </body>
 </html>

@@ -1,10 +1,14 @@
 @php
     $sidebar = $detailSidebar ?? null;
     $items = collect($sidebar['items'] ?? []);
+    $inlineRail = (bool) ($detailSidebarInline ?? false);
 @endphp
 
 @if($sidebar && $items->isNotEmpty())
-    <aside class="et-detail-rail" aria-label="{{ $sidebar['title'] ?? 'Related content' }}">
+    <aside
+        class="et-detail-rail{{ $inlineRail ? ' et-detail-rail--inline' : '' }}"
+        aria-label="{{ $sidebar['title'] ?? 'Related content' }}"
+    >
         <div class="et-detail-sidebar">
             <div class="et-detail-sidebar__head">
                 <div class="et-detail-sidebar__copy">

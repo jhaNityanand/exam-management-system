@@ -14,6 +14,7 @@
 
 @section('content')
     @include('frontend.partials.listing-page', [
+        'adPage' => 'blog_list',
         'listingEndpoint' => route('frontend.blogs.tag', $tag->slug),
         'listingLoadMoreEndpoint' => route('frontend.blogs.tag', $tag->slug).(request()->getQueryString() ? '?'.request()->getQueryString() : ''),
         'listingModalId' => 'et-blog-tag-filter-modal',

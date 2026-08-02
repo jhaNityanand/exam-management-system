@@ -20,6 +20,7 @@
 @endphp
 
 @section('content')
+<x-ad-layout page="question_list">
     <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.questions.index') }}">
         <div class="et-page-hero et-page-hero--listing">
             <div class="et-container">
@@ -147,13 +148,18 @@
                     @endforeach
                 </div>
 
+                <x-ad-slot page="question_list" position="below_items" />
+
                 <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $questions,
                         'endpoint' => route('frontend.questions.index', request()->query()),
                     ])
                 </div>
+
+                <x-ad-slot page="question_list" position="after_content" />
             </div>
         </div>
     </div>
+</x-ad-layout>
 @endsection

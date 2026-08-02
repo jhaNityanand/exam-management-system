@@ -1175,7 +1175,8 @@
   function initDetailRail() {
     const rail = qs('.et-detail-rail');
     const footer = qs('.et-footer');
-    if (!rail || !footer) return;
+    // Full-width pages keep the rail in document flow to avoid covering content.
+    if (!rail || !footer || rail.classList.contains('et-detail-rail--inline')) return;
 
     const mq = window.matchMedia('(min-width: 1400px)');
     let frame = 0;
