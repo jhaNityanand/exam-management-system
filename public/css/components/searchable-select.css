@@ -7,7 +7,10 @@
 /* Avoid double borders when the native select carried panel-input / form classes */
 .ts-wrapper.panel-input,
 .ts-wrapper.org-contact-input,
-.ts-wrapper.org-brand-input {
+.ts-wrapper.org-brand-input,
+.ts-wrapper.faq-field__select,
+.ts-wrapper.faq-toolbar__select,
+.ts-wrapper.org-members-toolbar__select {
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;

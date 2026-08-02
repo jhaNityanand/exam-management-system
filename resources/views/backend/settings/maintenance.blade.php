@@ -26,7 +26,7 @@
                 <div class="maint-header__copy">
                     <h1 class="maint-header__title">Maintenance Mode</h1>
                     <p class="maint-header__subtitle">
-                        When enabled, only the public frontend shows the maintenance page. The admin panel and staff login remain available.
+                        When enabled, the public site keeps the normal header and footer, and only the main content shows the maintenance message. Registration is blocked; login stays available for admins and candidates.
                     </p>
                 </div>
                 <div id="maintenance-status-pill"
@@ -46,7 +46,7 @@
                         <span class="maint-toggle__copy">
                             <span class="maint-toggle__title">Enable maintenance mode</span>
                             <span class="maint-toggle__hint">
-                                Visitors and candidates see the branded maintenance screen. Admins keep working in the panel.
+                                Visitors see the maintenance message in the content area. Registration is unavailable; login remains open.
                             </span>
                         </span>
                     </label>
@@ -56,7 +56,7 @@
                 <section class="maint-section">
                     <div class="maint-section__head">
                         <h2 class="maint-section__title">Page content</h2>
-                        <p class="maint-section__hint">Headline, rich message, and restore time shown on the public maintenance page.</p>
+                        <p class="maint-section__hint">Headline, rich message, and restore time shown in the public content area.</p>
                     </div>
 
                     <div class="maint-field">
@@ -98,45 +98,11 @@
                     </div>
                 </section>
 
-                {{-- Branding media --}}
-                <section class="maint-section">
-                    <div class="maint-section__head">
-                        <h2 class="maint-section__title">Branding</h2>
-                        <p class="maint-section__hint">Logo and optional background for the public maintenance page.</p>
-                    </div>
-                    <div class="maint-media-grid">
-                        <div class="maint-field">
-                            @include('backend.partials.gallery-picker', [
-                                'name' => 'logo_gallery_id',
-                                'label' => 'Logo',
-                                'multiple' => false,
-                                'value' => $s['logo_gallery_id'] ?? null,
-                                'previewUrl' => $logoPreview,
-                                'kind' => 'image',
-                            ])
-                            <p class="maint-help">Transparent PNG preferred, about <strong>400×120</strong> px.</p>
-                            <p class="qcat-field-error" data-error-for="logo_gallery_id" hidden></p>
-                        </div>
-                        <div class="maint-field">
-                            @include('backend.partials.gallery-picker', [
-                                'name' => 'background_gallery_id',
-                                'label' => 'Background image',
-                                'multiple' => false,
-                                'value' => $s['background_gallery_id'] ?? null,
-                                'previewUrl' => $backgroundPreview,
-                                'kind' => 'image',
-                            ])
-                            <p class="maint-help">Landscape photo, about <strong>1920×1080</strong> px.</p>
-                            <p class="qcat-field-error" data-error-for="background_gallery_id" hidden></p>
-                        </div>
-                    </div>
-                </section>
-
                 {{-- Social --}}
                 <section class="maint-section maint-section--last">
                     <div class="maint-section__head">
                         <h2 class="maint-section__title">Social media</h2>
-                        <p class="maint-section__hint">Optional links shown at the bottom of the maintenance page. Leave blank to hide a platform.</p>
+                        <p class="maint-section__hint">Optional links shown with the maintenance message. Leave blank to hide a platform.</p>
                     </div>
                     <div class="maint-social-grid">
                         @foreach([
@@ -178,14 +144,9 @@
         </form>
     </x-page-card>
 </div>
-
-@include('backend.partials.image-editor-modal')
 @endsection
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/backend/gallery-picker.css') }}?v={{ filemtime(public_path('css/backend/gallery-picker.css')) }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
-    <link rel="stylesheet" href="{{ asset('css/backend/gallery.css') }}?v={{ filemtime(public_path('css/backend/gallery.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/backend/question-category-form.css') }}">
     <link rel="stylesheet" href="{{ asset('css/components/datetime-picker.css') }}?v={{ filemtime(public_path('css/components/datetime-picker.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/components/rich-text-editor.css') }}?v={{ filemtime(public_path('css/components/rich-text-editor.css')) }}">
@@ -194,25 +155,7 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-    <script src="{{ versioned_asset('js/backend/gallery-editor.js') }}"></script>
     <script>
-        window.galleryDataUrl = @json(route('admin.gallery.data'));
-        window.galleryStoreUrl = @json(route('admin.gallery.store'));
-        window.galleryCommitUrl = @json(route('admin.gallery.commit'));
-        window.galleryCsrf = @json(csrf_token());
-        window.contentFormConfig = {
-            formId: 'maintenance-form',
-            categorySelector: null,
-            seoSlugId: null,
-            baseUrl: null,
-            tagItemClass: null,
-            module: 'settings',
-            resolveUrl: null,
-            isCreate: false,
-            existingMedia: {},
-            skipFormSubmitHook: true,
-        };
         window.maintenanceSettingsConfig = {
             updateUrl: @json(route('admin.settings.maintenance.update')),
             csrf: @json(csrf_token()),
@@ -220,6 +163,5 @@
     </script>
     <script src="{{ versioned_asset('js/components/datetime-picker.js') }}"></script>
     <script src="{{ versioned_asset('js/components/editor.js') }}"></script>
-    <script src="{{ versioned_asset('js/backend/content-form-shared.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/settings-maintenance.js') }}"></script>
 @endpush

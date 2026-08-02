@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Backend\Settings;
 use App\Http\Controllers\Concerns\ResolvesCurrentOrganization;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\Settings\UpdateMaintenanceSettingRequest;
-use App\Models\Gallery;
 use App\Services\Settings\MaintenanceModeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -20,23 +19,8 @@ class MaintenanceSettingController extends Controller
 
     public function edit(): View
     {
-        $orgId = $this->currentOrgId();
-        $settings = $this->maintenance->get($orgId);
-
-        $logoPreview = null;
-        if (! empty($settings['logo_gallery_id'])) {
-            $logoPreview = Gallery::query()->find($settings['logo_gallery_id'])?->file_url;
-        }
-
-        $backgroundPreview = null;
-        if (! empty($settings['background_gallery_id'])) {
-            $backgroundPreview = Gallery::query()->find($settings['background_gallery_id'])?->file_url;
-        }
-
         return view('backend.settings.maintenance', [
-            'settings' => $settings,
-            'logoPreview' => $logoPreview,
-            'backgroundPreview' => $backgroundPreview,
+            'settings' => $this->maintenance->get($this->currentOrgId()),
         ]);
     }
 

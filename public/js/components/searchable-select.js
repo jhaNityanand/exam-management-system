@@ -236,7 +236,14 @@
     opts.onInitialize = function () {
       this.wrapper.classList.add('ems-select-wrapper');
       this.wrapper.classList.remove('panel-input');
-      this.wrapper.classList.remove('org-contact-input', 'org-brand-input');
+      this.wrapper.classList.remove(
+        'org-contact-input',
+        'org-brand-input',
+        'faq-field__select',
+        'faq-toolbar__select',
+        'org-members-toolbar__select',
+        'qcat-meta-input'
+      );
       this.dropdown.classList.add('ems-select-dropdown');
       if (!shouldIncludeSearch(select)) {
         this.wrapper.classList.add('ems-select-wrapper--no-search');

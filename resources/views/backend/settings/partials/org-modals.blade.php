@@ -123,7 +123,7 @@
 {{-- FAQ modal --}}
 <div id="faq-modal" class="ems-dialog hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="faq-modal-title">
     <div class="ems-dialog__backdrop" data-faq-modal-close></div>
-    <div class="ems-dialog__panel ems-dialog__panel--lg" role="document">
+    <div class="ems-dialog__panel ems-dialog__panel--md" role="document">
         <form id="faq-form" class="ems-dialog__form">
 
             {{-- Redesigned header with icon --}}
@@ -269,17 +269,17 @@
 {{-- Member modal --}}
 <div id="member-modal" class="ems-dialog hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="member-modal-title">
     <div class="ems-dialog__backdrop" data-member-modal-close></div>
-    <div class="ems-dialog__panel ems-dialog__panel--lg" role="document">
+    <div class="ems-dialog__panel ems-dialog__panel--md org-member-modal" role="document">
         <form id="member-form" class="ems-dialog__form">
-            <header class="ems-dialog__header faq-modal-header">
-                <div class="faq-modal-header__icon" aria-hidden="true">
+            <header class="ems-dialog__header org-member-modal__header">
+                <div class="org-member-modal__header-icon" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                     </svg>
                 </div>
                 <div class="min-w-0 flex-1">
                     <h3 id="member-modal-title" class="ems-dialog__title">Add member</h3>
-                    <p class="ems-dialog__subtitle">New members receive the <strong>org_admin</strong> role automatically.</p>
+                    <p class="ems-dialog__subtitle" id="member-modal-subtitle">Create or invite an organization admin.</p>
                 </div>
                 <button type="button" class="ems-dialog__close" data-member-modal-close aria-label="Close">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -288,67 +288,110 @@
                 </button>
             </header>
 
-            <div class="ems-dialog__body faq-modal-body">
+            <div class="ems-dialog__body org-member-modal__body">
                 <input type="hidden" id="member_id" name="id" value="">
 
-                <section class="ems-dialog__section">
-                    <h4 class="ems-dialog__section-title">Account</h4>
-                    <div class="faq-field-group">
-                        <div class="faq-field">
-                            <label for="member_name" class="faq-field__label">Name <span class="faq-field__req">*</span></label>
-                            <input type="text" id="member_name" name="name" required maxlength="120" class="faq-field__input" placeholder="Full name" autocomplete="name">
+                <section class="org-member-modal__section">
+                    <div class="org-member-modal__section-head">
+                        <h4 class="org-member-modal__section-title">Profile</h4>
+                        <p class="org-member-modal__section-hint">Basic account details for this member.</p>
+                    </div>
+                    <div class="org-member-modal__grid">
+                        <div class="org-member-field org-member-field--full">
+                            <label for="member_name" class="org-member-field__label">
+                                Full name <span class="org-member-field__req">*</span>
+                            </label>
+                            <input type="text" id="member_name" name="name" required maxlength="120"
+                                   class="org-member-field__input" placeholder="e.g. Priya Sharma" autocomplete="name">
                             <p class="qcat-field-error" data-error-for="name" hidden></p>
                         </div>
-                        <div class="faq-field">
-                            <label for="member_email" class="faq-field__label">Email <span class="faq-field__req">*</span></label>
-                            <input type="email" id="member_email" name="email" required maxlength="190" class="faq-field__input" placeholder="member@example.com" autocomplete="email">
+                        <div class="org-member-field org-member-field--full">
+                            <label for="member_email" class="org-member-field__label">
+                                Email address <span class="org-member-field__req">*</span>
+                            </label>
+                            <input type="email" id="member_email" name="email" required maxlength="190"
+                                   class="org-member-field__input" placeholder="member@example.com" autocomplete="email">
                             <p class="qcat-field-error" data-error-for="email" hidden></p>
                         </div>
-                        <div class="faq-field">
-                            <label for="member_password" class="faq-field__label">
-                                Password <span class="faq-field__req" id="member_password_req">*</span>
-                            </label>
-                            <input type="password" id="member_password" name="password" maxlength="120" class="faq-field__input" placeholder="••••••••" autocomplete="new-password">
-                            <p class="faq-featured-toggle__hint" id="member_password_hint">Required for brand-new accounts. Optional when inviting an existing user (their current password is kept). Leave blank when editing to keep the current password.</p>
+                        <div class="org-member-field org-member-field--full">
+                            <div class="org-member-field__label-row">
+                                <label for="member_password" class="org-member-field__label">
+                                    Password <span class="org-member-field__req" id="member_password_req">*</span>
+                                </label>
+                                <button type="button" class="org-member-field__toggle-pw" id="member-password-toggle" aria-pressed="false">
+                                    Show
+                                </button>
+                            </div>
+                            <div class="org-member-field__pw-wrap">
+                                <input type="password" id="member_password" name="password" maxlength="120"
+                                       class="org-member-field__input" placeholder="••••••••" autocomplete="new-password">
+                            </div>
+                            <p class="org-member-field__hint" id="member_password_hint">
+                                Required for brand-new accounts. Optional when inviting an existing user.
+                            </p>
                             <p class="qcat-field-error" data-error-for="password" hidden></p>
                         </div>
                     </div>
                 </section>
 
-                <section class="ems-dialog__section">
-                    <h4 class="ems-dialog__section-title">Membership</h4>
-                    <div class="faq-meta-grid">
-                        <div class="faq-field">
-                            <label for="member_role_display" class="faq-field__label">Role</label>
-                            <input type="text" id="member_role_display" class="faq-field__input" value="Organization Admin (org_admin)" disabled>
+                <section class="org-member-modal__section">
+                    <div class="org-member-modal__section-head">
+                        <h4 class="org-member-modal__section-title">Access</h4>
+                        <p class="org-member-modal__section-hint">Role is fixed; set whether they can sign in to the panel.</p>
+                    </div>
+                    <div class="org-member-modal__access">
+                        <div class="org-member-role-card">
+                            <span class="org-member-role-card__label">Role</span>
+                            <span class="org-member-role-card__value">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Organization Admin
+                            </span>
+                            <span class="org-member-role-card__code">org_admin</span>
                         </div>
-                        <div class="faq-field">
-                            <label for="member_status" class="faq-field__label">Status <span class="faq-field__req">*</span></label>
-                            <select id="member_status" name="status" required class="faq-field__select">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
+                        <div class="org-member-field">
+                            <span class="org-member-field__label" id="member_status_label">
+                                Status <span class="org-member-field__req">*</span>
+                            </span>
+                            <div class="org-member-status" role="radiogroup" aria-labelledby="member_status_label">
+                                <label class="org-member-status__option">
+                                    <input type="radio" name="status" value="active" id="member_status_active" checked>
+                                    <span class="org-member-status__chip org-member-status__chip--active">
+                                        <span class="org-member-status__dot" aria-hidden="true"></span>
+                                        Active
+                                    </span>
+                                </label>
+                                <label class="org-member-status__option">
+                                    <input type="radio" name="status" value="inactive" id="member_status_inactive">
+                                    <span class="org-member-status__chip org-member-status__chip--inactive">
+                                        <span class="org-member-status__dot" aria-hidden="true"></span>
+                                        Inactive
+                                    </span>
+                                </label>
+                            </div>
                             <p class="qcat-field-error" data-error-for="status" hidden></p>
                         </div>
                     </div>
                 </section>
 
-                <div class="faq-modal-tip" role="note">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;color:#6366f1;">
+                <div class="org-member-modal__tip" role="note">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <p>Members listed here can access the admin panel for this organization. Removing a member only detaches their membership.</p>
+                    <p>Removing a member only detaches their organization access. Their user account is not deleted.</p>
                 </div>
             </div>
 
-            <footer class="ems-dialog__footer">
-                <button type="button" class="faq-modal-btn faq-modal-btn--cancel" data-member-modal-close>
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <footer class="ems-dialog__footer org-member-modal__footer">
+                <button type="button" class="org-member-modal__btn org-member-modal__btn--cancel" data-member-modal-close>
                     Cancel
                 </button>
-                <button type="submit" class="faq-modal-btn faq-modal-btn--save" id="member-save-btn">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    Save member
+                <button type="submit" class="org-member-modal__btn org-member-modal__btn--save" id="member-save-btn">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span data-save-label>Save member</span>
                 </button>
             </footer>
         </form>

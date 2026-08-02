@@ -10,8 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Blocks public frontend traffic when maintenance mode is enabled.
  *
- * Admin panel routes and authenticated admins continue to work normally.
- * Auth entry points (login / password reset) stay available so staff can sign in.
+ * Admin panel, login, and password-reset stay available (shared login for
+ * staff and candidates). Public registration remains blocked.
  */
 class CheckMaintenanceMode
 {
@@ -46,14 +46,10 @@ class CheckMaintenanceMode
 
     protected function shouldBypass(Request $request): bool
     {
-        // Backend admins (any role that can use the admin panel) keep full access.
-        if (user_can_access_admin()) {
-            return true;
-        }
-
-        // Admin area + staff auth flows stay reachable for everyone who needs to log in.
-        // Public registration and all other frontend routes remain blocked.
-        if ($request->is(
+        // Path-based only — authenticated admins still see maintenance on the
+        // public frontend so "Preview public site" works as visitors see it.
+        // Login stays open (shared admin/candidate page); register stays blocked.
+        return $request->is(
             'admin',
             'admin/*',
             'login',
@@ -77,10 +73,6 @@ class CheckMaintenanceMode
             'feeds/*',
             '.well-known',
             '.well-known/*',
-        )) {
-            return true;
-        }
-
-        return false;
+        );
     }
 }

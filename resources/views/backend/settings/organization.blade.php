@@ -761,95 +761,91 @@
 
     {{-- Members tab --}}
     <div x-show="tab === 'members'" x-cloak>
-        <x-page-card>
-            <div class="faq-hero">
-                <div class="faq-hero__inner">
-                    <div class="faq-hero__icon-wrap" aria-hidden="true">
-                        <svg class="faq-hero__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        <x-page-card class="overflow-hidden">
+            <div class="org-members-hero">
+                <div class="org-members-hero__inner">
+                    <div class="org-members-hero__icon" aria-hidden="true">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
                     </div>
-                    <div class="faq-hero__copy">
-                        <h2 class="faq-hero__title">Organization members</h2>
-                        <p class="faq-hero__desc">Invite and manage organization admins. New members are assigned the <strong>org_admin</strong> role automatically.</p>
+                    <div class="org-members-hero__copy">
+                        <h2 class="org-members-hero__title">Organization members</h2>
+                        <p class="org-members-hero__desc">Invite and manage admins for this organization. New members get the <strong>Organization Admin</strong> role.</p>
                     </div>
                 </div>
-                <button type="button" id="member-add-btn" class="faq-hero__cta" aria-label="Add a new organization member">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <button type="button" id="member-add-btn" class="org-members-hero__cta" aria-label="Add a new organization member">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                     </svg>
                     <span>Add member</span>
                 </button>
             </div>
 
-            <div class="faq-stats" id="member-stats-bar" aria-label="Member stats">
-                <div class="faq-stat faq-stat--total">
-                    <span class="faq-stat__num" id="member-stat-total">—</span>
-                    <span class="faq-stat__label">Total</span>
+            <div class="org-members-stats" id="member-stats-bar" aria-label="Member stats">
+                <div class="org-members-stat org-members-stat--total">
+                    <span class="org-members-stat__num" id="member-stat-total">—</span>
+                    <span class="org-members-stat__label">Total</span>
                 </div>
-                <div class="faq-stat faq-stat--active">
-                    <span class="faq-stat__dot faq-stat__dot--active"></span>
-                    <span class="faq-stat__num" id="member-stat-active">—</span>
-                    <span class="faq-stat__label">Active</span>
+                <div class="org-members-stat org-members-stat--active">
+                    <span class="org-members-stat__dot org-members-stat__dot--active" aria-hidden="true"></span>
+                    <span class="org-members-stat__num" id="member-stat-active">—</span>
+                    <span class="org-members-stat__label">Active</span>
                 </div>
-                <div class="faq-stat faq-stat--featured">
-                    <span class="faq-stat__num" id="member-stat-inactive">—</span>
-                    <span class="faq-stat__label">Inactive</span>
+                <div class="org-members-stat org-members-stat--inactive">
+                    <span class="org-members-stat__dot org-members-stat__dot--inactive" aria-hidden="true"></span>
+                    <span class="org-members-stat__num" id="member-stat-inactive">—</span>
+                    <span class="org-members-stat__label">Inactive</span>
                 </div>
             </div>
 
-            <div class="px-4 pb-5 sm:px-6 space-y-5">
-                <form id="member-filters" class="faq-toolbar">
-                    <div class="faq-toolbar__search">
-                        <label for="member_filter_search" class="faq-toolbar__label">Search</label>
-                        <div class="faq-toolbar__search-wrap">
-                            <svg class="faq-toolbar__search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <div class="org-members-body">
+                <form id="member-filters" class="org-members-toolbar" role="search">
+                    <div class="org-members-toolbar__search">
+                        <label for="member_filter_search" class="org-members-toolbar__label">Search</label>
+                        <div class="org-members-toolbar__search-wrap">
+                            <svg class="org-members-toolbar__search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/>
                             </svg>
-                            <input type="search" id="member_filter_search" name="search" class="faq-toolbar__input" placeholder="Search name or email…">
+                            <input type="search" id="member_filter_search" name="search" class="org-members-toolbar__input" placeholder="Search by name or email…" autocomplete="off">
                         </div>
                     </div>
-                    <div class="faq-toolbar__field">
-                        <label for="member_filter_status" class="faq-toolbar__label">Status</label>
-                        <select id="member_filter_status" name="status" class="faq-toolbar__select" data-placeholder="Select status">
+                    <div class="org-members-toolbar__field">
+                        <label for="member_filter_status" class="org-members-toolbar__label">Status</label>
+                        <select id="member_filter_status" name="status" class="org-members-toolbar__select">
                             <option value="">All statuses</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
                     </div>
-                    <div class="faq-toolbar__actions">
-                        <button type="submit" class="faq-toolbar__btn faq-toolbar__btn--primary">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
-                            Filter
+                    <div class="org-members-toolbar__actions">
+                        <button type="submit" class="org-members-toolbar__btn org-members-toolbar__btn--primary">
+                            Apply
                         </button>
-                        <button type="button" id="member-filters-reset" class="faq-toolbar__btn">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <button type="button" id="member-filters-reset" class="org-members-toolbar__btn">
                             Reset
                         </button>
                     </div>
                 </form>
 
-                <div class="faq-table-wrap">
-                    <div class="overflow-x-auto">
-                        <table class="faq-table" id="member-main-table">
+                <div class="org-members-table-wrap">
+                    <div class="org-members-table-scroll">
+                        <table class="org-members-table" id="member-main-table">
                             <thead>
                                 <tr>
-                                    <th class="faq-table__col-question">
-                                        <span class="faq-th-inner">Member</span>
-                                    </th>
-                                    <th class="faq-table__col-category">
-                                        <span class="faq-th-inner">Role</span>
-                                    </th>
-                                    <th class="faq-table__col-status">Status</th>
-                                    <th class="faq-table__col-actions">Actions</th>
+                                    <th scope="col" class="org-members-table__col-member">Member</th>
+                                    <th scope="col" class="org-members-table__col-role">Role</th>
+                                    <th scope="col" class="org-members-table__col-status">Status</th>
+                                    <th scope="col" class="org-members-table__col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="member-table-body">
                                 <tr>
-                                    <td colspan="4" class="faq-table__loading">
-                                        <div class="faq-skeleton">
-                                            <div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div>
-                                            <div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div>
+                                    <td colspan="4" class="org-members-table__loading">
+                                        <div class="org-members-skeleton" aria-hidden="true">
+                                            <div class="org-members-skeleton__row"></div>
+                                            <div class="org-members-skeleton__row"></div>
+                                            <div class="org-members-skeleton__row"></div>
                                         </div>
                                     </td>
                                 </tr>
@@ -858,7 +854,7 @@
                     </div>
                 </div>
 
-                <div id="member-pagination" class="faq-pagination"></div>
+                <div id="member-pagination" class="org-members-pagination"></div>
             </div>
         </x-page-card>
     </div>

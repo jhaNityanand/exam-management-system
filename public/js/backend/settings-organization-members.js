@@ -14,8 +14,10 @@
     const paginationEl = document.getElementById('member-pagination');
     const filtersForm = document.getElementById('member-filters');
     const saveBtn = document.getElementById('member-save-btn');
+    const saveLabel = saveBtn?.querySelector('[data-save-label]');
     const passwordReq = document.getElementById('member_password_req');
     const passwordInput = document.getElementById('member_password');
+    const passwordToggle = document.getElementById('member-password-toggle');
 
     let state = {
         page: 1,
@@ -30,6 +32,16 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+
+    const initialsFromName = (name) => {
+        const parts = String(name || '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+        if (!parts.length) return '?';
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
 
     const headers = () => ({
         Accept: 'application/json',
@@ -55,6 +67,14 @@
         });
     };
 
+    const setStatus = (status) => {
+        const value = status === 'inactive' ? 'inactive' : 'active';
+        const radio = form?.querySelector(`input[name="status"][value="${value}"]`);
+        if (radio) radio.checked = true;
+    };
+
+    const getStatus = () => form?.querySelector('input[name="status"]:checked')?.value || 'active';
+
     const openModal = (member = null) => {
         if (!modal || !form) return;
         clearErrors();
@@ -62,11 +82,15 @@
         form.querySelector('#member_id').value = member?.id || '';
         form.querySelector('#member_name').value = member?.name || '';
         form.querySelector('#member_email').value = member?.email || '';
-        form.querySelector('#member_status').value = member?.status || 'active';
+        setStatus(member?.status || 'active');
         if (passwordInput) {
             passwordInput.value = '';
-            // Server decides when a password is required (new email vs existing account).
+            passwordInput.type = 'password';
             passwordInput.required = false;
+        }
+        if (passwordToggle) {
+            passwordToggle.textContent = 'Show';
+            passwordToggle.setAttribute('aria-pressed', 'false');
         }
         if (passwordReq) passwordReq.hidden = Boolean(member?.id);
         const hint = document.getElementById('member_password_hint');
@@ -76,6 +100,13 @@
                 : 'Required for brand-new accounts. Optional when inviting an existing user (their current password is kept).';
         }
         document.getElementById('member-modal-title').textContent = member?.id ? 'Edit member' : 'Add member';
+        const subtitle = document.getElementById('member-modal-subtitle');
+        if (subtitle) {
+            subtitle.textContent = member?.id
+                ? 'Update this member’s profile and access status.'
+                : 'Create or invite an organization admin.';
+        }
+        if (saveLabel) saveLabel.textContent = member?.id ? 'Save changes' : 'Add member';
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('ems-dialog-open');
@@ -106,40 +137,53 @@
         if (!rows.length) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="faq-table__empty">
-                        <div class="faq-empty-state">
-                            <div class="faq-empty-state__icon">
-                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <td colspan="4" class="org-members-table__empty">
+                        <div class="org-members-empty">
+                            <div class="org-members-empty__icon" aria-hidden="true">
+                                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             </div>
-                            <p class="faq-empty-state__title">No members found</p>
-                            <p class="faq-empty-state__desc">Try adjusting your filters or click <strong>Add member</strong>.</p>
+                            <p class="org-members-empty__title">No members found</p>
+                            <p class="org-members-empty__desc">Try adjusting filters or add a new organization admin.</p>
                         </div>
                     </td>
                 </tr>`;
             return;
         }
 
-        const EDIT_ICON = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`;
-        const DEL_ICON = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
+        const EDIT_ICON = `<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`;
+        const DEL_ICON = `<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
 
         tableBody.innerHTML = rows.map((member) => {
             const active = member.status === 'active';
+            const initials = escapeHtml(initialsFromName(member.name));
             return `
                 <tr data-member-id="${member.id}">
                     <td>
-                        <p class="faq-table__question">${escapeHtml(member.name)}</p>
-                        <div class="faq-table__meta">
-                            <span class="faq-table__badge">${escapeHtml(member.email)}</span>
+                        <div class="org-members-person">
+                            <span class="org-members-avatar" aria-hidden="true">${initials}</span>
+                            <div class="org-members-person__meta">
+                                <p class="org-members-person__name">${escapeHtml(member.name)}</p>
+                                <p class="org-members-person__email">${escapeHtml(member.email)}</p>
+                            </div>
                         </div>
                     </td>
-                    <td><span class="faq-table__category-pill">${escapeHtml(member.role_label || member.role)}</span></td>
                     <td>
-                        <span class="faq-table__badge faq-table__badge--status ${active ? 'faq-table__badge--active' : 'faq-table__badge--inactive'}">${escapeHtml(member.status)}</span>
+                        <span class="org-members-role">${escapeHtml(member.role_label || member.role)}</span>
                     </td>
                     <td>
-                        <div class="faq-table__actions">
-                            <button type="button" class="faq-table__action faq-table__action--edit member-edit-btn" data-id="${member.id}" title="Edit">${EDIT_ICON} Edit</button>
-                            <button type="button" class="faq-table__action faq-table__action--delete member-delete-btn" data-id="${member.id}" title="Remove">${DEL_ICON} Delete</button>
+                        <span class="org-members-status ${active ? 'org-members-status--active' : 'org-members-status--inactive'}">
+                            <span class="org-members-status__dot" aria-hidden="true"></span>
+                            ${escapeHtml(member.status)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="org-members-actions">
+                            <button type="button" class="org-members-action org-members-action--edit member-edit-btn" data-id="${member.id}" title="Edit member">
+                                ${EDIT_ICON}<span>Edit</span>
+                            </button>
+                            <button type="button" class="org-members-action org-members-action--delete member-delete-btn" data-id="${member.id}" title="Remove member">
+                                ${DEL_ICON}<span>Remove</span>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -158,20 +202,29 @@
         const nextDisabled = meta.current_page >= meta.last_page;
 
         paginationEl.innerHTML = `
-            <p class="faq-pagination__meta">Showing <strong>${meta.from ?? 0}–${meta.to ?? 0}</strong> of <strong>${meta.total}</strong></p>
-            <div class="faq-pagination__controls">
-                <button type="button" class="faq-pagination__btn member-page-btn" data-page="${meta.current_page - 1}" ${prevDisabled ? 'disabled' : ''}>Previous</button>
-                <span class="faq-pagination__page">Page ${meta.current_page} / ${meta.last_page}</span>
-                <button type="button" class="faq-pagination__btn member-page-btn" data-page="${meta.current_page + 1}" ${nextDisabled ? 'disabled' : ''}>Next</button>
+            <p class="org-members-pagination__meta">Showing <strong>${meta.from ?? 0}–${meta.to ?? 0}</strong> of <strong>${meta.total}</strong></p>
+            <div class="org-members-pagination__controls">
+                <button type="button" class="org-members-pagination__btn member-page-btn" data-page="${meta.current_page - 1}" ${prevDisabled ? 'disabled' : ''}>Previous</button>
+                <span class="org-members-pagination__page">Page ${meta.current_page} / ${meta.last_page}</span>
+                <button type="button" class="org-members-pagination__btn member-page-btn" data-page="${meta.current_page + 1}" ${nextDisabled ? 'disabled' : ''}>Next</button>
             </div>
         `;
     };
 
+    const loadingMarkup = () => `
+        <tr>
+            <td colspan="4" class="org-members-table__loading">
+                <div class="org-members-skeleton" aria-hidden="true">
+                    <div class="org-members-skeleton__row"></div>
+                    <div class="org-members-skeleton__row"></div>
+                    <div class="org-members-skeleton__row"></div>
+                </div>
+            </td>
+        </tr>`;
+
     const loadMembers = async (page = state.page) => {
         state.page = page;
-        if (tableBody) {
-            tableBody.innerHTML = `<tr><td colspan="4" class="faq-table__loading"><div class="faq-skeleton"><div class="faq-skeleton__row"><div class="faq-skeleton__bar faq-skeleton__bar--q"></div><div class="faq-skeleton__bar faq-skeleton__bar--c"></div><div class="faq-skeleton__bar faq-skeleton__bar--s"></div></div></div></td></tr>`;
-        }
+        if (tableBody) tableBody.innerHTML = loadingMarkup();
 
         const params = new URLSearchParams({
             page: String(state.page),
@@ -191,7 +244,7 @@
             state.loadedOnce = true;
         } catch (error) {
             if (tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="faq-table__empty" style="color:#ef4444">${escapeHtml(error.message)}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="4" class="org-members-table__empty" style="color:#ef4444">${escapeHtml(error.message)}</td></tr>`;
             }
         }
     };
@@ -200,6 +253,14 @@
     modal?.querySelectorAll('[data-member-modal-close]').forEach((el) => el.addEventListener('click', closeModal));
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) closeModal();
+    });
+
+    passwordToggle?.addEventListener('click', () => {
+        if (!passwordInput) return;
+        const showing = passwordInput.type === 'text';
+        passwordInput.type = showing ? 'password' : 'text';
+        passwordToggle.textContent = showing ? 'Show' : 'Hide';
+        passwordToggle.setAttribute('aria-pressed', showing ? 'false' : 'true');
     });
 
     filtersForm?.addEventListener('submit', (e) => {
@@ -213,6 +274,13 @@
         filtersForm?.reset();
         state.search = '';
         state.status = '';
+        loadMembers(1);
+    });
+
+    // Instant status filter without requiring Apply.
+    filtersForm?.querySelector('[name="status"]')?.addEventListener('change', () => {
+        state.status = filtersForm.querySelector('[name="status"]')?.value || '';
+        state.search = (filtersForm.querySelector('[name="search"]')?.value || '').trim();
         loadMembers(1);
     });
 
@@ -238,7 +306,7 @@
         window.Swal?.fire?.({
             icon: 'warning',
             title: 'Remove this member?',
-            text: 'They will lose admin access for this organization.',
+            text: 'They will lose admin access for this organization. Their account is not deleted.',
             showCancelButton: true,
             confirmButtonText: 'Remove',
             confirmButtonColor: '#dc2626',
@@ -267,16 +335,14 @@
         const payload = {
             name: form.querySelector('#member_name')?.value?.trim(),
             email: form.querySelector('#member_email')?.value?.trim(),
-            status: form.querySelector('#member_status')?.value || 'active',
+            status: getStatus(),
         };
         const password = form.querySelector('#member_password')?.value || '';
         if (password) payload.password = password;
 
-        const original = saveBtn?.textContent;
-        if (saveBtn) {
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving…';
-        }
+        const originalLabel = saveLabel?.textContent || 'Save member';
+        if (saveBtn) saveBtn.disabled = true;
+        if (saveLabel) saveLabel.textContent = 'Saving…';
 
         try {
             const url = id ? `${config.updateUrl}/${id}` : config.storeUrl;
@@ -290,7 +356,6 @@
             if (!res.ok) {
                 if (data.errors) {
                     showErrors(data.errors);
-                    // Field errors are already inline — avoid a redundant alert.
                     return;
                 }
                 throw new Error(data.message || 'Could not save member.');
@@ -301,10 +366,8 @@
         } catch (error) {
             window.Swal?.fire?.({ icon: 'error', title: 'Save failed', text: error.message });
         } finally {
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.textContent = original || 'Save member';
-            }
+            if (saveBtn) saveBtn.disabled = false;
+            if (saveLabel) saveLabel.textContent = originalLabel;
         }
     });
 

@@ -86,7 +86,15 @@
             ...options,
             onInitialize() {
                 this.wrapper.classList.add('ems-select-wrapper');
-                this.wrapper.classList.remove('panel-input', 'qcat-meta-input');
+                this.wrapper.classList.remove(
+                    'panel-input',
+                    'qcat-meta-input',
+                    'faq-field__select',
+                    'faq-toolbar__select',
+                    'org-members-toolbar__select',
+                    'org-contact-input',
+                    'org-brand-input'
+                );
                 this.dropdown.classList.add('ems-select-dropdown');
                 if (disableSearch) {
                     this.wrapper.classList.add('ems-select-wrapper--no-search');

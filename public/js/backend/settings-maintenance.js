@@ -106,8 +106,6 @@
             social_twitter: (fd.get('social_twitter') || '').toString().trim(),
             social_youtube: (fd.get('social_youtube') || '').toString().trim(),
             social_telegram: (fd.get('social_telegram') || '').toString().trim(),
-            logo_gallery_id: (fd.get('logo_gallery_id') || '').toString().trim() || null,
-            background_gallery_id: (fd.get('background_gallery_id') || '').toString().trim() || null,
         };
     };
 
@@ -127,7 +125,7 @@
             const confirm = await window.Swal?.fire?.({
                 icon: 'warning',
                 title: 'Enable maintenance mode?',
-                html: 'Frontend visitors (including candidates) will only see the maintenance page.<br><strong>Admin panel access will remain available.</strong>',
+                html: 'Visitors will see the maintenance message in the content area (header/footer stay).<br>Registration will be blocked. Login stays available for admins and candidates.',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, enable it',
                 cancelButtonText: 'Cancel',
@@ -194,9 +192,6 @@
     document.addEventListener('DOMContentLoaded', async () => {
         if (window.EmsRichTextEditor?.initAll) {
             await window.EmsRichTextEditor.initAll(document);
-        }
-        if (window.EmsContentForm?.initGalleryPickers) {
-            window.EmsContentForm.initGalleryPickers({});
         }
     });
 }());

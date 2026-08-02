@@ -53,6 +53,17 @@
         });
     };
 
+    const setSelectValue = (selector, value) => {
+        const el = form?.querySelector(selector);
+        if (!el) return;
+        const next = value == null ? '' : String(value);
+        if (el.tomselect) {
+            el.tomselect.setValue(next, true);
+            return;
+        }
+        el.value = next;
+    };
+
     const openModal = (faq = null) => {
         if (!modal || !form) return;
         clearErrors();
@@ -62,8 +73,8 @@
         const answer = faq?.answer || '';
         form.querySelector('#faq_question').value = question;
         form.querySelector('#faq_answer').value = answer;
-        form.querySelector('#faq_category_id').value = faq?.faq_category_id || '';
-        form.querySelector('#faq_status').value = faq?.status || 'active';
+        setSelectValue('#faq_category_id', faq?.faq_category_id || '');
+        setSelectValue('#faq_status', faq?.status || 'active');
         form.querySelector('#faq_sort_order').value = faq?.sort_order ?? 0;
         form.querySelector('#faq_is_featured').checked = Boolean(faq?.is_featured);
         document.getElementById('faq-modal-title').textContent = faq?.id ? 'Edit FAQ' : 'Add FAQ';

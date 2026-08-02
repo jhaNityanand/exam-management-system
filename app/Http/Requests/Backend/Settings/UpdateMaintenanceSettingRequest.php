@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Backend\Settings;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateMaintenanceSettingRequest extends FormRequest
@@ -18,8 +17,6 @@ class UpdateMaintenanceSettingRequest extends FormRequest
      */
     public function rules(): array
     {
-        $orgId = current_organization_id();
-
         return [
             'enabled' => ['required', 'boolean'],
             'title' => ['required', 'string', 'max:160'],
@@ -31,26 +28,6 @@ class UpdateMaintenanceSettingRequest extends FormRequest
             'social_twitter' => ['nullable', 'url', 'max:255'],
             'social_youtube' => ['nullable', 'url', 'max:255'],
             'social_telegram' => ['nullable', 'url', 'max:255'],
-            'logo_gallery_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('galleries', 'id')->where(function ($query) use ($orgId) {
-                    if ($orgId) {
-                        $query->where('organization_id', $orgId);
-                    }
-                    $query->whereNull('deleted_at');
-                }),
-            ],
-            'background_gallery_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('galleries', 'id')->where(function ($query) use ($orgId) {
-                    if ($orgId) {
-                        $query->where('organization_id', $orgId);
-                    }
-                    $query->whereNull('deleted_at');
-                }),
-            ],
         ];
     }
 
@@ -68,8 +45,6 @@ class UpdateMaintenanceSettingRequest extends FormRequest
     {
         $this->merge([
             'enabled' => filter_var($this->input('enabled'), FILTER_VALIDATE_BOOLEAN),
-            'logo_gallery_id' => $this->filled('logo_gallery_id') ? (int) $this->input('logo_gallery_id') : null,
-            'background_gallery_id' => $this->filled('background_gallery_id') ? (int) $this->input('background_gallery_id') : null,
         ]);
     }
 

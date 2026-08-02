@@ -13,6 +13,9 @@
 .ts-wrapper.org-contact-input,
 .ts-wrapper.org-brand-input,
 .ts-wrapper.qcat-meta-input,
+.ts-wrapper.faq-field__select,
+.ts-wrapper.faq-toolbar__select,
+.ts-wrapper.org-members-toolbar__select,
 .ts-wrapper.mt-1 {
     border: 0 !important;
     background: transparent !important;

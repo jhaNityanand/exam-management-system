@@ -3,7 +3,6 @@
 namespace App\Services\Settings;
 
 use App\Models\Cms\SiteSetting;
-use App\Models\Gallery;
 use App\Services\Frontend\SiteCmsService;
 use Illuminate\Support\Carbon;
 
@@ -29,8 +28,6 @@ class MaintenanceModeService
         'social_twitter' => ['type' => 'string', 'label' => 'Twitter/X URL', 'default' => ''],
         'social_youtube' => ['type' => 'string', 'label' => 'YouTube URL', 'default' => ''],
         'social_telegram' => ['type' => 'string', 'label' => 'Telegram URL', 'default' => ''],
-        'logo_gallery_id' => ['type' => 'integer', 'label' => 'Logo gallery ID', 'default' => null],
-        'background_gallery_id' => ['type' => 'integer', 'label' => 'Background gallery ID', 'default' => null],
     ];
 
     public function __construct(
@@ -79,8 +76,6 @@ class MaintenanceModeService
             $config['estimated_at_formatted'] = null;
         }
 
-        $config['logo_url'] = $this->galleryUrl($config['logo_gallery_id'] ?? null);
-        $config['background_url'] = $this->galleryUrl($config['background_gallery_id'] ?? null);
         $config['social_links'] = $this->socialLinksFromConfig($config);
         $config['site_name'] = (string) ($all['brand.site_name'] ?? config('app.name', 'Examtube'));
         $plain = strip_tags((string) ($config['message'] ?? ''));
@@ -154,18 +149,6 @@ class MaintenanceModeService
                 ]
             );
         }
-    }
-
-    protected function galleryUrl(mixed $galleryId): ?string
-    {
-        $id = (int) $galleryId;
-        if ($id <= 0) {
-            return null;
-        }
-
-        $gallery = Gallery::query()->find($id);
-
-        return $gallery?->file_url;
     }
 
     /**

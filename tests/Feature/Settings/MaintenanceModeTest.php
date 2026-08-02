@@ -59,12 +59,27 @@ class MaintenanceModeTest extends TestCase
             ->assertSee('Expected back')
             ->assertSee('Facebook')
             ->assertSee('data-maintenance-countdown', false)
+            ->assertSee('et-header', false)
+            ->assertSee('et-footer', false)
+            ->assertDontSee('Branding')
             ->assertHeader('Retry-After');
+    }
 
-        $this->assertFalse(
-            str_contains($response->getContent(), 'mailto:'),
-            'Maintenance page should not include a contact form or mailto contact block.'
-        );
+    public function test_admin_previewing_frontend_also_sees_maintenance(): void
+    {
+        app(MaintenanceModeService::class)->update([
+            'enabled' => true,
+            'title' => 'Down for maintenance',
+            'message' => '<p>Please check back shortly.</p>',
+        ], $this->organization->id);
+
+        $admin = $this->makeUser(OrganizationRoles::ADMIN);
+
+        $this->actingAs($admin)
+            ->get('/')
+            ->assertStatus(503)
+            ->assertSee('Down for maintenance')
+            ->assertSee('et-header', false);
     }
 
     public function test_admin_can_access_panel_during_maintenance(): void
@@ -83,6 +98,7 @@ class MaintenanceModeTest extends TestCase
             ->assertSee('Maintenance Mode')
             ->assertSee('Page content')
             ->assertSee('Restore date')
+            ->assertDontSee('Branding')
             ->assertDontSee('Contact information');
     }
 
