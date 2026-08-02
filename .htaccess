@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Deny sensitive paths if the document root is ever pointed at the project root.
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests|vendor)/ - [F,L,NC]
+    RewriteRule ^(\.env|\.env\..*|composer\.(json|lock)|package(-lock)?\.json|artisan|phpunit\.xml|vite\.config\.js)$ - [F,L,NC]
+
+    # Send all other requests into /public
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Fallback when mod_rewrite is unavailable
+<IfModule !mod_rewrite.c>
+    <FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json|artisan|phpunit\.xml|\.env)">
+        Require all denied
+    </FilesMatch>
+</IfModule>

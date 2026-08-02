@@ -125,11 +125,43 @@ class ExamSessionService
         }
 
         if ($attempt->expires_at && now()->greaterThan($attempt->expires_at)) {
-            app(ExamGradingService::class)->submit($attempt, reason: 'timer_expired', auto: true);
-            $attempt->refresh();
+            $attempt->loadMissing('exam');
+            $autoSubmit = (bool) ($attempt->exam_config_snapshot['auto_submit_on_timer_end']
+                ?? $attempt->exam?->auto_submit_on_timer_end
+                ?? true);
+
+            if ($autoSubmit) {
+                app(ExamGradingService::class)->submit($attempt, reason: 'timer_expired', auto: true);
+                $attempt->refresh();
+            }
         }
 
         return $attempt;
+    }
+
+    public function assertLiveSessionToken(Request $request, ExamAttempt $attempt): void
+    {
+        $policy = $attempt->policy_snapshot
+            ?: ($attempt->loadMissing('exam.proctoringPolicy')->exam?->proctoringPolicy?->toRuntimeArray() ?? []);
+
+        if (empty($policy['enforce_single_session'])) {
+            return;
+        }
+
+        $expected = (string) ($attempt->session_token ?: '');
+        if ($expected === '') {
+            return;
+        }
+
+        $incoming = (string) (
+            $request->header('X-Exam-Session-Token')
+            ?: $request->input('session_token')
+            ?: ''
+        );
+
+        if ($incoming === '' || ! hash_equals($expected, $incoming)) {
+            abort(409, 'This exam is open in another session. Close other tabs or resume from the active device.');
+        }
     }
 
     /**

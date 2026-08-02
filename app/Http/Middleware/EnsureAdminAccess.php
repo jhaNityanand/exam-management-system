@@ -28,13 +28,17 @@ class EnsureAdminAccess
             );
         }
 
+        // Prefer the highest-privilege active membership (admin before org_admin),
+        // not merely the first row by id — multi-org users were mis-resolved before.
         $membership = UserOrganization::query()
             ->where('user_id', $user->id)
             ->where('status', 'active')
+            ->whereIn('role', OrganizationRoles::adminPanelRoles())
+            ->orderByRaw("CASE role WHEN 'admin' THEN 0 WHEN 'org_admin' THEN 1 ELSE 2 END")
             ->orderBy('id')
             ->first();
 
-        if (! $membership || ! OrganizationRoles::canAccessAdminPanel($membership->role)) {
+        if (! $membership) {
             return PermissionDeniedResponse::toResponse($request);
         }
 

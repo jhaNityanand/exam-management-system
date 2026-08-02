@@ -10,9 +10,9 @@ if (! function_exists('current_organization_id')) {
      * Return the active organization ID for the current context.
      *
      * Resolution order:
-     *   1. If a user is authenticated, look up their first active record in
-     *      user_organizations and return that organization_id.
-     *   2. Fallback (guests / CLI only): first organization in the table.
+     *   1. Session `current_organization_id` when the user has an active membership there.
+     *   2. Highest-privilege active membership (admin → org_admin → other).
+     *   3. Fallback (guests / CLI only): first organization in the table.
      *      Authenticated users without membership return null (no silent tenant leak).
      *
      * @return int|null  null when no organization exists / membership missing.
@@ -20,11 +20,29 @@ if (! function_exists('current_organization_id')) {
     function current_organization_id(): ?int
     {
         if (Auth::check()) {
-            $orgId = UserOrganization::where('user_id', Auth::id())
-                ->where('status', 'active')
-                ->value('organization_id');
+            $userId = (int) Auth::id();
+            $sessionOrgId = (int) (session('current_organization_id') ?: 0);
 
-            return $orgId ? (int) $orgId : null;
+            if ($sessionOrgId > 0) {
+                $inSession = UserOrganization::query()
+                    ->where('user_id', $userId)
+                    ->where('organization_id', $sessionOrgId)
+                    ->where('status', 'active')
+                    ->exists();
+
+                if ($inSession) {
+                    return $sessionOrgId;
+                }
+            }
+
+            $membership = UserOrganization::query()
+                ->where('user_id', $userId)
+                ->where('status', 'active')
+                ->orderByRaw("CASE role WHEN 'admin' THEN 0 WHEN 'org_admin' THEN 1 ELSE 2 END")
+                ->orderBy('id')
+                ->first();
+
+            return $membership?->organization_id ? (int) $membership->organization_id : null;
         }
 
         static $cachedId = null;
@@ -44,7 +62,14 @@ if (! function_exists('current_organization_role')) {
             return null;
         }
 
-        return UserOrganization::where('user_id', Auth::id())
+        $orgId = current_organization_id();
+        if (! $orgId) {
+            return null;
+        }
+
+        return UserOrganization::query()
+            ->where('user_id', Auth::id())
+            ->where('organization_id', $orgId)
             ->where('status', 'active')
             ->value('role');
     }
@@ -54,6 +79,17 @@ if (! function_exists('user_can_access_admin')) {
     function user_can_access_admin(): bool
     {
         return OrganizationRoles::canAccessAdminPanel(current_organization_role());
+    }
+}
+
+if (! function_exists('admin_can')) {
+    /**
+     * Whether the authenticated user has an admin-panel capability
+     * (content | organization | platform).
+     */
+    function admin_can(string $capability): bool
+    {
+        return \App\Support\AdminCapabilities::userCan(Auth::user(), $capability);
     }
 }
 

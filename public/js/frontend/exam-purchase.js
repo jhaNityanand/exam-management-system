@@ -1,7 +1,9 @@
 /**
  * Placeholder exam purchase button handler.
- * Expects button#purchase-exam-btn or [data-exam-purchase] with data-url,
- * optional data-redirect / data-reload="1".
+ *
+ * Modular demo checkout: confirmation modal → POST to purchase URL → entitlement.
+ * Replace the POST target / service later with a real payment gateway without
+ * changing button markup (data-exam-purchase + data-url).
  */
 (function () {
   'use strict';
@@ -16,17 +18,23 @@
       if (!url) return;
 
       var confirmFn = utils.confirmAction || function () {
-        return Promise.resolve(window.confirm('Proceed with placeholder payment for this exam?'));
+        return Promise.resolve(window.confirm(
+          'Payment gateway integration is currently under development. For the demo version, click OK to simulate a successful payment.'
+        ));
       };
 
       confirmFn({
-        title: 'Complete payment?',
-        text: 'Proceed with placeholder payment for this exam?',
-        confirmButtonText: 'Continue',
+        title: 'Simulate payment?',
+        text: 'Payment gateway integration is currently under development. For the demo version, click the button below to simulate a successful payment.',
+        confirmButtonText: 'Simulate Payment Success',
         cancelButtonText: 'Cancel',
-        fallbackConfirm: 'Proceed with placeholder payment for this exam?',
+        fallbackConfirm: 'Payment gateway integration is currently under development. Simulate a successful payment?',
+        icon: 'info',
       }).then(function (confirmed) {
         if (!confirmed) return;
+
+        if (btn.disabled) return;
+        btn.disabled = true;
 
         var post = utils.postJson || function (u) {
           return fetch(u, {
@@ -42,28 +50,28 @@
 
         return post(url, {}).then(function (res) {
           if (res.ok) {
-            if (btn.getAttribute('data-reload') === '1') {
+            var ok = utils.showSuccess || function (msg) { window.alert(msg); };
+            return Promise.resolve(ok('Payment simulated successfully. You can now attempt the exam.', 'Payment recorded')).then(function () {
+              if (btn.getAttribute('data-reload') === '1') {
+                window.location.reload();
+                return;
+              }
+              var redirect = btn.getAttribute('data-redirect');
+              if (redirect) {
+                window.location.href = redirect;
+                return;
+              }
               window.location.reload();
-              return;
-            }
-            var redirect = btn.getAttribute('data-redirect');
-            if (redirect) {
-              window.location.href = redirect;
-              return;
-            }
-            window.location.reload();
-            return;
+            });
           }
 
-          var err = utils.showError || function (msg) {
-            window.alert(msg);
-          };
-          err('Unable to complete placeholder payment.', 'Payment failed');
+          btn.disabled = false;
+          var err = utils.showError || function (msg) { window.alert(msg); };
+          err('Unable to simulate payment. Please try again.', 'Payment failed');
         }).catch(function () {
-          var err = utils.showError || function (msg) {
-            window.alert(msg);
-          };
-          err('Unable to complete placeholder payment.', 'Payment failed');
+          btn.disabled = false;
+          var err = utils.showError || function (msg) { window.alert(msg); };
+          err('Unable to simulate payment. Please try again.', 'Payment failed');
         });
       });
     });

@@ -11,9 +11,10 @@ export function formatDuration(seconds) {
 }
 
 export function createTimer({ expiresAt, serverNow, onTick, onExpire }) {
-    const expiresMs = new Date(expiresAt).getTime();
-    const offset = new Date(serverNow).getTime() - Date.now();
+    let expiresMs = new Date(expiresAt).getTime();
+    let offset = new Date(serverNow).getTime() - Date.now();
     let timerId = null;
+    let totalSecondsCached = null;
 
     function now() {
         return Date.now() + offset;
@@ -47,8 +48,15 @@ export function createTimer({ expiresAt, serverNow, onTick, onExpire }) {
         }
     }
 
+    function sync({ expiresAt: nextExpiresAt, serverNow: nextServerNow }) {
+        expiresMs = new Date(nextExpiresAt).getTime();
+        offset = new Date(nextServerNow).getTime() - Date.now();
+        tick(totalSecondsCached);
+    }
+
     function start(totalSeconds) {
         stop();
+        totalSecondsCached = totalSeconds;
         tick(totalSeconds);
         timerId = window.setInterval(() => tick(totalSeconds), 1000);
     }
@@ -58,7 +66,7 @@ export function createTimer({ expiresAt, serverNow, onTick, onExpire }) {
         timerId = null;
     }
 
-    return { start, stop, remaining, format: formatDuration };
+    return { start, stop, remaining, format: formatDuration, sync };
 }
 
 export function createElapsedTimer({ startedAt, serverNow, onTick }) {

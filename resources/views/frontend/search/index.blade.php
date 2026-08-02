@@ -4,8 +4,9 @@
     $q = $q ?? request('q', '');
     $seo = [
         'title' => $q !== '' ? 'Search: '.$q : 'Search',
-        'description' => 'Search exams, questions, blogs, news, and categories on Examtube.in.',
+        'description' => 'Search exams, questions, blogs, news, and categories.',
         'image_type' => 'home',
+        'robots' => $q !== '' ? 'noindex,follow' : 'index,follow',
         'breadcrumbs' => [
             ['label' => 'Home', 'url' => route('home')],
             ['label' => 'Search'],

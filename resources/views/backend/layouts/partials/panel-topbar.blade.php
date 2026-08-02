@@ -1,8 +1,8 @@
 @php
     $user = auth()->user();
     $userName = $user->name ?? 'User';
-    $notificationCount = 5;
-    $notificationBadge = $notificationCount > 99 ? '99+' : (string) $notificationCount;
+    $notificationCount = 0;
+    $notificationBadge = '0';
     $topbarIconButtonClasses = 'panel-icon-btn relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-0 text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white';
     $topbarIconShellClasses = 'pointer-events-none inline-flex h-5 w-5 items-center justify-center text-current';
     $adminAvatar = user_avatar($user, $userName);
@@ -30,11 +30,13 @@
         </span>
     </button>
 
-    <!-- Notifications -->
+    <!-- Notifications (placeholder — real notifications in a future update) -->
     <div data-dropdown data-open="0" class="relative">
         <button type="button" data-dropdown-trigger
             class="{{ $topbarIconButtonClasses }}"
-            aria-label="Open notifications">
+            aria-label="Open notifications"
+            aria-haspopup="true"
+            aria-expanded="false">
 
             <span class="{{ $topbarIconShellClasses }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="block h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -42,41 +44,24 @@
                 </svg>
             </span>
 
-            <span class="pointer-events-none absolute bottom-0 right-0 inline-flex min-h-[1.15rem] min-w-[1.15rem] translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white shadow-sm dark:ring-slate-950">
+            <span class="pointer-events-none absolute bottom-0 right-0 inline-flex min-h-[1.15rem] min-w-[1.15rem] translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full bg-slate-400 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white shadow-sm dark:bg-slate-600 dark:ring-slate-950">
                 {{ $notificationBadge }}
             </span>
         </button>
 
         <div data-dropdown-menu
-            class="absolute right-0 mt-3 hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-200/70 dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
-            style="width: 320px; z-index: 50;">
+            class="absolute right-0 mt-3 hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/70 dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
+            style="width: 320px; z-index: 50;"
+            role="menu"
+            aria-label="Notifications">
             <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
-                <span
-                    class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $notificationBadge }}
-                    New</span>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $notificationBadge }}</span>
             </div>
-            <div class="mt-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
-                <div class="rounded-xl p-2 transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <p class="text-sm font-medium text-slate-900 dark:text-white">System Update</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">The system has been correctly updated to
-                        version 1.2.</p>
-                    <p class="mt-1 text-[10px] text-slate-400">10 mins ago</p>
-                </div>
-                <div class="rounded-xl p-2 transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <p class="text-sm font-medium text-slate-900 dark:text-white">New User Registered</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">John Doe has created an account.</p>
-                    <p class="mt-1 text-[10px] text-slate-400">1 hour ago</p>
-                </div>
-                <div class="rounded-xl p-2 transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <p class="text-sm font-medium text-slate-900 dark:text-white">Database Backup</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Automated backup completed successfully.</p>
-                    <p class="mt-1 text-[10px] text-slate-400">5 hours ago</p>
-                </div>
+            <div class="mt-3 rounded-xl bg-slate-50 px-3 py-4 text-center dark:bg-slate-800/60">
+                <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Notification management will be available in a future update.</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Email, SMS, and in-app alerts are planned for a later release.</p>
             </div>
-            <a href="#"
-                class="mt-2 block rounded-xl bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">View
-                All Notifications</a>
         </div>
     </div>
 

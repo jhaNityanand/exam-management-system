@@ -14,6 +14,9 @@
         'image' => $article->seoImageUrl(),
         'image_type' => 'news',
         'type' => 'article',
+        'breadcrumbs' => $crumbs ?? [],
+        'published_time' => optional($article->published_at)?->toAtomString(),
+        'author' => $article->author?->name,
     ];
     $shareUrl = urlencode(url()->current());
     $shareText = urlencode($article->title);
@@ -31,6 +34,7 @@
         ];
     }
     $crumbs[] = ['label' => 'Article'];
+    $seo['breadcrumbs'] = $crumbs;
 @endphp
 
 @section('content')

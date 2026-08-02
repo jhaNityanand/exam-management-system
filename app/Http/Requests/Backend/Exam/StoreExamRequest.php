@@ -15,7 +15,7 @@ class StoreExamRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return \App\Support\AdminCapabilities::userCan($this->user(), \App\Support\AdminCapabilities::CONTENT);
     }
 
     public function rules(): array

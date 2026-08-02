@@ -158,10 +158,25 @@ class CandidateService
 
             Profile::create($profileData);
 
-            $user->organizations()->attach($organizationId, [
-                'role' => OrganizationRoles::CANDIDATE,
-                'status' => ($data['status'] ?? 'active') === 'active' ? 'active' : 'inactive',
-            ]);
+            $membership = UserOrganization::withTrashed()
+                ->where('user_id', $user->id)
+                ->where('organization_id', $organizationId)
+                ->first();
+
+            if ($membership) {
+                if ($membership->trashed()) {
+                    $membership->restore();
+                }
+                $membership->fill([
+                    'role' => OrganizationRoles::CANDIDATE,
+                    'status' => ($data['status'] ?? 'active') === 'active' ? 'active' : 'inactive',
+                ])->save();
+            } else {
+                $user->organizations()->attach($organizationId, [
+                    'role' => OrganizationRoles::CANDIDATE,
+                    'status' => ($data['status'] ?? 'active') === 'active' ? 'active' : 'inactive',
+                ]);
+            }
 
             $this->logActivity(
                 $user->id,

@@ -89,11 +89,17 @@ class ExamService
             $type = $data['negative_marking_type'] ?? null;
             $allowedTypes = ['25', '33.33', '50', '100'];
             if (! in_array((string) $type, $allowedTypes, true)) {
+                $type = '25';
                 $data['negative_marking_type'] = '25';
             }
-            if (! array_key_exists('negative_mark_per_question', $data) || $data['negative_mark_per_question'] === null) {
-                $data['negative_mark_per_question'] = 0;
-            }
+            // Map UI percentage type → grading fraction (admin form only stores the type).
+            $data['negative_mark_per_question'] = match ((string) $type) {
+                '25' => 0.25,
+                '33.33' => 0.3333,
+                '50' => 0.50,
+                '100' => 1.00,
+                default => 0,
+            };
         } else {
             $data['negative_marking_type'] = null;
             $data['negative_mark_per_question'] = 0;

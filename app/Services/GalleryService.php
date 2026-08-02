@@ -728,6 +728,44 @@ class GalleryService
     }
 
     /**
+     * Sanitize CMS/rich-text HTML before persistence.
+     * Strips scripts, event handlers, javascript:/data: URIs, and dangerous tags.
+     */
+    public function sanitizeHtml(?string $html): ?string
+    {
+        if (! is_string($html) || $html === '') {
+            return $html;
+        }
+
+        $cleaned = $html;
+
+        // Remove script/style/iframe/object/embed/form tags and their content.
+        $cleaned = preg_replace(
+            '/<(script|style|iframe|object|embed|form|link|meta|base)\b[^>]*>.*?<\/\1\s*>/is',
+            '',
+            $cleaned
+        ) ?? $cleaned;
+        $cleaned = preg_replace(
+            '/<(script|style|iframe|object|embed|form|link|meta|base)\b[^>]*\/?>/is',
+            '',
+            $cleaned
+        ) ?? $cleaned;
+
+        // Strip inline event handlers (onclick, onerror, …).
+        $cleaned = preg_replace('/\s+on[a-z]+\s*=\s*([\'"]).*?\1/is', '', $cleaned) ?? $cleaned;
+        $cleaned = preg_replace('/\s+on[a-z]+\s*=\s*[^\s>]+/is', '', $cleaned) ?? $cleaned;
+
+        // Neutralize javascript: / vbscript: URLs.
+        $cleaned = preg_replace(
+            '/\s(href|src|xlink:href|action)\s*=\s*([\'"])\s*(?:javascript|vbscript)\s*:[^\'"]*\2/i',
+            ' $1="#"',
+            $cleaned
+        ) ?? $cleaned;
+
+        return $this->stripDataUris($cleaned);
+    }
+
+    /**
      * Remove Base64 data-URI embeds so HTML never stores raw file payloads.
      */
     public function stripDataUris(?string $html): ?string
@@ -758,7 +796,7 @@ class GalleryService
             }
 
             if (is_string($data[$field])) {
-                $data[$field] = $this->stripDataUris($data[$field]);
+                $data[$field] = $this->sanitizeHtml($data[$field]);
             } elseif (is_array($data[$field])) {
                 $data[$field] = $this->sanitizeNestedHtml($data[$field]);
             }
@@ -775,7 +813,7 @@ class GalleryService
     {
         foreach ($items as $key => $item) {
             if (is_string($item)) {
-                $items[$key] = $this->stripDataUris($item);
+                $items[$key] = $this->sanitizeHtml($item);
             } elseif (is_array($item)) {
                 $items[$key] = $this->sanitizeNestedHtml($item);
             }

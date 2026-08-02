@@ -14,8 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdminAccess::class,
+            'admin.capability' => \App\Http\Middleware\EnsureAdminCapability::class,
             'maintenance' => \App\Http\Middleware\CheckMaintenanceMode::class,
         ]);
+
+        $middleware->trustProxies(at: '*');
 
         $middleware->web(append: [
             \App\Http\Middleware\CheckMaintenanceMode::class,

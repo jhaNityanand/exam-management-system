@@ -52,13 +52,29 @@ class CandidateAttemptController extends Controller
     public function saveAnswers(Request $request, ExamAttempt $attempt): JsonResponse
     {
         $this->authorizeAttempt($request, $attempt);
+        $this->assertSessionToken($request, $attempt);
 
         try {
             $data = $request->validate([
                 'revision' => ['nullable', 'integer', 'min:0'],
-                'answers' => ['required', 'array', 'min:1'],
+                'answers' => ['required', 'array', 'min:1', 'max:500'],
                 'answers.*.exam_attempt_question_id' => ['required', 'integer'],
-                'answers.*.answer_value' => ['nullable'],
+                'answers.*.answer_value' => [
+                    'nullable',
+                    function (string $attribute, mixed $value, \Closure $fail): void {
+                        if ($value === null || is_array($value)) {
+                            return;
+                        }
+                        if (is_string($value)) {
+                            if (mb_strlen($value) > 50000) {
+                                $fail('The answer value may not be greater than 50000 characters.');
+                            }
+
+                            return;
+                        }
+                        $fail('The answer value must be a string or array.');
+                    },
+                ],
                 'answers.*.is_marked_for_review' => ['nullable', 'boolean'],
                 'answers.*.is_visited' => ['nullable', 'boolean'],
             ]);
@@ -91,6 +107,7 @@ class CandidateAttemptController extends Controller
     public function heartbeat(Request $request, ExamAttempt $attempt): JsonResponse
     {
         $this->authorizeAttempt($request, $attempt);
+        $this->assertSessionToken($request, $attempt);
         $attempt = $this->sessions->heartbeat($attempt);
 
         return response()->json([
@@ -104,6 +121,7 @@ class CandidateAttemptController extends Controller
     public function events(Request $request, ExamAttempt $attempt): JsonResponse
     {
         $this->authorizeAttempt($request, $attempt);
+        $this->assertSessionToken($request, $attempt);
 
         $data = $request->validate([
             'event' => ['required', 'string', 'max:64'],
@@ -122,10 +140,18 @@ class CandidateAttemptController extends Controller
     public function submit(Request $request, ExamAttempt $attempt): JsonResponse|RedirectResponse
     {
         $this->authorizeAttempt($request, $attempt);
+        $this->assertSessionToken($request, $attempt);
         $attempt = $this->sessions->expireIfNeeded($attempt);
 
         if ($request->filled('answers') && is_array($request->input('answers'))) {
-            $this->answers->saveBatch($attempt, $request->input('answers', []));
+            try {
+                $this->answers->saveBatch($attempt, $request->input('answers', []));
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return response()->json([
+                    'message' => collect($e->errors())->flatten()->first() ?: 'Unable to save answers.',
+                    'errors' => $e->errors(),
+                ], 422);
+            }
         }
 
         $attempt = $this->grading->submit($attempt, reason: 'manual', auto: false);
@@ -217,6 +243,11 @@ class CandidateAttemptController extends Controller
 
     protected function authorizeAttempt(Request $request, ExamAttempt $attempt): void
     {
-        abort_unless($request->user() && (int) $attempt->user_id === (int) $request->user()->id, 403);
+        $this->authorize('view', $attempt);
+    }
+
+    protected function assertSessionToken(Request $request, ExamAttempt $attempt): void
+    {
+        $this->sessions->assertLiveSessionToken($request, $attempt);
     }
 }

@@ -30,6 +30,10 @@
     @include('frontend.partials.integrations-body')
     <script src="{{ versioned_asset('js/frontend/theme-boot.js') }}"></script>
     <a class="et-skip-link" href="#auth-main">Skip to content</a>
+    <button type="button" class="et-icon-btn et-theme-toggle et-auth-theme-toggle" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
+        <svg class="et-theme-icon et-theme-icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1110.5 3 7 7 0 0021 14.5z"/></svg>
+        <svg class="et-theme-icon et-theme-icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    </button>
     <div class="et-auth">
         <aside class="et-auth__brand-panel">
             <a href="{{ route('home') }}" class="et-auth__logo">
@@ -65,11 +69,12 @@
                 {{ $slot }}
             </div>
             <p class="et-auth__footnote">
-                <a href="{{ route('home') }}">← Back to Examtube.in</a>
+                <a href="{{ route('home') }}">← Back to {{ site_setting('brand.site_name', 'home') }}</a>
             </p>
         </main>
     </div>
     @include('partials.flash-toasts')
+    <script src="{{ versioned_asset('js/frontend/theme-toggle.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/recaptcha.js') }}" defer></script>
 </body>
 </html>

@@ -28,6 +28,8 @@ class ExamController extends Controller
 
     public function index(): View
     {
+        $this->authorize('viewAny', Exam::class);
+
         $orgId = $this->currentOrgId();
         $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
 
@@ -38,6 +40,7 @@ class ExamController extends Controller
 
     public function create(): View
     {
+        $this->authorize('create', Exam::class);
         $orgId = $this->currentOrgId();
         $categories = app(\App\Services\ExamCategoryService::class)->getHierarchicalList($orgId);
         $formOptions = ExamFormOptions::all($orgId);

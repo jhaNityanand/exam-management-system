@@ -61,8 +61,10 @@
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
             {{ session('success') }}
             @if (session('generated_password'))
-                <div class="mt-2 font-mono text-xs tracking-wide">
-                    Temporary password: <strong>{{ session('generated_password') }}</strong>
+                <div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                    <p class="text-xs font-semibold uppercase tracking-wide">One-time temporary password</p>
+                    <p class="mt-1 font-mono text-sm tracking-wide"><strong>{{ session('generated_password') }}</strong></p>
+                    <p class="mt-1 text-xs opacity-80">Copy it now — it will not be shown again. Share it securely with the candidate.</p>
                 </div>
             @endif
         </div>

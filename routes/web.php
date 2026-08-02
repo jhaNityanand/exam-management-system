@@ -88,10 +88,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/feedback/skip', [\App\Http\Controllers\Frontend\FeedbackController::class, 'skip'])->name('frontend.feedback.skip');
 
     Route::get('/attempts/{attempt}', [CandidateAttemptController::class, 'show'])->name('frontend.attempts.show');
-    Route::match(['patch', 'post'], '/attempts/{attempt}/answers', [CandidateAttemptController::class, 'saveAnswers'])->name('frontend.attempts.answers');
-    Route::post('/attempts/{attempt}/heartbeat', [CandidateAttemptController::class, 'heartbeat'])->name('frontend.attempts.heartbeat');
-    Route::post('/attempts/{attempt}/events', [CandidateAttemptController::class, 'events'])->name('frontend.attempts.events');
-    Route::post('/attempts/{attempt}/submit', [CandidateAttemptController::class, 'submit'])->name('frontend.attempts.submit');
+    Route::match(['patch', 'post'], '/attempts/{attempt}/answers', [CandidateAttemptController::class, 'saveAnswers'])
+        ->middleware('throttle:60,1')
+        ->name('frontend.attempts.answers');
+    Route::post('/attempts/{attempt}/heartbeat', [CandidateAttemptController::class, 'heartbeat'])
+        ->middleware('throttle:60,1')
+        ->name('frontend.attempts.heartbeat');
+    Route::post('/attempts/{attempt}/events', [CandidateAttemptController::class, 'events'])
+        ->middleware('throttle:60,1')
+        ->name('frontend.attempts.events');
+    Route::post('/attempts/{attempt}/submit', [CandidateAttemptController::class, 'submit'])
+        ->middleware('throttle:20,1')
+        ->name('frontend.attempts.submit');
     Route::get('/attempts/{attempt}/result', [CandidateAttemptController::class, 'result'])->name('frontend.attempts.result');
     Route::get('/attempts/{attempt}/result/data', [CandidateAttemptController::class, 'resultData'])->name('frontend.attempts.result.data');
     Route::get('/attempts/{attempt}/review', [CandidateAttemptController::class, 'review'])->name('frontend.attempts.review');
@@ -273,49 +281,56 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('news', NewsController::class);
 
     // ── Advertisements ────────────────────────────────────────────────────────
-    Route::get('advertisements', [AdvertisementController::class, 'index'])->name('advertisements.index');
-    Route::get('advertisements/placements', [AdvertisementController::class, 'placements'])->name('advertisements.placements.index');
-    Route::post('advertisements/placements', [AdvertisementController::class, 'storePlacement'])->name('advertisements.placements.store');
-    Route::put('advertisements/placements/{placement}', [AdvertisementController::class, 'updatePlacement'])->name('advertisements.placements.update');
-    Route::delete('advertisements/placements/{placement}', [AdvertisementController::class, 'destroyPlacement'])->name('advertisements.placements.destroy');
-    Route::put('advertisements/custom-code', [AdvertisementController::class, 'updateCustomCode'])->name('advertisements.custom-code');
-    Route::post('advertisements/google', [AdvertisementController::class, 'storeGoogle'])->name('advertisements.google.store');
-    Route::put('advertisements/google/{googleAdvertisement}', [AdvertisementController::class, 'updateGoogle'])->name('advertisements.google.update');
-    Route::delete('advertisements/google/{googleAdvertisement}', [AdvertisementController::class, 'destroyGoogle'])->name('advertisements.google.destroy');
-    Route::post('advertisements', [AdvertisementController::class, 'store'])->name('advertisements.store');
-    Route::put('advertisements/{advertisement}', [AdvertisementController::class, 'update'])->name('advertisements.update');
-    Route::delete('advertisements/{advertisement}', [AdvertisementController::class, 'destroy'])->name('advertisements.destroy');
+    Route::middleware('admin.capability:organization')->group(function () {
+        Route::get('advertisements', [AdvertisementController::class, 'index'])->name('advertisements.index');
+        Route::get('advertisements/placements', [AdvertisementController::class, 'placements'])->name('advertisements.placements.index');
+        Route::post('advertisements/placements', [AdvertisementController::class, 'storePlacement'])->name('advertisements.placements.store');
+        Route::put('advertisements/placements/{placement}', [AdvertisementController::class, 'updatePlacement'])->name('advertisements.placements.update');
+        Route::delete('advertisements/placements/{placement}', [AdvertisementController::class, 'destroyPlacement'])->name('advertisements.placements.destroy');
+        Route::put('advertisements/custom-code', [AdvertisementController::class, 'updateCustomCode'])->name('advertisements.custom-code');
+        Route::post('advertisements/google', [AdvertisementController::class, 'storeGoogle'])->name('advertisements.google.store');
+        Route::put('advertisements/google/{googleAdvertisement}', [AdvertisementController::class, 'updateGoogle'])->name('advertisements.google.update');
+        Route::delete('advertisements/google/{googleAdvertisement}', [AdvertisementController::class, 'destroyGoogle'])->name('advertisements.google.destroy');
+        Route::post('advertisements', [AdvertisementController::class, 'store'])->name('advertisements.store');
+        Route::put('advertisements/{advertisement}', [AdvertisementController::class, 'update'])->name('advertisements.update');
+        Route::delete('advertisements/{advertisement}', [AdvertisementController::class, 'destroy'])->name('advertisements.destroy');
+    });
 
     // ── Settings ─────────────────────────────────────────────────────────────
     Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/', [CacheOptimizationController::class, 'edit'])->name('index');
-        Route::post('cache/run', [CacheOptimizationController::class, 'run'])->name('cache.run');
-        Route::get('maintenance', [MaintenanceSettingController::class, 'edit'])->name('maintenance');
-        Route::put('maintenance', [MaintenanceSettingController::class, 'update'])->name('maintenance.update');
-        Route::get('organization', [OrganizationSettingController::class, 'edit'])->name('organization');
-        Route::put('organization', [OrganizationSettingController::class, 'update'])->name('organization.update');
-        Route::post('organization/heroes', [OrganizationSettingController::class, 'storeHero'])->name('organization.heroes.store');
-        Route::put('organization/heroes/{hero}', [OrganizationSettingController::class, 'updateHero'])->name('organization.heroes.update')->whereNumber('hero');
-        Route::delete('organization/heroes/{hero}', [OrganizationSettingController::class, 'destroyHero'])->name('organization.heroes.destroy')->whereNumber('hero');
-        Route::post('organization/heroes/reorder', [OrganizationSettingController::class, 'reorderHeroes'])->name('organization.heroes.reorder');
-        Route::get('organization/faqs', [OrganizationFaqController::class, 'index'])->name('organization.faqs.index');
-        Route::post('organization/faqs', [OrganizationFaqController::class, 'store'])->name('organization.faqs.store');
-        Route::put('organization/faqs/{faq}', [OrganizationFaqController::class, 'update'])->name('organization.faqs.update')->whereNumber('faq');
-        Route::delete('organization/faqs/{faq}', [OrganizationFaqController::class, 'destroy'])->name('organization.faqs.destroy')->whereNumber('faq');
-        Route::get('organization/members', [OrganizationMemberController::class, 'index'])->name('organization.members.index');
-        Route::post('organization/members', [OrganizationMemberController::class, 'store'])->name('organization.members.store');
-        Route::put('organization/members/{member}', [OrganizationMemberController::class, 'update'])->name('organization.members.update')->whereNumber('member');
-        Route::delete('organization/members/{member}', [OrganizationMemberController::class, 'destroy'])->name('organization.members.destroy')->whereNumber('member');
-        Route::get('seo', [SeoSettingController::class, 'edit'])->name('seo');
-        Route::put('seo', [SeoSettingController::class, 'update'])->name('seo.update');
-        Route::post('seo/regenerate', [SeoSettingController::class, 'regenerate'])->name('seo.regenerate');
-        Route::get('email', [EmailSettingController::class, 'edit'])->name('email');
-        Route::put('email', [EmailSettingController::class, 'update'])->name('email.update');
-        Route::post('email/test', [EmailSettingController::class, 'sendTest'])->name('email.test');
-        Route::get('integrations', [IntegrationsSettingController::class, 'edit'])->name('integrations');
-        Route::put('integrations', [IntegrationsSettingController::class, 'update'])->name('integrations.update');
-        Route::get('security', [SecuritySettingController::class, 'edit'])->name('security');
-        Route::put('security', [SecuritySettingController::class, 'update'])->name('security.update');
+        Route::middleware('admin.capability:platform')->group(function () {
+            Route::get('/', [CacheOptimizationController::class, 'edit'])->name('index');
+            Route::post('cache/run', [CacheOptimizationController::class, 'run'])->name('cache.run');
+            Route::get('maintenance', [MaintenanceSettingController::class, 'edit'])->name('maintenance');
+            Route::put('maintenance', [MaintenanceSettingController::class, 'update'])->name('maintenance.update');
+            Route::get('email', [EmailSettingController::class, 'edit'])->name('email');
+            Route::put('email', [EmailSettingController::class, 'update'])->name('email.update');
+            Route::post('email/test', [EmailSettingController::class, 'sendTest'])->name('email.test');
+            Route::get('integrations', [IntegrationsSettingController::class, 'edit'])->name('integrations');
+            Route::put('integrations', [IntegrationsSettingController::class, 'update'])->name('integrations.update');
+            Route::get('security', [SecuritySettingController::class, 'edit'])->name('security');
+            Route::put('security', [SecuritySettingController::class, 'update'])->name('security.update');
+        });
+
+        Route::middleware('admin.capability:organization')->group(function () {
+            Route::get('organization', [OrganizationSettingController::class, 'edit'])->name('organization');
+            Route::put('organization', [OrganizationSettingController::class, 'update'])->name('organization.update');
+            Route::post('organization/heroes', [OrganizationSettingController::class, 'storeHero'])->name('organization.heroes.store');
+            Route::put('organization/heroes/{hero}', [OrganizationSettingController::class, 'updateHero'])->name('organization.heroes.update')->whereNumber('hero');
+            Route::delete('organization/heroes/{hero}', [OrganizationSettingController::class, 'destroyHero'])->name('organization.heroes.destroy')->whereNumber('hero');
+            Route::post('organization/heroes/reorder', [OrganizationSettingController::class, 'reorderHeroes'])->name('organization.heroes.reorder');
+            Route::get('organization/faqs', [OrganizationFaqController::class, 'index'])->name('organization.faqs.index');
+            Route::post('organization/faqs', [OrganizationFaqController::class, 'store'])->name('organization.faqs.store');
+            Route::put('organization/faqs/{faq}', [OrganizationFaqController::class, 'update'])->name('organization.faqs.update')->whereNumber('faq');
+            Route::delete('organization/faqs/{faq}', [OrganizationFaqController::class, 'destroy'])->name('organization.faqs.destroy')->whereNumber('faq');
+            Route::get('organization/members', [OrganizationMemberController::class, 'index'])->name('organization.members.index');
+            Route::post('organization/members', [OrganizationMemberController::class, 'store'])->name('organization.members.store');
+            Route::put('organization/members/{member}', [OrganizationMemberController::class, 'update'])->name('organization.members.update')->whereNumber('member');
+            Route::delete('organization/members/{member}', [OrganizationMemberController::class, 'destroy'])->name('organization.members.destroy')->whereNumber('member');
+            Route::get('seo', [SeoSettingController::class, 'edit'])->name('seo');
+            Route::put('seo', [SeoSettingController::class, 'update'])->name('seo.update');
+            Route::post('seo/regenerate', [SeoSettingController::class, 'regenerate'])->name('seo.regenerate');
+        });
     });
 
     // ── Candidates ────────────────────────────────────────────────────────────
@@ -360,7 +375,7 @@ Route::get('/profile', function () {
 
     return redirect()->route(
         $user && $user->canAccessAdminPanel()
-            ? 'profile.edit'
+            ? 'admin.profile.edit'
             : 'frontend.account.profile'
     );
 })->middleware(['auth'])->name('profile.legacy');

@@ -388,13 +388,13 @@ class CandidateExamController extends Controller
             return response()->json([
                 'status' => 'paid',
                 'reference' => $result['payment']->reference,
-                'message' => 'Placeholder payment completed. You can now attempt the exam.',
+                'message' => 'Demo payment simulated successfully. You can now attempt the exam.',
             ]);
         }
 
         return redirect()
             ->route('frontend.exams.rules', $exam)
-            ->with('success', 'Payment recorded (placeholder). You can now attempt the exam.');
+            ->with('success', 'Demo payment simulated successfully. You can now attempt the exam.');
     }
 
     protected function assertPublished(Exam $exam): void

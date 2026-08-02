@@ -13,7 +13,7 @@ class StoreOrganizationMemberRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return \App\Support\AdminCapabilities::userCan($this->user(), \App\Support\AdminCapabilities::ORGANIZATION);
     }
 
     /**

@@ -5,7 +5,9 @@ Laravel 11 platform for organization-scoped question banks, exam authoring, cont
 | Resource | Link |
 |----------|------|
 | **Client frontend delivery** | [`public/docs/frontend.html`](public/docs/frontend.html) (or `/docs/frontend.html`) |
+| **Backend & admin (RBAC)** | [`public/docs/backend.html`](public/docs/backend.html) (or `/docs/backend.html`) |
 | **Full technical guide** | Open [`public/docs/index.html`](public/docs/index.html) (or `/docs/` when the app is running) |
+| **Hostinger / production deploy** | [`deployment.md`](deployment.md) |
 | **Product backlog** | [`TODO.md`](TODO.md) |
 
 ---
@@ -116,7 +118,9 @@ After seeding, password for all accounts is `password`:
 | `info@examtube.in` | Organization Admin | `/admin` |
 | `candidate@examtube.in` | Candidate | `/account` |
 
-Admin panel access is limited to Application Admin, Org Admin, and Editor roles.
+Admin panel access is limited to Application Admin and Organization Admin roles only.
+
+**Admin panel roles:** Application Admin (`admin`) and Organization Admin (`org_admin`) currently have **the same full panel access**. Capability hooks (`content` / `organization` / `platform`) are in place for a future split — see [`/docs/backend.html`](public/docs/backend.html). Model policies still enforce organization ownership.
 
 Seeded public contact defaults: `support@examtube.in`, phone `+91 0000000000`, address `Mumbai Dock Yard`.
 
@@ -147,7 +151,7 @@ Seeded public contact defaults: `support@examtube.in`, phone `+91 0000000000`, a
 - Gallery media library
 - Settings: maintenance, SEO files, branding, email/SMTP, analytics, cookie consent, reCAPTCHA, security, feature flags
 
-Still unfinished (see `TODO.md`): deeper scoring polish, organization switching UI, notifications/logs modules, real payment gateway (purchase remains a demo placeholder), advertisement slot redesign.
+Still unfinished (see `TODO.md`): organization switching UI, real notifications/logs, real payment gateway (purchase remains a demo placeholder), splitting admin vs org_admin privileges, Editor/Viewer RBAC, and CI. Policy foundations are in place (`/docs/backend.html`).
 
 ---
 
@@ -225,14 +229,16 @@ Coverage includes auth, profile, questions, imports, exams, attempts, categories
 
 ## Production checklist (short)
 
-1. `APP_ENV=production`, `APP_DEBUG=false`, real `APP_KEY`, HTTPS `APP_URL`
-2. Production database, mail, cache, session, and queue drivers
+Full Hostinger steps, cron, permissions, and troubleshooting: **[`deployment.md`](deployment.md)**.
+
+1. `APP_ENV=production`, `APP_DEBUG=false`, real `APP_KEY`, HTTPS `APP_URL`, `SESSION_SECURE_COOKIE=true`
+2. Production database, mail, cache, session; `QUEUE_CONNECTION=sync` on shared hosting (no Supervisor)
 3. `composer install --no-dev --optimize-autoloader`
-4. `npm ci && npm run build`
+4. `npm ci && npm run build` (or upload `public/build`)
 5. `php artisan migrate --force` (**no** demo seed on live data)
 6. `php artisan storage:link`
-7. `php artisan optimize`
-8. Queue worker + scheduler if needed
+7. `php artisan optimize` and `php artisan seo:generate`
+8. Cron: `* * * * * cd /path && php artisan schedule:run`
 9. Document root = `public/` only
 10. Walk through the client checklist in [`public/docs/frontend.html`](public/docs/frontend.html) §9
 
@@ -243,7 +249,9 @@ Coverage includes auth, profile, questions, imports, exams, attempts, categories
 | File | Purpose |
 |---|---|
 | [`README.md`](README.md) | Setup and developer entry point |
+| [`deployment.md`](deployment.md) | Hostinger / production deployment |
 | [`public/docs/frontend.html`](public/docs/frontend.html) | Client-friendly frontend delivery summary (`/docs/frontend.html`) |
+| [`public/docs/backend.html`](public/docs/backend.html) | Admin roles, capabilities, policies (`/docs/backend.html`) |
 | [`public/docs/index.html`](public/docs/index.html) | Complete technical guide |
 | [`TODO.md`](TODO.md) | Remaining product work |
 

@@ -2,7 +2,7 @@
 
 @php
     $seo = [
-        'title' => 'Home',
+        'title' => site_setting('brand.tagline', site_setting('brand.site_name', 'Practice smarter. Score higher.')),
         'description' => $siteSettings['seo.default_description']
             ?? ($siteBrand['description'] ?? ($siteSettings['brand.tagline'] ?? 'Practice smarter with exams, questions, blogs, and news.')),
         'type' => 'website',

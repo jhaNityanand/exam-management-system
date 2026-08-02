@@ -208,6 +208,8 @@ export function initExamRunner(root) {
         throw new Error('Unable to load exam data.');
     }
 
+    window.__examSessionToken = payload.attempt?.session_token || '';
+
     const userId = root.dataset.userId || 'u';
     const questions = payload.questions || [];
     const policy = payload.policy || {};
@@ -1099,13 +1101,31 @@ export function initExamRunner(root) {
             expiresAt: payload.attempt.expires_at,
             serverNow: payload.server_now,
             onTick: ({ label, stage, mode }) => applyTimerLabel(label, stage, mode || 'remaining'),
-            onExpire: () => {
+            onExpire: async () => {
                 notify('Time is up. Submitting your exam…', 'warn', 8000);
-                if (payload.exam.auto_submit_on_timer_end) {
-                    finalizeSubmit().catch(() => {
-                        leaveExamCleanly();
-                        window.location.href = urls.result;
-                    });
+                if (!payload.exam.auto_submit_on_timer_end) return;
+                try {
+                    persistCurrent({ debounceMs: 0 });
+                    const ok = await autosave.flush({ waitForInflight: true, requireEmpty: true });
+                    if (!ok) notify('Could not sync all answers before submit.', 'warn', 5000);
+                    await api(urls.submit, { method: 'POST', body: {} });
+                    leaveExamCleanly();
+                    clearLocal(payload.attempt.id, userId);
+                    window.location.href = urls.result;
+                } catch {
+                    try {
+                        const fd = new FormData();
+                        fd.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+                        if (payload.attempt?.session_token) {
+                            fd.append('session_token', payload.attempt.session_token);
+                        }
+                        navigator.sendBeacon?.(urls.submit, fd);
+                    } catch (_) {
+                        // ignore beacon failures
+                    }
+                    leaveExamCleanly();
+                    clearLocal(payload.attempt.id, userId);
+                    window.location.href = urls.result;
                 }
             },
         });
@@ -1195,6 +1215,12 @@ export function initExamRunner(root) {
     state.heartbeatTimer = window.setInterval(() => {
         api(urls.heartbeat, { method: 'POST', body: {} })
             .then((data) => {
+                if (data?.expires_at && data?.server_now && state.timerApi?.sync) {
+                    state.timerApi.sync({
+                        expiresAt: data.expires_at,
+                        serverNow: data.server_now,
+                    });
+                }
                 if (data?.status && data.status !== 'in_progress' && data.status !== 'active') {
                     notify('This attempt has ended.', 'warn');
                     window.setTimeout(() => {
@@ -1210,6 +1236,23 @@ export function initExamRunner(root) {
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     cleanups.push(() => window.removeEventListener('beforeunload', onBeforeUnload));
+
+    const onPageHide = () => {
+        try {
+            persistCurrent({ debounceMs: 0 });
+        } catch (_) {
+            // ignore
+        }
+        if (navigator.onLine) {
+            try {
+                autosave.flush({ waitForInflight: false }).catch(() => {});
+            } catch (_) {
+                // ignore
+            }
+        }
+    };
+    window.addEventListener('pagehide', onPageHide);
+    cleanups.push(() => window.removeEventListener('pagehide', onPageHide));
 
     showQuestion();
     setDrawer(!isNarrowViewport());

@@ -22,6 +22,19 @@
     window.alert(message);
   }
 
+  function showSuccess(message, title) {
+    title = title || 'Success';
+    if (window.EmsToast && typeof window.EmsToast.success === 'function') {
+      window.EmsToast.success(message);
+      return Promise.resolve();
+    }
+    if (window.Swal && typeof window.Swal.fire === 'function') {
+      return window.Swal.fire({ icon: 'success', title: title, text: message, timer: 2200, showConfirmButton: true });
+    }
+    window.alert(message);
+    return Promise.resolve();
+  }
+
   function confirmAction(options) {
     options = options || {};
     var title = options.title || 'Are you sure?';
@@ -73,6 +86,7 @@
   window.EmsFrontend = Object.assign({}, window.EmsFrontend || {}, {
     csrfToken: csrfToken,
     showError: showError,
+    showSuccess: showSuccess,
     confirmAction: confirmAction,
     postJson: postJson,
     storeReturnUrl: storeReturnUrl,

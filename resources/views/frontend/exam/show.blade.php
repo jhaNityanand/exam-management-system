@@ -10,6 +10,11 @@
         'og_description' => $exam->og_description,
         'image' => $exam->seoImageUrl(),
         'image_type' => 'exam',
+        'breadcrumbs' => [
+            ['label' => 'Home', 'url' => route('home')],
+            ['label' => 'Exams', 'url' => route('frontend.exams.index')],
+            ['label' => $exam->title],
+        ],
     ];
     $isFree = ! $exam->isPaid();
     $attemptsLabel = ($exam->attempt_limit_type === 'unlimited' || (int) ($exam->max_attempts ?? 0) === 0)

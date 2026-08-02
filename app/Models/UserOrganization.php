@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasAuditTrails;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class UserOrganization extends Model
+class UserOrganization extends Pivot
 {
     use HasAuditTrails, SoftDeletes;
 
     protected $table = 'user_organizations';
+
+    public $incrementing = true;
 
     protected $fillable = [
         'user_id',

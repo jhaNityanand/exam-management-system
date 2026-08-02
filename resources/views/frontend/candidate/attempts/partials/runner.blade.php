@@ -50,17 +50,8 @@
         </div>
     </header>
 
-    @php
-        $leftAdHtml = ad_slot('exam_attempt', 'left_sidebar');
-        $bottomAdHtml = ad_slot('exam_attempt', 'below_content');
-        $rightAdHtml = ad_slot('exam_attempt', 'right_sidebar');
-    @endphp
-    <div class="cx-exam__body {{ $leftAdHtml !== '' ? 'cx-exam__body--with-left' : '' }}">
-        @if($leftAdHtml !== '')
-            <aside class="cx-ad cx-ad--left" data-exam-ad="left" aria-label="Sponsored">{!! $leftAdHtml !!}</aside>
-        @endif
+    <div class="cx-exam__body">
         <main class="cx-main" id="cx-main">
-            <x-ad-slot page="exam_attempt" position="above_title" />
             <div class="cx-question-head">
                 <div>
                     <p class="cx-question-kicker" id="cx-question-kicker">Question 1</p>
@@ -69,10 +60,6 @@
             </div>
 
             <div id="cx-question" class="cx-question-wrap"></div>
-
-            @if($bottomAdHtml !== '')
-                <div class="cx-ad" data-exam-ad="bottom">{!! $bottomAdHtml !!}</div>
-            @endif
 
             <div class="cx-footer-actions">
                 <button type="button" class="cx-btn cx-btn--ghost" id="cx-clear-selection">Clear selection</button>
@@ -85,9 +72,6 @@
         <div class="cx-drawer-backdrop" id="cx-drawer-backdrop" hidden></div>
 
         <aside class="cx-rail{{ $requireWebcam ? ' cx-rail--with-webcam' : '' }}" id="cx-rail" aria-label="Exam panel">
-            @if($rightAdHtml !== '')
-                <div class="cx-ad" data-exam-ad="right">{!! $rightAdHtml !!}</div>
-            @endif
             <div class="cx-rail__head">
                 <h2>Exam panel</h2>
                 <button type="button" class="cx-icon-btn cx-drawer-close" id="cx-drawer-close" aria-label="Close panel">

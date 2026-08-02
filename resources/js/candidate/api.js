@@ -17,6 +17,8 @@ function firstErrorMessage(data) {
 }
 
 export async function api(url, { method = 'GET', body, headers = {}, timeoutMs = 60000 } = {}) {
+    const sessionToken = typeof window !== 'undefined' ? (window.__examSessionToken || '') : '';
+
     const options = {
         method,
         headers: {
@@ -28,6 +30,10 @@ export async function api(url, { method = 'GET', body, headers = {}, timeoutMs =
         credentials: 'same-origin',
     };
 
+    if (sessionToken) {
+        options.headers['X-Exam-Session-Token'] = sessionToken;
+    }
+
     if (body instanceof FormData) {
         if (!body.has('_token') && csrfToken()) {
             body.append('_token', csrfToken());
@@ -35,7 +41,16 @@ export async function api(url, { method = 'GET', body, headers = {}, timeoutMs =
         options.body = body;
     } else if (body !== undefined) {
         options.headers['Content-Type'] = 'application/json';
-        options.body = JSON.stringify(body);
+        let payload = body;
+        if (
+            sessionToken
+            && payload
+            && typeof payload === 'object'
+            && !Array.isArray(payload)
+        ) {
+            payload = { ...payload, session_token: sessionToken };
+        }
+        options.body = JSON.stringify(payload);
     }
 
     const controller = new AbortController();

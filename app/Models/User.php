@@ -49,8 +49,10 @@ class User extends Authenticatable
     public function organizations(): BelongsToMany
     {
         return $this->belongsToMany(Organization::class, 'user_organizations')
-            ->withPivot(['role', 'status'])
-            ->withTimestamps();
+            ->using(UserOrganization::class)
+            ->withPivot(['id', 'role', 'status', 'deleted_at'])
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
     }
 
     public function belongsToOrganization(int $organizationId): bool
@@ -60,9 +62,15 @@ class User extends Authenticatable
 
     public function activeOrganizationRole(): ?string
     {
-        return $this->organizations()
-            ->wherePivot('status', 'active')
-            ->orderBy('user_organizations.id')
+        $orgId = current_organization_id();
+
+        $query = $this->organizations()->wherePivot('status', 'active');
+        if ($orgId) {
+            $query->where('organizations.id', $orgId);
+        }
+
+        return $query
+            ->orderByRaw("CASE user_organizations.role WHEN 'admin' THEN 0 WHEN 'org_admin' THEN 1 ELSE 2 END")
             ->first()
             ?->pivot
             ?->role;
@@ -85,6 +93,21 @@ class User extends Authenticatable
         }
 
         if ($this->belongsToOrganization((int) $organizationId)) {
+            return;
+        }
+
+        $trashed = UserOrganization::withTrashed()
+            ->where('user_id', $this->id)
+            ->where('organization_id', (int) $organizationId)
+            ->first();
+
+        if ($trashed) {
+            $trashed->restore();
+            $trashed->fill([
+                'role' => OrganizationRoles::CANDIDATE,
+                'status' => 'active',
+            ])->save();
+
             return;
         }
 

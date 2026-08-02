@@ -1,23 +1,36 @@
 @php
+    use App\Support\AdminCapabilities;
+
+    $settingsChildren = [
+        ['route' => 'admin.settings.organization', 'label' => 'Organization', 'capability' => AdminCapabilities::ORGANIZATION],
+        ['route' => 'admin.settings.seo', 'label' => 'SEO & Search', 'capability' => AdminCapabilities::ORGANIZATION],
+        ['route' => 'admin.advertisements.index', 'label' => 'Advertisements', 'match' => 'admin.advertisements.*', 'capability' => AdminCapabilities::ORGANIZATION],
+        ['route' => 'admin.settings.index', 'label' => 'Cache & Optimization', 'capability' => AdminCapabilities::PLATFORM],
+        ['route' => 'admin.settings.email', 'label' => 'Email Configuration', 'capability' => AdminCapabilities::PLATFORM],
+        ['route' => 'admin.settings.integrations', 'label' => 'Integrations & Privacy', 'capability' => AdminCapabilities::PLATFORM],
+        ['route' => 'admin.settings.security', 'label' => 'Security', 'capability' => AdminCapabilities::PLATFORM],
+        ['route' => 'admin.settings.maintenance', 'label' => 'Maintenance Mode', 'capability' => AdminCapabilities::PLATFORM],
+    ];
+
+    $settingsChildren = array_values(array_filter(
+        $settingsChildren,
+        fn (array $child) => admin_can($child['capability'])
+    ));
+
     $bottomLinks = [
         ['route' => 'admin.logs.index', 'label' => 'Logs', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-        [
+    ];
+
+    if ($settingsChildren !== []) {
+        $bottomLinks[] = [
             'label' => 'Settings',
             'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
-            'parentRoute' => 'admin.settings.index',
-            'children' => [
-                ['route' => 'admin.settings.index', 'label' => 'Cache & Optimization'],
-                ['route' => 'admin.settings.organization', 'label' => 'Organization'],
-                ['route' => 'admin.settings.email', 'label' => 'Email Configuration'],
-                ['route' => 'admin.settings.integrations', 'label' => 'Integrations & Privacy'],
-                ['route' => 'admin.settings.security', 'label' => 'Security'],
-                ['route' => 'admin.advertisements.index', 'label' => 'Advertisements', 'match' => 'admin.advertisements.*'],
-                ['route' => 'admin.settings.maintenance', 'label' => 'Maintenance Mode'],
-                ['route' => 'admin.settings.seo', 'label' => 'SEO & Search'],
-            ],
-        ],
-        ['route' => 'admin.profile.edit', 'label' => 'Profile', 'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
-    ];
+            'parentRoute' => $settingsChildren[0]['route'],
+            'children' => $settingsChildren,
+        ];
+    }
+
+    $bottomLinks[] = ['route' => 'admin.profile.edit', 'label' => 'Profile', 'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'];
 @endphp
 
 <div class="space-y-1">

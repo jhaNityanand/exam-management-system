@@ -312,6 +312,7 @@
         <p class="toc-title" style="margin-top:1.25rem">Also see</p>
         <nav class="toc">
             <a href="./index.html">Full technical docs</a>
+            <a href="./backend.html">Backend &amp; admin (RBAC)</a>
         </nav>
     </aside>
 
@@ -333,6 +334,7 @@
                 </div>
                 <div class="doc-links no-print">
                     <a class="badge" href="./index.html">Open full technical documentation →</a>
+                    <a class="badge" href="./backend.html">Backend &amp; admin docs →</a>
                 </div>
             </header>
 
@@ -600,14 +602,16 @@
                     <table>
                         <thead><tr><th>Item</th><th>Note</th></tr></thead>
                         <tbody>
-                        <tr><td>Advertisement slots</td><td>Temporarily disabled pending ad redesign</td></tr>
-                        <tr><td>Exam purchase checkout</td><td>Placeholder payment for demo — replace with a real gateway before charging users</td></tr>
-                        <tr><td>TinyMCE CDN</td><td>Rich exam answers load from CDN; self-host if your security policy requires it</td></tr>
+                        <tr><td>Exam purchase checkout</td><td>Placeholder modal with <strong>Simulate Payment Success</strong> — grants demo entitlement only. Replace with a real gateway before charging users.</td></tr>
+                        <tr><td>Notifications</td><td>Candidate notification count stays at <strong>0</strong> / coming soon. No mail/SMS/push delivery yet.</td></tr>
+                        <tr><td>Ads on live exam runner</td><td>Advertisement slots are <strong>not</strong> injected on the live attempt runner (focus and integrity).</td></tr>
+                        <tr><td>TinyMCE CDN</td><td>Rich exam answers load from CDN; self-host if your security policy requires it.</td></tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="callout warning">
                     These items are not blockers for the frontend delivery summarised here, but should be decided before charging customers or enforcing a strict Content Security Policy.
+                    Production steps: project-root <code>deployment.md</code>. Admin roles/policies: <a href="./backend.html">backend.html</a>.
                 </div>
             </section>
 
@@ -638,6 +642,16 @@
                         <p class="muted">Architecture, modules, APIs, and operations.</p>
                     </div>
                     <div class="card">
+                        <h3>Backend &amp; admin</h3>
+                        <p><a href="./backend.html">public/docs/backend.html</a></p>
+                        <p class="muted">Roles, capabilities, policies, exam session security.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Deployment</h3>
+                        <p><code>deployment.md</code> (project root)</p>
+                        <p class="muted">Hostinger / production deploy, SEO regenerate, security.</p>
+                    </div>
+                    <div class="card">
                         <h3>Developer README</h3>
                         <p><code>README.md</code></p>
                         <p class="muted">Setup, commands, and day-to-day development.</p>
@@ -647,7 +661,8 @@
 
             <div class="footer">
                 Examtube frontend delivery summary · August 2026 ·
-                <a href="./index.html">Full technical documentation</a>
+                <a href="./index.html">Full technical documentation</a> ·
+                <a href="./backend.html">Backend &amp; admin</a>
             </div>
         </div>
     </main>
