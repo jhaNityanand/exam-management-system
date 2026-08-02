@@ -7,6 +7,7 @@ use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
+use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -62,7 +63,7 @@ class BlogController extends Controller
         ]);
     }
 
-    public function show(Blog $blog): View
+    public function show(Blog $blog, DetailSidebarService $detailSidebar): View
     {
         $orgId = $this->organizationId();
 
@@ -106,24 +107,13 @@ class BlogController extends Controller
             ->limit(3)
             ->get();
 
-        $excludeIds = $relatedBlogs->pluck('id')->push($blog->id)->all();
-
-        $latestBlogs = Blog::query()
-            ->published()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->whereNotIn('id', $excludeIds)
-            ->with(['category:id,name,slug', 'bannerImage', 'banners'])
-            ->latest('published_at')
-            ->limit(4)
-            ->get();
-
         $adService = app(\App\Services\Advertisement\AdvertisementService::class);
         $processedContent = $adService->injectIntoContent((string) $blog->content, 'blog', $orgId);
 
         return view('frontend.blog.show', [
             'blog' => $blog,
             'relatedBlogs' => $relatedBlogs,
-            'latestBlogs' => $latestBlogs,
+            'detailSidebar' => $detailSidebar->forBlog($blog, $orgId),
             'processedContent' => $processedContent,
         ]);
     }

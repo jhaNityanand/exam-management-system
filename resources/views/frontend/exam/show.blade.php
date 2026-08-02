@@ -180,6 +180,8 @@
             'canLeaveFeedback' => $canLeaveFeedback ?? false,
         ])
     </div>
+
+    @include('frontend.partials.detail-sidebar')
 @endsection
 
 @push('styles')

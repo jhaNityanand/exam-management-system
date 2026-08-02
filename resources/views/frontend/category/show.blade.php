@@ -92,4 +92,6 @@
             </section>
         @endif
     </div>
+
+    @include('frontend.partials.detail-sidebar')
 @endsection

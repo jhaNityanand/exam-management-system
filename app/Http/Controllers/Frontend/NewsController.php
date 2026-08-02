@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\News;
 use App\Models\NewsCategory;
+use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -105,7 +106,7 @@ class NewsController extends Controller
         ]);
     }
 
-    public function show(News $news): View
+    public function show(News $news, DetailSidebarService $detailSidebar): View
     {
         $orgId = $this->organizationId();
 
@@ -150,40 +151,13 @@ class NewsController extends Controller
             ->limit(3)
             ->get();
 
-        $excludeIds = $relatedNews->pluck('id')->push($news->id)->all();
-
-        $trendingNews = News::query()
-            ->published()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->whereNotIn('id', $excludeIds)
-            ->where(function ($q) {
-                $q->where('is_trending', true)
-                    ->orWhere('is_breaking', true);
-            })
-            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
-            ->latest('published_at')
-            ->limit(4)
-            ->get();
-
-        if ($trendingNews->count() < 4) {
-            $fallback = News::query()
-                ->published()
-                ->when($orgId, fn ($q) => $q->forOrg($orgId))
-                ->whereNotIn('id', array_merge($excludeIds, $trendingNews->pluck('id')->all()))
-                ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
-                ->latest('published_at')
-                ->limit(4 - $trendingNews->count())
-                ->get();
-            $trendingNews = $trendingNews->concat($fallback)->values();
-        }
-
         $adService = app(\App\Services\Advertisement\AdvertisementService::class);
         $processedContent = $adService->injectIntoContent((string) $news->content, 'news', $orgId);
 
         return view('frontend.news.show', [
             'news' => $news,
             'relatedNews' => $relatedNews,
-            'trendingNews' => $trendingNews,
+            'detailSidebar' => $detailSidebar->forNews($news, $orgId),
             'processedContent' => $processedContent,
         ]);
     }

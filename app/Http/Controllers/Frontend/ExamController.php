@@ -9,6 +9,7 @@ use App\Models\ExamAttempt;
 use App\Models\ExamCategory;
 use App\Services\CandidateExam\ExamEligibilityService;
 use App\Services\CandidateExam\PreviousAttemptPresenter;
+use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -108,7 +109,7 @@ class ExamController extends Controller
         ]);
     }
 
-    public function show(Request $request, Exam $exam): View
+    public function show(Request $request, Exam $exam, DetailSidebarService $detailSidebar): View
     {
         $orgId = $this->organizationId();
         $user = $request->user();
@@ -173,16 +174,6 @@ class ExamController extends Controller
             $previousAttempts = collect($this->previousAttempts->presentMany($attemptModels, $exam));
         }
 
-        $relatedExams = Exam::query()
-            ->publicCatalog()
-            ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->where('id', '!=', $exam->id)
-            ->when($exam->category_id, fn ($q) => $q->where('category_id', $exam->category_id))
-            ->with(['category:id,name,slug'])
-            ->latest('id')
-            ->limit(4)
-            ->get();
-
         $feedbackSummary = $this->feedback->publicSummaryFor($exam, 6);
         $userFeedback = null;
         $canLeaveFeedback = false;
@@ -203,7 +194,7 @@ class ExamController extends Controller
             'exam' => $exam,
             'evaluation' => $evaluation,
             'previousAttempts' => $previousAttempts,
-            'relatedExams' => $relatedExams,
+            'detailSidebar' => $detailSidebar->forExam($exam, $orgId),
             'feedbackSummary' => $feedbackSummary,
             'userFeedback' => $userFeedback,
             'canLeaveFeedback' => $canLeaveFeedback,

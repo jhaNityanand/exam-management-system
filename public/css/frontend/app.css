@@ -3314,6 +3314,173 @@ html.dark .et-logo__img {
 }
 
 .et-article__wrap { max-width: 860px; margin-inline: auto; }
+
+/*
+ * Detail pages: leave the main reading column unchanged.
+ * Left gutter stays free for ads. On wide screens, dock a sticky
+ * "latest 5" card in the bottom-right gutter (full-screen use).
+ */
+.et-detail-rail {
+  width: min(100% - 2rem, 860px);
+  margin: 0 auto 2.5rem;
+}
+.et-detail-sidebar {
+  border: 1px solid var(--et-border);
+  border-radius: 16px;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--et-accent-soft) 45%, var(--et-surface)), var(--et-surface));
+  box-shadow: var(--et-shadow);
+  padding: 0.9rem 0.9rem 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+.et-detail-sidebar__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.et-detail-sidebar__eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--et-accent);
+}
+.et-detail-sidebar__title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.et-detail-sidebar__all {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--et-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.et-detail-sidebar__all:hover {
+  text-decoration: underline;
+}
+.et-detail-sidebar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.et-detail-sidebar__item {
+  display: grid;
+  grid-template-columns: 3.85rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.4rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color var(--et-transition), transform var(--et-transition);
+}
+.et-detail-sidebar__item:hover {
+  background: color-mix(in srgb, var(--et-accent-soft) 70%, var(--et-surface));
+  transform: translateY(-1px);
+}
+.et-detail-sidebar__thumb {
+  display: block;
+  width: 3.85rem;
+  height: 2.9rem;
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--et-surface-2);
+  border: 1px solid color-mix(in srgb, var(--et-border) 80%, transparent);
+}
+.et-detail-sidebar__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.et-detail-sidebar__thumb-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--et-accent) 18%, transparent), transparent 55%),
+    var(--et-surface-2);
+}
+.et-detail-sidebar__body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding-top: 0.02rem;
+}
+.et-detail-sidebar__kicker {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--et-text-muted);
+}
+.et-detail-sidebar__item-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--et-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.et-detail-sidebar__meta {
+  font-size: 0.7rem;
+  color: var(--et-text-muted);
+}
+html.dark .et-detail-sidebar,
+.dark .et-detail-sidebar {
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--et-accent) 10%, var(--et-surface)), var(--et-surface));
+  border-color: var(--et-border);
+}
+html.dark .et-detail-sidebar__item:hover,
+.dark .et-detail-sidebar__item:hover {
+  background: color-mix(in srgb, var(--et-accent) 14%, var(--et-surface));
+}
+
+/*
+ * Wide desktop: fill the bottom-right gutter beside the ~860px reading column.
+ * Left gutter stays empty for ads; main content width/layout is unchanged.
+ * When the footer crowds the card, JS caps height and enables inner scroll.
+ */
+@media (min-width: 1400px) {
+  .et-detail-rail {
+    --et-detail-rail-inset: 1.25rem;
+    --et-detail-rail-lift: var(--et-detail-rail-inset);
+    position: fixed;
+    z-index: 35;
+    left: calc(50% + min(430px, 50vw - 1rem) + var(--et-detail-rail-inset));
+    right: max(var(--et-detail-rail-inset), env(safe-area-inset-right));
+    bottom: max(var(--et-detail-rail-lift), env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    max-height: var(--et-detail-rail-max-h, none);
+    margin: 0;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    transition: bottom 0.15s ease-out, max-height 0.15s ease-out;
+  }
+  .et-detail-rail.is-constrained {
+    overflow: auto;
+    scrollbar-width: thin;
+  }
+  .et-detail-sidebar {
+    width: 100%;
+    height: auto;
+    margin: 0;
+  }
+}
+
 .et-article__lead {
   font-size: clamp(1.05rem, 2.2vw, 1.2rem);
   line-height: 1.65;

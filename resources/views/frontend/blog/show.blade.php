@@ -131,40 +131,6 @@
                 </section>
             @endif
 
-            @php $moreItems = $latestBlogs ?? collect(); @endphp
-            @if($moreItems->isNotEmpty())
-                <section class="et-article__more">
-                    @include('frontend.components.section-heading', [
-                        'title' => 'Latest from the blog',
-                        'subtitle' => 'Fresh prep tips and exam insights',
-                    ])
-                    <div class="et-article__more-list">
-                        @foreach($moreItems as $item)
-                            @php
-                                $itemUrl = route('frontend.blogs.show', $item->slug);
-                                $itemBanner = method_exists($item, 'bannerUrl') ? $item->bannerUrl() : ($item->bannerImage->file_url ?? null);
-                            @endphp
-                            <a class="et-article__more-item" href="{{ $itemUrl }}">
-                                <span class="et-article__more-thumb">
-                                    @if($itemBanner)
-                                        <img src="{{ $itemBanner }}" alt="" loading="lazy">
-                                    @endif
-                                </span>
-                                <span class="et-article__more-copy">
-                                    @if($item->category)
-                                        <span class="et-article__more-kicker">{{ $item->category->name }}</span>
-                                    @endif
-                                    <span class="et-article__more-title">{{ $item->title }}</span>
-                                    @if($item->published_at)
-                                        <span class="et-article__more-meta">{{ $item->published_at->format('d M Y') }}</span>
-                                    @endif
-                                </span>
-                            </a>
-                        @endforeach
-                    </div>
-                </section>
-            @endif
-
             <section class="et-article__newsletter">
                 <div class="et-newsletter-band et-newsletter-band--panel">
                     <div class="et-newsletter-band__copy">
@@ -196,4 +162,6 @@
             </section>
         </div>
     </article>
+
+    @include('frontend.partials.detail-sidebar')
 @endsection

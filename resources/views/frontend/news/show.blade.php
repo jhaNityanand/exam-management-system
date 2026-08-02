@@ -138,43 +138,6 @@
                 </section>
             @endif
 
-            @php $moreItems = $trendingNews ?? collect(); @endphp
-            @if($moreItems->isNotEmpty())
-                <section class="et-article__more">
-                    @include('frontend.components.section-heading', [
-                        'title' => 'Trending now',
-                        'subtitle' => 'What aspirants are reading today',
-                    ])
-                    <div class="et-article__more-list">
-                        @foreach($moreItems as $item)
-                            @php
-                                $itemUrl = route('frontend.news.show', $item->slug);
-                                $itemBanner = $item->featuredImageUrl()
-                                    ?? (method_exists($item, 'bannerUrl') ? $item->bannerUrl() : null)
-                                    ?? ($item->bannerImage->file_url ?? null);
-                            @endphp
-                            <a class="et-article__more-item" href="{{ $itemUrl }}">
-                                <span class="et-article__more-thumb">
-                                    @if($itemBanner)
-                                        <img src="{{ $itemBanner }}" alt="" loading="lazy">
-                                    @endif
-                                </span>
-                                <span class="et-article__more-copy">
-                                    <span class="et-article__more-kicker">
-                                        @if($item->is_breaking) Breaking · @endif
-                                        @if($item->category){{ $item->category->name }}@else News @endif
-                                    </span>
-                                    <span class="et-article__more-title">{{ $item->title }}</span>
-                                    @if($item->published_at)
-                                        <span class="et-article__more-meta">{{ $item->published_at->diffForHumans() }}</span>
-                                    @endif
-                                </span>
-                            </a>
-                        @endforeach
-                    </div>
-                </section>
-            @endif
-
             <section class="et-article__newsletter">
                 <div class="et-newsletter-band et-newsletter-band--panel">
                     <div class="et-newsletter-band__copy">
@@ -208,4 +171,6 @@
             </section>
         </div>
     </article>
+
+    @include('frontend.partials.detail-sidebar')
 @endsection

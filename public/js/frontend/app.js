@@ -1171,6 +1171,69 @@
     });
   }
 
+  /* Fixed detail rail: lift above footer; scroll inside when space is tight */
+  function initDetailRail() {
+    const rail = qs('.et-detail-rail');
+    const footer = qs('.et-footer');
+    if (!rail || !footer) return;
+
+    const mq = window.matchMedia('(min-width: 1400px)');
+    let frame = 0;
+
+    function readInset() {
+      const rem = parseFloat(getComputedStyle(doc.documentElement).fontSize) || 16;
+      return 1.25 * rem;
+    }
+
+    function clearRailVars() {
+      rail.style.removeProperty('--et-detail-rail-lift');
+      rail.style.removeProperty('--et-detail-rail-max-h');
+      rail.classList.remove('is-constrained');
+    }
+
+    function update() {
+      if (!mq.matches) {
+        clearRailVars();
+        return;
+      }
+
+      const inset = readInset();
+      const vh = window.innerHeight;
+      const footerTop = footer.getBoundingClientRect().top;
+      const header = qs('.et-header, header.et-site-header');
+      const headerBottom = header ? header.getBoundingClientRect().bottom : 72;
+
+      // Keep the card's bottom edge above the footer (default inset when footer is off-screen).
+      const lift = Math.max(inset, vh - footerTop + inset);
+      rail.style.setProperty('--et-detail-rail-lift', lift + 'px');
+
+      // Cap height to the space between header and the lifted bottom so it never covers the footer.
+      const maxH = Math.max(8 * 16, vh - lift - headerBottom - inset);
+      rail.style.setProperty('--et-detail-rail-max-h', maxH + 'px');
+
+      // Internal scroll only when content would otherwise overflow that space.
+      const needsScroll = rail.scrollHeight > maxH + 1;
+      rail.classList.toggle('is-constrained', needsScroll);
+    }
+
+    function onScroll() {
+      if (frame) return;
+      frame = window.requestAnimationFrame(function () {
+        frame = 0;
+        update();
+      });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', debounce(update, 100));
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+    } else if (typeof mq.addListener === 'function') {
+      mq.addListener(update);
+    }
+    update();
+  }
+
   doc.addEventListener('DOMContentLoaded', function () {
     initTheme();
     initMobileNav();
@@ -1185,6 +1248,7 @@
     initShareCopy();
     initProseCode();
     initArticleToc();
+    initDetailRail();
     initSearch();
     initNewsletter();
     initCatSlider();
