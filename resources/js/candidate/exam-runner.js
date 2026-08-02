@@ -1024,8 +1024,10 @@ export function initExamRunner(root) {
     on(root.querySelector('#cx-mark-review-next'), 'click', () => {
         handleMarkReviewNext().catch((e) => notify(e.message || 'Unable to continue', 'error'));
     });
-    on(root.querySelector('#cx-final-submit'), 'click', () => {
-        openFinalReview().catch((e) => notify(e.message || 'Unable to prepare final submission', 'error'));
+    root.querySelectorAll('[data-cx-final-submit]').forEach((btn) => {
+        on(btn, 'click', () => {
+            openFinalReview().catch((e) => notify(e.message || 'Unable to prepare final submission', 'error'));
+        });
     });
     on(drawerToggle, 'click', () => setDrawer(!state.drawerOpen));
     on(drawerClose, 'click', () => setDrawer(false));

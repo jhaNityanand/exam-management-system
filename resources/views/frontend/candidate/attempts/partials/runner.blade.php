@@ -110,10 +110,22 @@
                 </ul>
             </section>
 
-            <button type="button" class="cx-btn cx-btn--danger cx-final-submit" id="cx-final-submit">
+            <div class="cx-rail__ad" aria-label="Advertisement">
+                <x-ad-slot page="exam_attempt" position="before_final_submit" />
+            </div>
+
+            <button type="button" class="cx-btn cx-btn--danger cx-final-submit" id="cx-final-submit" data-cx-final-submit>
                 Final submit
             </button>
         </aside>
+
+        <button type="button"
+                class="cx-btn cx-btn--danger cx-final-submit-dock"
+                id="cx-final-submit-dock"
+                data-cx-final-submit
+                aria-label="Final submit">
+            Final submit
+        </button>
     </div>
 
     <div id="cx-toast" class="cx-toast" hidden role="status" aria-live="polite"></div>

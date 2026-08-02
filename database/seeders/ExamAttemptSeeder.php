@@ -19,7 +19,9 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Seeds realistic graded exam attempts (and paid entitlements) for all three demo users.
+ * Seeds realistic graded exam attempts for all three demo users.
+ * Paid entitlements are created only for attempt plans that need them,
+ * so unpaid users can still exercise the Purchase → Verification flow.
  */
 class ExamAttemptSeeder extends Seeder
 {
@@ -178,32 +180,16 @@ class ExamAttemptSeeder extends Seeder
     }
 
     /**
+     * Clear demo payment rows so the Pay → Verification flow stays testable.
+     * Entitlements needed for seeded graded attempts are granted per-plan below
+     * (requires_entitlement), not for every demo user on every paid exam.
+     *
      * @param  \Illuminate\Support\Collection<string, User>  $users
      */
     private function seedEntitlements(int $orgId, $users): void
     {
         ExamPayment::query()->where('organization_id', $orgId)->whereIn('user_id', $users->pluck('id'))->delete();
         ExamEntitlement::query()->where('organization_id', $orgId)->whereIn('user_id', $users->pluck('id'))->delete();
-
-        $paidTitles = [
-            'Paid Aptitude Practice Pack',
-            'Paid Full Stack Skill Certification',
-        ];
-
-        foreach ($paidTitles as $title) {
-            $exam = Exam::query()
-                ->where('organization_id', $orgId)
-                ->where('title', $title)
-                ->first();
-
-            if (! $exam) {
-                continue;
-            }
-
-            foreach ($users as $user) {
-                app(ExamPaymentPlaceholderService::class)->completePlaceholderPurchase($exam, $user);
-            }
-        }
     }
 
     /**

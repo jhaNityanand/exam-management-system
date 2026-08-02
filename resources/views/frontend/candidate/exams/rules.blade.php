@@ -8,8 +8,14 @@
     $agreeUrl = $agreeUrl ?? route('frontend.exams.rules.agree', $exam);
     $canContinueAttempt = ! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']);
     $needsPayment = ! empty($evaluation['requires_payment']);
+    $isPaidExam = $exam->isPaid();
+    $hasPaid = ! empty($evaluation['has_entitlement']) && $isPaidExam;
     $canAttempt = (! empty($evaluation['can_attempt']) || empty($evaluation['reasons'])) && ! $needsPayment && ! $canContinueAttempt;
+    $showAgree = $needsPayment || $canAttempt;
     $formats = collect($exam->exam_format ?? [])->map(fn ($f) => str_replace('_', ' ', ucfirst((string) $f)))->implode(', ');
+    $amountLabel = $isPaidExam
+        ? trim(($exam->exam_currency ?: 'INR').' '.number_format((float) ($exam->exam_amount ?? 0), 2))
+        : null;
 @endphp
 
 @section('content')
@@ -37,6 +43,19 @@
     </div>
 
     <x-ad-slot page="exam_rules" position="after_stats" />
+
+    @if($isPaidExam && ! $canContinueAttempt)
+        <ol class="et-rules-steps" aria-label="Before you start">
+            <li class="et-rules-steps__item {{ $needsPayment ? 'is-current' : 'is-done' }}">
+                <span class="et-rules-steps__num">1</span>
+                <span class="et-rules-steps__label">Payment</span>
+            </li>
+            <li class="et-rules-steps__item {{ ! $needsPayment ? 'is-current' : '' }}">
+                <span class="et-rules-steps__num">2</span>
+                <span class="et-rules-steps__label">Verification</span>
+            </li>
+        </ol>
+    @endif
 
     <div class="et-callout et-callout--warning et-warning-limit" role="note">
         <strong>Warnings allowed: {{ $warningLimit }}</strong>
@@ -68,6 +87,15 @@
                 @if($policy?->require_fullscreen) Fullscreen required.@endif
             </li>
             <li><strong>Warnings allowed:</strong> {{ $warningLimit }}</li>
+            @if($isPaidExam)
+                <li><strong>Pricing:</strong> {{ $amountLabel ?: 'Paid' }}
+                    @if($hasPaid)
+                        <span class="et-badge et-badge--success">Paid</span>
+                    @elseif($needsPayment)
+                        <span class="et-badge et-badge--slate">Payment required</span>
+                    @endif
+                </li>
+            @endif
         </ul>
     </div>
 
@@ -93,7 +121,7 @@
     <div class="et-card et-rules-actions" id="cx-rules-actions"
          data-agree-url="{{ $agreeUrl }}"
          data-rules-agreed="{{ $rulesAgreed ? '1' : '0' }}">
-        @if($canAttempt)
+        @if($showAgree)
             <label class="et-agree">
                 <input type="checkbox" id="cx-rules-agree" @checked($rulesAgreed)>
                 <span>I have read and agree to the exam rules, instructions, and monitoring policies above.</span>
@@ -106,15 +134,20 @@
                         class="et-btn et-btn--primary"
                         id="rules-purchase-btn"
                         data-exam-purchase
+                        data-cx-rules-gate
                         data-url="{{ route('frontend.exams.purchase', $exam) }}"
-                        data-reload="1">Purchase Exam</button>
-                <span class="et-text-muted">Payment is required before continuing.</span>
+                        data-reload="1"
+                        @unless($rulesAgreed) disabled aria-disabled="true" @endunless>
+                    Purchase Exam{{ $amountLabel ? ' — '.$amountLabel : '' }}
+                </button>
+                <span class="et-text-muted">Complete payment first. Verification unlocks after payment.</span>
             @elseif($canContinueAttempt)
                 <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
             @elseif($canAttempt)
                 <a href="{{ route('frontend.exams.prepare', $exam) }}"
                    class="et-btn et-btn--primary"
                    id="cx-rules-continue"
+                   data-cx-rules-gate
                    @unless($rulesAgreed) aria-disabled="true" tabindex="-1" @endunless>
                     Continue to verification
                 </a>
@@ -129,6 +162,57 @@
 </div>
 </x-ad-layout>
 @endsection
+
+@push('styles')
+<style>
+.et-rules-steps {
+    display: flex;
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+.et-rules-steps__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--et-border, #334155);
+    color: var(--et-muted, #94a3b8);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.et-rules-steps__num {
+    display: inline-grid;
+    place-items: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--et-border, #334155) 70%, transparent);
+    font-size: 0.75rem;
+}
+.et-rules-steps__item.is-current {
+    border-color: var(--et-accent, #0f766e);
+    color: var(--et-text, #e2e8f0);
+    background: color-mix(in srgb, var(--et-accent, #0f766e) 14%, transparent);
+}
+.et-rules-steps__item.is-current .et-rules-steps__num,
+.et-rules-steps__item.is-done .et-rules-steps__num {
+    background: var(--et-accent, #0f766e);
+    color: #fff;
+}
+.et-rules-steps__item.is-done {
+    border-color: color-mix(in srgb, var(--et-accent, #0f766e) 45%, var(--et-border, #334155));
+    color: var(--et-text, #e2e8f0);
+}
+.et-badge--success {
+    background: color-mix(in srgb, #059669 18%, transparent);
+    color: #34d399;
+}
+</style>
+@endpush
 
 @push('scripts')
 <script src="{{ versioned_asset('js/frontend/exam-purchase.js') }}" defer></script>

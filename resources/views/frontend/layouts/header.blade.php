@@ -121,19 +121,6 @@
 
             @auth
                 @php($headerAvatar = user_avatar(auth()->user()))
-                <details class="et-notif">
-                    <summary class="et-icon-btn et-notif__trigger" aria-label="Notifications (0)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                            <path d="M13.73 21a2 2 0 01-3.46 0"/>
-                        </svg>
-                        <span class="et-notif__badge" aria-hidden="true">0</span>
-                    </summary>
-                    <div class="et-notif__menu" role="region" aria-label="Notifications">
-                        <p class="et-notif__title">Notifications</p>
-                        <p class="et-notif__empty">Notifications are coming soon.</p>
-                    </div>
-                </details>
                 <a
                     href="{{ route('frontend.account.dashboard') }}"
                     class="et-profile-link"

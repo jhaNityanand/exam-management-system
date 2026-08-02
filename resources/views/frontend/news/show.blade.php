@@ -144,6 +144,7 @@
                 </section>
             @endif
 
+            {{-- Temporarily hidden: newsletter band
             <section class="et-article__newsletter">
                 <div class="et-newsletter-band et-newsletter-band--panel">
                     <div class="et-newsletter-band__copy">
@@ -160,7 +161,9 @@
                     </div>
                 </div>
             </section>
+            --}}
 
+            {{-- Temporarily hidden: CTA band
             <section class="et-article__cta">
                 @include('frontend.components.cta-band', [
                     'title' => 'Stay ahead of the cycle',
@@ -175,6 +178,7 @@
                             : route('frontend.blogs.index')),
                 ])
             </section>
+            --}}
         </div>
     </article>
 

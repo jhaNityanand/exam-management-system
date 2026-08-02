@@ -262,6 +262,7 @@ final class AdvertisementCatalog
         return [
             ['id' => 'topbar', 'label' => 'Exam top bar', 'skeleton' => 'exam_topbar', 'after' => 'above_title'],
             ['id' => 'question', 'label' => 'Question area', 'skeleton' => 'exam_question', 'after' => 'below_content'],
+            ['id' => 'rail', 'label' => 'Exam panel (before Final submit)', 'skeleton' => 'exam_rail', 'after' => 'before_final_submit'],
         ];
     }
 
@@ -511,6 +512,7 @@ final class AdvertisementCatalog
             'between_sections' => ['Between sections', 'Between major content sections. Multiple ads allowed.'],
             'below_items' => ['Below every list item', 'After each card/row on listing pages. Multiple ads allowed.'],
             'below_content' => ['Below content', 'Under the primary interactive content area.'],
+            'before_final_submit' => ['Before final submit', 'Exam panel slot between the question palette and Final submit.'],
             'left_sidebar' => ['Left sidebar', 'Left ads panel. Multiple ads allowed and stacked.'],
             'right_sidebar' => ['Right sidebar', 'Right ads panel. Multiple ads allowed and stacked.'],
             'above_footer' => ['Above footer', 'Full-width strip just above the site footer.'],

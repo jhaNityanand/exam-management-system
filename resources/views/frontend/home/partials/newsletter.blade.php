@@ -1,3 +1,4 @@
+{{-- Temporarily hidden: "Stay ahead every week" newsletter band
 @php
     $newsletter = $page['newsletter'] ?? [];
     $title = $newsletter['title'] ?? 'Stay Exam-Ready Every Week';
@@ -22,3 +23,4 @@
         </div>
     </div>
 </section>
+--}}

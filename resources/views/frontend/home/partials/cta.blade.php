@@ -1,3 +1,4 @@
+{{-- Temporarily hidden: "Ready to learn and practice?" CTA band
 @php
     $cta = $page['cta'] ?? [];
 @endphp
@@ -13,3 +14,4 @@
         ])
     </div>
 </section>
+--}}

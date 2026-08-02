@@ -29,10 +29,10 @@ class HomePageService
     {
         $orgId = $this->cms->organizationId();
         $sections = $this->cms->homeSections($orgId);
-        $featuredExams = $this->featuredExams($orgId, 12);
-        $randomQuestions = $this->randomQuestions($orgId, 12);
-        $randomBlogs = $this->randomBlogsWithBanner($orgId, 9);
-        $randomNews = $this->randomNewsWithBanner($orgId, 9);
+        $featuredExams = $this->featuredExams($orgId, 4);
+        $randomQuestions = $this->randomQuestions($orgId, 4);
+        $randomBlogs = $this->randomBlogsWithBanner($orgId, 3);
+        $randomNews = $this->randomNewsWithBanner($orgId, 3);
 
         $banners = $this->banners($orgId);
 
@@ -55,7 +55,7 @@ class HomePageService
             'trendingNews' => $this->news($orgId, trending: true),
             'latestNews' => $randomNews,
             'testimonials' => $this->testimonials($orgId, 12),
-            'faqs' => $this->faqs($orgId),
+            'faqs' => $this->faqs($orgId, 4),
             'newsletter' => [
                 'title' => $this->cms->setting('newsletter.title', 'Stay Exam-Ready Every Week'),
                 'subtitle' => $this->cms->setting(
@@ -236,7 +236,7 @@ class HomePageService
     /**
      * @return Collection<int, Exam>
      */
-    public function featuredExams(?int $orgId = null, int $limit = 12): Collection
+    public function featuredExams(?int $orgId = null, int $limit = 4): Collection
     {
         return Exam::query()
             ->publicCatalog()
@@ -266,7 +266,7 @@ class HomePageService
     /**
      * @return Collection<int, Question>
      */
-    public function randomQuestions(?int $orgId = null, int $limit = 12): Collection
+    public function randomQuestions(?int $orgId = null, int $limit = 4): Collection
     {
         return Question::query()
             ->publiclyVisible()
@@ -371,7 +371,7 @@ class HomePageService
     /**
      * @return Collection<int, Blog>
      */
-    public function randomBlogsWithBanner(?int $orgId = null, int $limit = 9): Collection
+    public function randomBlogsWithBanner(?int $orgId = null, int $limit = 3): Collection
     {
         return Blog::query()
             ->published()
@@ -410,7 +410,7 @@ class HomePageService
     /**
      * @return Collection<int, News>
      */
-    public function randomNewsWithBanner(?int $orgId = null, int $limit = 9): Collection
+    public function randomNewsWithBanner(?int $orgId = null, int $limit = 3): Collection
     {
         return News::query()
             ->published()
@@ -443,19 +443,33 @@ class HomePageService
     }
 
     /**
+     * Top / important FAQs for the home page (featured first, then sort order).
+     *
      * @return Collection<int, Faq>
      */
-    public function faqs(?int $orgId = null, int $limit = 8): Collection
+    public function faqs(?int $orgId = null, int $limit = 4): Collection
     {
-        return Faq::query()
+        $base = fn () => Faq::query()
             ->active()
             ->ordered()
             ->with('category')
             ->when($orgId, fn ($q) => $q->where(function ($inner) use ($orgId) {
                 $inner->where('organization_id', $orgId)->orWhereNull('organization_id');
-            }))
-            ->limit($limit)
+            }));
+
+        $featured = $base()->featured()->limit($limit)->get();
+
+        if ($featured->count() >= $limit) {
+            return $featured;
+        }
+
+        $remaining = $limit - $featured->count();
+        $fill = $base()
+            ->where('is_featured', false)
+            ->limit($remaining)
             ->get();
+
+        return $featured->concat($fill)->values();
     }
 
 }

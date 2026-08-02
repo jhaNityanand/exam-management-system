@@ -1,5 +1,5 @@
 /**
- * Exam rules page: live clock + agree checkbox gating.
+ * Exam rules page: live clock + agree checkbox gating for payment / continue.
  */
 (function () {
   'use strict';
@@ -15,38 +15,48 @@
   function initAgreeGate() {
     var wrap = document.getElementById('cx-rules-actions');
     var checkbox = document.getElementById('cx-rules-agree');
-    var continueBtn = document.getElementById('cx-rules-continue');
-    if (!wrap || !checkbox || !continueBtn) return;
+    if (!wrap || !checkbox) return;
+
+    var gated = Array.prototype.slice.call(wrap.querySelectorAll('[data-cx-rules-gate]'));
+    if (!gated.length) return;
 
     var agreeUrl = wrap.getAttribute('data-agree-url') || '';
     var csrf =
       (window.EmsFrontend && window.EmsFrontend.csrfToken && window.EmsFrontend.csrfToken()) ||
       ((document.querySelector('meta[name="csrf-token"]') || {}).content || '');
 
-    function setContinueEnabled(enabled) {
-      if (enabled) {
-        continueBtn.removeAttribute('aria-disabled');
-        continueBtn.removeAttribute('tabindex');
-        continueBtn.classList.remove('is-disabled');
-      } else {
-        continueBtn.setAttribute('aria-disabled', 'true');
-        continueBtn.setAttribute('tabindex', '-1');
-        continueBtn.classList.add('is-disabled');
-      }
+    function setEnabled(enabled) {
+      gated.forEach(function (el) {
+        if (el.tagName === 'BUTTON') {
+          el.disabled = !enabled;
+        }
+        if (enabled) {
+          el.removeAttribute('aria-disabled');
+          el.removeAttribute('tabindex');
+          el.classList.remove('is-disabled');
+        } else {
+          el.setAttribute('aria-disabled', 'true');
+          if (el.tagName === 'A') el.setAttribute('tabindex', '-1');
+          el.classList.add('is-disabled');
+        }
+      });
     }
 
-    setContinueEnabled(checkbox.checked);
+    setEnabled(checkbox.checked);
 
-    continueBtn.addEventListener('click', function (e) {
-      if (!checkbox.checked) {
-        e.preventDefault();
-        checkbox.focus();
-      }
+    gated.forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        if (!checkbox.checked) {
+          e.preventDefault();
+          e.stopPropagation();
+          checkbox.focus();
+        }
+      });
     });
 
     checkbox.addEventListener('change', function () {
       var agreed = checkbox.checked;
-      setContinueEnabled(agreed);
+      setEnabled(agreed);
       if (!agreeUrl) return;
 
       var post =

@@ -754,10 +754,30 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
     color: var(--et-danger, #dc2626);
 }
 .cx-final-submit { width: 100%; margin-top: auto; flex: 0 0 auto; }
+.cx-final-submit-dock { display: none; }
+.cx-rail__ad {
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
+}
+.cx-rail__ad:empty,
+.cx-rail__ad:not(:has(*)) {
+    display: none;
+}
+.cx-rail__ad .et-ad,
+.cx-rail__ad .et-ad-unit {
+    margin: 0;
+    max-width: 100%;
+}
+.cx-rail__ad .et-ad-unit ins.adsbygoogle,
+.cx-rail__ad .et-ad-unit iframe,
+.cx-rail__ad .et-ad-unit img {
+    max-width: 100% !important;
+}
 .cx-rail {
     display: flex;
     flex-direction: column;
-    gap: .85rem;
+    gap: .65rem;
     padding: 1rem 1.05rem 1.25rem;
     border-left: 1px solid var(--et-border, #e2e8f0);
     background: color-mix(in srgb, var(--et-surface, #fff) 94%, transparent);
@@ -1002,22 +1022,20 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
     background: color-mix(in srgb, var(--et-accent, #0f766e) 25%, transparent);
 }
 
-/* Webcam sits in the vertical middle of leftover rail space */
+/* Webcam stacks tightly under the timer — no vertical centering gap */
 .cx-webcam {
     flex: 0 0 auto;
     min-width: 0;
 }
 .cx-rail--with-webcam .cx-webcam {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     min-height: 0;
-    padding-block: .15rem;
 }
 .cx-rail--with-webcam .cx-rail__palette {
-    flex: 0 1 auto;
-    max-height: min(42vh, 16.5rem);
+    flex: 1 1 auto;
+    max-height: none;
 }
 .cx-webcam__frame {
     position: relative;
@@ -1316,9 +1334,9 @@ html.dark .cx-btn--review { color: #fbbf24; }
     .cx-drawer-backdrop[hidden] { display: none !important; }
 
     .cx-rail__palette {
-        flex: 0 1 auto;
+        flex: 1 1 auto;
         min-height: 0;
-        max-height: min(46vh, 17rem);
+        max-height: none;
     }
     .cx-palette {
         --cx-q-size: 2.3rem;
@@ -1334,19 +1352,18 @@ html.dark .cx-btn--review { color: #fbbf24; }
         font-size: .7rem;
     }
 
-    /* Webcam stays vertically centered in the free space above the question list */
+    /* Keep webcam compact — no stretch/center gap above Questions */
     .cx-rail--with-webcam .cx-webcam {
-        flex: 1 1 auto;
-        justify-content: center;
-        min-height: 6rem;
+        flex: 0 0 auto;
+        min-height: 0;
     }
     .cx-rail--with-webcam .cx-webcam__frame {
         aspect-ratio: 16 / 10;
         max-height: min(9rem, 20vh);
     }
     .cx-rail--with-webcam .cx-rail__palette {
-        flex: 0 1 auto;
-        max-height: min(42vh, 15.5rem);
+        flex: 1 1 auto;
+        max-height: none;
     }
     .cx-rail--with-webcam .cx-palette {
         min-height: 4.5rem;
@@ -1358,6 +1375,28 @@ html.dark .cx-btn--review { color: #fbbf24; }
         padding-top: .4rem;
     }
     .cx-final-submit { min-height: 2.45rem; }
+
+    /* Dock Final submit at bottom-center when the drawer is closed */
+    .cx-exam:not(.is-drawer-open) .cx-final-submit-dock {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        left: 50%;
+        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%);
+        z-index: 55;
+        width: auto;
+        min-width: 11rem;
+        min-height: 2.55rem;
+        padding-inline: 1.35rem;
+        margin: 0;
+        border-radius: 999px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.28);
+    }
+    .cx-exam.is-drawer-open .cx-final-submit-dock {
+        display: none;
+    }
 
     .cx-footer-actions {
         position: sticky;
@@ -1384,7 +1423,10 @@ html.dark .cx-btn--review { color: #fbbf24; }
         max-height: 10rem;
     }
     .cx-rail--with-webcam .cx-rail__palette {
-        max-height: min(38vh, 15rem);
+        max-height: none;
+    }
+    .cx-final-submit-dock {
+        display: none !important;
     }
 }
 
@@ -1414,7 +1456,7 @@ html.dark .cx-btn--review { color: #fbbf24; }
         max-height: min(7.25rem, 17vh);
     }
     .cx-rail--with-webcam .cx-rail__palette {
-        max-height: min(40vh, 14.5rem);
+        max-height: none;
     }
     .cx-legend {
         gap: .28rem .5rem;
@@ -1426,14 +1468,20 @@ html.dark .cx-btn--review { color: #fbbf24; }
 /* Short viewports (landscape phones / short tablets) */
 @media (max-width: 960px) and (max-height: 520px) {
     .cx-rail--with-webcam .cx-webcam {
-        min-height: 4rem;
+        flex: 0 0 auto;
+        min-height: 0;
     }
     .cx-rail--with-webcam .cx-webcam__frame {
         max-height: min(5rem, 26vh);
         aspect-ratio: 2 / 1;
     }
     .cx-rail--with-webcam .cx-rail__palette {
-        max-height: min(48vh, 11.5rem);
+        max-height: none;
+    }
+    .cx-exam:not(.is-drawer-open) .cx-final-submit-dock {
+        bottom: calc(4.1rem + env(safe-area-inset-bottom, 0px));
+        min-height: 2.35rem;
+        min-width: 9.5rem;
     }
     .cx-palette,
     .cx-palette__grid {

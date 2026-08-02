@@ -303,10 +303,23 @@ test('paid exam requires entitlement before prepare', function () {
         ->assertRedirect(route('frontend.exams.rules', $this->exam));
 
     $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.rules', $this->exam))
+        ->assertOk()
+        ->assertSee('rules-purchase-btn', false)
+        ->assertSee('Purchase Exam', false)
+        ->assertDontSee('Continue to verification', false);
+
+    $this->actingAs($this->candidate)
         ->post(route('frontend.exams.purchase', $this->exam))
         ->assertRedirect(route('frontend.exams.rules', $this->exam));
 
     expect(ExamEntitlement::query()->where('exam_id', $this->exam->id)->where('user_id', $this->candidate->id)->exists())->toBeTrue();
+
+    $this->actingAs($this->candidate)
+        ->get(route('frontend.exams.rules', $this->exam))
+        ->assertOk()
+        ->assertSee('Continue to verification', false)
+        ->assertDontSee('rules-purchase-btn', false);
 
     $this->actingAs($this->candidate)
         ->get(route('frontend.exams.prepare', $this->exam))

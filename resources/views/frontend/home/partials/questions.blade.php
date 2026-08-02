@@ -13,7 +13,7 @@
                 'message' => 'Questions will show up here once published.',
             ])
         @else
-            <div class="et-grid et-grid--3">
+            <div class="et-grid et-grid--4">
                 @foreach($questions as $question)
                     @include('frontend.components.question-card', ['question' => $question])
                 @endforeach

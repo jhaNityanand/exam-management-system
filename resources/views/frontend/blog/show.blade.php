@@ -133,6 +133,7 @@
 
             <x-ad-slot page="blog_detail" position="after_related" />
 
+            {{-- Temporarily hidden: newsletter band
             <section class="et-article__newsletter">
                 <div class="et-newsletter-band et-newsletter-band--panel">
                     <div class="et-newsletter-band__copy">
@@ -149,9 +150,11 @@
                     </div>
                 </div>
             </section>
+            --}}
 
             <x-ad-slot page="blog_detail" position="after_newsletter" />
 
+            {{-- Temporarily hidden: CTA band
             <section class="et-article__cta">
                 @include('frontend.components.cta-band', [
                     'title' => 'Keep exploring',
@@ -164,6 +167,7 @@
                         : (Route::has('frontend.exams.index') ? route('frontend.exams.index') : route('home')),
                 ])
             </section>
+            --}}
 
             <x-ad-slot page="blog_detail" position="after_cta" />
         </div>
