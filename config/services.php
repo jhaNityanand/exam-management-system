@@ -47,12 +47,12 @@ return [
     | GA / Pinterest values are only used when seeding advertisements.header_code.
     */
     'adsense' => [
-        'client_id' => env('ADSENSE_CLIENT_ID', 'ca-pub-XXXXXXXXXXXXXXXX'),
+        'client_id' => env('ADSENSE_CLIENT_ID', 'ca-pub-3495821309562824'),
     ],
 
     'advertisements' => [
-        'ga_measurement_id' => env('ADS_GA_MEASUREMENT_ID', env('GOOGLE_ANALYTICS_ID', 'G-XXXXXXXX')),
-        'pinterest_domain_verify' => env('PINTEREST_DOMAIN_VERIFY', 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'),
+        'ga_measurement_id' => env('ADS_GA_MEASUREMENT_ID', 'G-35TPDL6YPR'),
+        'pinterest_domain_verify' => env('PINTEREST_DOMAIN_VERIFY', 'a970034f682bb9bbc89a7eb02ee49cfe'),
     ],
 
 ];

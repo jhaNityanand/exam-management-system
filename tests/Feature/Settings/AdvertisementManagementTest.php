@@ -171,10 +171,15 @@ class AdvertisementManagementTest extends TestCase
         $this->assertGreaterThan(0, AdPlacement::query()->forOrg($this->organization->id)->count());
 
         $code = app(AdvertisementService::class)->customCode($this->organization->id);
-        $this->assertStringContainsString('googletagmanager.com/gtag/js', $code['header_code']);
-        $this->assertStringContainsString('adsbygoogle.js', $code['header_code']);
-        $this->assertStringContainsString('p:domain_verify', $code['header_code']);
+        $this->assertStringContainsString('G-35TPDL6YPR', $code['header_code']);
+        $this->assertStringContainsString('ca-pub-3495821309562824', $code['header_code']);
+        $this->assertStringContainsString('a970034f682bb9bbc89a7eb02ee49cfe', $code['header_code']);
         $this->assertSame('', $code['footer_code']);
+
+        $vertical = GoogleAdvertisement::query()->forOrg($this->organization->id)->where('ad_slot', '9013663436')->first();
+        $this->assertNotNull($vertical);
+        $this->assertStringContainsString('data-ad-slot="9013663436"', $vertical->code);
+        $this->assertStringContainsString('ca-pub-3495821309562824', $vertical->code);
     }
 
     public function test_frontend_ad_slot_renders_enabled_google_placement(): void
@@ -185,5 +190,6 @@ class AdvertisementManagementTest extends TestCase
         $this->assertStringContainsString('et-ad', $html);
         $this->assertStringContainsString('adsbygoogle', $html);
         $this->assertStringContainsString('9013663436', $html);
+        $this->assertStringContainsString('ca-pub-3495821309562824', $html);
     }
 }

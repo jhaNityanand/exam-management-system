@@ -304,33 +304,77 @@ class AdvertisementService
     }
 
     /**
-     * Upsert the canonical Google AdSense units from the publisher dashboard.
+     * Upsert the canonical Google AdSense units (exact publisher snippets).
      */
     public function seedGoogleAdUnits(int $orgId): void
     {
-        $client = (string) config('services.adsense.client_id', 'ca-pub-XXXXXXXXXXXXXXXX');
+        $client = 'ca-pub-3495821309562824';
 
         $units = [
             [
                 'name' => 'Display Ad (Horizontal)',
                 'ad_slot' => '8279166266',
                 'ad_format' => 'horizontal',
-                'notes' => 'Display ad Horizontal — leaderboard / above-footer and wide content bands.',
-                'code' => $this->buildDisplayAdCode($client, '8279166266'),
+                'notes' => 'Display ad Horizontal — above-footer and wide content bands.',
+                'code' => <<<'HTML'
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3495821309562824"
+crossorigin="anonymous"></script>
+
+<!-- Display ad Horizontal -->
+<ins class="adsbygoogle"
+style="display:block"
+data-ad-client="ca-pub-3495821309562824"
+data-ad-slot="8279166266"
+data-ad-format="auto"
+data-full-width-responsive="true"></ins>
+
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+HTML,
             ],
             [
                 'name' => 'Display Ad (Vertical)',
                 'ad_slot' => '9013663436',
                 'ad_format' => 'vertical',
-                'notes' => 'Display ad Vertical — left/right sidebar skyscraper placements.',
-                'code' => $this->buildDisplayAdCode($client, '9013663436'),
+                'notes' => 'Display ad Vertical — left/right sidebar placements.',
+                'code' => <<<'HTML'
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3495821309562824"
+crossorigin="anonymous"></script>
+
+<!-- Display ad Vertical -->
+<ins class="adsbygoogle"
+style="display:block"
+data-ad-client="ca-pub-3495821309562824"
+data-ad-slot="9013663436"
+data-ad-format="auto"
+data-full-width-responsive="true"></ins>
+
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+HTML,
             ],
             [
                 'name' => 'In-Article Ad',
                 'ad_slot' => '5461431234',
                 'ad_format' => 'in-article',
                 'notes' => 'In-article Ad — between content sections and listing card groups.',
-                'code' => $this->buildInArticleAdCode($client, '5461431234'),
+                'code' => <<<'HTML'
+<script async src="https://pagead2.googlesyndication.com/pagead/js?client=ca-pub-3495821309562824"
+crossorigin="anonymous"></script>
+
+<ins class="adsbygoogle"
+style="display:block; text-align:center;"
+data-ad-layout="in-article"
+data-ad-format="fluid"
+data-ad-client="ca-pub-3495821309562824"
+data-ad-slot="5461431234"></ins>
+
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+HTML,
             ],
         ];
 
@@ -342,7 +386,7 @@ class AdvertisementService
                 ],
                 [
                     'name' => $unit['name'],
-                    'code' => $unit['code'],
+                    'code' => trim($unit['code'])."\n",
                     'ad_client' => $client,
                     'ad_format' => $unit['ad_format'],
                     'notes' => $unit['notes'],
@@ -354,29 +398,25 @@ class AdvertisementService
     }
 
     /**
-     * Seed header/footer custom code (AdSense loader, GA, Pinterest). Footer stays empty.
+     * Seed exact global header/footer custom code. Footer stays empty.
      */
     public function seedGlobalCustomCode(int $orgId): void
     {
-        $client = e((string) config('services.adsense.client_id', 'ca-pub-XXXXXXXXXXXXXXXX'));
-        $gaId = e((string) config('services.advertisements.ga_measurement_id', 'G-XXXXXXXX'));
-        $pinterest = e((string) config('services.advertisements.pinterest_domain_verify', 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'));
-
-        $header = <<<HTML
-<!-- Google Analytics (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={$gaId}"></script>
+        $header = <<<'HTML'
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-35TPDL6YPR"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '{$gaId}');
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'G-35TPDL6YPR');
 </script>
 
-<!-- Google AdSense Loader -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={$client}" crossorigin="anonymous"></script>
+<meta name="p:domain_verify" content="a970034f682bb9bbc89a7eb02ee49cfe"/>
 
-<!-- Pinterest Domain Verification -->
-<meta name="p:domain_verify" content="{$pinterest}" />
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3495821309562824"
+crossorigin="anonymous"></script>
 HTML;
 
         $this->updateCustomCode([
@@ -518,42 +558,6 @@ HTML;
             'sort_order' => $sortOrder,
             'is_enabled' => true,
         ];
-    }
-
-    protected function buildDisplayAdCode(string $client, string $slot): string
-    {
-        $client = e($client);
-        $slot = e($slot);
-
-        return <<<HTML
-<ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="{$client}"
-     data-ad-slot="{$slot}"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-HTML;
-    }
-
-    protected function buildInArticleAdCode(string $client, string $slot): string
-    {
-        $client = e($client);
-        $slot = e($slot);
-
-        return <<<HTML
-<ins class="adsbygoogle"
-     style="display:block; text-align:center;"
-     data-ad-layout="in-article"
-     data-ad-format="fluid"
-     data-ad-client="{$client}"
-     data-ad-slot="{$slot}"></ins>
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-HTML;
     }
 
     /**
