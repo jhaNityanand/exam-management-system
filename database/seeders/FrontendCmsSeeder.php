@@ -354,10 +354,18 @@ class FrontendCmsSeeder extends Seeder
         Testimonial::query()->where('organization_id', $orgId)->delete();
 
         $items = [
-            ['name' => 'Ananya Sharma', 'role' => 'UPSC Aspirant', 'company' => 'Delhi', 'quote' => 'The timed mocks on Examtube feel closer to the real exam than anything else I used. Analytics showed exactly where I was losing marks.', 'rating' => 5],
-            ['name' => 'Rahul Nair', 'role' => 'Engineering Student', 'company' => 'NIT Calicut', 'quote' => 'I prep with chapter quizzes after campus hours. The interface is clean, and blog tips for GATE were surprisingly practical.', 'rating' => 5],
+            ['name' => 'Ananya Sharma', 'role' => 'UPSC Aspirant', 'company' => 'Delhi', 'quote' => 'Timed mocks finally felt like the real exam. Tracking weak topics week by week made a huge difference.', 'rating' => 5],
+            ['name' => 'Rahul Nair', 'role' => 'Engineering Student', 'company' => 'NIT Calicut', 'quote' => 'I prep with chapter quizzes after campus hours. The interface is clean, and blog tips were surprisingly practical.', 'rating' => 5],
             ['name' => 'Fatima Khan', 'role' => 'Banking Exam Coach', 'company' => 'Hyderabad Coaching Hub', 'quote' => 'We moved our institute mocks here. Candidates get consistent papers, and we manage categories without spreadsheet chaos.', 'rating' => 5],
-            ['name' => 'Vikram Joshi', 'role' => 'Job Seeker', 'company' => 'Pune', 'quote' => 'Between SSC practice sets and daily news alerts, Examtube keeps my routine honest. I finally stopped hopping between five apps.', 'rating' => 4],
+            ['name' => 'Vikram Joshi', 'role' => 'Mentor', 'company' => 'Pune Academy', 'quote' => 'Our coaching batch uses Examtube for weekly assessments. Students love the clarity of results.', 'rating' => 5],
+            ['name' => 'Sneha Patel', 'role' => 'Banking Exam Candidate', 'company' => 'Ahmedabad', 'quote' => 'Questions with explanations saved me hours. I jump between categories without losing focus.', 'rating' => 4],
+            ['name' => 'Arjun Mehta', 'role' => 'MBA Aspirant', 'company' => 'Mumbai', 'quote' => 'News alerts and exam calendar posts keep me ahead of deadlines. Simple and reliable.', 'rating' => 5],
+            ['name' => 'Meera Iyer', 'role' => 'Campus Placement Prep', 'company' => 'Chennai', 'quote' => 'From free practice papers to paid proctored mocks — everything feels intentional and polished.', 'rating' => 5],
+            ['name' => 'Karan Desai', 'role' => 'SSC Aspirant', 'company' => 'Surat', 'quote' => 'Sectional tests helped me rebuild speed in Quant. I finally stopped guessing under pressure.', 'rating' => 5],
+            ['name' => 'Priya Menon', 'role' => 'NEET Mentor', 'company' => 'Kochi', 'quote' => 'My students revise with short quizzes between classes. The category filters keep sessions focused.', 'rating' => 4],
+            ['name' => 'Imran Sheikh', 'role' => 'State PCS Candidate', 'company' => 'Lucknow', 'quote' => 'Detailed solutions after every mock made my revision loop tighter. Less panic, more clarity.', 'rating' => 5],
+            ['name' => 'Neha Gupta', 'role' => 'Working Professional', 'company' => 'Bengaluru', 'quote' => 'I only get evenings to study. Timed practice packs fit my schedule without wasting a minute.', 'rating' => 5],
+            ['name' => 'Rohan Kapoor', 'role' => 'Gate Aspirant', 'company' => 'Chandigarh', 'quote' => 'Topic-wise analytics showed my weak areas early. That alone changed how I planned the final month.', 'rating' => 4],
         ];
 
         foreach ($items as $i => $item) {

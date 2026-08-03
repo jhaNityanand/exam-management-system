@@ -192,6 +192,9 @@
         list.appendChild(node);
       });
       animateNodes(nodes);
+      if (typeof window.etInitBannerSliders === 'function') {
+        window.etInitBannerSliders(list);
+      }
 
       var hasItems = list.children.length > 0;
       list.hidden = !hasItems;

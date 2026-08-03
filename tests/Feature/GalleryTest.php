@@ -211,15 +211,36 @@ test('user can permanently delete a binned gallery item', function () {
     Storage::disk('public')->assertMissing($binPath);
 });
 
+test('duplicate uploads reuse the same gallery row and file', function () {
+    $first = $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.store'), [
+            'files' => [UploadedFile::fake()->image('shared.png', 220, 140)],
+        ])
+        ->assertCreated();
+
+    $firstId = (int) $first->json('data.0.id');
+    $firstPath = (string) $first->json('data.0.file_path');
+
+    $second = $this->actingAs($this->user)
+        ->postJson(route('admin.gallery.store'), [
+            'files' => [UploadedFile::fake()->image('shared-copy.png', 220, 140)],
+        ])
+        ->assertCreated();
+
+    expect((int) $second->json('data.0.id'))->toBe($firstId);
+    expect((string) $second->json('data.0.file_path'))->toBe($firstPath);
+    expect(Gallery::query()->where('organization_id', $this->organization->id)->count())->toBe(1);
+});
+
 test('gallery data endpoint supports search and trash filter', function () {
     $this->actingAs($this->user)
         ->postJson(route('admin.gallery.store'), [
-            'files' => [UploadedFile::fake()->image('alpha.png')],
+            'files' => [UploadedFile::fake()->image('alpha.png', 160, 90)],
         ])->assertCreated();
 
     $this->actingAs($this->user)
         ->postJson(route('admin.gallery.store'), [
-            'files' => [UploadedFile::fake()->image('beta.png')],
+            'files' => [UploadedFile::fake()->image('beta.png', 180, 100)],
         ])->assertCreated();
 
     $beta = Gallery::where('original_name', 'beta.png')->first();

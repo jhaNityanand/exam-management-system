@@ -82,11 +82,23 @@ class GalleryService
     /**
      * Store an uploaded file as a single gallery row.
      * Always sets original_file_path; modified stays null until edited.
+     * Identical bytes within an organization reuse the existing row (no duplicate files).
      *
      * @param  array<string, mixed>  $meta
      */
     public function upload(UploadedFile $file, int $organizationId, array $meta = []): Gallery
     {
+        $hash = isset($meta['_precomputed_hash']) && is_string($meta['_precomputed_hash'])
+            ? $meta['_precomputed_hash']
+            : $this->hashUploadedFile($file);
+
+        if ($hash !== null && empty($meta['force_new'])) {
+            $existing = $this->findByContentHash($organizationId, $hash);
+            if ($existing) {
+                return $this->reuseExisting($existing, $meta);
+            }
+        }
+
         $kind = $this->detectKind($file, $meta['kind'] ?? null);
         $disk = (string) config('gallery.disk', 'public');
         $stored = $this->storeUploadedFile($file, $organizationId, $disk);
@@ -104,6 +116,7 @@ class GalleryService
             'mime_type' => $file->getMimeType(),
             'kind' => $kind,
             'file_size' => $file->getSize() ?: 0,
+            'content_hash' => $hash,
             'width' => $width,
             'height' => $height,
             'folder' => $meta['folder'] ?? trim((string) config('gallery.directory', 'gallery'), '/'),
@@ -119,16 +132,26 @@ class GalleryService
             'uploaded_by' => $meta['uploaded_by'] ?? Auth::id(),
             'created_by' => $meta['created_by'] ?? Auth::id(),
             'updated_by' => $meta['updated_by'] ?? Auth::id(),
+            'last_referenced_at' => now(),
         ]);
     }
 
     /**
      * Upload raw binary contents (e.g. profile avatar base64) into the gallery.
+     * Identical bytes within an organization reuse the existing row.
      *
      * @param  array<string, mixed>  $meta
      */
     public function uploadFromContents(string $contents, string $filename, int $organizationId, array $meta = []): Gallery
     {
+        $hash = hash('sha256', $contents);
+        if ($hash !== '' && empty($meta['force_new'])) {
+            $existing = $this->findByContentHash($organizationId, $hash);
+            if ($existing) {
+                return $this->reuseExisting($existing, $meta);
+            }
+        }
+
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION) ?: 'bin');
         $mime = $meta['mime_type'] ?? match ($extension) {
             'jpg', 'jpeg' => 'image/jpeg',
@@ -147,7 +170,11 @@ class GalleryService
         $file = new UploadedFile($tmp, $filename, $mime, null, true);
 
         try {
-            return $this->upload($file, $organizationId, $meta);
+            // Hash already checked; prevent a second lookup from racing differently.
+            return $this->upload($file, $organizationId, array_merge($meta, [
+                'force_new' => true,
+                '_precomputed_hash' => $hash,
+            ]));
         } finally {
             @unlink($tmp);
         }
@@ -685,22 +712,27 @@ class GalleryService
         }
     }
 
-    public function purgeForModel(Model $model): void
+    /**
+     * Detach gallery rows from a content model without deleting the media files.
+     * Gallery is the central library — content rows only reference shared assets.
+     */
+    public function detachForModel(Model $model): void
     {
-        $items = Gallery::query()
+        Gallery::query()
             ->where('attachable_type', $model->getMorphClass())
             ->where('attachable_id', $model->getKey())
-            ->get();
+            ->update([
+                'attachable_type' => null,
+                'attachable_id' => null,
+            ]);
+    }
 
-        foreach ($items as $media) {
-            try {
-                if (! $media->trashed()) {
-                    $this->softDelete($media);
-                }
-            } catch (\Throwable) {
-                // Continue detaching even if bin move fails.
-            }
-        }
+    /**
+     * @deprecated Use detachForModel(). Kept for callers; never deletes gallery files.
+     */
+    public function purgeForModel(Model $model): void
+    {
+        $this->detachForModel($model);
     }
 
     public function pruneOrphans(?int $olderThanHours = null): int
@@ -949,6 +981,58 @@ class GalleryService
             'file_name' => $fileName,
             'extension' => $extension,
         ];
+    }
+
+    protected function hashUploadedFile(UploadedFile $file): ?string
+    {
+        $path = $file->getRealPath();
+        if (! is_string($path) || $path === '' || ! is_file($path)) {
+            return null;
+        }
+
+        $hash = hash_file('sha256', $path);
+
+        return is_string($hash) && $hash !== '' ? $hash : null;
+    }
+
+    protected function findByContentHash(int $organizationId, string $hash): ?Gallery
+    {
+        return Gallery::withTrashed()
+            ->where('organization_id', $organizationId)
+            ->where('content_hash', $hash)
+            ->orderByRaw('CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    protected function reuseExisting(Gallery $gallery, array $meta = []): Gallery
+    {
+        if ($gallery->trashed()) {
+            $gallery = $this->restore($gallery);
+        }
+
+        $updates = [
+            'last_referenced_at' => now(),
+            'updated_by' => $meta['updated_by'] ?? Auth::id() ?? $gallery->updated_by,
+        ];
+
+        // Fill empty metadata from the newer reference without overwriting curated fields.
+        if (empty($gallery->alt_text) && ! empty($meta['alt_text'])) {
+            $updates['alt_text'] = $meta['alt_text'];
+        }
+        if (empty($gallery->description) && ! empty($meta['description'])) {
+            $updates['description'] = $meta['description'];
+        }
+        if (empty($gallery->module) && ! empty($meta['module'])) {
+            $updates['module'] = $meta['module'];
+        }
+
+        $gallery->forceFill($updates)->save();
+
+        return $gallery->fresh(['uploader']) ?? $gallery;
     }
 
     protected function movePathToBin(string $disk, Gallery $gallery, ?string $path): ?string

@@ -37,6 +37,10 @@
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
                     </div>
+                    <button type="button" id="gallery-open-size-guide" class="panel-button-secondary gallery-size-guide-trigger" title="Recommended upload sizes">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/></svg>
+                        Size guide
+                    </button>
                     <button type="button" id="gallery-open-upload" class="panel-button-primary gallery-upload-trigger">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         Upload
@@ -152,6 +156,7 @@
                 <div class="gallery-dropzone__copy">
                     <p class="gallery-dropzone__title">Drop files to stage</p>
                     <p class="gallery-dropzone__hint">or <button type="button" id="gallery-browse-btn" class="gallery-link">browse</button> · review before saving</p>
+                    <p class="gallery-dropzone__size-hint">See recommended sizes above before uploading (example: 1200 × 630 px for social OG images).</p>
                 </div>
                 <button type="button" id="gallery-browse-btn-secondary" class="panel-button-primary gallery-dropzone__cta text-sm">Choose files</button>
                 <button type="button" id="gallery-close-dropzone" class="gallery-icon-btn gallery-dropzone__close" title="Close" aria-label="Close upload area">
@@ -235,6 +240,41 @@
                     <div class="mt-5 grid grid-cols-2 gap-2" id="gallery-preview-actions"></div>
                 </aside>
             </div>
+        </div>
+    </div>
+
+    <div id="gallery-size-guide-modal" class="gallery-size-guide-modal" hidden aria-hidden="true">
+        <div class="gallery-size-guide-modal__backdrop" data-close-size-guide></div>
+        <div class="gallery-size-guide-modal__panel" role="dialog" aria-modal="true" aria-labelledby="gallery-size-guide-title">
+            <header class="gallery-size-guide-modal__header">
+                <div>
+                    <h3 id="gallery-size-guide-title" class="gallery-size-guide__title">Recommended upload sizes</h3>
+                    <p class="gallery-size-guide__subtitle">Use these sizes so images fit cleanly across branding, content, heroes, ads, and social previews.</p>
+                </div>
+                <button type="button" class="gallery-icon-btn shrink-0" data-close-size-guide aria-label="Close size guide">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </header>
+            <div class="gallery-size-guide-modal__body">
+                <div class="gallery-size-guide__groups">
+                    @foreach(\App\Support\ImageSizeGuide::grouped() as $group => $sizes)
+                        <div class="gallery-size-guide__group">
+                            <h4 class="gallery-size-guide__group-title">{{ $group }}</h4>
+                            <ul class="gallery-size-guide__list">
+                                @foreach($sizes as $size)
+                                    <li>
+                                        <span class="gallery-size-guide__label">{{ $size['label'] }}</span>
+                                        <strong class="gallery-size-guide__dims">{{ $size['width'] }} × {{ $size['height'] }} px</strong>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            <footer class="gallery-size-guide-modal__footer">
+                <button type="button" class="panel-button-primary" data-close-size-guide>Got it</button>
+            </footer>
         </div>
     </div>
 

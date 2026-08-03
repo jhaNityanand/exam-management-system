@@ -35,6 +35,19 @@
                         <button type="button" data-shape="circle">Circle</button>
                     </div>
 
+                    <p class="gallery-editor-label">Aspect ratio</p>
+                    <div class="gallery-editor-toolrow gallery-editor-toolrow--aspects" data-gie-aspects>
+                        <button type="button" data-aspect="free" class="is-active" title="Free crop">Free</button>
+                        <button type="button" data-aspect="16:9" title="16:9 widescreen">16:9</button>
+                        <button type="button" data-aspect="4:3" title="4:3 standard">4:3</button>
+                        <button type="button" data-aspect="3:2" title="3:2 photo">3:2</button>
+                        <button type="button" data-aspect="21:9" title="21:9 ultrawide">21:9</button>
+                        <button type="button" data-aspect="1:1" title="1:1 square">1:1</button>
+                        <button type="button" data-aspect="9:16" title="9:16 portrait / mobile">9:16</button>
+                        <button type="button" data-aspect="5:4" title="5:4">5:4</button>
+                        <button type="button" data-aspect="og" title="1200 × 630 social / Open Graph">OG 1.91</button>
+                    </div>
+
                     <label class="gallery-editor-field">
                         <span>Brightness <strong data-gie-brightness-val>0</strong></span>
                         <input type="range" min="-40" max="40" step="1" value="0" data-gie-brightness>

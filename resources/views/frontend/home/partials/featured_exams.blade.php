@@ -23,7 +23,7 @@
         @else
             <div class="et-grid et-grid--4">
                 @foreach($exams as $exam)
-                    @include('frontend.components.exam-card', ['exam' => $exam])
+                    @include('frontend.components.exam-card', ['exam' => $exam, 'homeCompact' => true])
                 @endforeach
             </div>
             <div class="et-section__cta">

@@ -29,7 +29,6 @@
     $shareUrl = urlencode(url()->current());
     $shareText = urlencode($blog->title);
     $shareRawUrl = url()->current();
-    $banner = $blog->bannerUrl();
 @endphp
 
 @section('content')
@@ -60,11 +59,10 @@
         </header>
 
         <div class="et-container et-article__wrap et-article__main">
-            @if($banner)
-                <figure class="et-article-banner">
-                    <img src="{{ $banner }}" alt="{{ $blog->title }}" loading="eager" width="960" height="480">
-                </figure>
-            @endif
+            @include('frontend.partials.article-banner', [
+                'images' => $blog->bannerUrls(),
+                'alt' => $blog->title,
+            ])
 
             <x-ad-slot page="blog_detail" position="before_content" />
 

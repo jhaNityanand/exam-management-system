@@ -60,9 +60,10 @@
         <x-ad-slot page="cms_page" position="below_title" />
         <div class="et-container et-page-body">
             @if ($banner)
-                <figure class="et-article-banner">
-                    <img src="{{ $banner }}" alt="{{ $page->title }}">
-                </figure>
+                @include('frontend.partials.article-banner', [
+                    'images' => [$banner],
+                    'alt' => $page->title,
+                ])
             @endif
             <article class="et-panel et-panel--article et-cms-article">
                 <div class="et-prose">{!! $page->content !!}</div>

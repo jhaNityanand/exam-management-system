@@ -53,7 +53,7 @@ class SearchController extends Controller
                         ->orWhere('excerpt', 'like', $like)
                         ->orWhere('slug', 'like', $like);
                 })
-                ->with(['category:id,name,slug', 'bannerImage'])
+                ->with(['category:id,name,slug', 'bannerImage', 'banners'])
                 ->latest('published_at')
                 ->paginate((int) $request->input('per_page', 10), ['*'], 'blog_page')
                 ->withQueryString();
@@ -67,7 +67,7 @@ class SearchController extends Controller
                         ->orWhere('short_description', 'like', $like)
                         ->orWhere('slug', 'like', $like);
                 })
-                ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
+                ->with(['category:id,name,slug', 'bannerImage', 'featuredImage', 'banners'])
                 ->latest('published_at')
                 ->paginate((int) $request->input('per_page', 10), ['*'], 'news_page')
                 ->withQueryString();

@@ -151,8 +151,31 @@ class Blog extends Model
 
     public function bannerUrl(): ?string
     {
-        return $this->bannerImage?->file_url
-            ?? $this->banners->first()?->file_url;
+        return $this->bannerUrls()[0] ?? null;
+    }
+
+    /**
+     * Ordered unique banner image URLs (primary banner + gallery banners).
+     *
+     * @return list<string>
+     */
+    public function bannerUrls(): array
+    {
+        $urls = [];
+
+        $primary = $this->bannerImage?->file_url;
+        if (filled($primary)) {
+            $urls[] = $primary;
+        }
+
+        foreach ($this->banners as $banner) {
+            $url = $banner->file_url ?? null;
+            if (filled($url)) {
+                $urls[] = $url;
+            }
+        }
+
+        return array_values(array_unique($urls));
     }
 
     public function socialImageUrl(): ?string

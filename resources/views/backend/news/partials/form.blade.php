@@ -200,6 +200,7 @@
             'value' => $featuredImageId,
             'previewUrl' => $news?->featuredImage?->file_url,
             'kind' => 'image',
+            'recommendKey' => 'news_featured',
         ])
         @error('featured_image_id')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>
@@ -256,6 +257,7 @@
             'multiple' => true,
             'value' => $attachmentIds,
             'kind' => 'image',
+            'recommendKey' => 'content_attachment',
         ])
         @error('attachment_ids')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>

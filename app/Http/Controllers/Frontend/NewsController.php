@@ -26,7 +26,7 @@ class NewsController extends Controller
         $query = News::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
+            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage', 'banners'])
             ->when($isBreaking, fn ($q) => $q->where('is_breaking', true))
             ->when($isTrending, fn ($q) => $q->where('is_trending', true))
             ->when($request->filled('category_id'), fn ($q) => $q->where('news_category_id', $request->integer('category_id')))
@@ -76,7 +76,7 @@ class NewsController extends Controller
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('is_trending', true)
-            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
+            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage', 'banners'])
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = '%'.$request->string('search')->trim().'%';
                 $q->where(function ($inner) use ($term) {
@@ -123,6 +123,7 @@ class NewsController extends Controller
             'author.profile',
             'bannerImage',
             'featuredImage',
+            'banners',
             'tags:id,name,slug',
         ]);
 
@@ -146,7 +147,7 @@ class NewsController extends Controller
         }
 
         $relatedNews = $relatedQuery
-            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
+            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage', 'banners'])
             ->latest('published_at')
             ->limit(3)
             ->get();
@@ -176,7 +177,7 @@ class NewsController extends Controller
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('news_category_id', $category->id)
-            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
+            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage', 'banners'])
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = '%'.$request->string('search')->trim().'%';
                 $q->where(function ($inner) use ($term) {
@@ -220,7 +221,7 @@ class NewsController extends Controller
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->whereHas('tags', fn ($q) => $q->where('news_tags.id', $tag->id))
-            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage'])
+            ->with(['category:id,name,slug', 'author:id,name', 'bannerImage', 'featuredImage', 'banners'])
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = '%'.$request->string('search')->trim().'%';
                 $q->where(function ($inner) use ($term) {

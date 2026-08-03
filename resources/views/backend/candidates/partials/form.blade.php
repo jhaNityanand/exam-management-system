@@ -45,6 +45,7 @@
                     <input type="file" id="candidate-avatar-input" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
                 </label>
                 <button type="button" id="candidate-avatar-remove" class="panel-button-secondary">Remove</button>
+                <p class="mt-1 text-xs font-semibold text-teal-700 dark:text-teal-300">{{ \App\Support\ImageSizeGuide::hint('avatar') }}</p>
                 <p class="qcat-field-error" id="err-cropped_avatar"></p>
                 @error('cropped_avatar')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
             </div>

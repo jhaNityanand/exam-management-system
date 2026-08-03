@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Gallery;
-use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 /**
@@ -68,31 +67,13 @@ class ProfileAvatarService
         return $gallery->file_path;
     }
 
+    /**
+     * Drop a profile avatar reference without removing the gallery asset.
+     * Gallery is the central library — delete media only from the Gallery UI.
+     */
     public function delete(?string $path): void
     {
-        if (! $path) {
-            return;
-        }
-
-        $gallery = Gallery::query()
-            ->where('file_path', $path)
-            ->orWhere('original_file_path', $path)
-            ->orWhere('modified_file_path', $path)
-            ->first();
-
-        if ($gallery) {
-            $this->galleryService->softDelete($gallery);
-
-            return;
-        }
-
-        foreach (array_unique([(string) config('gallery.disk', 'public'), 'public']) as $disk) {
-            if (config("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($path)) {
-                Storage::disk($disk)->delete($path);
-
-                return;
-            }
-        }
+        // no-op: keep shared gallery files intact
     }
 
     public function url(?string $path): ?string

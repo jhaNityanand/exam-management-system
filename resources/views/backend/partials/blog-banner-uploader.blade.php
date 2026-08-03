@@ -8,6 +8,7 @@
 @php
     $selectedIds = array_values(array_filter(array_map('intval', (array) $value)));
     $itemMap = collect($items)->keyBy(fn ($row) => (int) ($row['id'] ?? 0));
+    $bannerGuide = \App\Support\ImageSizeGuide::get('content_banner');
 @endphp
 
 <div
@@ -16,11 +17,15 @@
     data-name="{{ $name }}"
     data-commit-url="{{ route('admin.gallery.commit') }}"
     data-gallery-data-url="{{ route('admin.gallery.data') }}"
+    data-recommend-width="{{ $bannerGuide['width'] }}"
+    data-recommend-height="{{ $bannerGuide['height'] }}"
+    data-recommend-label="{{ $bannerGuide['width'] }} × {{ $bannerGuide['height'] }} px"
 >
     <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
         <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">{{ $label }}</label>
             <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Upload one or more images. Single uploads open the editor; multiple uploads appear in the grid for per-image editing. Drag to reorder — first image is featured.</p>
+            <p class="mt-1 text-xs font-semibold text-teal-700 dark:text-teal-300">{{ $bannerGuide['hint'] }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
             <button type="button" class="panel-button-secondary text-sm" data-banner-choose>Choose from Gallery</button>
@@ -38,6 +43,7 @@
             </svg>
             <p class="text-sm font-medium text-slate-700 dark:text-slate-200">Drag &amp; drop banner images here</p>
             <p class="text-xs text-slate-500">JPG, PNG, GIF, WebP only</p>
+            <p class="text-xs font-semibold text-teal-700 dark:text-teal-300 mt-1">{{ $bannerGuide['hint'] }}</p>
         </div>
     </div>
 

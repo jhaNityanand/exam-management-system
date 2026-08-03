@@ -2,16 +2,20 @@
     $newsUrl = Route::has('frontend.news.show')
         ? route('frontend.news.show', $news->slug)
         : '#';
-    $image = $news->featuredImage->file_url
-        ?? $news->bannerImage->file_url
-        ?? (method_exists($news, 'bannerUrl') ? $news->bannerUrl() : null);
+    $images = method_exists($news, 'cardImageUrls')
+        ? $news->cardImageUrls()
+        : array_values(array_filter([
+            $news->featuredImage->file_url ?? null,
+            $news->bannerImage->file_url ?? null,
+            method_exists($news, 'bannerUrl') ? $news->bannerUrl() : null,
+        ]));
 @endphp
 <article class="et-card et-news-card">
-    <a href="{{ $newsUrl }}" class="et-card__media" tabindex="-1" aria-hidden="true">
-        @if($image)
-            <img src="{{ $image }}" alt="" loading="lazy">
-        @endif
-    </a>
+    @include('frontend.partials.card-media', [
+        'images' => $images,
+        'href' => $newsUrl,
+        'alt' => $news->title,
+    ])
     <div class="et-card__body">
         <div class="et-card__meta">
             @if($news->is_breaking)

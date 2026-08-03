@@ -6,13 +6,11 @@ use App\Models\News;
 use App\Models\NewsCategory;
 use App\Models\NewsTag;
 use Database\Seeders\Concerns\ResolvesDemoContext;
-use Database\Seeders\Support\SeedImageLibrary;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use Throwable;
 
 /**
- * Seeds realistic news articles with categories, tags, and gallery banners.
+ * Seeds realistic news articles with categories and tags (no banner images).
  */
 class NewsSeeder extends Seeder
 {
@@ -28,10 +26,6 @@ class NewsSeeder extends Seeder
 
             return;
         }
-
-        $images = new SeedImageLibrary;
-        $purged = $images->purge($org->id, 'news');
-        $this->command?->info("NewsSeeder: purged {$purged} previously seeded news image(s).");
 
         // Replace previous demo news so re-seeds stay accurate and duplicate-free.
         News::query()
@@ -53,23 +47,6 @@ class NewsSeeder extends Seeder
 
             $slug = $article['slug'];
 
-            try {
-                $banner = $images->store(
-                    $org->id,
-                    'news-'.$slug,
-                    $author->id,
-                    'news',
-                    [
-                        'seo_type' => 'news',
-                        'alt_text' => $article['title'],
-                        'description' => 'Cover image for '.$article['title'],
-                    ]
-                );
-            } catch (Throwable $e) {
-                $this->command?->warn("NewsSeeder: image failed for {$slug}: {$e->getMessage()}");
-                $banner = null;
-            }
-
             $news = News::query()->create([
                 'organization_id' => $org->id,
                 'slug' => $slug,
@@ -78,9 +55,9 @@ class NewsSeeder extends Seeder
                 'short_description' => $article['short_description'],
                 'excerpt' => $article['excerpt'],
                 'content' => $article['content'],
-                'banner_image_id' => $banner?->id,
-                'featured_image_id' => $banner?->id,
-                'og_image_id' => $banner?->id,
+                'banner_image_id' => null,
+                'featured_image_id' => null,
+                'og_image_id' => null,
                 'author_id' => $author->id,
                 'author_name' => $author->name,
                 'status' => News::STATUS_PUBLISHED,
@@ -107,10 +84,6 @@ class NewsSeeder extends Seeder
                 'ai_improve' => false,
             ]);
 
-            if ($banner) {
-                $news->banners()->sync([$banner->id => ['sort_order' => 0]]);
-            }
-
             $tagIds = collect($article['tags'])
                 ->map(fn (string $name) => $tags[$name] ?? null)
                 ->filter()
@@ -120,7 +93,7 @@ class NewsSeeder extends Seeder
             $seeded++;
         }
 
-        $this->command?->info("NewsSeeder: seeded {$seeded} news articles with gallery banners.");
+        $this->command?->info("NewsSeeder: seeded {$seeded} news articles (without banners).");
     }
 
     /**

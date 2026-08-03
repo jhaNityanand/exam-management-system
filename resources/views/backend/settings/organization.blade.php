@@ -175,8 +175,8 @@
                                 'value' => $s['logo_gallery_id'],
                                 'previewUrl' => $s['logo_url'],
                                 'kind' => 'image',
+                                'recommendKey' => 'logo',
                             ])
-                            <p class="org-brand-help">Recommended <strong>400×120</strong> px transparent PNG/WebP.</p>
                             <p class="qcat-field-error" data-error-for="logo_gallery_id" hidden></p>
                         </div>
                         <div class="org-brand-asset min-w-0">
@@ -186,8 +186,8 @@
                                 'value' => $s['favicon_gallery_id'],
                                 'previewUrl' => $s['favicon_url'],
                                 'kind' => 'image',
+                                'recommendKey' => 'favicon',
                             ])
-                            <p class="org-brand-help">Recommended <strong>512×512</strong> px square PNG.</p>
                             <p class="qcat-field-error" data-error-for="favicon_gallery_id" hidden></p>
                         </div>
                         <div class="org-brand-asset min-w-0">
@@ -197,8 +197,8 @@
                                 'value' => $s['og_image_gallery_id'],
                                 'previewUrl' => $s['og_image_url'],
                                 'kind' => 'image',
+                                'recommendKey' => 'og',
                             ])
-                            <p class="org-brand-help">Recommended <strong>1200×630</strong> px JPG/WebP for Open Graph / Twitter cards.</p>
                             <p class="qcat-field-error" data-error-for="og_image_gallery_id" hidden></p>
                         </div>
                     </div>

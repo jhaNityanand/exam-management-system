@@ -24,10 +24,8 @@
         'value' => $seoOgImageId,
         'previewUrl' => $seoOgPreviewUrl,
         'kind' => 'image',
+        'recommendKey' => 'og',
     ])
-    <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-        Recommended size: 1200 × 630 px for social sharing previews.
-    </p>
     @error('og_image_id')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
 </div>
 

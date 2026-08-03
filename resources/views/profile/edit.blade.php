@@ -159,6 +159,7 @@
                                     Remove
                                 </button>
                             </div>
+                            <p class="mt-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300">{{ \App\Support\ImageSizeGuide::hint('avatar') }}</p>
                             <p class="profile-field-error" data-error-for="avatar_input">@error('cropped_avatar'){{ $message }}@enderror</p>
                         </div>
                     </div>

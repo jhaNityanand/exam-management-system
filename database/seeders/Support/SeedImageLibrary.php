@@ -11,6 +11,9 @@ use RuntimeException;
 /**
  * Stores seeded gallery media from production frontend defaults
  * (public/frontend/images/seo/*.png and public/images/brand/*).
+ *
+ * Identical bytes are reused via GalleryService content-hash dedupe —
+ * seeders never create duplicate gallery files for the same image.
  */
 class SeedImageLibrary
 {
@@ -19,30 +22,12 @@ class SeedImageLibrary
     ) {}
 
     /**
-     * Remove previously seeded gallery rows and their files for an organization.
+     * @deprecated Gallery is a shared library. Seeders reuse existing files;
+     * this no longer deletes gallery rows or disk files.
      */
     public function purge(int $organizationId, ?string $module = null): int
     {
-        $query = Gallery::query()
-            ->withTrashed()
-            ->where('organization_id', $organizationId)
-            ->where(function ($builder) {
-                $builder->where('source', 'seeder')
-                    ->orWhere('original_name', 'like', 'img-%')
-                    ->orWhere('file_name', 'like', 'img-%');
-            });
-
-        if ($module !== null) {
-            $query->where('module', $module);
-        }
-
-        $removed = 0;
-        foreach ($query->get() as $item) {
-            $this->gallery->forceDelete($item);
-            $removed++;
-        }
-
-        return $removed;
+        return 0;
     }
 
     /**
@@ -70,6 +55,7 @@ class SeedImageLibrary
 
     /**
      * Copy a file from public/frontend/images/{relativePath} into the gallery.
+     * Same file bytes within an organization return the existing gallery row.
      *
      * @param  array<string, mixed>  $meta
      */
@@ -95,8 +81,7 @@ class SeedImageLibrary
         $basename = basename($relativePath);
         $extension = strtolower(pathinfo($basename, PATHINFO_EXTENSION) ?: 'png');
         $slug = Str::slug(pathinfo($basename, PATHINFO_FILENAME)) ?: 'seed-image';
-        $unique = isset($meta['slug_suffix']) ? $slug.'-'.Str::slug((string) $meta['slug_suffix']) : $slug;
-        $filename = 'img-'.$unique.'.'.$extension;
+        $filename = 'img-'.$slug.'.'.$extension;
         $mime = match ($extension) {
             'png' => 'image/png',
             'gif' => 'image/gif',
@@ -144,6 +129,7 @@ class SeedImageLibrary
 
     /**
      * Copy a file from public/images/brand/{relativePath} into the gallery.
+     * Same file bytes within an organization return the existing gallery row.
      *
      * @param  array<string, mixed>  $meta
      */
@@ -169,8 +155,7 @@ class SeedImageLibrary
         $basename = basename($relativePath);
         $extension = strtolower(pathinfo($basename, PATHINFO_EXTENSION) ?: 'svg');
         $slug = Str::slug(pathinfo($basename, PATHINFO_FILENAME)) ?: 'seed-brand';
-        $unique = isset($meta['slug_suffix']) ? $slug.'-'.Str::slug((string) $meta['slug_suffix']) : $slug;
-        $filename = 'img-'.$unique.'.'.$extension;
+        $filename = 'img-'.$slug.'.'.$extension;
         $mime = match ($extension) {
             'png' => 'image/png',
             'gif' => 'image/gif',
@@ -212,7 +197,7 @@ class SeedImageLibrary
                 (string) $meta['frontend_path'],
                 $userId,
                 $module,
-                array_merge($meta, ['slug_suffix' => $slug])
+                $meta
             );
         }
 
@@ -222,7 +207,7 @@ class SeedImageLibrary
                 (string) $meta['seed_path'],
                 $userId,
                 $module,
-                array_merge($meta, ['slug_suffix' => $slug])
+                $meta
             );
         }
 
@@ -239,7 +224,7 @@ class SeedImageLibrary
             $type,
             $userId,
             $module,
-            array_merge($meta, ['slug_suffix' => $slug])
+            $meta
         );
     }
 

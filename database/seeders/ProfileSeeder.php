@@ -6,7 +6,6 @@ use App\Models\Profile;
 use App\Models\User;
 use Database\Seeders\Concerns\ResolvesDemoContext;
 use Database\Seeders\Support\SeederContact;
-use Database\Seeders\Support\SeedImageLibrary;
 use Illuminate\Database\Seeder;
 
 class ProfileSeeder extends Seeder
@@ -16,14 +15,6 @@ class ProfileSeeder extends Seeder
     public function run(): void
     {
         $org = $this->demoOrganization();
-
-        // Remove any previously seeded profile gallery images — users have no default avatar.
-        if ($org) {
-            $purged = (new SeedImageLibrary)->purge($org->id, 'profile');
-            if ($purged > 0) {
-                $this->command?->info("ProfileSeeder: purged {$purged} previously seeded profile image(s).");
-            }
-        }
 
         $profiles = [
             SeederContact::EMAIL_ADMIN => [

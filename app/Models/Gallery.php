@@ -31,6 +31,7 @@ class Gallery extends Model
         'mime_type',
         'kind',
         'file_size',
+        'content_hash',
         'width',
         'height',
         'folder',

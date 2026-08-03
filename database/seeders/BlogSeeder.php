@@ -6,12 +6,10 @@ use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use Database\Seeders\Concerns\ResolvesDemoContext;
-use Database\Seeders\Support\SeedImageLibrary;
 use Illuminate\Database\Seeder;
-use Throwable;
 
 /**
- * Seeds realistic published blog posts for demo-org with gallery banners.
+ * Seeds realistic published blog posts for demo-org (no banner images).
  */
 class BlogSeeder extends Seeder
 {
@@ -28,10 +26,6 @@ class BlogSeeder extends Seeder
             return;
         }
 
-        $images = new SeedImageLibrary;
-        $purged = $images->purge($org->id, 'blog');
-        $this->command?->info("BlogSeeder: purged {$purged} previously seeded blog image(s).");
-
         $categories = BlogCategory::forOrg($org->id)->get()->keyBy('slug');
         $tags = BlogTag::forOrg($org->id)->get()->keyBy('name');
         $seeded = 0;
@@ -45,23 +39,6 @@ class BlogSeeder extends Seeder
                 continue;
             }
 
-            try {
-                $banner = $images->store(
-                    $org->id,
-                    $post['slug'],
-                    $editor->id,
-                    'blog',
-                    [
-                        'seo_type' => 'blog',
-                        'alt_text' => $post['title'],
-                        'description' => 'Banner for '.$post['title'],
-                    ]
-                );
-            } catch (Throwable $e) {
-                $this->command?->warn("BlogSeeder: image download failed for {$post['slug']}: {$e->getMessage()}");
-                $banner = null;
-            }
-
             $blog = Blog::updateOrCreate(
                 [
                     'organization_id' => $org->id,
@@ -73,7 +50,7 @@ class BlogSeeder extends Seeder
                     'title' => $post['title'],
                     'excerpt' => $post['excerpt'],
                     'content' => $post['content'],
-                    'banner_image_id' => $banner?->id,
+                    'banner_image_id' => null,
                     'author_id' => $editor->id,
                     'author_name' => $editor->name,
                     'status' => Blog::STATUS_PUBLISHED,
@@ -84,7 +61,7 @@ class BlogSeeder extends Seeder
                     'seo_keywords' => $post['seo_keywords'],
                     'og_title' => $post['og_title'],
                     'og_description' => $post['og_description'],
-                    'og_image_id' => $banner?->id,
+                    'og_image_id' => null,
                     'canonical_url' => null,
                     'robots' => 'index,follow',
                     'schema_markup' => json_encode([
@@ -99,9 +76,7 @@ class BlogSeeder extends Seeder
                 ]
             );
 
-            if ($banner) {
-                $blog->banners()->sync([$banner->id => ['sort_order' => 0]]);
-            }
+            $blog->banners()->sync([]);
 
             $tagIds = collect($post['tags'])
                 ->map(fn (string $name) => $tags->get($name)?->id)
@@ -113,7 +88,7 @@ class BlogSeeder extends Seeder
             $seeded++;
         }
 
-        $this->command?->info("BlogSeeder: seeded {$seeded} blog posts with gallery banners.");
+        $this->command?->info("BlogSeeder: seeded {$seeded} blog posts (without banners).");
     }
 
     /**

@@ -26,13 +26,11 @@
                 @foreach($items as $item)
                     <li>
                         <a class="et-detail-sidebar__item" href="{{ $item['url'] }}">
-                            <span class="et-detail-sidebar__thumb" aria-hidden="true">
-                                @if(! empty($item['image']))
+                            @if(! empty($item['image']))
+                                <span class="et-detail-sidebar__thumb" aria-hidden="true">
                                     <img src="{{ $item['image'] }}" alt="" loading="lazy" width="96" height="72">
-                                @else
-                                    <span class="et-detail-sidebar__thumb-fallback"></span>
-                                @endif
-                            </span>
+                                </span>
+                            @endif
                             <span class="et-detail-sidebar__body">
                                 @if(! empty($item['kicker']))
                                     <span class="et-detail-sidebar__kicker">{{ $item['kicker'] }}</span>

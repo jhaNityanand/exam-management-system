@@ -35,8 +35,7 @@ class DemoMediaSeeder extends Seeder
         }
 
         $images = new SeedImageLibrary;
-        $purged = $images->purge($org->id, 'demo-media');
-        $this->command?->info("DemoMediaSeeder: purged {$purged} previously seeded demo-media file(s).");
+        // Gallery is shared — never wipe/re-copy identical files. Store* reuses by content hash.
 
         $brand = $this->seedBrand($org, $editor->id, $images);
         $this->seedHeroes($org->id, $editor->id, $images);
@@ -152,12 +151,13 @@ class DemoMediaSeeder extends Seeder
             ->orderBy('id')
             ->get();
 
-        foreach ($exams as $index => $exam) {
-            $banner = $this->safeSeo($images, $orgId, 'exam', $userId, $exam->title.' banner', 'exam-'.$index);
-            if (! $banner) {
-                continue;
-            }
+        // One shared exam banner for all exams (identical bytes → single gallery row).
+        $banner = $this->safeSeo($images, $orgId, 'exam', $userId, 'Exam banner');
+        if (! $banner) {
+            return;
+        }
 
+        foreach ($exams as $exam) {
             $exam->update([
                 'banner_image_id' => $banner->id,
                 'og_image_id' => $banner->id,
@@ -257,15 +257,10 @@ class DemoMediaSeeder extends Seeder
         ?string $suffix = null
     ): ?Gallery {
         try {
-            $meta = [
+            return $images->storeSeoDefault($orgId, $type, $userId, 'demo-media', [
                 'alt_text' => $alt,
                 'description' => $alt,
-            ];
-            if ($suffix !== null) {
-                $meta['slug_suffix'] = $suffix;
-            }
-
-            return $images->storeSeoDefault($orgId, $type, $userId, 'demo-media', $meta);
+            ]);
         } catch (Throwable $e) {
             $this->command?->warn("DemoMediaSeeder: failed {$type}: {$e->getMessage()}");
 
@@ -284,7 +279,6 @@ class DemoMediaSeeder extends Seeder
             return $images->storeFromBrand($orgId, $filename, $userId, 'demo-media', [
                 'alt_text' => $alt,
                 'description' => $alt,
-                'slug_suffix' => pathinfo($filename, PATHINFO_FILENAME),
             ]);
         } catch (Throwable $e) {
             $this->command?->warn("DemoMediaSeeder: failed brand {$filename}: {$e->getMessage()}");

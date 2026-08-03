@@ -252,15 +252,34 @@
         async function openGalleryPicker() {
             const url = new URL(dataUrl, window.location.origin);
             url.searchParams.set('kind', 'image');
-            url.searchParams.set('per_page', '48');
+            url.searchParams.set('per_page', '60');
+            const recW = Number(root.dataset.recommendWidth || 0);
+            const recH = Number(root.dataset.recommendHeight || 0);
+            const recLabel = root.dataset.recommendLabel || '';
+            const matchesRecommend = (item) => {
+                const w = Number(item?.width || 0);
+                const h = Number(item?.height || 0);
+                if (!w || !h || !recW || !recH) return false;
+                if (w === recW && h === recH) return true;
+                const wTol = Math.max(2, Math.round(recW * 0.02));
+                const hTol = Math.max(2, Math.round(recH * 0.02));
+                return Math.abs(w - recW) <= wTol && Math.abs(h - recH) <= hTol;
+            };
             try {
                 const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
                 if (!res.ok) throw new Error('Failed to load gallery');
                 const json = await res.json();
-                const items = json.data || [];
+                let items = json.data || [];
                 if (!items.length) {
                     toast('info', 'No images in gallery yet. Upload one first.');
                     return;
+                }
+                if (recW > 0 && recH > 0) {
+                    items = [...items].sort((a, b) => {
+                        const am = matchesRecommend(a) ? 0 : 1;
+                        const bm = matchesRecommend(b) ? 0 : 1;
+                        return am - bm;
+                    });
                 }
 
                 const overlay = document.createElement('div');
@@ -269,17 +288,27 @@
                     <div class="blog-banner-picker-modal__backdrop" data-close></div>
                     <div class="blog-banner-picker-modal__panel" role="dialog" aria-modal="true">
                         <header class="blog-banner-picker-modal__header">
-                            <h3>Select banner images</h3>
+                            <div>
+                                <h3>Select banner images</h3>
+                                ${recLabel ? `<p class="blog-banner-picker-modal__recommend">Recommended: <strong>${recLabel}</strong> — matching images are highlighted.</p>` : ''}
+                            </div>
                             <button type="button" class="blog-banner-picker-modal__close" data-close aria-label="Close">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
                             </button>
                         </header>
                         <div class="blog-banner-picker-modal__grid">
-                            ${items.map((item) => `
-                                <button type="button" class="blog-banner-picker-item" data-id="${item.id}" data-url="${item.file_url}" data-name="${(item.original_name || '').replace(/"/g, '&quot;')}">
+                            ${items.map((item) => {
+                                const recommended = matchesRecommend(item);
+                                const dims = (item.width && item.height) ? `${item.width} × ${item.height}` : '';
+                                return `
+                                <button type="button" class="blog-banner-picker-item${recommended ? ' is-recommended' : ''}" data-id="${item.id}" data-url="${item.file_url}" data-name="${(item.original_name || '').replace(/"/g, '&quot;')}">
                                     <img src="${item.file_url}" alt="">
-                                </button>
-                            `).join('')}
+                                    <span class="blog-banner-picker-item__meta">
+                                        ${recommended ? '<span class="blog-banner-picker-item__badge">Recommended</span>' : '<span></span>'}
+                                        ${dims ? `<span class="blog-banner-picker-item__dims">${dims}</span>` : ''}
+                                    </span>
+                                </button>`;
+                            }).join('')}
                         </div>
                         <footer class="blog-banner-picker-modal__footer">
                             <button type="button" class="panel-button-secondary" data-close>Done</button>

@@ -369,21 +369,41 @@ class HomePageService
     }
 
     /**
+     * Prefer published blogs that have banners; fill remaining slots from any published blogs.
+     *
      * @return Collection<int, Blog>
      */
     public function randomBlogsWithBanner(?int $orgId = null, int $limit = 3): Collection
     {
-        return Blog::query()
+        $with = ['category', 'author', 'bannerImage', 'banners'];
+
+        $withBanner = Blog::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where(function ($q) {
                 $q->whereNotNull('banner_image_id')
                     ->orWhereHas('banners');
             })
-            ->with(['category', 'author', 'bannerImage', 'banners'])
+            ->with($with)
             ->inRandomOrder()
             ->limit($limit)
             ->get();
+
+        if ($withBanner->count() >= $limit) {
+            return $withBanner;
+        }
+
+        $needed = $limit - $withBanner->count();
+        $fill = Blog::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->whereNotIn('id', $withBanner->pluck('id'))
+            ->with($with)
+            ->inRandomOrder()
+            ->limit($needed)
+            ->get();
+
+        return $withBanner->concat($fill)->values();
     }
 
     /**
@@ -408,31 +428,50 @@ class HomePageService
     }
 
     /**
+     * Prefer published news that have banners; fill remaining slots from any published news.
+     *
      * @return Collection<int, News>
      */
     public function randomNewsWithBanner(?int $orgId = null, int $limit = 3): Collection
     {
-        return News::query()
+        $with = ['category', 'author', 'bannerImage', 'featuredImage', 'banners'];
+
+        $withBanner = News::query()
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where(function ($q) {
                 $q->whereNotNull('banner_image_id')
                     ->orWhereHas('banners');
             })
-            ->with(['category', 'author', 'bannerImage', 'featuredImage', 'banners'])
+            ->with($with)
             ->inRandomOrder()
             ->limit($limit)
             ->get();
+
+        if ($withBanner->count() >= $limit) {
+            return $withBanner;
+        }
+
+        $needed = $limit - $withBanner->count();
+        $fill = News::query()
+            ->published()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->whereNotIn('id', $withBanner->pluck('id'))
+            ->with($with)
+            ->inRandomOrder()
+            ->limit($needed)
+            ->get();
+
+        return $withBanner->concat($fill)->values();
     }
 
     /**
      * @return Collection<int, Testimonial>
      */
-    public function testimonials(?int $orgId = null, int $limit = 6): Collection
+    public function testimonials(?int $orgId = null, int $limit = 12): Collection
     {
         return Testimonial::query()
             ->active()
-            ->ordered()
             ->with('avatar')
             ->when($orgId, fn ($q) => $q->where(function ($inner) use ($orgId) {
                 $inner->where('organization_id', $orgId)->orWhereNull('organization_id');

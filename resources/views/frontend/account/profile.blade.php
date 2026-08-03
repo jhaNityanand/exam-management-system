@@ -56,6 +56,7 @@
                             </label>
                             <button type="button" class="et-btn et-btn--ghost et-btn--sm" id="ca-avatar-remove">Remove</button>
                         </div>
+                        <p class="text-xs font-semibold text-teal-700 mt-1.5">{{ \App\Support\ImageSizeGuide::hint('avatar') }}</p>
                         <input type="hidden" name="cropped_avatar" id="ca-cropped-avatar" value="">
                         <input type="hidden" name="remove_avatar" id="ca-remove-avatar" value="0">
                     </div>

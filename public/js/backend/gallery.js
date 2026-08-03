@@ -1196,6 +1196,12 @@
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeAllCardMenus();
+            const sizeGuideModal = document.getElementById('gallery-size-guide-modal');
+            if (sizeGuideModal && !sizeGuideModal.hidden) {
+                sizeGuideModal.hidden = true;
+                sizeGuideModal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('ems-modal-open');
+            }
         }
     });
 
@@ -1203,6 +1209,19 @@
     document.getElementById('gallery-empty-upload')?.addEventListener('click', (event) => {
         event.stopPropagation();
         els.fileInput.click();
+    });
+    const sizeGuideModal = document.getElementById('gallery-size-guide-modal');
+    document.getElementById('gallery-open-size-guide')?.addEventListener('click', () => {
+        if (!sizeGuideModal) return;
+        sizeGuideModal.hidden = false;
+        sizeGuideModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('ems-modal-open');
+    });
+    sizeGuideModal?.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-close-size-guide]')) return;
+        sizeGuideModal.hidden = true;
+        sizeGuideModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('ems-modal-open');
     });
     document.getElementById('gallery-browse-btn')?.addEventListener('click', () => els.fileInput.click());
     document.getElementById('gallery-browse-btn-secondary')?.addEventListener('click', () => els.fileInput.click());

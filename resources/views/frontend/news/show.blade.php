@@ -22,7 +22,6 @@
     $shareText = urlencode($article->title);
     $shareRawUrl = url()->current();
     $summary = $article->short_description ?? $article->excerpt;
-    $banner = $article->bannerUrl();
     $crumbs = [
         ['label' => 'Home', 'url' => route('home')],
         ['label' => 'News', 'url' => route('frontend.news.index')],
@@ -71,11 +70,10 @@
         </header>
 
         <div class="et-container et-article__wrap et-article__main">
-            @if($banner)
-                <figure class="et-article-banner">
-                    <img src="{{ $banner }}" alt="{{ $article->title }}" loading="eager" width="960" height="480">
-                </figure>
-            @endif
+            @include('frontend.partials.article-banner', [
+                'images' => $article->bannerUrls(),
+                'alt' => $article->title,
+            ])
 
             <x-ad-slot page="news_detail" position="before_content" />
 

@@ -99,6 +99,7 @@
             height: modal.querySelector('[data-gie-height]'),
             lockRatio: modal.querySelector('[data-gie-lock-ratio]'),
             shapeGroup: modal.querySelector('[data-gie-shapes]'),
+            aspectGroup: modal.querySelector('[data-gie-aspects]'),
             preview: modal.querySelector('[data-gie-preview]'),
             previewWrap: modal.querySelector('[data-gie-preview-wrap]'),
             previewHint: modal.querySelector('[data-gie-preview-hint]'),
@@ -110,6 +111,7 @@
             naturalHeight: 0,
             aspect: NaN,
             shape: 'rectangle',
+            aspectKey: 'free',
             flipX: 1,
             flipY: 1,
             brightness: DEFAULTS.brightness,
@@ -185,6 +187,63 @@
             });
         }
 
+        function parseAspectKey(key) {
+            const value = String(key || 'free');
+            if (value === 'free' || value === 'rectangle') return NaN;
+            if (value === 'square' || value === 'circle' || value === '1:1') return 1;
+            if (value === 'og') return 1200 / 630;
+            if (value.includes(':')) {
+                const parts = value.split(':');
+                const a = Number(parts[0]);
+                const b = Number(parts[1]);
+                if (a > 0 && b > 0) return a / b;
+            }
+            const num = Number(value);
+            return Number.isFinite(num) && num > 0 ? num : NaN;
+        }
+
+        function syncAspectButtons(activeKey) {
+            if (!els.aspectGroup) return;
+            els.aspectGroup.querySelectorAll('[data-aspect]').forEach((btn) => {
+                btn.classList.toggle('is-active', btn.getAttribute('data-aspect') === activeKey);
+            });
+        }
+
+        function applyCropAspect(ratio) {
+            if (!state.cropper) return;
+            state.cropper.setAspectRatio(Number.isFinite(ratio) ? ratio : NaN);
+            scheduleLivePreview();
+        }
+
+        function setAspect(key) {
+            const aspectKey = String(key || 'free');
+            state.aspectKey = aspectKey;
+            const ratio = parseAspectKey(aspectKey);
+            syncAspectButtons(aspectKey);
+
+            if (aspectKey === '1:1') {
+                state.shape = 'square';
+                els.shapeGroup?.querySelectorAll('[data-shape]').forEach((btn) => {
+                    btn.classList.toggle('is-active', btn.getAttribute('data-shape') === 'square');
+                });
+                els.stage.classList.remove('is-circle-mask');
+            } else if (aspectKey === 'free') {
+                state.shape = 'rectangle';
+                els.shapeGroup?.querySelectorAll('[data-shape]').forEach((btn) => {
+                    btn.classList.toggle('is-active', btn.getAttribute('data-shape') === 'rectangle');
+                });
+                els.stage.classList.remove('is-circle-mask');
+            } else {
+                state.shape = 'rectangle';
+                els.shapeGroup?.querySelectorAll('[data-shape]').forEach((btn) => {
+                    btn.classList.toggle('is-active', btn.getAttribute('data-shape') === 'rectangle');
+                });
+                els.stage.classList.remove('is-circle-mask');
+            }
+
+            applyCropAspect(ratio);
+        }
+
         function setShape(shape) {
             state.shape = shape;
             els.shapeGroup.querySelectorAll('[data-shape]').forEach((btn) => {
@@ -192,8 +251,12 @@
             });
             if (!state.cropper) return;
             if (shape === 'square' || shape === 'circle') {
+                state.aspectKey = '1:1';
+                syncAspectButtons('1:1');
                 state.cropper.setAspectRatio(1);
             } else {
+                state.aspectKey = 'free';
+                syncAspectButtons('free');
                 state.cropper.setAspectRatio(NaN);
             }
             els.stage.classList.toggle('is-circle-mask', shape === 'circle');
@@ -356,7 +419,12 @@
             const onClick = async (event) => {
                 const actionBtn = event.target.closest('[data-gie-action]');
                 const shapeBtn = event.target.closest('[data-shape]');
+                const aspectBtn = event.target.closest('[data-aspect]');
 
+                if (aspectBtn) {
+                    setAspect(aspectBtn.getAttribute('data-aspect') || 'free');
+                    return;
+                }
                 if (shapeBtn) {
                     setShape(shapeBtn.getAttribute('data-shape') || 'rectangle');
                     return;
@@ -405,6 +473,7 @@
                         els.width.value = String(state.naturalWidth);
                         els.height.value = String(state.naturalHeight);
                         setShape('rectangle');
+                        setAspect('free');
                         applyFilters();
                         scheduleLivePreview(true);
                         return;

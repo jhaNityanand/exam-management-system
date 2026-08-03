@@ -13,8 +13,9 @@
 }
 
 .blog-banner-thumb {
-    height: 2.5rem;
-    width: 3.5rem;
+    height: auto;
+    width: 3.55rem;
+    aspect-ratio: 16 / 9;
     border-radius: 0.5rem;
     object-fit: cover;
     border: 1px solid #e2e8f0;
@@ -27,8 +28,9 @@
 }
 
 .blog-banner-placeholder {
-    height: 2.5rem;
-    width: 3.5rem;
+    height: auto;
+    width: 3.55rem;
+    aspect-ratio: 16 / 9;
     border-radius: 0.5rem;
     background: #f1f5f9;
     border: 1px dashed #cbd5e1;

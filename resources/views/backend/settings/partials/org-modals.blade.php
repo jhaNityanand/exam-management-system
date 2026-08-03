@@ -94,19 +94,21 @@
 
                 <section class="ems-dialog__section">
                     <h4 class="ems-dialog__section-title">Images</h4>
-                    <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">Desktop recommended <strong>1920×800</strong>. Mobile recommended <strong>1080×1350</strong>.</p>
+                    <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">Upload images at the recommended sizes below so heroes look sharp on desktop and mobile.</p>
                     <div class="hero-gallery-grid" id="hero-gallery-pickers">
                         @include('backend.partials.gallery-picker', [
                             'name' => 'image_id',
                             'label' => 'Desktop image',
                             'value' => null,
                             'kind' => 'image',
+                            'recommendKey' => 'hero_desktop',
                         ])
                         @include('backend.partials.gallery-picker', [
                             'name' => 'mobile_image_id',
                             'label' => 'Mobile image',
                             'value' => null,
                             'kind' => 'image',
+                            'recommendKey' => 'hero_mobile',
                         ])
                     </div>
                 </section>

@@ -157,6 +157,7 @@
             'multiple' => true,
             'value' => $attachmentIds,
             'kind' => 'image',
+            'recommendKey' => 'content_attachment',
         ])
         @error('attachment_ids')<p class="qcat-field-error is-visible">{{ $message }}</p>@enderror
     </div>

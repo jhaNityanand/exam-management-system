@@ -143,7 +143,13 @@
                             <select id="ad_banner_size" name="banner_size" class="panel-input w-full" data-ads-banner-size>
                                 <option value="">Select size…</option>
                                 @foreach($bannerSizes as $key => $size)
-                                    <option value="{{ $key }}" data-note="{{ $size['note'] }}">
+                                    <option
+                                        value="{{ $key }}"
+                                        data-note="{{ $size['note'] }}"
+                                        data-width="{{ $size['width'] }}"
+                                        data-height="{{ $size['height'] }}"
+                                        data-label="{{ $size['label'] }}"
+                                    >
                                         {{ $size['label'] }} — {{ $size['width'] }} × {{ $size['height'] }}
                                     </option>
                                 @endforeach
@@ -160,8 +166,12 @@
                             'value' => null,
                             'inputId' => 'ad_image_id',
                             'previewId' => 'ad_image_preview',
+                            'recommendKey' => 'ad_medium_rectangle',
                         ])
                         <p class="qcat-field-error" data-error-for="image_id" hidden></p>
+                        <p class="mt-1.5 text-xs text-teal-700 dark:text-teal-300" data-ads-image-size-hint>
+                            {{ \App\Support\ImageSizeGuide::hint('ad_medium_rectangle') }} Choose a banner size above to update this recommendation.
+                        </p>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>

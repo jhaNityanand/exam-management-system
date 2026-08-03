@@ -272,11 +272,23 @@
         const fetchGallery = async (kind = 'image', search = '') => {
             const url = new URL(global.galleryDataUrl, global.location.origin);
             url.searchParams.set('kind', kind);
-            url.searchParams.set('per_page', '24');
+            url.searchParams.set('per_page', '60');
             if (search) url.searchParams.set('search', search);
             const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
             if (!res.ok) throw new Error('Failed to load gallery');
             return res.json();
+        };
+
+        const matchesRecommend = (item, width, height) => {
+            const w = Number(item?.width || 0);
+            const h = Number(item?.height || 0);
+            const rw = Number(width || 0);
+            const rh = Number(height || 0);
+            if (!w || !h || !rw || !rh) return false;
+            if (w === rw && h === rh) return true;
+            const wTol = Math.max(2, Math.round(rw * 0.02));
+            const hTol = Math.max(2, Math.round(rh * 0.02));
+            return Math.abs(w - rw) <= wTol && Math.abs(h - rh) <= hTol;
         };
 
         const uploadFilesToGallery = (files, onProgress) => new Promise((resolve, reject) => {
@@ -545,6 +557,8 @@
 
             const loadGrid = async () => {
                 if (!grid) return;
+                const recW = Number(fieldRoot.dataset.recommendWidth || 0);
+                const recH = Number(fieldRoot.dataset.recommendHeight || 0);
                 grid.innerHTML = Array.from({ length: 12 }).map((_, i) => `
                     <div class="gallery-picker-skeleton" aria-hidden="true">
                         <div class="gallery-picker-skeleton__thumb"></div>
@@ -553,10 +567,17 @@
                 `).join('');
                 try {
                     const json = await fetchGallery(kind, searchInput?.value?.trim() || '');
-                    const items = json.data || [];
+                    let items = json.data || [];
                     if (!items.length) {
                         grid.innerHTML = '<p class="gallery-picker-modal__status">No media found.</p>';
                         return;
+                    }
+                    if (recW > 0 && recH > 0) {
+                        items = [...items].sort((a, b) => {
+                            const am = matchesRecommend(a, recW, recH) ? 0 : 1;
+                            const bm = matchesRecommend(b, recW, recH) ? 0 : 1;
+                            return am - bm;
+                        });
                     }
                     grid.innerHTML = '';
                     items.forEach((item) => {
@@ -564,8 +585,19 @@
                         cell.type = 'button';
                         cell.className = 'gallery-picker-grid-item';
                         cell.dataset.id = item.id;
+                        const recommended = matchesRecommend(item, recW, recH);
+                        if (recommended) cell.classList.add('is-recommended');
+                        const dims = (item.width && item.height)
+                            ? `${item.width} × ${item.height}`
+                            : '';
                         if (item.is_image && item.file_url) {
-                            cell.innerHTML = `<img src="${item.file_url}" alt="${item.original_name || ''}">`;
+                            cell.innerHTML = `
+                                <img src="${item.file_url}" alt="${item.original_name || ''}">
+                                <span class="gallery-picker-grid-item__meta">
+                                    ${recommended ? '<span class="gallery-picker-grid-item__badge">Recommended</span>' : '<span></span>'}
+                                    ${dims ? `<span class="gallery-picker-grid-item__dims">${dims}</span>` : ''}
+                                </span>
+                            `;
                         } else {
                             cell.innerHTML = `<div class="gallery-picker-grid-item__file">${item.original_name || 'File'}</div>`;
                         }

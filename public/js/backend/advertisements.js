@@ -754,6 +754,25 @@
         if (!els.bannerNote || !els.bannerSize) return;
         const option = els.bannerSize.selectedOptions?.[0];
         els.bannerNote.textContent = option?.dataset?.note || 'Select a size to see placement recommendations.';
+
+        const picker = els.adForm?.querySelector('[data-gallery-picker][data-name="image_id"]');
+        const hint = els.adForm?.querySelector('[data-ads-image-size-hint]');
+        const width = Number(option?.dataset?.width || 0);
+        const height = Number(option?.dataset?.height || 0);
+        const label = option?.dataset?.label || option?.textContent?.trim() || '';
+        if (picker && width > 0 && height > 0) {
+            picker.dataset.recommendWidth = String(width);
+            picker.dataset.recommendHeight = String(height);
+            picker.dataset.recommendLabel = `${width} × ${height} px`;
+            const sizeHint = picker.querySelector('.gallery-picker-size-hint, .gallery-picker-dropzone__size');
+            const text = `Recommended size: ${width} × ${height} px${label ? ` (${label})` : ''}.`;
+            if (sizeHint) sizeHint.textContent = text;
+            const modalRec = document.getElementById(picker.dataset.modalId)?.querySelector('[data-modal-recommend]');
+            if (modalRec) {
+                modalRec.innerHTML = `Recommended for this field: <strong>${width} × ${height} px</strong> — matching images are highlighted.`;
+            }
+            if (hint) hint.textContent = `${text} Matching gallery images are highlighted when you choose from gallery.`;
+        }
     };
 
     const openSourceChooser = (positionKey) => {

@@ -141,6 +141,12 @@
     gap: 0.4rem;
 }
 
+.gallery-editor-toolrow--aspects button {
+    min-width: 3.1rem;
+    padding: 0.35rem 0.55rem;
+    font-variant-numeric: tabular-nums;
+}
+
 .gallery-editor-toolrow button {
     border-radius: 0.6rem;
     border: 1px solid rgb(226 232 240);

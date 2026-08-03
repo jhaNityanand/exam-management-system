@@ -209,7 +209,7 @@ class CategoryController extends Controller
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('news_category_id', $newsCategory->id)
-            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
+            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage', 'banners'])
             ->latest('published_at')
             ->limit(6)
             ->get();

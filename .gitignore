@@ -38,3 +38,4 @@ auth.json
 /public/sitemaps/
 /public/feeds/
 /public/.well-known/security.txt
+/public/old-application

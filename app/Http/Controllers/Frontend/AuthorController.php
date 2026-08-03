@@ -115,7 +115,7 @@ class AuthorController extends Controller
             ->published()
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
             ->where('author_id', $author->id)
-            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage'])
+            ->with(['category:id,name,slug', 'bannerImage', 'featuredImage', 'banners'])
             ->orderByDesc('published_at')
             ->limit(3)
             ->get();
