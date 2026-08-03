@@ -114,10 +114,15 @@ class SeoSiteGenerator
 
         $imageCount = $imageEntries->sum(fn (array $entry) => count($entry['images'] ?? []));
         $imageXml = $this->renderUrlset($imageEntries);
-        $this->writeFile(public_path('sitemaps/images.xml'), $imageXml);
-        $this->writeFile(public_path('image-sitemap.xml'), $imageXml);
+        $imageRelative = 'sitemaps/images.xml';
+        $this->writeFile(public_path($imageRelative), $imageXml);
+        // Remove legacy root copy if a previous generate left it behind.
+        $legacyImageSitemap = public_path('image-sitemap.xml');
+        if (is_file($legacyImageSitemap)) {
+            @unlink($legacyImageSitemap);
+        }
         $childSitemaps[] = [
-            'loc' => $baseUrl.'/image-sitemap.xml',
+            'loc' => $baseUrl.'/'.$imageRelative,
             'lastmod' => now()->toAtomString(),
         ];
         $urlCounts['images'] = $imageEntries->count();
@@ -142,7 +147,7 @@ class SeoSiteGenerator
 
         return [
             'files' => array_merge(
-                ['sitemap.xml', 'image-sitemap.xml', 'robots.txt', 'humans.txt', '.well-known/security.txt', 'feeds/rss.xml', 'feeds/atom.xml', 'manifest.json'],
+                ['sitemap.xml', 'robots.txt', 'humans.txt', '.well-known/security.txt', 'feeds/rss.xml', 'feeds/atom.xml', 'manifest.json'],
                 array_map(fn ($s) => str_replace($baseUrl.'/', '', $s['loc']), $childSitemaps)
             ),
             'generated_at' => $generatedAt,
@@ -168,7 +173,7 @@ class SeoSiteGenerator
             'chunk_size' => (int) $this->setting('chunk_size', self::DEFAULT_CHUNK, $orgId),
             'files_exist' => [
                 'sitemap' => is_file(public_path('sitemap.xml')),
-                'image_sitemap' => is_file(public_path('image-sitemap.xml')),
+                'image_sitemap' => is_file(public_path('sitemaps/images.xml')),
                 'robots' => is_file(public_path('robots.txt')),
                 'rss' => is_file(public_path('feeds/rss.xml')),
                 'atom' => is_file(public_path('feeds/atom.xml')),
@@ -178,7 +183,7 @@ class SeoSiteGenerator
             ],
             'public_urls' => [
                 'sitemap' => url('/sitemap.xml'),
-                'image_sitemap' => url('/image-sitemap.xml'),
+                'image_sitemap' => url('/sitemaps/images.xml'),
                 'robots' => url('/robots.txt'),
                 'rss' => url('/feeds/rss.xml'),
                 'atom' => url('/feeds/atom.xml'),
@@ -351,7 +356,7 @@ class SeoSiteGenerator
             'Disallow: /up',
             '',
             'Sitemap: '.$baseUrl.'/sitemap.xml',
-            'Sitemap: '.$baseUrl.'/image-sitemap.xml',
+            'Sitemap: '.$baseUrl.'/sitemaps/images.xml',
         ];
 
         if ($extra !== '') {

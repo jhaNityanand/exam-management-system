@@ -29,9 +29,8 @@ Homestead.json
 .phpactor.json
 auth.json
 
-# Generated SEO / sitemap artifacts (created by seo:generate)
+# Generated SEO artifacts (seo:generate) — keep public/ clean in git
 /public/sitemap.xml
-/public/image-sitemap.xml
 /public/robots.txt
 /public/humans.txt
 /public/manifest.json

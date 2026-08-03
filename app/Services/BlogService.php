@@ -189,7 +189,7 @@ class BlogService
     protected function applyPrimaryBanner(array $data, array $bannerIds): array
     {
         $bannerIds = array_values(array_unique(array_filter(array_map('intval', $bannerIds))));
-        $data['banner_image_id'] = $bannerIds[0] ?? ($data['banner_image_id'] ?? null);
+        $data['banner_image_id'] = $bannerIds[0] ?? null;
 
         return $data;
     }

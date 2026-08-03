@@ -35,7 +35,7 @@ class SeoGenerationTest extends TestCase
     {
         foreach ([
             public_path('sitemap.xml'),
-            public_path('image-sitemap.xml'),
+            public_path('image-sitemap.xml'), // legacy path cleanup
             public_path('robots.txt'),
             public_path('humans.txt'),
             public_path('manifest.json'),
@@ -61,8 +61,8 @@ class SeoGenerationTest extends TestCase
             ->assertSuccessful();
 
         $this->assertFileExists(public_path('sitemap.xml'));
-        $this->assertFileExists(public_path('image-sitemap.xml'));
         $this->assertFileExists(public_path('sitemaps/images.xml'));
+        $this->assertFileDoesNotExist(public_path('image-sitemap.xml'));
         $this->assertFileExists(public_path('robots.txt'));
         $this->assertFileExists(public_path('feeds/rss.xml'));
         $this->assertFileExists(public_path('feeds/atom.xml'));
@@ -74,12 +74,13 @@ class SeoGenerationTest extends TestCase
         $robots = File::get(public_path('robots.txt'));
         $this->assertStringContainsString('Disallow: /admin', $robots);
         $this->assertStringContainsString('Sitemap: ', $robots);
-        $this->assertStringContainsString('image-sitemap.xml', $robots);
+        $this->assertStringContainsString('sitemaps/images.xml', $robots);
 
         $sitemap = File::get(public_path('sitemap.xml'));
         $this->assertStringContainsString('<sitemapindex', $sitemap);
         $this->assertStringContainsString('sitemaps/static.xml', $sitemap);
-        $this->assertStringContainsString('image-sitemap.xml', $sitemap);
+        $this->assertStringContainsString('sitemaps/images.xml', $sitemap);
+        $this->assertStringNotContainsString('image-sitemap.xml', $sitemap);
     }
 
     public function test_image_sitemap_includes_gallery_images_for_published_content(): void
@@ -129,7 +130,7 @@ class SeoGenerationTest extends TestCase
         $this->artisan('seo:generate', ['--org' => $this->organization->id])
             ->assertSuccessful();
 
-        $imageSitemap = File::get(public_path('image-sitemap.xml'));
+        $imageSitemap = File::get(public_path('sitemaps/images.xml'));
         $this->assertStringContainsString('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"', $imageSitemap);
         $this->assertStringContainsString('<image:loc>', $imageSitemap);
         $this->assertStringContainsString('gallery/seo/seo-banner.png', $imageSitemap);

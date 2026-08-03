@@ -107,6 +107,57 @@ test('user can create a blog with multiple banner images', function () {
     $response->assertRedirect(route('admin.blogs.show', $blog));
 });
 
+test('user can clear all blog banners on update', function () {
+    Storage::fake('public');
+
+    $banner = Gallery::create([
+        'organization_id' => $this->organization->id,
+        'original_name' => 'banner-clear.png',
+        'file_name' => 'banner-clear.png',
+        'file_path' => 'gallery/1/banner-clear.png',
+        'file_url' => '/storage/gallery/1/banner-clear.png',
+        'original_file_path' => 'gallery/1/banner-clear.png',
+        'mime_type' => 'image/png',
+        'kind' => 'image',
+        'file_size' => 900,
+        'status' => 'active',
+        'source' => 'gallery_ui',
+        'module' => 'blog',
+        'uploaded_by' => $this->user->id,
+        'created_by' => $this->user->id,
+    ]);
+
+    $blog = Blog::create([
+        'organization_id' => $this->organization->id,
+        'blog_category_id' => $this->category->id,
+        'title' => 'Banner Clear Post',
+        'slug' => 'banner-clear-post',
+        'content' => '<p>Has a banner.</p>',
+        'banner_image_id' => $banner->id,
+        'author_id' => $this->user->id,
+        'author_name' => 'Blog Editor',
+        'status' => 'published',
+        'published_at' => now(),
+        'created_by' => $this->user->id,
+    ]);
+    $blog->banners()->sync([$banner->id => ['sort_order' => 0]]);
+
+    // Omitting banner_ids simulates removing every banner in the UI.
+    $this->actingAs($this->user)
+        ->put(route('admin.blogs.update', $blog), [
+            'title' => 'Banner Clear Post',
+            'slug' => 'banner-clear-post',
+            'blog_category_id' => $this->category->id,
+            'content' => '<p>Has a banner.</p>',
+            'status' => 'published',
+        ])
+        ->assertRedirect();
+
+    $blog->refresh();
+    expect($blog->banner_image_id)->toBeNull();
+    expect($blog->banners()->count())->toBe(0);
+});
+
 test('user can create a published blog post', function () {
     $response = $this->actingAs($this->user)
         ->post(route('admin.blogs.store'), [

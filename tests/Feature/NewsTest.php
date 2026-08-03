@@ -106,6 +106,56 @@ test('user can create news with multiple banner images', function () {
     $response->assertRedirect(route('admin.news.show', $news));
 });
 
+test('user can clear all news banners on update', function () {
+    Storage::fake('public');
+
+    $banner = Gallery::create([
+        'organization_id' => $this->organization->id,
+        'original_name' => 'banner-clear.png',
+        'file_name' => 'banner-clear.png',
+        'file_path' => 'gallery/1/banner-clear.png',
+        'file_url' => '/storage/gallery/1/banner-clear.png',
+        'original_file_path' => 'gallery/1/banner-clear.png',
+        'mime_type' => 'image/png',
+        'kind' => 'image',
+        'file_size' => 900,
+        'status' => 'active',
+        'source' => 'gallery_ui',
+        'module' => 'news',
+        'uploaded_by' => $this->user->id,
+        'created_by' => $this->user->id,
+    ]);
+
+    $news = News::create([
+        'organization_id' => $this->organization->id,
+        'news_category_id' => $this->category->id,
+        'title' => 'Banner Clear News',
+        'slug' => 'banner-clear-news',
+        'content' => '<p>Has a banner.</p>',
+        'banner_image_id' => $banner->id,
+        'author_id' => $this->user->id,
+        'author_name' => 'News Editor',
+        'status' => 'published',
+        'published_at' => now(),
+        'created_by' => $this->user->id,
+    ]);
+    $news->banners()->sync([$banner->id => ['sort_order' => 0]]);
+
+    $this->actingAs($this->user)
+        ->put(route('admin.news.update', $news), [
+            'title' => 'Banner Clear News',
+            'slug' => 'banner-clear-news',
+            'news_category_id' => $this->category->id,
+            'content' => '<p>Has a banner.</p>',
+            'status' => 'published',
+        ])
+        ->assertRedirect();
+
+    $news->refresh();
+    expect($news->banner_image_id)->toBeNull();
+    expect($news->banners()->count())->toBe(0);
+});
+
 test('user can create a published news item', function () {
     $response = $this->actingAs($this->user)
         ->post(route('admin.news.store'), [

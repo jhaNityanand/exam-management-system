@@ -62,7 +62,6 @@ class CheckMaintenanceMode
             'docs/*',
             'sanctum/csrf-cookie',
             'sitemap.xml',
-            'image-sitemap.xml',
             'sitemaps',
             'sitemaps/*',
             'robots.txt',

@@ -27,6 +27,13 @@ class UpdateBlogRequest extends FormRequest
             $merge['seo_keywords'] = $this->input('meta_keywords');
         }
 
+        // Banner uploader is always on the edit form. When every banner is removed,
+        // browsers omit banner_ids[] entirely — treat that as an explicit clear.
+        $merge['banner_ids'] = array_values(array_filter(array_map(
+            'intval',
+            (array) $this->input('banner_ids', [])
+        )));
+
         if ($merge !== []) {
             $this->merge($merge);
         }
