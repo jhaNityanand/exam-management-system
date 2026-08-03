@@ -67,7 +67,7 @@
                                     <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
                                     <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
-                                <input type="search" name="search" value="{{ request('search', request('q')) }}" placeholder="Search by title or topic…">
+                                <input type="text" name="search" enterkeyhint="search" inputmode="search" autocomplete="off" value="{{ request('search', request('q')) }}" placeholder="Search by title or topic…">
                             </span>
                         </label>
 

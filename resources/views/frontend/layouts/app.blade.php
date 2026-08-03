@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/app.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/frontend/cookie-consent.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/icon-buttons.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('vendor/tom-select/tom-select.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('vendor/tom-select/tom-select.default.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/components/searchable-select.css') }}">
     @include('frontend.partials.integrations-head')
     @php($adCodes = ad_custom_code())
     @if(trim($adCodes['header_code'] ?? '') !== '')
@@ -63,7 +66,15 @@
     <div class="et-visually-hidden" role="status" aria-live="polite" data-global-live></div>
 
     @include('partials.flash-toasts')
+    <script>
+        window.EmsSelectConfig = window.EmsSelectConfig || {
+            searchMinOptions: 5,
+            placeholder: 'Select an option',
+        };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <script src="{{ versioned_asset('vendor/tom-select/tom-select.complete.min.js') }}" defer></script>
+    <script src="{{ versioned_asset('js/components/searchable-select.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/utils.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/app.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/load-more.js') }}" defer></script>

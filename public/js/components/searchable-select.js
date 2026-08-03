@@ -106,6 +106,10 @@
     if (select.dataset.disableSearch != null || select.hasAttribute('data-disable-search')) {
       return false;
     }
+    // Listing filter modals: keep dropdown search available for category-style lists.
+    if (select.closest('[data-filter-modal]')) {
+      return countableOptions(select) >= 3;
+    }
     return countableOptions(select) >= searchMinOptions();
   }
 
