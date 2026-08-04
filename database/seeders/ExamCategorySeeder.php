@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\ExamCategory;
 use App\Models\Organization;
 use App\Models\User;
+use Database\Seeders\Support\SeederContact;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -19,8 +20,8 @@ class ExamCategorySeeder extends Seeder
     public function run(): void
     {
         $organization = Organization::query()->where('slug', 'demo-org')->first();
-        $admin = User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_INFO)->first()
-            ?: User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_ADMIN)->first();
+        $admin = User::query()->where('email', SeederContact::EMAIL_INFO)->first()
+            ?: User::query()->where('email', SeederContact::EMAIL_ADMIN)->first();
 
         if (! $organization || ! $admin) {
             $this->command?->warn('ExamCategorySeeder: demo-org or orgadmin missing. Skipping.');
@@ -180,6 +181,8 @@ class ExamCategorySeeder extends Seeder
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'ai_generated' => false,
             'ai_improve' => false,
+            'is_ai_generated' => false,
+            'is_sitemap_url_created' => false,
         ]);
 
         foreach (array_values($children) as $index => $child) {

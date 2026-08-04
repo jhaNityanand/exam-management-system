@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\BlogCategory;
 use App\Models\Organization;
 use App\Models\User;
+use Database\Seeders\Support\SeederContact;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -15,9 +16,9 @@ class BlogCategorySeeder extends Seeder
 {
     public function run(): void
     {
-        $org    = Organization::where('slug', 'demo-org')->firstOrFail();
-        $editor = User::where('email', \Database\Seeders\Support\SeederContact::EMAIL_INFO)->first()
-            ?: User::where('email', \Database\Seeders\Support\SeederContact::EMAIL_ADMIN)->firstOrFail();
+        $org = Organization::where('slug', 'demo-org')->firstOrFail();
+        $editor = User::where('email', SeederContact::EMAIL_INFO)->first()
+            ?: User::where('email', SeederContact::EMAIL_ADMIN)->firstOrFail();
 
         $this->insertTree($this->tree(), $org->id, $editor->id, null, '', 0);
 
@@ -66,23 +67,23 @@ class BlogCategorySeeder extends Seeder
     private function cat(string $name, string $description, array $children = [], ?string $slug = null, string $status = 'active'): array
     {
         return [
-            'name'             => $name,
-            'description'      => $description,
-            'status'           => $status,
-            'slug'             => $slug,
-            'meta_title'       => "{$name} — Blog",
+            'name' => $name,
+            'description' => $description,
+            'status' => $status,
+            'slug' => $slug,
+            'meta_title' => "{$name} — Blog",
             'meta_description' => Str::limit("Articles about {$name}. {$description}", 160),
-            'meta_keywords'    => strtolower(str_replace([' and ', ' & ', '/'], [', ', ', ', ', '], $name)),
-            'og_title'         => "{$name} Articles",
-            'og_description'   => Str::limit($description, 160),
-            'robots'           => 'index,follow',
-            'schema_markup'    => json_encode([
+            'meta_keywords' => strtolower(str_replace([' and ', ' & ', '/'], [', ', ', ', ', '], $name)),
+            'og_title' => "{$name} Articles",
+            'og_description' => Str::limit($description, 160),
+            'robots' => 'index,follow',
+            'schema_markup' => json_encode([
                 '@context' => 'https://schema.org',
                 '@type' => 'CollectionPage',
                 'name' => "{$name} — Blog",
                 'description' => Str::limit($description, 160),
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            'children'         => $children,
+            'children' => $children,
         ];
     }
 
@@ -96,23 +97,25 @@ class BlogCategorySeeder extends Seeder
             unset($node['children']);
 
             $explicitSlug = $node['slug'] ?? null;
-            $baseSlug     = Str::slug($node['name']);
-            $slug         = $explicitSlug ?: ($slugPrefix !== '' ? "{$slugPrefix}-{$baseSlug}" : $baseSlug);
+            $baseSlug = Str::slug($node['name']);
+            $slug = $explicitSlug ?: ($slugPrefix !== '' ? "{$slugPrefix}-{$baseSlug}" : $baseSlug);
             $node['slug'] = $slug;
 
             $category = BlogCategory::firstOrCreate(
                 [
                     'organization_id' => $orgId,
-                    'name'            => $node['name'],
-                    'parent_id'       => $parentId,
+                    'name' => $node['name'],
+                    'parent_id' => $parentId,
                 ],
                 array_merge($node, [
                     'organization_id' => $orgId,
-                    'parent_id'       => $parentId,
-                    'sort_order'      => $sortOffset + $index + 1,
-                    'created_by'      => $editorId,
-                    'ai_generated'    => false,
-                    'ai_improve'      => false,
+                    'parent_id' => $parentId,
+                    'sort_order' => $sortOffset + $index + 1,
+                    'created_by' => $editorId,
+                    'ai_generated' => false,
+                    'ai_improve' => false,
+                    'is_ai_generated' => false,
+                    'is_sitemap_url_created' => false,
                 ])
             );
 

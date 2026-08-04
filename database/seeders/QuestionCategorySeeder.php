@@ -63,6 +63,8 @@ class QuestionCategorySeeder extends Seeder
                 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'ai_generated' => false,
                 'ai_improve' => false,
+                'is_ai_generated' => false,
+                'is_sitemap_url_created' => false,
             ]);
         }
 

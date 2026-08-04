@@ -307,6 +307,7 @@
             <a href="#questions">Questions &amp; import</a>
             <a href="#exams">Exams &amp; attempts</a>
             <a href="#content">CMS, SEO &amp; frontend</a>
+            <a href="#llm">LLM / AI SEO</a>
             <a href="#settings">Backend settings</a>
             <a href="#gallery">Gallery &amp; storage</a>
             <a href="#database">Data model</a>
@@ -516,10 +517,15 @@ npm run dev</code></pre>
                         <tr><td><code>GALLERY_MAX_IMAGE_KB</code></td><td><code>5120</code></td><td>Gallery image upload limit.</td></tr>
                         <tr><td><code>GALLERY_MAX_VIDEO_KB</code></td><td><code>51200</code></td><td>Gallery video upload limit.</td></tr>
                         <tr><td><code>GALLERY_MAX_FILE_KB</code></td><td><code>20480</code></td><td>Gallery document upload limit.</td></tr>
+                        <tr><td><code>LLM_PROVIDER</code></td><td><code>groq</code></td><td>Active LLM provider: <code>groq</code>, <code>openrouter</code>, or <code>gemini</code>.</td></tr>
+                        <tr><td><code>GROQ_API_KEY</code> / <code>OPENROUTER_API_KEY</code> / <code>GEMINI_API_KEY</code></td><td>—</td><td>Provider API keys (set the one matching <code>LLM_PROVIDER</code>).</td></tr>
+                        <tr><td><code>GROQ_MODEL</code> / <code>OPENROUTER_MODEL</code> / <code>GEMINI_MODEL</code></td><td>provider default</td><td>Model id for the selected provider.</td></tr>
+                        <tr><td><code>LLM_BATCH_SIZE</code></td><td><code>6</code></td><td>Records per SEO batch request (cost control).</td></tr>
+                        <tr><td><code>LLM_SEO_EVERY_MINUTES</code></td><td><code>5</code></td><td>Scheduler interval for <code>llm:process-seo</code>.</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="callout">Set <code>APP_DEBUG=false</code>, configure a real mail transport, and use production-safe cache/session/queue settings before deployment.</div>
+                <div class="callout">Set <code>APP_DEBUG=false</code>, configure a real mail transport, and use production-safe cache/session/queue settings before deployment. Switch LLM providers by changing <code>LLM_PROVIDER</code> only — no code deploy required.</div>
             </section>
 
             <section id="accounts" data-searchable>
@@ -637,6 +643,7 @@ npm run dev</code></pre>
                 </div>
                 <h3>SEO model</h3>
                 <p>SEO sections use one canonical slug input and support meta title/description, canonical URL, Open Graph title/description and a reusable gallery-backed OG image picker. OG images are available for questions, exams and all question/exam/blog/news category types; blog and news content also use their existing media integration.</p>
+                <p>Create forms default <strong>Create with AI</strong> on and <strong>Improve with AI</strong> off. Flags are stored as <code>ai_generated</code> / <code>ai_improve</code>; processing state uses <code>is_ai_generated</code>. Sitemap tracking uses <code>is_sitemap_url_created</code>.</p>
                 <h3>Public experience</h3>
                 <ul>
                     <li>Database-driven home page sections, navigation and site settings.</li>
@@ -646,6 +653,42 @@ npm run dev</code></pre>
                     <li>Contact submissions and newsletter subscriptions.</li>
                     <li>Authenticated account dashboard, exams, results and settings pages.</li>
                 </ul>
+            </section>
+
+            <section id="llm" data-searchable>
+                <h2>LLM / AI SEO</h2>
+                <p class="lead">Provider-based SEO automation. Application code uses <code>App\Services\Llm\LlmService</code> only — never provider classes directly.</p>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3>Providers</h3>
+                        <ul>
+                            <li><code>GroqProvider</code> — OpenAI-compatible chat API</li>
+                            <li><code>OpenRouterProvider</code> — multi-model gateway</li>
+                            <li><code>GeminiProvider</code> — Google Generative Language API</li>
+                        </ul>
+                        <p>Switch with <code>LLM_PROVIDER</code> in <code>.env</code>. Config lives in <code>config/llm.php</code>.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Cost optimization</h3>
+                        <ul>
+                            <li>Batch 5–6 pending records per LLM request</li>
+                            <li>Dedicated prompts (<code>SeoGeneratePrompt</code>, <code>SeoImprovePrompt</code>)</li>
+                            <li>Scheduler + queue (<code>llm:process-seo</code>, <code>ProcessSeoBatchJob</code>)</li>
+                            <li>Cache locks prevent duplicate processing</li>
+                            <li>Graceful skip when API key missing</li>
+                        </ul>
+                    </div>
+                </div>
+                <h3>Workflow</h3>
+                <ol>
+                    <li>Admin creates content with Create with AI enabled (default).</li>
+                    <li>Record saves immediately; SEO is not generated in the request.</li>
+                    <li>Scheduler dispatches a batch job every few minutes.</li>
+                    <li>LLM fills meta/OG/Twitter-ready text fields; <code>is_ai_generated</code> becomes true.</li>
+                    <li>Improve with AI re-queues existing SEO for refinement.</li>
+                </ol>
+                <p>Question Excel import sets <code>ai_generated = true</code> automatically. OG images are never generated — defaults/gallery images are reused. Logs: <code>storage/logs/llm-*.log</code>.</p>
+                <p>Commands: <code>php artisan llm:process-seo</code> (queue) · <code>php artisan llm:process-seo --sync</code> (inline). Future providers: add a class under <code>app/Services/Llm/Providers</code>, register in <code>LlmService</code> / <code>config/llm.php</code>.</p>
             </section>
 
             <section id="settings" data-searchable>

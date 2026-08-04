@@ -8,7 +8,9 @@ use App\Models\Organization;
 use App\Models\Question;
 use App\Models\QuestionCategory;
 use App\Models\User;
+use App\Services\CandidateExam\ExamRequirementResolver;
 use App\Support\UniqueOrgSlug;
+use Database\Seeders\Support\SeederContact;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -33,8 +35,8 @@ class ExamSeeder extends Seeder
     public function run(): void
     {
         $organization = Organization::query()->where('slug', 'demo-org')->first();
-        $admin = User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_INFO)->first()
-            ?: User::query()->where('email', \Database\Seeders\Support\SeederContact::EMAIL_ADMIN)->first();
+        $admin = User::query()->where('email', SeederContact::EMAIL_INFO)->first()
+            ?: User::query()->where('email', SeederContact::EMAIL_ADMIN)->first();
 
         if (! $organization || ! $admin) {
             $this->command?->warn('ExamSeeder: demo-org or orgadmin missing. Skipping.');
@@ -813,9 +815,11 @@ HTML,
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)),
             'ai_generated' => false,
             'ai_improve' => false,
+            'is_ai_generated' => false,
+            'is_sitemap_url_created' => false,
         ]);
 
-        $proctoring = app(\App\Services\CandidateExam\ExamRequirementResolver::class)->syncPolicy($exam);
+        $proctoring = app(ExamRequirementResolver::class)->syncPolicy($exam);
         if (is_array($config['proctoring'] ?? null) && $config['proctoring'] !== []) {
             $proctoring->fill($config['proctoring'])->save();
         }

@@ -3,8 +3,10 @@
 namespace App\Models\Cms;
 
 use App\Models\Concerns\BelongsToOrganization;
+use App\Models\Concerns\HasAiSeo;
 use App\Models\Gallery;
 use App\Models\Organization;
+use App\Support\SeoImage;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SitePage extends Model
 {
-    use BelongsToOrganization, SoftDeletes;
+    use BelongsToOrganization, HasAiSeo, SoftDeletes;
 
     protected $table = 'site_pages';
 
@@ -27,6 +29,10 @@ class SitePage extends Model
         'seo_title',
         'seo_description',
         'seo_keywords',
+        'ai_generated',
+        'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
         'status',
         'published_at',
         'sort_order',
@@ -37,6 +43,10 @@ class SitePage extends Model
         return [
             'published_at' => 'datetime',
             'sort_order' => 'integer',
+            'ai_generated' => 'boolean',
+            'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
         ];
     }
 
@@ -67,7 +77,7 @@ class SitePage extends Model
 
     public function seoImageUrl(): string
     {
-        $type = \App\Support\SeoImage::typeForCmsPage($this->template, $this->slug);
+        $type = SeoImage::typeForCmsPage($this->template, $this->slug);
 
         return seo_image($this->socialImageUrl(), $type);
     }

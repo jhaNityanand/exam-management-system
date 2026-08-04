@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class QuestionImportService
@@ -129,7 +130,7 @@ class QuestionImportService
                     'status' => 'imported',
                     'question_id' => $question->id,
                 ];
-            } catch (\Illuminate\Validation\ValidationException $e) {
+            } catch (ValidationException $e) {
                 $results[] = [
                     'row' => $sourceRow,
                     'status' => 'failed',
@@ -291,6 +292,10 @@ class QuestionImportService
             'explanation' => $this->nullableString($row['explanation'] ?? null),
             'reference' => $this->nullableString($row['reference'] ?? null),
             'status' => $status,
+            'ai_generated' => true,
+            'ai_improve' => false,
+            'is_ai_generated' => false,
+            'is_sitemap_url_created' => false,
         ];
     }
 
@@ -346,7 +351,7 @@ class QuestionImportService
         }
 
         if (isset($this->seenBodies[$key])) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'body' => ['Duplicate question in this import file. Each question text must be unique.'],
             ]);
         }
@@ -357,7 +362,7 @@ class QuestionImportService
             ->exists();
 
         if ($exists) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'body' => ['A question with this text already exists in your question bank.'],
             ]);
         }
@@ -441,6 +446,7 @@ class QuestionImportService
 
             if (isset($this->categoryCache[$cacheKey])) {
                 $parentId = $this->categoryCache[$cacheKey];
+
                 continue;
             }
 

@@ -3,16 +3,16 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
-
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Question extends Model
 {
-    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, Concerns\HasAiSeo, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $fillable = [
         // Relations & Audit
@@ -60,6 +60,8 @@ class Question extends Model
         // AI flags
         'ai_generated',
         'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
     ];
 
     protected function casts(): array
@@ -72,6 +74,8 @@ class Question extends Model
             'marks_list' => 'array',
             'ai_generated' => 'boolean',
             'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
             'is_public' => 'boolean',
             'show_explanation_publicly' => 'boolean',
             'view_count' => 'integer',
@@ -133,7 +137,7 @@ class Question extends Model
 
         $plain = trim(preg_replace('/\s+/', ' ', strip_tags((string) $this->body)));
 
-        return $plain !== '' ? \Illuminate\Support\Str::limit($plain, 120, '') : 'Question #'.$this->id;
+        return $plain !== '' ? Str::limit($plain, 120, '') : 'Question #'.$this->id;
     }
 
     public function isChoiceType(): bool

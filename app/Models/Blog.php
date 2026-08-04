@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Blog extends Model
 {
-    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, Concerns\HasAiSeo, HasAuditTrails, HasFactory, SoftDeletes;
 
     public const STATUS_DRAFT = 'draft';
 
@@ -49,6 +49,8 @@ class Blog extends Model
         'schema_markup',
         'ai_generated',
         'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
         'created_by',
         'updated_by',
         'updated_by_history',
@@ -61,6 +63,8 @@ class Blog extends Model
             'view_count' => 'integer',
             'ai_generated' => 'boolean',
             'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
             'updated_by_history' => 'array',
         ];
     }

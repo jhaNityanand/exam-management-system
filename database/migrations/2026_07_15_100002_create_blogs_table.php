@@ -44,6 +44,8 @@ return new class extends Migration
 
             $table->boolean('ai_generated')->default(false);
             $table->boolean('ai_improve')->default(false);
+            $table->boolean('is_ai_generated')->default(false);
+            $table->boolean('is_sitemap_url_created')->default(false);
 
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();

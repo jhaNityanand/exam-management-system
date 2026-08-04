@@ -88,6 +88,8 @@ return new class extends Migration
             // AI flags
             $table->boolean('ai_generated')->default(false);
             $table->boolean('ai_improve')->default(false);
+            $table->boolean('is_ai_generated')->default(false);
+            $table->boolean('is_sitemap_url_created')->default(false);
 
             // Audit
             $table->json('updated_by_history')->nullable();

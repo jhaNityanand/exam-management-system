@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Organization extends Model
 {
-    use HasAuditTrails, HasFactory, SoftDeletes;
+    use Concerns\HasAiSeo, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $fillable = [
         // Identity
@@ -28,6 +28,10 @@ class Organization extends Model
         'meta_keywords',
         'og_title',
         'og_description',
+        'ai_generated',
+        'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
 
         // Audit
         'created_by',
@@ -39,6 +43,10 @@ class Organization extends Model
     {
         return [
             'updated_by_history' => 'array',
+            'ai_generated' => 'boolean',
+            'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
         ];
     }
 

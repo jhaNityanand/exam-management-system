@@ -107,6 +107,10 @@ return new class extends Migration
             $table->string('seo_title')->nullable();
             $table->text('seo_description')->nullable();
             $table->string('seo_keywords')->nullable();
+            $table->boolean('ai_generated')->default(false);
+            $table->boolean('ai_improve')->default(false);
+            $table->boolean('is_ai_generated')->default(false);
+            $table->boolean('is_sitemap_url_created')->default(false);
             $table->string('status', 20)->default('published');
             $table->timestamp('published_at')->nullable();
             $table->unsignedInteger('sort_order')->default(0);

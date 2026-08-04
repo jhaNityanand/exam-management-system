@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class News extends Model
 {
-    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, Concerns\HasAiSeo, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $table = 'news';
 
@@ -65,6 +65,8 @@ class News extends Model
         'schema_markup',
         'ai_generated',
         'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
         'created_by',
         'updated_by',
         'updated_by_history',
@@ -83,6 +85,8 @@ class News extends Model
             'is_trending' => 'boolean',
             'ai_generated' => 'boolean',
             'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
             'updated_by_history' => 'array',
         ];
     }

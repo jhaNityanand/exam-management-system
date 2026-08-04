@@ -14,6 +14,13 @@ use App\Models\Cms\SiteSetting;
 use App\Models\Cms\SocialLink;
 use App\Models\Cms\Testimonial;
 use App\Models\Organization;
+use App\Services\Advertisement\AdvertisementService;
+use App\Services\Seo\SeoSiteGenerator;
+use App\Services\Settings\EmailConfigurationService;
+use App\Services\Settings\IntegrationsSettingsService;
+use App\Services\Settings\MaintenanceModeService;
+use App\Services\Settings\SecuritySettingsService;
+use Database\Seeders\Support\SeederContact;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -37,7 +44,7 @@ class FrontendCmsSeeder extends Seeder
 
         // Active banner ads with images are created by DemoMediaSeeder.
         if ($orgId) {
-            app(\App\Services\Advertisement\AdvertisementService::class)->seedDefaults($orgId);
+            app(AdvertisementService::class)->seedDefaults($orgId);
         }
     }
 
@@ -49,10 +56,10 @@ class FrontendCmsSeeder extends Seeder
             ['group' => 'brand', 'key' => 'tagline', 'value' => 'Learn, practice, and stay informed — in one place.', 'type' => 'string', 'label' => 'Tagline'],
             ['group' => 'brand', 'key' => 'logo_text', 'value' => 'Examtube', 'type' => 'string', 'label' => 'Logo text'],
             ['group' => 'brand', 'key' => 'description', 'value' => 'Examtube.in is a learning platform for online exams, blogs, news, articles, organizations, and curated learning content — built for students, mentors, and institutes.', 'type' => 'text', 'label' => 'Description'],
-            ['group' => 'contact', 'key' => 'email', 'value' => \Database\Seeders\Support\SeederContact::EMAIL_SUPPORT, 'type' => 'string', 'label' => 'Support email'],
-            ['group' => 'contact', 'key' => 'phone', 'value' => \Database\Seeders\Support\SeederContact::PHONE, 'type' => 'string', 'label' => 'Support phone'],
-            ['group' => 'contact', 'key' => 'whatsapp', 'value' => \Database\Seeders\Support\SeederContact::PHONE, 'type' => 'string', 'label' => 'WhatsApp'],
-            ['group' => 'contact', 'key' => 'address', 'value' => \Database\Seeders\Support\SeederContact::ADDRESS, 'type' => 'text', 'label' => 'Address'],
+            ['group' => 'contact', 'key' => 'email', 'value' => SeederContact::EMAIL_SUPPORT, 'type' => 'string', 'label' => 'Support email'],
+            ['group' => 'contact', 'key' => 'phone', 'value' => SeederContact::PHONE, 'type' => 'string', 'label' => 'Support phone'],
+            ['group' => 'contact', 'key' => 'whatsapp', 'value' => SeederContact::PHONE, 'type' => 'string', 'label' => 'WhatsApp'],
+            ['group' => 'contact', 'key' => 'address', 'value' => SeederContact::ADDRESS, 'type' => 'text', 'label' => 'Address'],
             ['group' => 'contact', 'key' => 'hours', 'value' => 'Monday 10:00 AM – 4:00 PM (IST); Tuesday 10:00 AM – 4:00 PM (IST); Wednesday 10:00 AM – 4:00 PM (IST); Thursday 10:00 AM – 4:00 PM (IST); Friday 10:00 AM – 4:00 PM (IST); Saturday 10:00 AM – 4:00 PM (IST)', 'type' => 'string', 'label' => 'Support hours'],
             ['group' => 'contact', 'key' => 'support_hours', 'value' => json_encode([
                 ['day' => 'monday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
@@ -62,7 +69,7 @@ class FrontendCmsSeeder extends Seeder
                 ['day' => 'friday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
                 ['day' => 'saturday', 'from' => '10:00', 'to' => '16:00', 'timezone' => 'Asia/Kolkata'],
             ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 'type' => 'json', 'label' => 'Support hours schedule'],
-            ['group' => 'contact', 'key' => 'maps_url', 'value' => \Database\Seeders\Support\SeederContact::MAPS_URL, 'type' => 'string', 'label' => 'Google Maps URL'],
+            ['group' => 'contact', 'key' => 'maps_url', 'value' => SeederContact::MAPS_URL, 'type' => 'string', 'label' => 'Google Maps URL'],
             ['group' => 'seo', 'key' => 'default_title', 'value' => 'Examtube.in — Exams, Blogs, News, Articles & Learning', 'type' => 'string', 'label' => 'Default SEO title'],
             ['group' => 'seo', 'key' => 'default_description', 'value' => 'Practice online exams, read blogs and articles, follow education news, and manage learning content for your organization on Examtube.in.', 'type' => 'text', 'label' => 'Default SEO description'],
             ['group' => 'seo', 'key' => 'default_keywords', 'value' => 'online exams, blogs, news, articles, organizations, learning content, mock tests, Examtube', 'type' => 'string', 'label' => 'Default keywords'],
@@ -96,7 +103,7 @@ class FrontendCmsSeeder extends Seeder
             );
         }
 
-        app(\App\Services\Settings\MaintenanceModeService::class)->seedDefaults($orgId, [
+        app(MaintenanceModeService::class)->seedDefaults($orgId, [
             'enabled' => false,
             'title' => 'We will be right back',
             'message' => '<p>We are currently performing scheduled maintenance to improve your experience.</p><p>Please check back shortly.</p>',
@@ -108,20 +115,20 @@ class FrontendCmsSeeder extends Seeder
             'social_telegram' => 'https://t.me/examtube',
         ]);
 
-        app(\App\Services\Seo\SeoSiteGenerator::class)->seedDefaults($orgId);
+        app(SeoSiteGenerator::class)->seedDefaults($orgId);
         try {
-            app(\App\Services\Seo\SeoSiteGenerator::class)->generate($orgId);
+            app(SeoSiteGenerator::class)->generate($orgId);
         } catch (\Throwable) {
             // SEO file generation is best-effort during seeding (filesystem/URL config).
         }
 
-        app(\App\Services\Settings\EmailConfigurationService::class)->seedDefaults($orgId, [
-            'from_address' => \Database\Seeders\Support\SeederContact::EMAIL_SUPPORT,
+        app(EmailConfigurationService::class)->seedDefaults($orgId, [
+            'from_address' => SeederContact::EMAIL_SUPPORT,
             'from_name' => 'Examtube.in',
         ]);
 
-        app(\App\Services\Settings\IntegrationsSettingsService::class)->seedDefaults($orgId);
-        app(\App\Services\Settings\SecuritySettingsService::class)->seedDefaults($orgId);
+        app(IntegrationsSettingsService::class)->seedDefaults($orgId);
+        app(SecuritySettingsService::class)->seedDefaults($orgId);
     }
 
     protected function seedMenus(?int $orgId): void
@@ -328,7 +335,7 @@ class FrontendCmsSeeder extends Seeder
                 'title' => 'Careers at Examtube',
                 'template' => 'careers',
                 'excerpt' => 'Join a team building better exam experiences for India.',
-                'content' => '<p>We welcome educators, full-stack engineers, content strategists, and growth partners who care about accessible education technology.</p><p>Email <strong>'.\Database\Seeders\Support\SeederContact::EMAIL_INFO.'</strong> with your portfolio and the role you are excited about.</p>',
+                'content' => '<p>We welcome educators, full-stack engineers, content strategists, and growth partners who care about accessible education technology.</p><p>Email <strong>'.SeederContact::EMAIL_INFO.'</strong> with your portfolio and the role you are excited about.</p>',
             ],
         ];
 
@@ -342,6 +349,10 @@ class FrontendCmsSeeder extends Seeder
                     'content' => $page['content'],
                     'seo_title' => $page['title'].' | Examtube.in',
                     'seo_description' => $page['excerpt'],
+                    'ai_generated' => false,
+                    'ai_improve' => false,
+                    'is_ai_generated' => false,
+                    'is_sitemap_url_created' => false,
                     'status' => 'published',
                     'published_at' => now(),
                 ]
@@ -417,7 +428,7 @@ class FrontendCmsSeeder extends Seeder
             ['slug' => 'accounts', 'featured' => true,  'question' => 'How do I reset my password?', 'answer' => 'Use Forgot password on the login page. You will receive a secure reset link on your registered email address.'],
             ['slug' => 'accounts', 'featured' => false, 'question' => 'Where can I track my progress?', 'answer' => 'After logging in, open your profile dashboard to review exam attempts, results, and saved reading preferences.'],
             ['slug' => 'accounts', 'featured' => false, 'question' => 'Can I change my registered email address?', 'answer' => 'Yes. Go to Profile → Account settings and update your email. A verification link will be sent to the new address before the change takes effect.'],
-            ['slug' => 'accounts', 'featured' => false, 'question' => 'How do I delete my account?', 'answer' => 'Send a deletion request to '.\Database\Seeders\Support\SeederContact::EMAIL_SUPPORT.' from your registered email address. Accounts are permanently removed within 7 business days. Attempt history cannot be recovered after deletion.'],
+            ['slug' => 'accounts', 'featured' => false, 'question' => 'How do I delete my account?', 'answer' => 'Send a deletion request to '.SeederContact::EMAIL_SUPPORT.' from your registered email address. Accounts are permanently removed within 7 business days. Attempt history cannot be recovered after deletion.'],
 
             // Institutes & admins
             ['slug' => 'institutes-admins', 'featured' => false, 'question' => 'How do I set up an institute workspace?', 'answer' => 'After registering, navigate to Admin → Settings → Organization to configure your branding, contact details, and homepage content. You can then create exam categories, publish exams, and manage candidates from the admin panel.'],
@@ -433,17 +444,16 @@ class FrontendCmsSeeder extends Seeder
 
         foreach ($faqs as $i => $faq) {
             Faq::query()->create([
-                'organization_id'  => $orgId,
-                'faq_category_id'  => $categoryIds[$faq['slug']],
-                'question'         => $faq['question'],
-                'answer'           => $faq['answer'],
-                'is_featured'      => $faq['featured'],
-                'sort_order'       => $i + 1,
-                'status'           => 'active',
+                'organization_id' => $orgId,
+                'faq_category_id' => $categoryIds[$faq['slug']],
+                'question' => $faq['question'],
+                'answer' => $faq['answer'],
+                'is_featured' => $faq['featured'],
+                'sort_order' => $i + 1,
+                'status' => 'active',
             ]);
         }
     }
-
 
     protected function seedSocial(?int $orgId): void
     {
@@ -456,7 +466,7 @@ class FrontendCmsSeeder extends Seeder
             ['platform' => 'x', 'label' => 'X (Twitter)', 'url' => 'https://x.com/examtube', 'sort_order' => 4],
             ['platform' => 'youtube', 'label' => 'YouTube', 'url' => 'https://youtube.com/@examtube', 'sort_order' => 5],
             ['platform' => 'telegram', 'label' => 'Telegram', 'url' => 'https://t.me/examtube', 'sort_order' => 6],
-            ['platform' => 'whatsapp', 'label' => 'WhatsApp', 'url' => \Database\Seeders\Support\SeederContact::WHATSAPP_URL, 'sort_order' => 7],
+            ['platform' => 'whatsapp', 'label' => 'WhatsApp', 'url' => SeederContact::WHATSAPP_URL, 'sort_order' => 7],
             ['platform' => 'github', 'label' => 'GitHub', 'url' => 'https://github.com/examtube', 'sort_order' => 8],
             ['platform' => 'discord', 'label' => 'Discord', 'url' => 'https://discord.gg/examtube', 'sort_order' => 9],
         ] as $row) {

@@ -144,6 +144,7 @@ class SeoSiteGenerator
         ], $orgId);
 
         $this->siteCms->clearCache($orgId);
+        $this->markSitemapFlags($orgId);
 
         return [
             'files' => array_merge(
@@ -153,6 +154,37 @@ class SeoSiteGenerator
             'generated_at' => $generatedAt,
             'url_counts' => $urlCounts,
         ];
+    }
+
+    /**
+     * Mark included content so incremental sitemap passes can skip them later.
+     */
+    protected function markSitemapFlags(?int $orgId): void
+    {
+        $targets = [
+            [Blog::class, fn ($q) => $q->published()],
+            [News::class, fn ($q) => $q->published()],
+            [Exam::class, fn ($q) => $q->publicCatalog()->whereNotNull('slug')],
+            [Question::class, fn ($q) => $q->publiclyVisible()],
+            [SitePage::class, fn ($q) => $q->published()],
+            [ExamCategory::class, fn ($q) => $q->where('status', 'active')->whereNotNull('slug')],
+            [BlogCategory::class, fn ($q) => $q->where('status', 'active')->whereNotNull('slug')],
+            [NewsCategory::class, fn ($q) => $q->where('status', 'active')->whereNotNull('slug')],
+            [QuestionCategory::class, fn ($q) => $q->publiclyVisible()->whereNotNull('slug')],
+        ];
+
+        foreach ($targets as [$class, $scope]) {
+            $query = $class::query()->where('is_sitemap_url_created', false);
+            if ($orgId && method_exists($class, 'scopeForOrg')) {
+                $query->forOrg($orgId);
+            } elseif ($orgId && $class === SitePage::class) {
+                $query->where(function ($inner) use ($orgId) {
+                    $inner->where('organization_id', $orgId)->orWhereNull('organization_id');
+                });
+            }
+            $scope($query);
+            $query->update(['is_sitemap_url_created' => true]);
+        }
     }
 
     /**

@@ -3,7 +3,13 @@
 namespace App\Providers;
 
 use App\Models\Organization;
+use App\Services\Llm\LlmService;
+use App\Services\Llm\SeoBatchProcessor;
+use App\Services\Settings\EmailConfigurationService;
+use App\Services\Settings\IntegrationsSettingsService;
+use App\View\Composers\FrontendLayoutComposer;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -11,7 +17,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(LlmService::class);
+        $this->app->singleton(SeoBatchProcessor::class);
     }
 
     public function boot(): void
@@ -19,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
         Schema::defaultStringLength(191);
 
         if ($this->app->environment('production')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
 
         $this->applyOrganizationEmailConfig();
@@ -52,22 +59,22 @@ class AppServiceProvider extends ServiceProvider
              */
 
             // ── SINGLE-ORG MODE ───────────────────────────────────────────────
-            $singleOrg       = Organization::first();
+            $singleOrg = Organization::first();
             $navOrganizations = $singleOrg ? collect([$singleOrg]) : collect();
-            $currentOrgModel  = $singleOrg;
+            $currentOrgModel = $singleOrg;
             // ─────────────────────────────────────────────────────────────────
 
             $view->with([
-                'navOrganizations'        => $navOrganizations,
-                'currentOrgModel'         => $currentOrgModel,
-                'userThemeSetting'        => $user->appSettings?->theme ?? 'system',
+                'navOrganizations' => $navOrganizations,
+                'currentOrgModel' => $currentOrgModel,
+                'userThemeSetting' => $user->appSettings?->theme ?? 'system',
                 'sidebarCollapsedSetting' => (bool) ($user->appSettings?->sidebar_collapsed ?? false),
             ]);
         });
 
         View::composer(
             ['frontend.*', 'errors.*'],
-            \App\View\Composers\FrontendLayoutComposer::class
+            FrontendLayoutComposer::class
         );
     }
 
@@ -81,7 +88,7 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            app(\App\Services\Settings\EmailConfigurationService::class)->applyToConfig();
+            app(EmailConfigurationService::class)->applyToConfig();
             $this->applyIntegrationsRuntime();
         } catch (\Throwable) {
             // Ignore during early install / migrate before tables exist.
@@ -90,7 +97,7 @@ class AppServiceProvider extends ServiceProvider
 
     protected function applyIntegrationsRuntime(): void
     {
-        $integrations = app(\App\Services\Settings\IntegrationsSettingsService::class)->get();
+        $integrations = app(IntegrationsSettingsService::class)->get();
         $timezone = trim((string) ($integrations['default_timezone'] ?? ''));
         $locale = trim((string) ($integrations['default_locale'] ?? ''));
 

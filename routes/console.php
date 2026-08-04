@@ -11,3 +11,8 @@ Artisan::command('inspire', function () {
 Schedule::command('gallery:prune-orphans')->daily();
 
 Schedule::command('seo:generate')->dailyAt('02:15');
+
+if (filter_var(env('LLM_SEO_SCHEDULE_ENABLED', true), FILTER_VALIDATE_BOOLEAN)) {
+    $every = max(1, (int) env('LLM_SEO_EVERY_MINUTES', 5));
+    Schedule::command('llm:process-seo')->cron("*/{$every} * * * *")->withoutOverlapping();
+}

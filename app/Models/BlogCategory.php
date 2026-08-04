@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
-
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BlogCategory extends Model
 {
-    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, Concerns\HasAiSeo, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $table = 'blog_categories';
 
@@ -51,15 +50,19 @@ class BlogCategory extends Model
         // AI flags
         'ai_generated',
         'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
     ];
 
     protected function casts(): array
     {
         return [
             'updated_by_history' => 'array',
-            'ai_generated'       => 'boolean',
-            'ai_improve'         => 'boolean',
-            'sort_order'         => 'integer',
+            'ai_generated' => 'boolean',
+            'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 

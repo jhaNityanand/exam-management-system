@@ -82,6 +82,8 @@ class NewsSeeder extends Seeder
                 'created_by' => $author->id,
                 'ai_generated' => false,
                 'ai_improve' => false,
+                'is_ai_generated' => false,
+                'is_sitemap_url_created' => false,
             ]);
 
             $tagIds = collect($article['tags'])

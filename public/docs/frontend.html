@@ -592,6 +592,9 @@
                 <h3>Content &amp; SEO</h3>
                 <ul class="check-list">
                     <li>Organization branding, contact email/phone/address set in admin</li>
+                    <li>LLM provider configured (<code>LLM_PROVIDER</code> + matching API key) if AI SEO is used</li>
+                    <li>Scheduler cron running so <code>llm:process-seo</code> can process Create/Improve With AI queues</li>
+                    <li>Queue worker running when <code>QUEUE_CONNECTION</code> is not <code>sync</code> (<code>--queue=llm-seo,default</code>)</li>
                     <li>Privacy and terms pages published</li>
                     <li>Sitemap / robots generation run from admin SEO tools if used</li>
                     <li>Default SEO images present under <code>public/frontend/images/seo/</code></li>

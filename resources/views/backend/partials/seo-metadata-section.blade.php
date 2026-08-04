@@ -53,7 +53,7 @@
                 <label class="qcat-ai-toggle-label" for="toggle-ai-create">
                     <input type="hidden" name="ai_generated" value="0">
                     <input type="checkbox" name="ai_generated" id="toggle-ai-create" value="1"
-                        class="qcat-ai-checkbox" @checked(old('ai_generated', $seoItem?->ai_generated ?? false))>
+                        class="qcat-ai-checkbox" @checked(old('ai_generated', $seoItem?->ai_generated ?? true))>
                     <span class="qcat-ai-toggle-wrap">
                         <span class="qcat-ai-thumb"></span>
                     </span>

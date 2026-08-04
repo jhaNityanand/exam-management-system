@@ -24,6 +24,10 @@ return new class extends Migration
             $table->string('meta_keywords')->nullable();
             $table->string('og_title')->nullable();
             $table->text('og_description')->nullable();
+            $table->boolean('ai_generated')->default(false);
+            $table->boolean('ai_improve')->default(false);
+            $table->boolean('is_ai_generated')->default(false);
+            $table->boolean('is_sitemap_url_created')->default(false);
 
             // Audit
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();

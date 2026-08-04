@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class NewsCategory extends Model
 {
-    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, Concerns\HasAiSeo, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $table = 'news_categories';
 
@@ -42,6 +42,8 @@ class NewsCategory extends Model
         'schema_markup',
         'ai_generated',
         'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
     ];
 
     protected function casts(): array
@@ -50,6 +52,8 @@ class NewsCategory extends Model
             'updated_by_history' => 'array',
             'ai_generated' => 'boolean',
             'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
             'sort_order' => 'integer',
         ];
     }

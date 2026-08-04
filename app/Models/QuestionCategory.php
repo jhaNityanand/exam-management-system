@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
-
 use App\Traits\HasAuditTrails;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,12 +15,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Represents a hierarchical category for questions. Categories can be nested
  * (parent → children) to arbitrary depth and are scoped to an organization.
  *
- * @property int         $id
- * @property int         $organization_id
- * @property int|null    $parent_id
- * @property string      $name
+ * @property int $id
+ * @property int $organization_id
+ * @property int|null $parent_id
+ * @property string $name
  * @property string|null $description
- * @property string      $status           active | inactive | suspended
+ * @property string $status active | inactive | suspended
  * @property string|null $meta_title
  * @property string|null $meta_description
  * @property string|null $meta_keywords
@@ -29,15 +28,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $canonical_url
  * @property string|null $og_title
  * @property string|null $og_description
- * @property bool        $ai_generated     Content was AI-generated (UI flag only for now)
- * @property bool        $ai_improve       Queued for AI improvement (UI flag only for now)
- * @property int|null    $created_by
- * @property int|null    $updated_by
- * @property array|null  $updated_by_history
+ * @property bool $ai_generated Create With AI (queue SEO generation)
+ * @property bool $ai_improve Improve With AI (queue SEO improvement)
+ * @property bool $is_ai_generated SEO already processed by AI
+ * @property bool $is_sitemap_url_created URL already written to sitemap
+ * @property int|null $created_by
+ * @property int|null $updated_by
+ * @property array|null $updated_by_history
  */
 class QuestionCategory extends Model
 {
-    use BelongsToOrganization, HasAuditTrails, HasFactory, SoftDeletes;
+    use BelongsToOrganization, Concerns\HasAiSeo, HasAuditTrails, HasFactory, SoftDeletes;
 
     protected $table = 'question_categories';
 
@@ -73,6 +74,8 @@ class QuestionCategory extends Model
         // AI flags
         'ai_generated',
         'ai_improve',
+        'is_ai_generated',
+        'is_sitemap_url_created',
     ];
 
     protected function casts(): array
@@ -81,6 +84,8 @@ class QuestionCategory extends Model
             'updated_by_history' => 'array',
             'ai_generated' => 'boolean',
             'ai_improve' => 'boolean',
+            'is_ai_generated' => 'boolean',
+            'is_sitemap_url_created' => 'boolean',
             'sort_order' => 'integer',
             'is_public' => 'boolean',
         ];
