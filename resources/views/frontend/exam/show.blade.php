@@ -198,9 +198,6 @@
 
         <x-ad-slot page="exam_detail" position="after_content" />
     </div>
-
-    {{-- Full-width layout: keep related exams in-flow (fixed rail overlaps et-container). --}}
-    @include('frontend.partials.detail-sidebar', ['detailSidebarInline' => true])
 </x-ad-layout>
 @endsection
 

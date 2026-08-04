@@ -4,23 +4,13 @@
     $article = $news ?? $article ?? null;
     $words = str_word_count(strip_tags((string) ($article->content ?? '')));
     $readingMins = max(1, (int) ceil($words / 200));
-    $seo = [
-        'title' => $article->seo_title ?: $article->title,
-        'description' => $article->seo_description ?: ($article->short_description ?: $article->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $article->content), 160)),
-        'keywords' => $article->seo_keywords,
-        'canonical' => $article->canonical_url ?: url()->current(),
-        'og_title' => $article->og_title,
-        'og_description' => $article->og_description,
-        'image' => $article->seoImageUrl(),
-        'image_type' => 'news',
-        'type' => 'article',
-        'breadcrumbs' => $crumbs ?? [],
-        'published_time' => optional($article->published_at)?->toAtomString(),
-        'author' => $article->author?->name,
-    ];
-    $shareUrl = urlencode(url()->current());
-    $shareText = urlencode($article->title);
-    $shareRawUrl = url()->current();
+    $bannerImages = method_exists($article, 'cardImageUrls')
+        ? $article->cardImageUrls()
+        : array_values(array_filter(array_unique(array_merge(
+            [$article->featuredImageUrl()],
+            $article->bannerUrls()
+        ))));
+    $hasBanner = count($bannerImages) > 0;
     $summary = $article->short_description ?? $article->excerpt;
     $crumbs = [
         ['label' => 'Home', 'url' => route('home')],
@@ -33,14 +23,30 @@
         ];
     }
     $crumbs[] = ['label' => 'Article'];
-    $seo['breadcrumbs'] = $crumbs;
+    $seo = [
+        'title' => $article->seo_title ?: $article->title,
+        'description' => $article->seo_description ?: ($article->short_description ?: $article->excerpt ?: \Illuminate\Support\Str::limit(strip_tags((string) $article->content), 160)),
+        'keywords' => $article->seo_keywords,
+        'canonical' => $article->canonical_url ?: url()->current(),
+        'og_title' => $article->og_title,
+        'og_description' => $article->og_description,
+        'image' => $article->seoImageUrl(),
+        'image_type' => 'news',
+        'type' => 'article',
+        'breadcrumbs' => $crumbs,
+        'published_time' => optional($article->published_at)?->toAtomString(),
+        'author' => $article->author?->name,
+    ];
+    $shareUrl = urlencode(url()->current());
+    $shareText = urlencode($article->title);
+    $shareRawUrl = url()->current();
 @endphp
 
 @section('content')
 <x-ad-layout page="news_detail">
-    <article class="et-article et-article--news">
+    <article class="et-article et-article--detail et-article--news{{ $hasBanner ? ' et-article--has-banner' : ' et-article--no-banner' }}">
         <header class="et-article__top">
-            <div class="et-container et-article__wrap">
+            <div class="et-container et-article__shell">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $crumbs])
 
                 <div class="et-article__badges">
@@ -69,117 +75,66 @@
             </div>
         </header>
 
-        <div class="et-container et-article__wrap et-article__main">
-            @include('frontend.partials.article-banner', [
-                'images' => $article->bannerUrls(),
-                'alt' => $article->title,
-            ])
+        <div class="et-container et-article__shell et-article__body">
+            <div class="et-article__layout">
+                <div class="et-article__primary">
+                    @if($hasBanner)
+                        @include('frontend.partials.article-banner', [
+                            'images' => $bannerImages,
+                            'alt' => $article->title,
+                        ])
+                    @endif
 
-            <x-ad-slot page="news_detail" position="before_content" />
+                    <x-ad-slot page="news_detail" position="before_content" />
 
-            @if($summary)
-                <p class="et-article__lead">{{ $summary }}</p>
-            @endif
+                    @if($summary)
+                        <p class="et-article__lead">{{ $summary }}</p>
+                    @endif
 
-            @php
-                $tocData = build_article_toc($processedContent ?? $article->content);
-                $processedContent = $tocData['html'];
-                $tocItems = $tocData['items'];
-            @endphp
+                    @php
+                        $tocData = build_article_toc($processedContent ?? $article->content);
+                        $processedContent = $tocData['html'];
+                        $tocItems = $tocData['items'];
+                    @endphp
 
-            @include('frontend.partials.article-toc', ['tocItems' => $tocItems])
+                    @include('frontend.partials.article-toc', ['tocItems' => $tocItems])
 
-            <div class="et-prose et-article__prose">
-                {!! $processedContent !!}
-            </div>
-
-            <x-ad-slot page="news_detail" position="between_sections" />
-
-            @include('frontend.partials.article-author', [
-                'authorUser' => $article->author,
-                'authorName' => $article->author_name ?: ($article->author->name ?? null),
-                'fallbackName' => 'News Desk',
-                'defaultBio' => 'Covering exam alerts, campus updates, and aspirant-focused news on Examtube.',
-                'publishedLabel' => $article->published_at
-                    ? 'Published '.$article->published_at->format('d M Y, H:i')
-                    : null,
-            ])
-
-            <div class="et-article__footer-panel">
-                @if(($article->tags ?? collect())->isNotEmpty())
-                    <div class="et-article__tags">
-                        <span class="et-article__share-label">Tags</span>
-                        <div class="et-article__tags-list">
-                            @foreach($article->tags as $newsTag)
-                                <a class="et-article__tag" href="{{ route('frontend.news.tag', $newsTag->slug) }}">#{{ $newsTag->name }}</a>
-                            @endforeach
-                        </div>
+                    <div class="et-prose et-article__prose">
+                        {!! $processedContent !!}
                     </div>
-                @endif
 
-                @include('frontend.partials.article-share', [
-                    'shareUrl' => $shareUrl,
-                    'shareText' => $shareText,
-                    'shareRawUrl' => $shareRawUrl,
-                    'shareLabel' => 'Share this story',
-                ])
-            </div>
+                    <x-ad-slot page="news_detail" position="between_sections" />
 
-            <x-ad-slot page="news_detail" position="after_content" />
-
-            @php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
-            @if($relatedItems->isNotEmpty())
-                <section class="et-article__related">
-                    @include('frontend.components.section-heading', [
-                        'title' => 'More news',
-                        'subtitle' => 'Stories connected to this update',
-                    ])
-                    <div class="et-grid et-grid--3 et-article__related-grid">
-                        @foreach($relatedItems->take(3) as $item)
-                            @include('frontend.components.news-card', ['news' => $item])
-                        @endforeach
-                    </div>
-                </section>
-            @endif
-
-            {{-- Temporarily hidden: newsletter band
-            <section class="et-article__newsletter">
-                <div class="et-newsletter-band et-newsletter-band--panel">
-                    <div class="et-newsletter-band__copy">
-                        <p class="et-eyebrow">Newsletter</p>
-                        <h2>Don’t miss exam updates</h2>
-                        <p>Breaking alerts, trending stories, and weekly digests — straight to your inbox.</p>
-                        @include('frontend.partials.newsletter-form', [
-                            'cta' => 'Subscribe',
-                            'source' => 'news_detail',
+                    <div class="et-article__footer-panel">
+                        @include('frontend.partials.article-share', [
+                            'shareUrl' => $shareUrl,
+                            'shareText' => $shareText,
+                            'shareRawUrl' => $shareRawUrl,
+                            'shareLabel' => 'Share this story',
                         ])
                     </div>
-                    <div class="et-newsletter-band__art" aria-hidden="true">
-                        <img src="{{ asset('frontend/images/newsletter.svg') }}" alt="" loading="lazy" width="320" height="240">
-                    </div>
-                </div>
-            </section>
-            --}}
 
-            {{-- Temporarily hidden: CTA band
-            <section class="et-article__cta">
-                @include('frontend.components.cta-band', [
-                    'title' => 'Stay ahead of the cycle',
-                    'subtitle' => 'Browse more news or catch up on trending updates.',
-                    'primaryLabel' => 'All news',
-                    'primaryUrl' => route('frontend.news.index'),
-                    'secondaryLabel' => Route::has('frontend.news.trending') ? 'Trending news' : ($article->category ? 'More in '.$article->category->name : 'Browse blogs'),
-                    'secondaryUrl' => Route::has('frontend.news.trending')
-                        ? route('frontend.news.trending')
-                        : ($article->category
-                            ? route('frontend.news.category', $article->category->slug)
-                            : route('frontend.blogs.index')),
-                ])
-            </section>
-            --}}
+                    <x-ad-slot page="news_detail" position="after_content" />
+
+                    @php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
+                    @if($relatedItems->isNotEmpty())
+                        <section class="et-article__related">
+                            @include('frontend.components.section-heading', [
+                                'title' => 'More news',
+                                'subtitle' => 'Stories connected to this update',
+                            ])
+                            <div class="et-grid et-grid--3 et-article__related-grid">
+                                @foreach($relatedItems->take(3) as $item)
+                                    @include('frontend.components.news-card', ['news' => $item])
+                                @endforeach
+                            </div>
+                        </section>
+                    @endif
+                </div>
+
+                @include('frontend.partials.article-aside')
+            </div>
         </div>
     </article>
-
-    @include('frontend.partials.detail-sidebar')
 </x-ad-layout>
 @endsection

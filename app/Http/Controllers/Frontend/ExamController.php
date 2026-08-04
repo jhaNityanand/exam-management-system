@@ -10,7 +10,6 @@ use App\Models\ExamCategory;
 use App\Services\CandidateExam\ExamEligibilityService;
 use App\Services\CandidateExam\PreviousAttemptPresenter;
 use App\Services\Frontend\CategoryTreeService;
-use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -111,7 +110,7 @@ class ExamController extends Controller
         ]);
     }
 
-    public function show(Request $request, Exam $exam, DetailSidebarService $detailSidebar): View
+    public function show(Request $request, Exam $exam): View
     {
         $orgId = $this->organizationId();
         $user = $request->user();
@@ -196,7 +195,6 @@ class ExamController extends Controller
             'exam' => $exam,
             'evaluation' => $evaluation,
             'previousAttempts' => $previousAttempts,
-            'detailSidebar' => $detailSidebar->forExam($exam, $orgId),
             'feedbackSummary' => $feedbackSummary,
             'userFeedback' => $userFeedback,
             'canLeaveFeedback' => $canLeaveFeedback,

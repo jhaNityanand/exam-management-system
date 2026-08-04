@@ -200,7 +200,5 @@
             <x-ad-slot page="question_detail" position="after_content" />
         </div>
     </article>
-
-    @include('frontend.partials.detail-sidebar')
 </x-ad-layout>
 @endsection

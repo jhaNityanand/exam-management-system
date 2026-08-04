@@ -100,8 +100,5 @@
     </div>
 
     <x-ad-slot page="category_detail" position="after_content" />
-
-    {{-- Full-width layout: keep related content in-flow (fixed rail overlaps et-container). --}}
-    @include('frontend.partials.detail-sidebar', ['detailSidebarInline' => true])
 </x-ad-layout>
 @endsection

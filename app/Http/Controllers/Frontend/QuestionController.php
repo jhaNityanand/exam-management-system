@@ -8,7 +8,6 @@ use App\Models\Blog;
 use App\Models\Question;
 use App\Models\QuestionCategory;
 use App\Services\Frontend\CategoryTreeService;
-use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -75,7 +74,7 @@ class QuestionController extends Controller
         ]);
     }
 
-    public function show(Request $request, Question $question, DetailSidebarService $detailSidebar): View
+    public function show(Request $request, Question $question): View
     {
         $orgId = $this->organizationId();
 
@@ -97,7 +96,6 @@ class QuestionController extends Controller
             'question' => $question,
             'payload' => $payload,
             'relatedBlogs' => $relatedBlogs,
-            'detailSidebar' => $detailSidebar->forQuestion($question, $orgId),
         ]);
     }
 

@@ -11,7 +11,6 @@ use App\Models\ExamCategory;
 use App\Models\News;
 use App\Models\NewsCategory;
 use App\Services\Frontend\CategoryTreeService;
-use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -70,7 +69,7 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function show(Request $request, ExamCategory $category, DetailSidebarService $detailSidebar, CategoryTreeService $categoryTree): View|JsonResponse
+    public function show(Request $request, ExamCategory $category, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -106,7 +105,6 @@ class CategoryController extends Controller
             'exams' => $exams,
             'relatedBlogs' => $relatedBlogs,
             'relatedNews' => $relatedNews,
-            'detailSidebar' => $detailSidebar->forCategory($category, $orgId),
             'categoryNav' => $categoryTree->forExamCategories($orgId, (int) $category->id),
         ]);
     }

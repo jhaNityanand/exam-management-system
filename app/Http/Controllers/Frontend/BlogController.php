@@ -8,7 +8,7 @@ use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
 use App\Services\Frontend\CategoryTreeService;
-use App\Services\Frontend\DetailSidebarService;
+use App\Services\Frontend\ArticleAsideService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -65,7 +65,7 @@ class BlogController extends Controller
         ]);
     }
 
-    public function show(Blog $blog, DetailSidebarService $detailSidebar): View
+    public function show(Blog $blog, ArticleAsideService $articleAside): View
     {
         $orgId = $this->organizationId();
 
@@ -76,7 +76,8 @@ class BlogController extends Controller
         );
 
         $blog->load([
-            'category:id,name,slug',
+            'category:id,name,slug,description,parent_id',
+            'category.parent:id,name,slug,description,parent_id',
             'author:id,name,slug',
             'author.profile',
             'bannerImage',
@@ -115,7 +116,7 @@ class BlogController extends Controller
         return view('frontend.blog.show', [
             'blog' => $blog,
             'relatedBlogs' => $relatedBlogs,
-            'detailSidebar' => $detailSidebar->forBlog($blog, $orgId),
+            'articleAside' => $articleAside->forBlog($blog, $orgId),
             'processedContent' => $processedContent,
         ]);
     }

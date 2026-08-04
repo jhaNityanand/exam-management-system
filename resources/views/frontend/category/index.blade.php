@@ -30,7 +30,7 @@
                 <div class="et-page-hero__row">
                     <div class="et-page-hero__copy">
                         <h1>Categories</h1>
-                        <p>Find exams and learning paths by competitive stream.</p>
+                        <p>Explore exams, blogs, and news by topic — pick a stream and start learning.</p>
                     </div>
                     <div class="et-filter-toolbar">
                         <button type="button" class="et-btn et-btn--soft et-filter-trigger" data-filter-open aria-haspopup="dialog" aria-controls="et-category-filter-modal">
@@ -108,8 +108,8 @@
             </div>
 
             <div class="et-listing__main" data-listing-main>
-                <div class="et-listing__skeleton et-grid et-grid--4" data-listing-skeleton hidden aria-hidden="true">
-                    @for($i = 0; $i < 8; $i++)
+                <div class="et-listing__skeleton et-grid et-grid--3 et-catalog-grid" data-listing-skeleton hidden aria-hidden="true">
+                    @for($i = 0; $i < 9; $i++)
                         @include('frontend.partials.skeleton-card')
                     @endfor
                 </div>
@@ -123,7 +123,7 @@
                     ])
                 </div>
 
-                <div class="et-grid et-grid--4" data-load-more-list @if(($categories ?? collect())->isEmpty()) hidden @endif>
+                <div class="et-grid et-grid--3 et-catalog-grid" data-load-more-list @if(($categories ?? collect())->isEmpty()) hidden @endif>
                     @foreach($categories ?? [] as $item)
                         @include('frontend.components.catalog-category-card', ['item' => $item])
                     @endforeach

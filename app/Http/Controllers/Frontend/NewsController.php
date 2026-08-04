@@ -7,7 +7,7 @@ use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\News;
 use App\Models\NewsCategory;
 use App\Services\Frontend\CategoryTreeService;
-use App\Services\Frontend\DetailSidebarService;
+use App\Services\Frontend\ArticleAsideService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -108,7 +108,7 @@ class NewsController extends Controller
         ]);
     }
 
-    public function show(News $news, DetailSidebarService $detailSidebar): View
+    public function show(News $news, ArticleAsideService $articleAside): View
     {
         $orgId = $this->organizationId();
 
@@ -120,7 +120,8 @@ class NewsController extends Controller
         );
 
         $news->load([
-            'category:id,name,slug',
+            'category:id,name,slug,description,parent_id',
+            'category.parent:id,name,slug,description,parent_id',
             'author:id,name,slug',
             'author.profile',
             'bannerImage',
@@ -160,7 +161,7 @@ class NewsController extends Controller
         return view('frontend.news.show', [
             'news' => $news,
             'relatedNews' => $relatedNews,
-            'detailSidebar' => $detailSidebar->forNews($news, $orgId),
+            'articleAside' => $articleAside->forNews($news, $orgId),
             'processedContent' => $processedContent,
         ]);
     }
