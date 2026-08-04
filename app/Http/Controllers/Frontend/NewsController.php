@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\News;
 use App\Models\NewsCategory;
+use App\Services\Frontend\CategoryTreeService;
 use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -163,7 +164,7 @@ class NewsController extends Controller
         ]);
     }
 
-    public function category(Request $request, string $slug): View|JsonResponse
+    public function category(Request $request, string $slug, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -205,6 +206,7 @@ class NewsController extends Controller
         return view('frontend.news.category', [
             'category' => $category,
             'news' => $news,
+            'categoryNav' => $categoryTree->forNewsCategories($orgId, (int) $category->id),
         ]);
     }
 

@@ -536,6 +536,28 @@
 .dark .qcat-status-badge--inactive  { background: rgb(30 41 59);         color: #cbd5e1; } /* Improved contrast (previously #94a3b8) */
 .dark .qcat-status-badge--suspended { background: rgb(124 45 18 / 0.25); color: #fdba74; }
 
+/* ── Usage count badge ──────────────────────────────────────── */
+.qcat-usage-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    background: #e0f2fe;
+    color: #075985;
+    border: 1px solid color-mix(in srgb, #0284c7 18%, transparent);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.dark .qcat-usage-badge {
+    background: rgb(12 74 110 / 0.35);
+    color: #7dd3fc;
+    border-color: rgb(14 165 233 / 0.28);
+}
+
 /* ── AI badge ───────────────────────────────────────────────── */
 
 .qcat-ai-badge {

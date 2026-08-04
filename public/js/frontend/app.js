@@ -1389,6 +1389,74 @@
     update();
   }
 
+  /* Hierarchical category nav (listing sidebar + mobile accordion) */
+  function initCategoryNav() {
+    const desktopMq = window.matchMedia('(min-width: 960px)');
+
+    qsa('[data-cat-nav]').forEach(function (nav) {
+      const toggle = qs('[data-cat-nav-toggle]', nav);
+      const panel = qs('[data-cat-nav-panel]', nav);
+      if (!toggle || !panel) return;
+
+      function syncMobilePanel() {
+        const isDesktop = desktopMq.matches;
+        if (isDesktop) {
+          nav.classList.add('is-open');
+          toggle.setAttribute('aria-expanded', 'true');
+          panel.removeAttribute('inert');
+          return;
+        }
+        const open = nav.classList.contains('is-open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+          panel.removeAttribute('inert');
+        } else {
+          panel.setAttribute('inert', '');
+        }
+      }
+
+      toggle.addEventListener('click', function () {
+        if (desktopMq.matches) return;
+        nav.classList.toggle('is-open');
+        syncMobilePanel();
+      });
+
+      if (typeof desktopMq.addEventListener === 'function') {
+        desktopMq.addEventListener('change', syncMobilePanel);
+      } else if (typeof desktopMq.addListener === 'function') {
+        desktopMq.addListener(syncMobilePanel);
+      }
+
+      syncMobilePanel();
+    });
+
+    qsa('[data-cat-tree]').forEach(function (tree) {
+      qsa('[data-cat-tree-expander]', tree).forEach(function (btn) {
+        btn.addEventListener('click', function (event) {
+          event.preventDefault();
+          const node = btn.closest('[data-cat-tree-node]');
+          if (!node) return;
+
+          const children = qs(':scope > [data-cat-tree-children]', node);
+          const open = node.classList.toggle('is-open');
+          node.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+          const nameEl = qs('.et-cat-tree__name', node);
+          const name = nameEl ? nameEl.textContent.trim() : 'category';
+          btn.setAttribute('aria-label', (open ? 'Collapse ' : 'Expand ') + name);
+
+          if (children) {
+            if (open) {
+              children.removeAttribute('inert');
+            } else {
+              children.setAttribute('inert', '');
+            }
+          }
+        });
+      });
+    });
+  }
+
   doc.addEventListener('DOMContentLoaded', function () {
     initTheme();
     initMobileNav();
@@ -1406,6 +1474,7 @@
     initProseCode();
     initArticleToc();
     initDetailRail();
+    initCategoryNav();
     initSearch();
     initNewsletter();
     initCatSlider();

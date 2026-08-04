@@ -62,7 +62,7 @@ class BlogCategoryController extends Controller
                 default     => ['name', 'asc'],
             };
 
-            $allCategories = $query->orderBy($col, $dir)->get();
+            $allCategories = $query->withCount('blogs')->orderBy($col, $dir)->get();
             $categories = $this->buildFilteredCategoryTree(
                 $allCategories,
                 $search,

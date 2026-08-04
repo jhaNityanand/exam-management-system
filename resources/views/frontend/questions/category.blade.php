@@ -47,5 +47,10 @@
         'listingEmptyTitle' => 'No questions in this category',
         'listingResetUrl' => route('frontend.questions.category', $category->slug),
         'activeFilterCount' => $activeFilterCount,
+        'listingGridClass' => 'et-grid et-grid--2',
+        'listingSkeletonCount' => 4,
+        'categoryNav' => $categoryNav ?? null,
+        'categoryNavTitle' => 'Subcategories',
+        'categoryNavDescription' => 'Jump into nested topics under this category.',
     ])
 @endsection

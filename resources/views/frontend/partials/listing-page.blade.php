@@ -7,12 +7,15 @@
     $listingFilters (callable/closure not possible) — include extra fields via $listingExtraFields view
     $activeFilterCount
     $adPage (optional catalog page key for advertisement rails/slots)
+    $categoryNav (optional CategoryTreeService payload — enables 75/25 listing + sidebar layout)
+    $categoryNavTitle / $categoryNavDescription (optional overrides)
 --}}
 @php
     $activeFilterCount = $activeFilterCount ?? 0;
     $listingGridClass = $listingGridClass ?? 'et-grid et-grid--3';
     $listingSkeletonCount = $listingSkeletonCount ?? 6;
     $adPage = $adPage ?? null;
+    $hasCategoryNav = ! empty($categoryNav['roots'] ?? null);
 @endphp
 
 @if($adPage)
@@ -109,41 +112,53 @@
             </div>
         </div>
 
-        <div class="et-listing__main" data-listing-main>
-            <div class="et-listing__skeleton {{ $listingGridClass }}" data-listing-skeleton hidden aria-hidden="true">
-                @for($i = 0; $i < $listingSkeletonCount; $i++)
-                    @include('frontend.partials.skeleton-card')
-                @endfor
+        <div class="et-listing__layout{{ $hasCategoryNav ? ' et-listing__layout--with-nav' : '' }}">
+            <div class="et-listing__main" data-listing-main>
+                <div class="et-listing__skeleton {{ $listingGridClass }}" data-listing-skeleton hidden aria-hidden="true">
+                    @for($i = 0; $i < $listingSkeletonCount; $i++)
+                        @include('frontend.partials.skeleton-card')
+                    @endfor
+                </div>
+
+                <div class="et-listing__empty" data-listing-empty @if(($listingItems ?? collect())->isNotEmpty()) hidden @endif>
+                    @include('frontend.partials.empty-state', [
+                        'title' => $listingEmptyTitle,
+                        'message' => $listingEmptyMessage ?? 'Try adjusting or resetting your filters.',
+                        'actionUrl' => $listingResetUrl,
+                        'actionLabel' => 'Reset filters',
+                    ])
+                </div>
+
+                <div class="{{ $listingGridClass }}" data-load-more-list @if(($listingItems ?? collect())->isEmpty()) hidden @endif>
+                    @foreach($listingItems ?? [] as $item)
+                        @include($listingCard, [$listingCardKey => $item])
+                    @endforeach
+                </div>
+
+                @if($adPage)
+                    <x-ad-slot :page="$adPage" position="below_items" />
+                @endif
+
+                <div data-load-more-slot>
+                    @include('frontend.partials.load-more', [
+                        'paginator' => $listingItems,
+                        'endpoint' => $listingLoadMoreEndpoint ?? ($listingEndpoint.(request()->getQueryString() ? '?'.request()->getQueryString() : '')),
+                    ])
+                </div>
+
+                @if($adPage)
+                    <x-ad-slot :page="$adPage" position="after_content" />
+                @endif
             </div>
 
-            <div class="et-listing__empty" data-listing-empty @if(($listingItems ?? collect())->isNotEmpty()) hidden @endif>
-                @include('frontend.partials.empty-state', [
-                    'title' => $listingEmptyTitle,
-                    'message' => $listingEmptyMessage ?? 'Try adjusting or resetting your filters.',
-                    'actionUrl' => $listingResetUrl,
-                    'actionLabel' => 'Reset filters',
-                ])
-            </div>
-
-            <div class="{{ $listingGridClass }}" data-load-more-list @if(($listingItems ?? collect())->isEmpty()) hidden @endif>
-                @foreach($listingItems ?? [] as $item)
-                    @include($listingCard, [$listingCardKey => $item])
-                @endforeach
-            </div>
-
-            @if($adPage)
-                <x-ad-slot :page="$adPage" position="below_items" />
-            @endif
-
-            <div data-load-more-slot>
-                @include('frontend.partials.load-more', [
-                    'paginator' => $listingItems,
-                    'endpoint' => $listingLoadMoreEndpoint ?? ($listingEndpoint.(request()->getQueryString() ? '?'.request()->getQueryString() : '')),
-                ])
-            </div>
-
-            @if($adPage)
-                <x-ad-slot :page="$adPage" position="after_content" />
+            @if($hasCategoryNav)
+                <div class="et-listing__aside">
+                    @include('frontend.partials.category-nav', [
+                        'categoryNav' => $categoryNav,
+                        'categoryNavTitle' => $categoryNavTitle ?? null,
+                        'categoryNavDescription' => $categoryNavDescription ?? null,
+                    ])
+                </div>
             @endif
         </div>
     </div>

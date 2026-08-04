@@ -62,7 +62,7 @@ class ExamCategoryController extends Controller
                 default     => ['name', 'asc'],
             };
 
-            $allCategories = $query->orderBy($col, $dir)->get();
+            $allCategories = $query->withCount('exams')->orderBy($col, $dir)->get();
             $categories = $this->buildFilteredCategoryTree(
                 $allCategories,
                 $search,

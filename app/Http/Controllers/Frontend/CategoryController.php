@@ -10,6 +10,7 @@ use App\Models\Exam;
 use App\Models\ExamCategory;
 use App\Models\News;
 use App\Models\NewsCategory;
+use App\Services\Frontend\CategoryTreeService;
 use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,7 +70,7 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function show(Request $request, ExamCategory $category, DetailSidebarService $detailSidebar): View|JsonResponse
+    public function show(Request $request, ExamCategory $category, DetailSidebarService $detailSidebar, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -80,7 +81,6 @@ class CategoryController extends Controller
         );
 
         $category->load([
-            'children' => fn ($q) => $q->where('status', 'active')->orderBy('sort_order')->orderBy('name'),
             'parent:id,name,slug',
             'ogImage',
         ]);
@@ -107,6 +107,7 @@ class CategoryController extends Controller
             'relatedBlogs' => $relatedBlogs,
             'relatedNews' => $relatedNews,
             'detailSidebar' => $detailSidebar->forCategory($category, $orgId),
+            'categoryNav' => $categoryTree->forExamCategories($orgId, (int) $category->id),
         ]);
     }
 

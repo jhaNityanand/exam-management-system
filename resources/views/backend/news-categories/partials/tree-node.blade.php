@@ -53,12 +53,17 @@
                         @endif
 
                         <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <h3 class="truncate text-sm font-medium text-slate-900 dark:text-white">{{ $node->name }}</h3>
                                 {{-- Status badge --}}
                                 <span class="qcat-status-badge qcat-status-badge--{{ $node->status }}">
                                     {{ ucfirst($node->status) }}
                                 </span>
+                                @include('backend.partials.category-usage-badge', [
+                                    'usageCount' => $node->news_count ?? 0,
+                                    'usageLabel' => 'Uses',
+                                    'usageTitle' => number_format((int) ($node->news_count ?? 0)).' '.\Illuminate\Support\Str::plural('news item', (int) ($node->news_count ?? 0)).' in this category',
+                                ])
                                 {{-- AI badge --}}
                                 @if ($node->ai_generated)
                                     <span class="qcat-ai-badge" title="Created via AI">AI</span>

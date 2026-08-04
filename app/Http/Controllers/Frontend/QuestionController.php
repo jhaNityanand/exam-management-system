@@ -7,6 +7,7 @@ use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\Blog;
 use App\Models\Question;
 use App\Models\QuestionCategory;
+use App\Services\Frontend\CategoryTreeService;
 use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -135,7 +136,7 @@ class QuestionController extends Controller
         ]);
     }
 
-    public function category(Request $request, string $slug): View|JsonResponse
+    public function category(Request $request, string $slug, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -181,6 +182,7 @@ class QuestionController extends Controller
         return view('frontend.questions.category', [
             'category' => $category,
             'questions' => $questions,
+            'categoryNav' => $categoryTree->forQuestionCategories($orgId, (int) $category->id),
         ]);
     }
 

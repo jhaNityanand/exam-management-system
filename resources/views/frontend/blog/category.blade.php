@@ -35,5 +35,10 @@
         'listingEmptyTitle' => 'No posts in this category',
         'listingResetUrl' => route('frontend.blogs.category', $category->slug),
         'activeFilterCount' => $activeFilterCount,
+        'listingGridClass' => 'et-grid et-grid--2',
+        'listingSkeletonCount' => 4,
+        'categoryNav' => $categoryNav ?? null,
+        'categoryNavTitle' => 'Subcategories',
+        'categoryNavDescription' => 'Jump into nested topics under this category.',
     ])
 @endsection

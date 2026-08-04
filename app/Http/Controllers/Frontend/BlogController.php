@@ -7,6 +7,7 @@ use App\Http\Controllers\Frontend\Concerns\RespondsWithFrontendJson;
 use App\Models\Blog;
 use App\Models\BlogCategory;
 use App\Models\BlogTag;
+use App\Services\Frontend\CategoryTreeService;
 use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -118,7 +119,7 @@ class BlogController extends Controller
         ]);
     }
 
-    public function category(Request $request, string $slug): View|JsonResponse
+    public function category(Request $request, string $slug, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -160,6 +161,7 @@ class BlogController extends Controller
         return view('frontend.blog.category', [
             'category' => $category,
             'blogs' => $blogs,
+            'categoryNav' => $categoryTree->forBlogCategories($orgId, (int) $category->id),
         ]);
     }
 

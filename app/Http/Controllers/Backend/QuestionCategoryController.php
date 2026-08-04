@@ -62,7 +62,7 @@ class QuestionCategoryController extends Controller
                 default     => ['name', 'asc'],
             };
 
-            $allCategories = $query->orderBy($col, $dir)->get();
+            $allCategories = $query->withCount('questions')->orderBy($col, $dir)->get();
             $categories = $this->buildFilteredCategoryTree(
                 $allCategories,
                 $search,

@@ -62,7 +62,7 @@ class NewsCategoryController extends Controller
                 default     => ['name', 'asc'],
             };
 
-            $allCategories = $query->orderBy($col, $dir)->get();
+            $allCategories = $query->withCount('news')->orderBy($col, $dir)->get();
             $categories = $this->buildFilteredCategoryTree(
                 $allCategories,
                 $search,
