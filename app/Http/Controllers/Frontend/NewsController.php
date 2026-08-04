@@ -16,7 +16,7 @@ class NewsController extends Controller
 {
     use RespondsWithFrontendJson;
 
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -66,6 +66,7 @@ class NewsController extends Controller
             'news' => $news,
             'categories' => $categories,
             'filters' => $request->only(['breaking', 'trending', 'search', 'category_id', 'sort', 'spotlight']),
+            'categoryNav' => $categoryTree->forNewsCategories($orgId),
         ]);
     }
 

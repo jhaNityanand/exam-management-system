@@ -125,8 +125,8 @@ class CategoryTreeService
     }
 
     /**
-     * Subcategory tree for the active category (children + nested descendants).
-     * Categories with zero items (including descendants) are omitted.
+     * When $activeCategoryId is set: subcategory tree under that category.
+     * When null: full catalog tree from root categories (index pages).
      *
      * @param  callable(Model): string  $urlResolver
      * @return array{
@@ -161,18 +161,38 @@ class CategoryTreeService
             ? $categories->firstWhere('id', $activeCategoryId)
             : null;
 
-        $roots = [];
-        if ($activeCategoryId !== null) {
+        $isCatalog = $activeCategoryId === null;
+
+        if ($isCatalog) {
             $roots = $this->nest(
                 categories: $categories,
                 counts: $counts,
-                activeId: $activeCategoryId,
+                activeId: null,
                 urlResolver: $urlResolver,
-                parentId: $activeCategoryId,
+                parentId: null,
                 expandRoots: true,
             );
             $roots = $this->pruneEmpty($roots);
+
+            return [
+                'title' => 'Categories',
+                'description' => 'Browse topics and jump into related content.',
+                'context_name' => null,
+                'active_id' => null,
+                'expanded_ids' => [],
+                'roots' => $roots,
+            ];
         }
+
+        $roots = $this->nest(
+            categories: $categories,
+            counts: $counts,
+            activeId: $activeCategoryId,
+            urlResolver: $urlResolver,
+            parentId: $activeCategoryId,
+            expandRoots: true,
+        );
+        $roots = $this->pruneEmpty($roots);
 
         return [
             'title' => 'Subcategories',

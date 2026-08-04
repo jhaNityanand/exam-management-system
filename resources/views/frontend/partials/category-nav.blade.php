@@ -22,7 +22,7 @@
             <span class="et-cat-nav__toggle-copy">
                 <span class="et-cat-nav__toggle-label">{{ $navTitle }}</span>
                 <span class="et-cat-nav__toggle-hint">
-                    {{ $contextName ? 'Under '.$contextName : 'Browse nested topics' }}
+                    {{ $contextName ? 'Under '.$contextName : 'Browse all categories' }}
                 </span>
             </span>
             <span class="et-cat-nav__toggle-meta">

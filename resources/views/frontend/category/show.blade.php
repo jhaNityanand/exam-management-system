@@ -52,7 +52,7 @@
                             'actionLabel' => 'Browse exams',
                         ])
                     @else
-                        <div class="et-grid {{ $hasCategoryNav ? 'et-grid--2' : 'et-grid--3' }}" data-load-more-list>
+                        <div class="et-grid et-grid--3" data-load-more-list>
                             @foreach($exams as $exam)
                                 @include('frontend.components.exam-card', ['exam' => $exam])
                             @endforeach
@@ -67,7 +67,7 @@
                 @if($relatedBlogs->isNotEmpty())
                     <section>
                         @include('frontend.components.section-heading', ['title' => 'Related blogs', 'subtitle' => ''])
-                        <div class="et-grid {{ $hasCategoryNav ? 'et-grid--2' : 'et-grid--3' }}">
+                        <div class="et-grid et-grid--3">
                             @foreach($relatedBlogs as $blog)
                                 @include('frontend.components.blog-card', ['blog' => $blog])
                             @endforeach
@@ -78,7 +78,7 @@
                 @if($relatedNews->isNotEmpty())
                     <section>
                         @include('frontend.components.section-heading', ['title' => 'Related news', 'subtitle' => ''])
-                        <div class="et-grid {{ $hasCategoryNav ? 'et-grid--2' : 'et-grid--3' }}">
+                        <div class="et-grid et-grid--3">
                             @foreach($relatedNews as $item)
                                 @include('frontend.components.news-card', ['news' => $item])
                             @endforeach

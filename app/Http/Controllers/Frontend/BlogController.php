@@ -17,7 +17,7 @@ class BlogController extends Controller
 {
     use RespondsWithFrontendJson;
 
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -61,6 +61,7 @@ class BlogController extends Controller
         return view('frontend.blog.index', [
             'blogs' => $blogs,
             'categories' => $categories,
+            'categoryNav' => $categoryTree->forBlogCategories($orgId),
         ]);
     }
 

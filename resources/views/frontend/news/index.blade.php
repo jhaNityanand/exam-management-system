@@ -138,6 +138,7 @@
                 </div>
             </div>
 
+            <div class="et-listing__layout{{ ! empty($categoryNav['roots'] ?? null) ? ' et-listing__layout--with-nav' : '' }}">
             <div class="et-listing__main" data-listing-main>
                 <div class="et-listing__skeleton et-grid et-grid--3" data-listing-skeleton hidden aria-hidden="true">
                     @for($i = 0; $i < 6; $i++)
@@ -170,6 +171,17 @@
                 </div>
 
                 <x-ad-slot page="news_list" position="after_content" />
+            </div>
+
+            @if(! empty($categoryNav['roots'] ?? null))
+                <div class="et-listing__aside">
+                    @include('frontend.partials.category-nav', [
+                        'categoryNav' => $categoryNav,
+                        'categoryNavTitle' => 'Categories',
+                        'categoryNavDescription' => 'Browse news topics and jump into related updates.',
+                    ])
+                </div>
+            @endif
             </div>
         </div>
     </div>

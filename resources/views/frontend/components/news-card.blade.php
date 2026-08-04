@@ -17,18 +17,20 @@
         'alt' => $news->title,
     ])
     <div class="et-card__body">
-        <div class="et-card__meta">
-            @if($news->is_breaking)
-                <span class="et-badge et-badge--danger">Breaking</span>
-            @endif
-            @if($news->is_trending)
-                <span class="et-badge et-badge--warn">Trending</span>
-            @endif
-            @if($news->category)
-                <span class="et-badge">{{ $news->category->name }}</span>
-            @endif
+        <div class="et-card__meta et-card__meta--split">
+            <span class="et-card__meta-start">
+                @if($news->is_breaking)
+                    <span class="et-badge et-badge--danger">Breaking</span>
+                @endif
+                @if($news->is_trending)
+                    <span class="et-badge et-badge--warn">Trending</span>
+                @endif
+                @if($news->category)
+                    <span class="et-badge">{{ $news->category->name }}</span>
+                @endif
+            </span>
             @if($news->published_at)
-                <span>{{ $news->published_at->diffForHumans() }}</span>
+                <span class="et-card__meta-end">{{ $news->published_at->diffForHumans() }}</span>
             @endif
         </div>
         <h3 class="et-card__title"><a href="{{ $newsUrl }}">{{ $news->title }}</a></h3>

@@ -19,7 +19,7 @@ class QuestionController extends Controller
 {
     use RespondsWithFrontendJson;
 
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
 
@@ -71,6 +71,7 @@ class QuestionController extends Controller
             'questions' => $questions,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category', 'difficulty', 'sort']),
+            'categoryNav' => $categoryTree->forQuestionCategories($orgId),
         ]);
     }
 

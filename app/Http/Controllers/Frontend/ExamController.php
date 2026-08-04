@@ -9,6 +9,7 @@ use App\Models\ExamAttempt;
 use App\Models\ExamCategory;
 use App\Services\CandidateExam\ExamEligibilityService;
 use App\Services\CandidateExam\PreviousAttemptPresenter;
+use App\Services\Frontend\CategoryTreeService;
 use App\Services\Frontend\DetailSidebarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class ExamController extends Controller
         protected \App\Services\FeedbackService $feedback,
     ) {}
 
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request, CategoryTreeService $categoryTree): View|JsonResponse
     {
         $orgId = $this->organizationId();
         $user = $request->user();
@@ -106,6 +107,7 @@ class ExamController extends Controller
             'exams' => $exams,
             'categories' => $categories,
             'filters' => $request->only(['category_id', 'difficulty_level', 'exam_mode', 'pricing', 'search', 'sort']),
+            'categoryNav' => $categoryTree->forExamCategories($orgId),
         ]);
     }
 
