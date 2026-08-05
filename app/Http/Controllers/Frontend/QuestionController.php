@@ -91,11 +91,26 @@ class QuestionController extends Controller
 
         $payload = $question->toPracticeDetailPayload();
         $relatedBlogs = $this->relatedBlogsForQuestion($question, $payload, $orgId);
+        $relatedQuestions = $this->relatedQuestionsForQuestion($question, $orgId);
+        $questionCategories = QuestionCategory::query()
+            ->publiclyVisible()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->withCount(['publicQuestions as questions_count'])
+            ->when(
+                $question->category_id,
+                fn ($q) => $q->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [(int) $question->category_id])
+            )
+            ->orderByDesc('questions_count')
+            ->orderBy('name')
+            ->limit(3)
+            ->get(['id', 'name', 'slug', 'description']);
 
         return view('frontend.questions.show', [
             'question' => $question,
             'payload' => $payload,
             'relatedBlogs' => $relatedBlogs,
+            'relatedQuestions' => $relatedQuestions,
+            'questionCategories' => $questionCategories,
         ]);
     }
 
@@ -253,5 +268,39 @@ class QuestionController extends Controller
             ->get();
 
         return $blogs->concat($fallback)->take(3)->values();
+    }
+
+    /**
+     * Return nearby public practice questions, preferring the current category.
+     *
+     * @return Collection<int, Question>
+     */
+    protected function relatedQuestionsForQuestion(Question $question, ?int $orgId): Collection
+    {
+        $base = fn () => Question::query()
+            ->publiclyVisible()
+            ->when($orgId, fn ($q) => $q->forOrg($orgId))
+            ->where('id', '!=', $question->getKey())
+            ->with('category:id,name,slug');
+
+        $related = $base()
+            ->when($question->category_id, fn ($q) => $q->where('category_id', $question->category_id))
+            ->orderByDesc('view_count')
+            ->orderByDesc('id')
+            ->limit(3)
+            ->get();
+
+        if ($related->count() >= 3) {
+            return $related;
+        }
+
+        $fallback = $base()
+            ->whereNotIn('id', $related->pluck('id'))
+            ->orderByDesc('view_count')
+            ->orderByDesc('id')
+            ->limit(3 - $related->count())
+            ->get();
+
+        return $related->concat($fallback)->take(3)->values();
     }
 }

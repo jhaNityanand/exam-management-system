@@ -42,6 +42,9 @@
         ->filter()
         ->unique()
         ->values();
+    $shareUrl = urlencode(url()->current());
+    $shareText = urlencode($exam->title);
+    $shareRawUrl = url()->current();
 
     $categoryTrail = collect();
     $categoryCursor = $exam->category;
@@ -161,6 +164,15 @@
                         'userFeedback' => $userFeedback ?? null,
                         'canLeaveFeedback' => $canLeaveFeedback ?? false,
                     ])
+
+                    <div class="et-article__footer-panel et-exam-show__share-panel">
+                        @include('frontend.partials.article-share', [
+                            'shareUrl' => $shareUrl,
+                            'shareText' => $shareText,
+                            'shareRawUrl' => $shareRawUrl,
+                            'shareLabel' => 'Share this exam',
+                        ])
+                    </div>
                 </main>
 
                 <aside class="et-exam-show__aside" aria-label="Exam actions and quick information">
