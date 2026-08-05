@@ -49,11 +49,19 @@ function isAnsweredValue(value) {
     return true;
 }
 
-const LONG_ANSWER_TOOLBAR = 'undo redo | bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright | link | removeformat';
-const LONG_ANSWER_PLUGINS = 'lists link autolink';
+const TEXT_ANSWER_TOOLBAR = 'undo redo | bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright | link | removeformat';
+const TEXT_ANSWER_PLUGINS = 'lists link autolink';
 
-function isLongAnswerType(type) {
-    return type === 'long_answer' || type === 'written';
+function isRichTextAnswerType(type) {
+    return type === 'short_answer' || type === 'long_answer' || type === 'written';
+}
+
+function textAnswerEditorId(questionId) {
+    return 'cx-text-answer-' + questionId;
+}
+
+function textAnswerEditorHeight(type) {
+    return type === 'short_answer' ? 220 : 280;
 }
 
 function emptyAnswerFor(question) {
@@ -100,7 +108,16 @@ function renderQuestion(container, question) {
     const allowsMultiple = !!question.question?.allows_multiple || type === 'multi_select';
     const body = question.question?.body || '';
     const name = 'q' + question.id;
-    let html = '<div class="cx-question">' + body + '</div><div class="cx-answer">';
+    const marks = question.marks ?? question.question?.marks;
+    let html = '';
+    if (marks != null && marks !== '') {
+        html += '<p class="cx-question-marks">'
+            + escapeHtml(String(marks))
+            + ' mark'
+            + (Number(marks) === 1 ? '' : 's')
+            + '</p>';
+    }
+    html += '<div class="cx-question">' + body + '</div><div class="cx-answer">';
 
     if (type === 'true_false') {
         ['True', 'False'].forEach((value, index) => {
@@ -108,12 +125,11 @@ function renderQuestion(container, question) {
         });
     } else if (type === 'fill_blank') {
         html += '<input class="cx-field" type="text" name="' + escapeHtml(name) + '" autocomplete="off" placeholder="Type your answer">';
-    } else if (type === 'short_answer') {
-        html += '<textarea class="cx-field" name="' + escapeHtml(name) + '" rows="4" placeholder="Write your answer"></textarea>';
-    } else if (isLongAnswerType(type)) {
-        const editorId = 'cx-long-answer-' + question.id;
-        html += '<div class="ems-rich-editor ems-rich-editor--header" data-ems-rich-editor data-editor-height="280">'
-            + '<textarea class="cx-field cx-field--rich" id="' + escapeHtml(editorId) + '" name="' + escapeHtml(name) + '" rows="10" placeholder="Write your answer"></textarea>'
+    } else if (isRichTextAnswerType(type)) {
+        const editorId = textAnswerEditorId(question.id);
+        const height = textAnswerEditorHeight(type);
+        html += '<div class="ems-rich-editor ems-rich-editor--header" data-ems-rich-editor data-editor-height="' + height + '">'
+            + '<textarea class="cx-field cx-field--rich" id="' + escapeHtml(editorId) + '" name="' + escapeHtml(name) + '" rows="' + (type === 'short_answer' ? '6' : '10') + '" placeholder="Write your answer"></textarea>'
             + '</div>';
     } else {
         if (allowsMultiple) {
@@ -133,10 +149,9 @@ function readAnswer(container, question) {
     const allowsMultiple = !!question.question?.allows_multiple || type === 'multi_select';
     const name = 'q' + question.id;
 
-    if (type === 'fill_blank' || type === 'short_answer' || isLongAnswerType(type)) {
-        if (isLongAnswerType(type) && window.EmsRichTextEditor) {
-            const editorId = 'cx-long-answer-' + question.id;
-            const adapter = window.EmsRichTextEditor.get(editorId);
+    if (type === 'fill_blank' || isRichTextAnswerType(type)) {
+        if (isRichTextAnswerType(type) && window.EmsRichTextEditor) {
+            const adapter = window.EmsRichTextEditor.get(textAnswerEditorId(question.id));
             if (adapter && typeof adapter.getData === 'function') {
                 return adapter.getData();
             }
@@ -159,13 +174,12 @@ function applyAnswer(container, question, value) {
     const allowsMultiple = !!question.question?.allows_multiple || type === 'multi_select';
     const name = 'q' + question.id;
 
-    if (type === 'fill_blank' || type === 'short_answer' || isLongAnswerType(type)) {
+    if (type === 'fill_blank' || isRichTextAnswerType(type)) {
         const next = typeof value === 'object' && !Array.isArray(value)
             ? (value.text || '')
             : (Array.isArray(value) ? (value[0] || '') : value);
-        if (isLongAnswerType(type) && window.EmsRichTextEditor) {
-            const editorId = 'cx-long-answer-' + question.id;
-            const adapter = window.EmsRichTextEditor.get(editorId);
+        if (isRichTextAnswerType(type) && window.EmsRichTextEditor) {
+            const adapter = window.EmsRichTextEditor.get(textAnswerEditorId(question.id));
             if (adapter && typeof adapter.setData === 'function') {
                 adapter.setData(next == null ? '' : String(next));
                 return;
@@ -297,7 +311,7 @@ export function initExamRunner(root) {
     const violationAdvice = root.querySelector('#cx-violation-advice');
     const violationMeta = root.querySelector('#cx-violation-meta');
     const violationReconnectBtn = root.querySelector('#cx-violation-reconnect');
-    const railTimerLabel = root.querySelector('#cx-rail-timer-label');
+    const timerLabel = root.querySelector('#cx-topbar-timer-label');
     let mediaGraceActive = false;
 
     const autosave = createAutosave({
@@ -545,19 +559,20 @@ export function initExamRunner(root) {
     async function mountLongAnswerEditor(question, renderToken = state.questionRenderToken) {
         if (!window.EmsRichTextEditor || !questionEl) return;
         const type = question.question?.type || 'mcq';
-        if (!isLongAnswerType(type)) return;
+        if (!isRichTextAnswerType(type)) return;
         if (renderToken !== state.questionRenderToken || state.destroyed) return;
 
-        const editorId = 'cx-long-answer-' + question.id;
+        const editorId = textAnswerEditorId(question.id);
         const textarea = questionEl.querySelector('#' + editorId);
         if (!textarea) return;
 
+        const height = textAnswerEditorHeight(type);
         const wrapper = textarea.closest('[data-ems-rich-editor]') || textarea.parentElement;
         await window.EmsRichTextEditor.mount(textarea, {
             wrapper,
-            height: 280,
-            toolbar: LONG_ANSWER_TOOLBAR,
-            plugins: LONG_ANSWER_PLUGINS,
+            height,
+            toolbar: TEXT_ANSWER_TOOLBAR,
+            plugins: TEXT_ANSWER_PLUGINS,
             menubar: false,
             placeholder: 'Write your answer',
             uploadUrl: '',
@@ -699,6 +714,12 @@ export function initExamRunner(root) {
         if (paletteSummaryEl) paletteSummaryEl.textContent = answered + ' answered';
     }
 
+    function syncQuestionReviewUi(question = questions[state.index]) {
+        if (!questionEl) return;
+        const marked = !!(question && state.review[question.id]);
+        questionEl.classList.toggle('is-review', marked);
+    }
+
     function showQuestion() {
         const q = questions[state.index];
         if (!q || !questionEl) return;
@@ -716,6 +737,7 @@ export function initExamRunner(root) {
             renderQuestion(questionEl, q);
             applyAnswer(questionEl, q, state.answers[q.id]);
             bindOptionHighlight(questionEl);
+            syncQuestionReviewUi(q);
             state.visited[q.id] = true;
 
             const type = q.question?.type || 'mcq';
@@ -728,18 +750,11 @@ export function initExamRunner(root) {
             syncLocal();
 
             const qno = root.querySelector('#cx-qno');
-            const kicker = root.querySelector('#cx-question-kicker');
-            const marksEl = root.querySelector('#cx-question-marks');
-            const partLabel = q.part_name ? (q.part_name + ' · ') : '';
-            const label = partLabel + 'Question ' + (state.index + 1) + ' of ' + questions.length;
-            if (qno) qno.textContent = label;
-            if (kicker) kicker.textContent = label;
-            if (marksEl) {
-                const marks = q.marks ?? q.question?.marks;
-                marksEl.textContent = marks != null ? (marks + ' mark' + (Number(marks) === 1 ? '' : 's')) : '';
+            if (qno) {
+                qno.textContent = 'Question ' + (state.index + 1) + ' of ' + questions.length;
             }
 
-            if (isLongAnswerType(type)) {
+            if (isRichTextAnswerType(type)) {
                 mountLongAnswerEditor(q, renderToken).catch((e) => {
                     if (renderToken !== state.questionRenderToken) return;
                     notify(e?.message || 'Rich editor unavailable. Using plain text.', 'warn', 4000);
@@ -924,6 +939,7 @@ export function initExamRunner(root) {
         const q = questions[state.index];
         if (q) {
             state.review[q.id] = false;
+            syncQuestionReviewUi(q);
         }
         persistCurrent({ debounceMs: 0 });
         const ok = await autosave.flush({ waitForInflight: true });
@@ -942,6 +958,7 @@ export function initExamRunner(root) {
         const q = questions[state.index];
         if (!q) return;
         state.review[q.id] = true;
+        syncQuestionReviewUi(q);
         persistCurrent({ debounceMs: 0 });
         await autosave.flush({ waitForInflight: true });
         await advanceAfterSave();
@@ -956,8 +973,8 @@ export function initExamRunner(root) {
         }
 
         const type = q.question?.type || 'mcq';
-        if (isLongAnswerType(type) && window.EmsRichTextEditor) {
-            const adapter = window.EmsRichTextEditor.get('cx-long-answer-' + q.id);
+        if (isRichTextAnswerType(type) && window.EmsRichTextEditor) {
+            const adapter = window.EmsRichTextEditor.get(textAnswerEditorId(q.id));
             adapter?.setData?.('');
         }
 
@@ -1089,16 +1106,19 @@ export function initExamRunner(root) {
             classes.push('is-' + (stage || 'green'));
             el.className = classes.join(' ');
         });
-        if (railTimerLabel) {
-            railTimerLabel.textContent = mode === 'elapsed' ? 'Time elapsed' : 'Time remaining';
+        if (timerLabel) {
+            timerLabel.textContent = mode === 'elapsed' ? 'Time elapsed' : 'Time remaining';
         }
     }
 
     if (payload.exam?.enable_exam_timer && payload.attempt?.expires_at) {
-        const totalSeconds = Math.max(
+        const remainingAtLoad = Math.max(
             1,
             Math.floor((new Date(payload.attempt.expires_at).getTime() - new Date(payload.server_now).getTime()) / 1000),
         );
+        // Prefer configured exam duration so color stages stay correct after refresh / mid-attempt resume.
+        const configuredTotal = Math.max(0, Math.floor(Number(payload.exam?.duration || 0) * 60));
+        const totalSeconds = configuredTotal > 0 ? configuredTotal : remainingAtLoad;
         state.timerApi = createTimer({
             expiresAt: payload.attempt.expires_at,
             serverNow: payload.server_now,

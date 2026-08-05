@@ -37,6 +37,12 @@
         ? (optional($exam->scheduled_start)->format('d M Y, H:i') ?: 'Date pending')
         : 'Available any time';
 
+    $examTags = collect($exam->tags ?? [])
+        ->map(fn ($tag) => trim((string) $tag))
+        ->filter()
+        ->unique()
+        ->values();
+
     $categoryTrail = collect();
     $categoryCursor = $exam->category;
     $categoryGuard = 0;
@@ -230,6 +236,20 @@
                             <div><dt>Availability</dt><dd>{{ $scheduleLabel }}</dd></div>
                         </dl>
                     </section>
+
+                    @if($examTags->isNotEmpty())
+                        <section class="et-exam-show__aside-card">
+                            <div class="et-exam-show__aside-head">
+                                <p>Topics</p>
+                                <h2>Tags</h2>
+                            </div>
+                            <div class="et-exam-show__tags">
+                                @foreach($examTags as $tag)
+                                    <span class="et-exam-show__tag">{{ $tag }}</span>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endif
 
                     <section class="et-exam-show__notice" role="note">
                         <span class="et-exam-show__notice-icon" aria-hidden="true">

@@ -19,6 +19,9 @@
     $amountLabel = $isPaidExam
         ? trim(($exam->exam_currency ?: 'INR').' '.number_format((float) ($exam->exam_amount ?? 0), 2))
         : null;
+    $blockedReason = (! $needsPayment && ! $canContinueAttempt && ! $canAttempt)
+        ? ($evaluation['reasons'][0] ?? 'You cannot start this exam right now.')
+        : null;
 @endphp
 
 @section('content')
@@ -36,6 +39,13 @@
 </div>
 
 <div class="et-container et-page-stack et-exam-rules-page">
+    @if($blockedReason)
+        <div class="et-exam-rules-blocked" role="alert">
+            <span class="et-exam-rules-blocked__icon" aria-hidden="true">!</span>
+            <strong>{{ $blockedReason }}</strong>
+        </div>
+    @endif
+
     <div class="et-grid et-grid--4 et-exam-rules-stats">
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_questions }}</span><span class="et-stat__label">Questions</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->duration }}</span><span class="et-stat__label">Minutes</span></div>
@@ -175,10 +185,6 @@
                    @unless($rulesAgreed) aria-disabled="true" tabindex="-1" @endunless>
                     Continue to verification
                 </a>
-            </section>
-        @else
-            <section class="et-exam-rules-action">
-                <span class="et-text-muted">{{ $evaluation['reasons'][0] ?? 'You cannot start this exam right now.' }}</span>
             </section>
         @endif
 

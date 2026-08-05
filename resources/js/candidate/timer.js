@@ -24,12 +24,17 @@ export function createTimer({ expiresAt, serverNow, onTick, onExpire }) {
         return Math.max(0, Math.floor((expiresMs - now()) / 1000));
     }
 
+    /**
+     * Split total duration into 4 equal quarters (by remaining time).
+     * Q1 green → Q2 blue → Q3 yellow → Q4 first half orange → Q4 second half red.
+     */
     function stage(totalSeconds, left) {
         if (!totalSeconds) return 'green';
         const ratio = left / totalSeconds;
-        if (ratio > 0.5) return 'green';
+        if (ratio > 0.75) return 'green';
+        if (ratio > 0.5) return 'blue';
         if (ratio > 0.25) return 'yellow';
-        if (ratio > 0.1) return 'orange';
+        if (ratio > 0.125) return 'orange';
         return 'red';
     }
 

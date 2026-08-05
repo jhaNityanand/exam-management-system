@@ -23,24 +23,25 @@
      data-urls='@json($urls)'>
 
     <header class="cx-topbar" id="cx-topbar">
-        <div class="cx-topbar__mobile-leading">
-            <div id="cx-timer" class="cx-timer cx-timer--top" aria-live="polite" title="{{ $timedExam ? 'Time remaining' : 'Elapsed time' }}">--:--</div>
-        </div>
-
         <div class="cx-topbar__left">
             <div class="cx-topbar__title-row">
-                <span class="cx-live-badge">Live exam</span>
                 <h1 class="cx-topbar__title" title="{{ $exam->title }}">{{ \Illuminate\Support\Str::limit($exam->title, 48) }}</h1>
             </div>
-            <p class="cx-topbar__meta">
-                <span id="cx-qno">Question 1</span>
+            <p class="cx-topbar__meta" id="cx-topbar-meta">
+                <span id="cx-qno">Question 1 of {{ (int) ($exam->total_questions ?: 0) }}</span>
                 <span class="cx-dot" aria-hidden="true"></span>
                 <span id="cx-progress-label">0 / 0 answered</span>
-                @if($modeLabel)
-                    <span class="cx-dot" aria-hidden="true"></span>
-                    <span>{{ $modeLabel }}</span>
-                @endif
             </p>
+        </div>
+
+        <div class="cx-topbar__timer">
+            <span class="cx-topbar__timer-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </span>
+            <span class="cx-topbar__timer-copy">
+                <span class="cx-topbar__timer-label" id="cx-topbar-timer-label">{{ $timedExam ? 'Time remaining' : 'Time elapsed' }}</span>
+            <div id="cx-timer" class="cx-timer cx-timer--top" aria-live="polite" title="{{ $timedExam ? 'Time remaining' : 'Elapsed time' }}">--:--</div>
+            </span>
         </div>
 
         <div class="cx-topbar__right">
@@ -59,13 +60,6 @@
 
     <div class="cx-exam__body">
         <main class="cx-main" id="cx-main">
-            <div class="cx-question-head">
-                <div>
-                    <p class="cx-question-kicker" id="cx-question-kicker">Question 1</p>
-                    <p class="cx-question-marks" id="cx-question-marks"></p>
-                </div>
-            </div>
-
             <div id="cx-question" class="cx-question-wrap"></div>
 
             <div class="cx-footer-actions">
@@ -84,11 +78,6 @@
                 <button type="button" class="cx-icon-btn cx-drawer-close" id="cx-drawer-close" aria-label="Close panel">
                     <span aria-hidden="true">&times;</span>
                 </button>
-            </div>
-
-            <div class="cx-rail__timer-wrap">
-                <p class="cx-rail__label" id="cx-rail-timer-label">{{ $timedExam ? 'Time remaining' : 'Time elapsed' }}</p>
-                <div id="cx-rail-timer" class="cx-timer cx-timer--rail" aria-live="off">--:--</div>
             </div>
 
             <section class="cx-rail__overview" aria-label="Exam details">
