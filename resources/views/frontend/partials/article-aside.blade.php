@@ -12,10 +12,36 @@
     $latestTitle = $type === 'news' ? 'Latest news' : 'Latest blogs';
     $viewAllUrl = $type === 'news' ? route('frontend.news.index') : route('frontend.blogs.index');
     $viewAllLabel = $type === 'news' ? 'View all' : 'View all';
+    $articleMeta = collect($articleHeaderMeta ?? []);
 @endphp
 
-@if($aside)
+@if($aside || $articleMeta->isNotEmpty())
     <aside class="et-article-aside" aria-label="Article sidebar">
+        @if($articleMeta->isNotEmpty())
+            <section class="et-article-aside__card">
+                <div class="et-article-aside__head">
+                    <h2 class="et-article-aside__heading">Article details</h2>
+                </div>
+                <div class="et-article-aside__meta">
+                    @foreach($articleMeta as $meta)
+                        @if(! empty($meta['url']))
+                            <a class="et-article-aside__meta-item et-article-aside__meta-item--{{ $meta['tone'] ?? 'soft' }}" href="{{ $meta['url'] }}">
+                                {{ $meta['label'] }}
+                            </a>
+                        @else
+                            <span class="et-article-aside__meta-item et-article-aside__meta-item--{{ $meta['tone'] ?? 'soft' }}">
+                                @if(! empty($meta['datetime']))
+                                    <time datetime="{{ $meta['datetime'] }}">{{ $meta['label'] }}</time>
+                                @else
+                                    {{ $meta['label'] }}
+                                @endif
+                            </span>
+                        @endif
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         @if($author)
             <section class="et-article-aside__card et-article-aside__author">
                 <div class="et-article-aside__author-top">
@@ -35,9 +61,6 @@
                                 {{ $author['name'] }}
                             @endif
                         </h2>
-                        @if(! empty($author['published_label']))
-                            <p class="et-article-aside__author-meta">{{ $author['published_label'] }}</p>
-                        @endif
                     </div>
                 </div>
                 @if(! empty($author['bio']))

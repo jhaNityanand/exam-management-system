@@ -14,7 +14,6 @@
 
 @section('content')
     @include('frontend.partials.listing-page', [
-        'adPage' => 'news_list',
         'listingEndpoint' => route('frontend.news.tag', $tag->slug),
         'listingLoadMoreEndpoint' => route('frontend.news.tag', $tag->slug).(request()->getQueryString() ? '?'.request()->getQueryString() : ''),
         'listingModalId' => 'et-news-tag-filter-modal',

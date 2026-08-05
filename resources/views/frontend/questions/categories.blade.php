@@ -19,8 +19,7 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="question_categories">
-    <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.questions.categories') }}">
+<div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.questions.categories') }}">
         <div class="et-page-hero et-page-hero--listing">
             <div class="et-container">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
@@ -116,9 +115,7 @@
                     @endforeach
                 </div>
 
-                <x-ad-slot page="question_categories" position="below_items" />
-
-                <div data-load-more-slot>
+<div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $categories,
                         'endpoint' => route('frontend.questions.categories', request()->query()),
@@ -127,5 +124,4 @@
             </div>
         </div>
     </div>
-</x-ad-layout>
 @endsection

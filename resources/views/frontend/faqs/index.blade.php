@@ -13,7 +13,6 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="faqs">
 <section class="et-page-hero et-page-hero--help">
     <div class="et-container et-page-hero__inner">
         @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $seo['breadcrumbs']])
@@ -22,8 +21,6 @@
         <p class="et-page-hero__lead">Quick answers to help you prepare, attempt exams, and manage your account.</p>
     </div>
 </section>
-
-<x-ad-slot page="faqs" position="below_title" />
 
 <section class="et-section et-faq-page">
     <div class="et-container et-faq-page__layout">
@@ -80,6 +77,4 @@
     </div>
 </section>
 
-<x-ad-slot page="faqs" position="after_content" />
-</x-ad-layout>
 @endsection

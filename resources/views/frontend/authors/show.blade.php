@@ -35,8 +35,7 @@
 @endphp
 
 @section('content')
-    <x-ad-layout page="author_detail">
-    <article class="et-author-page">
+<article class="et-author-page">
         <header class="et-author-hero">
             <div class="et-container et-author-page__wrap">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $crumbs])
@@ -92,9 +91,7 @@
             </div>
         </header>
 
-        <x-ad-slot page="author_detail" position="below_title" />
-
-        <div class="et-container et-author-page__wrap et-author-work">
+<div class="et-container et-author-page__wrap et-author-work">
             <section class="et-author-work__block">
                 <div class="et-author-work__head">
                     <div>
@@ -116,9 +113,7 @@
                 @endif
             </section>
 
-            <x-ad-slot page="author_detail" position="between_sections" />
-
-            <section class="et-author-work__block">
+<section class="et-author-work__block">
                 <div class="et-author-work__head">
                     <div>
                         <h2>Latest blogs</h2>
@@ -139,9 +134,7 @@
                 @endif
             </section>
 
-            <x-ad-slot page="author_detail" position="after_blogs" />
-
-            <section class="et-author-work__block">
+<section class="et-author-work__block">
                 <div class="et-author-work__head">
                     <div>
                         <h2>Latest news</h2>
@@ -162,9 +155,7 @@
                 @endif
             </section>
 
-            <x-ad-slot page="author_detail" position="after_news" />
-
-            <section class="et-author-work__block">
+<section class="et-author-work__block">
                 <div class="et-author-work__head">
                     <div>
                         <h2>Latest questions</h2>
@@ -185,8 +176,6 @@
                 @endif
             </section>
 
-            <x-ad-slot page="author_detail" position="after_content" />
-        </div>
+</div>
     </article>
-    </x-ad-layout>
 @endsection

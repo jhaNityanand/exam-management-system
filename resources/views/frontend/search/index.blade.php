@@ -20,8 +20,7 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="search">
-    <div class="et-page-hero">
+<div class="et-page-hero">
         <div class="et-container">
             @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
                 ['label' => 'Home', 'url' => route('home')],
@@ -37,9 +36,7 @@
         </div>
     </div>
 
-    <x-ad-slot page="search" position="below_title" />
-
-    <div class="et-container et-search-results et-section">
+<div class="et-container et-search-results et-section">
         @if($q === '')
             @include('frontend.partials.empty-state', [
                 'title' => 'Start searching',
@@ -67,8 +64,7 @@
                             @endforeach
                         </div>
                     </section>
-                    <x-ad-slot page="search" position="after_results" />
-                @endif
+@endif
 
                 @if(count($questions))
                     <section>
@@ -114,9 +110,7 @@
                     </section>
                 @endif
 
-                <x-ad-slot page="search" position="after_content" />
-            @endunless
+@endunless
         @endif
     </div>
-</x-ad-layout>
 @endsection

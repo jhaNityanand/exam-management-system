@@ -11,10 +11,12 @@
     $canContinue = ! empty($evaluation['can_continue']) && ! empty($evaluation['active_attempt_id']);
     $checks = $checks ?? [];
     $blockedByEligibility = ! empty($evaluation['reasons']) && empty($evaluation['can_continue']);
+    $modeLabel = filled($exam->exam_mode)
+        ? ucfirst(str_replace('_', ' ', (string) $exam->exam_mode))
+        : null;
 @endphp
 
 @section('content')
-<x-ad-layout page="exam_prepare" :show-above-footer="false">
 <div id="cx-main" class="cx-prepare-main" tabindex="-1">
 <div class="cx-page-boot" id="cx-page-boot" role="status" aria-live="polite" aria-busy="true" aria-label="Loading exam readiness">
     <span class="cx-visually-hidden">Loading exam readiness</span>
@@ -22,12 +24,6 @@
         <div class="cx-skel cx-skel--eyebrow"></div>
         <div class="cx-skel cx-skel--title"></div>
         <div class="cx-skel cx-skel--line"></div>
-        <div class="cx-skel-row">
-            <div class="cx-skel cx-skel--chip"></div>
-            <div class="cx-skel cx-skel--chip"></div>
-            <div class="cx-skel cx-skel--chip"></div>
-            <div class="cx-skel cx-skel--chip"></div>
-        </div>
         <div class="cx-skel-panel">
             <div class="cx-skel cx-skel--heading"></div>
             <div class="cx-skel cx-skel--line cx-skel--short"></div>
@@ -68,18 +64,11 @@
             <p class="cx-eyebrow">Exam readiness</p>
             <h1>{{ $exam->title }}</h1>
             <p>Complete the required checks below. Verification is driven only by enabled exam rules.</p>
-            <div class="cx-chip-row">
-                <span class="cx-chip">{{ (int) $exam->duration }} min</span>
-                <span class="cx-chip">{{ (int) $exam->total_questions }} questions</span>
-                <span class="cx-chip">{{ (int) $exam->total_marks }} marks</span>
-                <span class="cx-chip">{{ count($checks) }} checks</span>
-            </div>
         </div>
     </div>
 
-    <x-ad-slot page="exam_prepare" position="below_title" />
-
-    <div class="cx-prepare__panel">
+<div class="cx-prepare__panel cx-prepare__layout">
+        <main class="cx-prepare__content">
         <div id="cx-prepare-alert" class="cx-alert" hidden></div>
 
         @if($blockedByEligibility)
@@ -183,16 +172,39 @@
             @if($requireSelfie)
                 <p class="cx-prepare__hint">Tip: Selfies must be captured live from your webcam. File uploads are not accepted.</p>
             @endif
-
-            <label class="et-agree cx-prepare-agree">
-                <input type="checkbox" id="cx-prepare-rules-agree" @checked(!empty($rulesAgreed))>
-                <span>I agree to the exam rules and monitoring policies, including the warning limit of <strong>{{ (int) ($policy?->focus_violation_limit ?? 3) }}</strong>.</span>
-            </label>
         </section>
+        </main>
 
-        <x-ad-slot page="exam_prepare" position="between_sections" />
+        <aside class="cx-prepare__aside" aria-label="Exam readiness summary">
+            <section class="cx-card cx-prepare-summary">
+                <div class="cx-prepare-summary__head">
+                    <span class="cx-prepare-summary__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3zM9 12l2 2 4-4"/></svg>
+                    </span>
+                    <div>
+                        <p>Secure attempt</p>
+                        <h2>Ready to start?</h2>
+                    </div>
+                </div>
+                <dl class="cx-prepare-summary__facts">
+                    <div><dt>Duration</dt><dd>{{ (int) $exam->duration }} min</dd></div>
+                    <div><dt>Questions</dt><dd>{{ (int) $exam->total_questions }}</dd></div>
+                    <div><dt>Total marks</dt><dd>{{ (int) $exam->total_marks }}</dd></div>
+                    @if($modeLabel)<div><dt>Exam mode</dt><dd>{{ $modeLabel }}</dd></div>@endif
+                    <div><dt>Required checks</dt><dd>{{ count($checks) }}</dd></div>
+                    <div><dt>Warning limit</dt><dd>{{ (int) ($policy?->focus_violation_limit ?? 3) }}</dd></div>
+                </dl>
+                <p class="cx-prepare-summary__note">Your answers save automatically after the exam begins. Keep this window active and your connection stable.</p>
+            </section>
 
-        <div class="cx-prepare__footer">
+            <section class="cx-card cx-prepare-consent" aria-label="Exam agreement">
+                <label class="et-agree cx-prepare-agree">
+                    <input type="checkbox" id="cx-prepare-rules-agree" @checked(!empty($rulesAgreed))>
+                    <span>I agree to the exam rules and monitoring policies, including the warning limit of <strong>{{ (int) ($policy?->focus_violation_limit ?? 3) }}</strong>.</span>
+                </label>
+            </section>
+
+<div class="cx-prepare__footer">
             <a href="{{ route('frontend.exams.rules', $exam) }}" class="et-btn et-btn--ghost">Back to rules</a>
             <button type="button"
                     class="et-btn et-btn--primary"
@@ -204,9 +216,9 @@
             </button>
         </div>
         <p id="cx-prepare-error" class="cx-error" hidden role="alert"></p>
+        </aside>
 
-        <x-ad-slot page="exam_prepare" position="after_cta" />
-    </div>
+</div>
 
     <div class="cx-loading" id="cx-loading" hidden>
         <div class="cx-loading__card">
@@ -222,7 +234,6 @@
 
 <div id="cx-runner-host" class="cx-runner-host" hidden aria-hidden="true"></div>
 </div>
-</x-ad-layout>
 @endsection
 
 @push('styles')

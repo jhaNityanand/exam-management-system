@@ -121,7 +121,20 @@ class ExamController extends Controller
         }
         abort_unless($this->eligibility->canViewPublicDetail($exam, $user), 404);
 
-        $exam->load(['category:id,name,slug,description', 'ogImage', 'bannerImage', 'proctoringPolicy']);
+        $exam->load([
+            'category:id,name,slug,parent_id,description',
+            'ogImage',
+            'proctoringPolicy',
+        ]);
+
+        // Walk parent chain so the detail page can render Parent → Child → Category.
+        $categoryNode = $exam->category;
+        $depthGuard = 0;
+        while ($categoryNode && $categoryNode->parent_id && $depthGuard < 12) {
+            $categoryNode->loadMissing(['parent:id,name,slug,parent_id']);
+            $categoryNode = $categoryNode->parent;
+            $depthGuard++;
+        }
 
         $evaluation = $user ? $this->eligibility->evaluate($exam, $user) : [
             'can_attempt' => false,

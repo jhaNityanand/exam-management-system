@@ -169,6 +169,54 @@
         });
     }
 
+    function initExamShowModal() {
+        var modal = document.getElementById('fb-exam-modal');
+        if (!modal) return;
+
+        var form = modal.querySelector('[data-fb-form]');
+        var openers = document.querySelectorAll('[data-fb-open-exam-modal]');
+        if (!openers.length) return;
+
+        function openModal() {
+            modal.hidden = false;
+            modal.removeAttribute('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('fb-modal-open');
+            modal.querySelector('[data-fb-star="5"]')?.focus();
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            modal.setAttribute('hidden', 'hidden');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('fb-modal-open');
+        }
+
+        openers.forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                openModal();
+            });
+        });
+
+        modal.querySelectorAll('[data-fb-close-exam-modal]').forEach(function (el) {
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeModal();
+            });
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
+
+        form?.addEventListener('feedback:submitted', function () {
+            window.setTimeout(closeModal, 500);
+        });
+    }
+
     function initResultModal() {
         var page = document.getElementById('rs-page');
         var modal = document.getElementById('fb-result-modal');
@@ -243,6 +291,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-fb-form]').forEach(enhanceForm);
         initOpenPanel();
+        initExamShowModal();
         initResultModal();
         initExamShowReload();
     });

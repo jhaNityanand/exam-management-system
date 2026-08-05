@@ -5,7 +5,6 @@
 @endpush
 
 @section('content')
-<x-ad-layout page="account">
 <div class="ca-page">
     <div class="et-container ca-shell">
         <div class="ca-toolbar">
@@ -24,19 +23,15 @@
             </div>
         </div>
 
-        <x-ad-slot page="account" position="below_title" />
-
-        <div class="ca-layout">
+<div class="ca-layout">
             <div class="ca-sidebar-backdrop" data-ca-sidebar-close hidden></div>
             @include('frontend.layouts.sidebar')
             <div class="ca-main" id="account-content" role="region" aria-label="Account content">
                 @yield('account-content')
-                <x-ad-slot page="account" position="after_content" />
-            </div>
+</div>
         </div>
     </div>
 </div>
-</x-ad-layout>
 @endsection
 
 @push('scripts')

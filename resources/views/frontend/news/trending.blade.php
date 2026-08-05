@@ -14,7 +14,6 @@
 
 @section('content')
     @include('frontend.partials.listing-page', [
-        'adPage' => 'news_list',
         'listingEndpoint' => route('frontend.news.trending'),
         'listingLoadMoreEndpoint' => route('frontend.news.trending', request()->query()),
         'listingModalId' => 'et-news-trending-filter-modal',

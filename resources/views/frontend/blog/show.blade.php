@@ -1,8 +1,6 @@
 @extends('frontend.layouts.app')
 
 @php
-    $words = str_word_count(strip_tags((string) ($blog->content ?? '')));
-    $readingMins = max(1, (int) ceil($words / 200));
     $bannerImages = $blog->bannerUrls();
     $hasBanner = count($bannerImages) > 0;
     $crumbs = [
@@ -31,32 +29,30 @@
     $shareUrl = urlencode(url()->current());
     $shareText = urlencode($blog->title);
     $shareRawUrl = url()->current();
+    $categoryTrail = collect();
+    $categoryCursor = $blog->category;
+    $categoryGuard = 0;
+    while ($categoryCursor && $categoryGuard < 12) {
+        $categoryTrail->prepend($categoryCursor);
+        $categoryCursor = $categoryCursor->parent;
+        $categoryGuard++;
+    }
+    $publishedLabel = $blog->published_at ? $blog->published_at->format('d M Y') : null;
 @endphp
 
 @section('content')
-<x-ad-layout page="blog_detail">
-    <article class="et-article et-article--detail{{ $hasBanner ? ' et-article--has-banner' : ' et-article--no-banner' }}">
+<article class="et-article et-article--detail{{ $hasBanner ? ' et-article--has-banner' : ' et-article--no-banner' }}">
         <header class="et-article__top">
             <div class="et-container et-article__shell">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $crumbs])
 
-                <div class="et-article__badges">
-                    @if($blog->category)
-                        <a class="et-badge et-article__badge" href="{{ route('frontend.blogs.category', $blog->category->slug) }}">{{ $blog->category->name }}</a>
-                    @endif
-                    <span class="et-badge et-badge--soft">{{ $readingMins }} min read</span>
-                    @if($blog->published_at)
-                        <span class="et-badge et-badge--soft">
-                            <time datetime="{{ $blog->published_at->toIso8601String() }}">{{ $blog->published_at->format('d M Y') }}</time>
-                        </span>
-                    @endif
-                </div>
-
-                <x-ad-slot page="blog_detail" position="above_title" />
-
                 <h1 class="et-article__title">{{ $blog->title }}</h1>
-
-                <x-ad-slot page="blog_detail" position="below_title" />
+                @include('frontend.partials.detail-header-meta', [
+                    'categoryTrail' => $categoryTrail,
+                    'categoryUrlFn' => fn ($category) => route('frontend.blogs.category', $category->slug),
+                    'publishedLabel' => $publishedLabel ? 'Published '.$publishedLabel : null,
+                    'publishedDatetime' => optional($blog->published_at)?->toIso8601String(),
+                ])
             </div>
         </header>
 
@@ -70,9 +66,7 @@
                         ])
                     @endif
 
-                    <x-ad-slot page="blog_detail" position="before_content" />
-
-                    @if($blog->excerpt)
+@if($blog->excerpt)
                         <p class="et-article__lead">{{ $blog->excerpt }}</p>
                     @endif
 
@@ -88,9 +82,7 @@
                         {!! $processedContent !!}
                     </div>
 
-                    <x-ad-slot page="blog_detail" position="between_sections" />
-
-                    <div class="et-article__footer-panel">
+<div class="et-article__footer-panel">
                         @include('frontend.partials.article-share', [
                             'shareUrl' => $shareUrl,
                             'shareText' => $shareText,
@@ -114,14 +106,10 @@
                         </section>
                     @endif
 
-                    <x-ad-slot page="blog_detail" position="after_related" />
-                    <x-ad-slot page="blog_detail" position="after_newsletter" />
-                    <x-ad-slot page="blog_detail" position="after_cta" />
                 </div>
 
                 @include('frontend.partials.article-aside')
             </div>
         </div>
     </article>
-</x-ad-layout>
 @endsection

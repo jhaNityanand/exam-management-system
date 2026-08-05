@@ -41,29 +41,18 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="question_detail">
-    <article class="et-qd">
-        <h1 class="et-visually-hidden">{{ $title }}</h1>
-
+<article class="et-qd">
         <div class="et-qd__top">
             <div class="et-container et-qd__wrap">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $breadcrumbs])
-
-                <div class="et-qd__badges" aria-label="Question meta">
-                    @if($question->category)
-                        <a class="et-badge et-qd__badge" href="{{ route('frontend.questions.category', $question->category->slug) }}">
-                            {{ $question->category->name }}
-                        </a>
-                    @endif
-                    <span class="et-badge {{ $difficultyBadge }} et-qd__badge">{{ $question->difficultyLabel() }}</span>
-                    <span class="et-badge et-badge--info et-qd__badge">{{ $question->typeLabel() }}</span>
-                </div>
+                <h1>Practice question</h1>
+                <p>Review the question, correct answer, and explanation.</p>
             </div>
         </div>
 
-        <x-ad-slot page="question_detail" position="below_title" />
-
-        <div class="et-container et-qd__wrap et-qd__main">
+<div class="et-container et-qd__wrap et-qd__main">
+            <div class="et-qd__layout">
+            <main class="et-qd__content">
             <section class="et-qd__panel et-qd__question" aria-labelledby="et-qd-question-heading">
                 <p class="et-qd__kicker">Question</p>
                 <h3 id="et-qd-question-heading" class="et-qd__prompt">
@@ -75,9 +64,7 @@
                 </h3>
             </section>
 
-            <x-ad-slot page="question_detail" position="before_content" />
-
-                    @if(! empty($payload['show_options']))
+@if(! empty($payload['show_options']))
                         <section class="et-qd__panel et-qd__options" aria-label="Answer options">
                             <div class="et-qd__section-head">
                                 <h4>Options</h4>
@@ -181,9 +168,7 @@
                         </div>
                     </div>
 
-            <x-ad-slot page="question_detail" position="between_sections" />
-
-                    @if(($relatedBlogs ?? collect())->isNotEmpty())
+@if(($relatedBlogs ?? collect())->isNotEmpty())
                         <section class="et-qd__related">
                             @include('frontend.components.section-heading', [
                                 'title' => 'Related blogs',
@@ -197,8 +182,24 @@
                 </section>
             @endif
 
-            <x-ad-slot page="question_detail" position="after_content" />
-        </div>
+            </main>
+            <aside class="et-qd__aside" aria-label="Question details">
+                <section class="et-qd__aside-card">
+                    <p class="et-qd__aside-eyebrow">Question details</p>
+                    <h2>Practice overview</h2>
+                    <div class="et-qd__aside-meta">
+                        @if($question->category)
+                            <a class="et-badge et-qd__badge" href="{{ route('frontend.questions.category', $question->category->slug) }}">
+                                {{ $question->category->name }}
+                            </a>
+                        @endif
+                        <span class="et-badge {{ $difficultyBadge }} et-qd__badge">{{ $question->difficultyLabel() }}</span>
+                        <span class="et-badge et-badge--info et-qd__badge">{{ $question->typeLabel() }}</span>
+                    </div>
+                    <p class="et-qd__aside-note">Review the answer and explanation, then explore related learning resources below.</p>
+                </section>
+            </aside>
+            </div>
+</div>
     </article>
-</x-ad-layout>
 @endsection

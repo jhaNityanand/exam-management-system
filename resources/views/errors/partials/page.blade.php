@@ -7,7 +7,6 @@
     $showLogin = $showLogin ?? false;
     $showAccount = $showAccount ?? false;
     $showRefresh = $showRefresh ?? false;
-    $adPage = $adPage ?? ('error_'.$code);
     $brandName = $siteBrand['name'] ?? ($siteSettings['site_name'] ?? config('app.name', 'Examtube.in'));
     $tone = match ($code) {
         '403' => 'rose',
@@ -20,7 +19,6 @@
     };
 @endphp
 
-<x-ad-layout :page="$adPage">
 <section class="et-err et-err--{{ $tone }}" aria-labelledby="et-err-title">
     <div class="et-container et-err__inner">
         <div class="et-err__art" aria-hidden="true">
@@ -31,9 +29,7 @@
         <h1 id="et-err-title" class="et-err__title">{{ $title }}</h1>
         <p class="et-err__message">{{ $message }}</p>
 
-        <x-ad-slot :page="$adPage" position="below_title" />
-
-        <div class="et-err__actions">
+<div class="et-err__actions">
             @if($showHome)
                 <a href="{{ route('home') }}" class="et-btn et-btn--primary">
                     <svg class="et-err__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -78,9 +74,6 @@
             @endif
         </div>
 
-        <x-ad-slot :page="$adPage" position="after_content" />
-
-        <p class="et-err__brand">{{ $brandName }}</p>
+<p class="et-err__brand">{{ $brandName }}</p>
     </div>
 </section>
-</x-ad-layout>

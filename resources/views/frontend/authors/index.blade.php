@@ -18,8 +18,7 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="authors">
-    <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.authors.index') }}">
+<div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.authors.index') }}">
         <div class="et-page-hero et-page-hero--listing et-page-hero--authors">
             <div class="et-container">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $seo['breadcrumbs']])
@@ -119,9 +118,7 @@
                     @endforeach
                 </div>
 
-                <x-ad-slot page="authors" position="below_items" />
-
-                <div data-load-more-slot>
+<div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $authors,
                         'endpoint' => route('frontend.authors.index', request()->query()),
@@ -130,5 +127,4 @@
             </div>
         </div>
     </div>
-</x-ad-layout>
 @endsection

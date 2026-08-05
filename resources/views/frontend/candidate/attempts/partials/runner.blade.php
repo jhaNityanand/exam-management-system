@@ -10,6 +10,9 @@
     $requireWebcam = ! empty($policy['require_webcam']);
     $asOverlay = ! empty($asOverlay);
     $timedExam = ! empty($payload['exam']['enable_exam_timer']);
+    $modeLabel = filled($exam->exam_mode)
+        ? ucfirst(str_replace('_', ' ', (string) $exam->exam_mode))
+        : null;
 @endphp
 
 <div class="cx-exam{{ $asOverlay ? ' cx-exam--overlay is-active' : '' }}"
@@ -33,6 +36,10 @@
                 <span id="cx-qno">Question 1</span>
                 <span class="cx-dot" aria-hidden="true"></span>
                 <span id="cx-progress-label">0 / 0 answered</span>
+                @if($modeLabel)
+                    <span class="cx-dot" aria-hidden="true"></span>
+                    <span>{{ $modeLabel }}</span>
+                @endif
             </p>
         </div>
 
@@ -84,6 +91,23 @@
                 <div id="cx-rail-timer" class="cx-timer cx-timer--rail" aria-live="off">--:--</div>
             </div>
 
+            <section class="cx-rail__overview" aria-label="Exam details">
+                <div>
+                    <span>Questions</span>
+                    <strong>{{ (int) $exam->total_questions }}</strong>
+                </div>
+                <div>
+                    <span>Marks</span>
+                    <strong>{{ (int) $exam->total_marks }}</strong>
+                </div>
+                @if($modeLabel)
+                    <div class="cx-rail__overview-wide">
+                        <span>Mode</span>
+                        <strong>{{ $modeLabel }}</strong>
+                    </div>
+                @endif
+            </section>
+
             @if($requireWebcam)
                 <section class="cx-webcam" id="cx-webcam" aria-label="Webcam monitor">
                     <p class="cx-rail__label">Webcam</p>
@@ -109,10 +133,6 @@
                     <li><span class="cx-legend__swatch is-current" aria-hidden="true"></span> Current</li>
                 </ul>
             </section>
-
-            <div class="cx-rail__ad" aria-label="Advertisement">
-                <x-ad-slot page="exam_attempt" position="before_final_submit" />
-            </div>
 
             <button type="button" class="cx-btn cx-btn--danger cx-final-submit" id="cx-final-submit" data-cx-final-submit>
                 Final submit

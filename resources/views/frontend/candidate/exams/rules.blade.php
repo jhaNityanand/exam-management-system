@@ -13,38 +13,37 @@
     $canAttempt = (! empty($evaluation['can_attempt']) || empty($evaluation['reasons'])) && ! $needsPayment && ! $canContinueAttempt;
     $showAgree = $needsPayment || $canAttempt;
     $formats = collect($exam->exam_format ?? [])->map(fn ($f) => str_replace('_', ' ', ucfirst((string) $f)))->implode(', ');
+    $modeLabel = filled($exam->exam_mode)
+        ? ucfirst(str_replace('_', ' ', (string) $exam->exam_mode))
+        : null;
     $amountLabel = $isPaidExam
         ? trim(($exam->exam_currency ?: 'INR').' '.number_format((float) ($exam->exam_amount ?? 0), 2))
         : null;
 @endphp
 
 @section('content')
-<x-ad-layout page="exam_rules">
-<div class="et-page-hero">
+<div class="et-page-hero et-exam-rules-hero">
     <div class="et-container">
         @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
             ['label' => 'Exams', 'url' => route('frontend.exams.index')],
             ['label' => $exam->title, 'url' => route('frontend.exams.show', $exam)],
             ['label' => 'Rules'],
         ]])
-        <h1>Exam rules & verification</h1>
-        <p>Review instructions and requirements before you begin.</p>
+        <span class="et-exam-rules-hero__eyebrow">Before you begin</span>
+        <h1>{{ $exam->title }}</h1>
+        <p>Review the exam rules, monitoring requirements, and assessment details before verification.</p>
     </div>
 </div>
 
-<x-ad-slot page="exam_rules" position="below_title" />
-
-<div class="et-container et-page-stack">
-    <div class="et-grid et-grid--4">
+<div class="et-container et-page-stack et-exam-rules-page">
+    <div class="et-grid et-grid--4 et-exam-rules-stats">
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_questions }}</span><span class="et-stat__label">Questions</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->duration }}</span><span class="et-stat__label">Minutes</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_marks }}</span><span class="et-stat__label">Total marks</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->passing_marks }}</span><span class="et-stat__label">Passing marks</span></div>
     </div>
 
-    <x-ad-slot page="exam_rules" position="after_stats" />
-
-    @if($isPaidExam && ! $canContinueAttempt)
+@if($isPaidExam && ! $canContinueAttempt)
         <ol class="et-rules-steps" aria-label="Before you start">
             <li class="et-rules-steps__item {{ $needsPayment ? 'is-current' : 'is-done' }}">
                 <span class="et-rules-steps__num">1</span>
@@ -57,7 +56,9 @@
         </ol>
     @endif
 
-    <div class="et-callout et-callout--warning et-warning-limit" role="note">
+    <div class="et-exam-rules-layout">
+    <main class="et-exam-rules-main">
+    <div class="et-callout et-callout--warning et-warning-limit et-exam-rules-warning" role="note">
         <strong>Warnings allowed: {{ $warningLimit }}</strong>
         @if($warningLimit === 0)
             <p>No warnings are allowed. The first monitored violation (such as switching tabs) can auto-submit your exam.</p>
@@ -66,12 +67,13 @@
         @endif
     </div>
 
-    <x-ad-slot page="exam_rules" position="after_about" />
-
-    <div class="et-card et-card--padded">
+<div class="et-card et-card--padded et-exam-rules-card">
         <h2 class="et-heading-flush">Assessment summary</h2>
         <ul class="et-detail-list">
             <li><strong>Question types:</strong> {{ $formats ?: '—' }}</li>
+            @if($modeLabel)
+                <li><strong>Exam mode:</strong> {{ $modeLabel }}</li>
+            @endif
             <li><strong>Negative marking:</strong>
                 @if($exam->enable_negative_marking)
                     Enabled ({{ $exam->negative_marking_type ?: 'custom' }})
@@ -99,9 +101,7 @@
         </ul>
     </div>
 
-    <x-ad-slot page="exam_rules" position="after_details" />
-
-    <div class="et-card et-card--padded">
+<div class="et-card et-card--padded et-exam-rules-card">
         <h2 class="et-heading-flush">Instructions for candidates</h2>
         <div class="et-prose">
             @if($exam->instructions)
@@ -112,24 +112,44 @@
         </div>
     </div>
 
-    <x-ad-slot page="exam_rules" position="between_sections" />
+@include('frontend.partials.exam-rules', ['rules' => $rules])
 
-    @include('frontend.partials.exam-rules', ['rules' => $rules])
+    </main>
 
-    <x-ad-slot page="exam_rules" position="after_content" />
-
-    <div class="et-card et-rules-actions" id="cx-rules-actions"
+    <aside class="et-exam-rules-aside" aria-label="Start exam">
+    <div class="et-rules-actions et-exam-rules-stack" id="cx-rules-actions"
          data-agree-url="{{ $agreeUrl }}"
          data-rules-agreed="{{ $rulesAgreed ? '1' : '0' }}">
+        <section class="et-card et-exam-rules-gate et-exam-rules-summary">
+            <div class="et-exam-rules-gate__head">
+                <span class="et-exam-rules-gate__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div>
+                    <p>Your next step</p>
+                    <h2>{{ $needsPayment ? 'Unlock this exam' : ($canContinueAttempt ? 'Resume your attempt' : 'Ready for verification?') }}</h2>
+                </div>
+            </div>
+
+            <dl class="et-exam-rules-gate__facts">
+                <div><dt>Duration</dt><dd>{{ (int) $exam->duration }} min</dd></div>
+                <div><dt>Questions</dt><dd>{{ (int) $exam->total_questions }}</dd></div>
+                @if($modeLabel)<div><dt>Mode</dt><dd>{{ $modeLabel }}</dd></div>@endif
+                <div><dt>Warnings</dt><dd>{{ $warningLimit }}</dd></div>
+            </dl>
+        </section>
+
         @if($showAgree)
-            <label class="et-agree">
-                <input type="checkbox" id="cx-rules-agree" @checked($rulesAgreed)>
-                <span>I have read and agree to the exam rules, instructions, and monitoring policies above.</span>
-            </label>
+            <section class="et-card et-exam-rules-consent">
+                <label class="et-agree">
+                    <input type="checkbox" id="cx-rules-agree" @checked($rulesAgreed)>
+                    <span>I have read and agree to the exam rules, instructions, and monitoring policies above.</span>
+                </label>
+            </section>
         @endif
 
-        <div class="et-rules-actions__bar">
-            @if($needsPayment)
+        @if($needsPayment)
+            <section class="et-exam-rules-action">
                 <button type="button"
                         class="et-btn et-btn--primary"
                         id="rules-purchase-btn"
@@ -141,9 +161,13 @@
                     Purchase Exam{{ $amountLabel ? ' — '.$amountLabel : '' }}
                 </button>
                 <span class="et-text-muted">Complete payment first. Verification unlocks after payment.</span>
-            @elseif($canContinueAttempt)
+            </section>
+        @elseif($canContinueAttempt)
+            <section class="et-exam-rules-action">
                 <a href="{{ route('frontend.exams.started', $exam) }}" class="et-btn et-btn--primary">Continue Exam</a>
-            @elseif($canAttempt)
+            </section>
+        @elseif($canAttempt)
+            <section class="et-exam-rules-action">
                 <a href="{{ route('frontend.exams.prepare', $exam) }}"
                    class="et-btn et-btn--primary"
                    id="cx-rules-continue"
@@ -151,68 +175,22 @@
                    @unless($rulesAgreed) aria-disabled="true" tabindex="-1" @endunless>
                     Continue to verification
                 </a>
-            @else
+            </section>
+        @else
+            <section class="et-exam-rules-action">
                 <span class="et-text-muted">{{ $evaluation['reasons'][0] ?? 'You cannot start this exam right now.' }}</span>
-            @endif
+            </section>
+        @endif
+
+        <section class="et-exam-rules-action et-exam-rules-action--secondary">
             <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Back to exam details</a>
-        </div>
+        </section>
+    </div>
+    </aside>
     </div>
 
-    <x-ad-slot page="exam_rules" position="after_cta" />
 </div>
-</x-ad-layout>
 @endsection
-
-@push('styles')
-<style>
-.et-rules-steps {
-    display: flex;
-    gap: 0.75rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    flex-wrap: wrap;
-}
-.et-rules-steps__item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.85rem;
-    border-radius: 999px;
-    border: 1px solid var(--et-border, #334155);
-    color: var(--et-muted, #94a3b8);
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-.et-rules-steps__num {
-    display: inline-grid;
-    place-items: center;
-    width: 1.4rem;
-    height: 1.4rem;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--et-border, #334155) 70%, transparent);
-    font-size: 0.75rem;
-}
-.et-rules-steps__item.is-current {
-    border-color: var(--et-accent, #0f766e);
-    color: var(--et-text, #e2e8f0);
-    background: color-mix(in srgb, var(--et-accent, #0f766e) 14%, transparent);
-}
-.et-rules-steps__item.is-current .et-rules-steps__num,
-.et-rules-steps__item.is-done .et-rules-steps__num {
-    background: var(--et-accent, #0f766e);
-    color: #fff;
-}
-.et-rules-steps__item.is-done {
-    border-color: color-mix(in srgb, var(--et-accent, #0f766e) 45%, var(--et-border, #334155));
-    color: var(--et-text, #e2e8f0);
-}
-.et-badge--success {
-    background: color-mix(in srgb, #059669 18%, transparent);
-    color: #34d399;
-}
-</style>
-@endpush
 
 @push('scripts')
 <script src="{{ versioned_asset('js/frontend/exam-purchase.js') }}" defer></script>

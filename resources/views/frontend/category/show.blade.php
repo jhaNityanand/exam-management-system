@@ -17,8 +17,7 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="category_detail">
-    <div class="et-page-hero">
+<div class="et-page-hero">
         <div class="et-container">
             @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
                 ['label' => 'Home', 'url' => route('home')],
@@ -32,9 +31,7 @@
         </div>
     </div>
 
-    <x-ad-slot page="category_detail" position="below_title" />
-
-    <div class="et-container et-section">
+<div class="et-container et-section">
         <div class="et-listing__layout{{ $hasCategoryNav ? ' et-listing__layout--with-nav' : '' }}">
             <div class="et-listing__main et-stack-lg">
                 <section>
@@ -99,6 +96,4 @@
         </div>
     </div>
 
-    <x-ad-slot page="category_detail" position="after_content" />
-</x-ad-layout>
 @endsection

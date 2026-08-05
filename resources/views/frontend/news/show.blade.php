@@ -2,8 +2,6 @@
 
 @php
     $article = $news ?? $article ?? null;
-    $words = str_word_count(strip_tags((string) ($article->content ?? '')));
-    $readingMins = max(1, (int) ceil($words / 200));
     $bannerImages = method_exists($article, 'cardImageUrls')
         ? $article->cardImageUrls()
         : array_values(array_filter(array_unique(array_merge(
@@ -40,38 +38,36 @@
     $shareUrl = urlencode(url()->current());
     $shareText = urlencode($article->title);
     $shareRawUrl = url()->current();
+    $categoryTrail = collect();
+    $categoryCursor = $article->category;
+    $categoryGuard = 0;
+    while ($categoryCursor && $categoryGuard < 12) {
+        $categoryTrail->prepend($categoryCursor);
+        $categoryCursor = $categoryCursor->parent;
+        $categoryGuard++;
+    }
+    $publishedLabel = $article->published_at
+        ? $article->published_at->format('d M Y, H:i')
+        : null;
+    $articleHeaderMeta = collect([
+        $article->is_breaking ? ['label' => 'Breaking', 'tone' => 'danger'] : null,
+        $article->is_trending ? ['label' => 'Trending', 'tone' => 'warn'] : null,
+    ])->filter()->values();
 @endphp
 
 @section('content')
-<x-ad-layout page="news_detail">
-    <article class="et-article et-article--detail et-article--news{{ $hasBanner ? ' et-article--has-banner' : ' et-article--no-banner' }}">
+<article class="et-article et-article--detail et-article--news{{ $hasBanner ? ' et-article--has-banner' : ' et-article--no-banner' }}">
         <header class="et-article__top">
             <div class="et-container et-article__shell">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $crumbs])
 
-                <div class="et-article__badges">
-                    @if($article->is_breaking)
-                        <span class="et-badge et-badge--danger">Breaking</span>
-                    @endif
-                    @if($article->is_trending)
-                        <span class="et-badge et-badge--warn">Trending</span>
-                    @endif
-                    @if($article->category)
-                        <a class="et-badge et-article__badge" href="{{ route('frontend.news.category', $article->category->slug) }}">{{ $article->category->name }}</a>
-                    @endif
-                    <span class="et-badge et-badge--soft">{{ $readingMins }} min read</span>
-                    @if($article->published_at)
-                        <span class="et-badge et-badge--soft">
-                            <time datetime="{{ $article->published_at->toIso8601String() }}">{{ $article->published_at->format('d M Y, H:i') }}</time>
-                        </span>
-                    @endif
-                </div>
-
-                <x-ad-slot page="news_detail" position="above_title" />
-
                 <h1 class="et-article__title">{{ $article->title }}</h1>
-
-                <x-ad-slot page="news_detail" position="below_title" />
+                @include('frontend.partials.detail-header-meta', [
+                    'categoryTrail' => $categoryTrail,
+                    'categoryUrlFn' => fn ($category) => route('frontend.news.category', $category->slug),
+                    'publishedLabel' => $publishedLabel ? 'Published '.$publishedLabel : null,
+                    'publishedDatetime' => optional($article->published_at)?->toIso8601String(),
+                ])
             </div>
         </header>
 
@@ -85,9 +81,7 @@
                         ])
                     @endif
 
-                    <x-ad-slot page="news_detail" position="before_content" />
-
-                    @if($summary)
+@if($summary)
                         <p class="et-article__lead">{{ $summary }}</p>
                     @endif
 
@@ -103,9 +97,7 @@
                         {!! $processedContent !!}
                     </div>
 
-                    <x-ad-slot page="news_detail" position="between_sections" />
-
-                    <div class="et-article__footer-panel">
+<div class="et-article__footer-panel">
                         @include('frontend.partials.article-share', [
                             'shareUrl' => $shareUrl,
                             'shareText' => $shareText,
@@ -114,9 +106,7 @@
                         ])
                     </div>
 
-                    <x-ad-slot page="news_detail" position="after_content" />
-
-                    @php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
+@php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
                     @if($relatedItems->isNotEmpty())
                         <section class="et-article__related">
                             @include('frontend.components.section-heading', [
@@ -136,5 +126,4 @@
             </div>
         </div>
     </article>
-</x-ad-layout>
 @endsection

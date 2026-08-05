@@ -17,27 +17,24 @@
     @php
         $sections = $page['sections'] ?? collect();
         $order = [
-            'hero' => 'after_hero',
-            'stats' => 'after_stats',
-            'featured_exams' => 'after_featured_exams',
-            'questions' => 'after_questions',
-            'categories' => 'after_categories',
-            'blogs' => 'after_blogs',
-            'news' => 'after_news',
-            'testimonials' => 'after_testimonials',
-            'faqs' => 'after_faqs',
-            'newsletter' => 'after_newsletter',
-            'cta' => 'after_cta',
+            'hero',
+            'stats',
+            'featured_exams',
+            'questions',
+            'categories',
+            'blogs',
+            'news',
+            'testimonials',
+            'faqs',
+            'newsletter',
+            'cta',
         ];
     @endphp
 
-    <x-ad-layout page="home">
-        @foreach($order as $key => $afterPosition)
-            @includeIf('frontend.home.partials.'.$key, [
-                'section' => $sections->get($key),
-                'page' => $page,
-            ])
-            <x-ad-slot page="home" :position="$afterPosition" />
-        @endforeach
-    </x-ad-layout>
+    @foreach($order as $key)
+        @includeIf('frontend.home.partials.'.$key, [
+            'section' => $sections->get($key),
+            'page' => $page,
+        ])
+    @endforeach
 @endsection

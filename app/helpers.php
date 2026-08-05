@@ -318,12 +318,8 @@ if (! function_exists('ad_slot')) {
      */
     function ad_slot(string $pageOrLegacy, ?string $positionKey = null): string
     {
-        try {
-            return app(\App\Services\Advertisement\AdvertisementService::class)
-                ->renderSlot($pageOrLegacy, $positionKey);
-        } catch (\Throwable) {
-            return '';
-        }
+        // Frontend ad slots are disabled while the public UI is being redesigned.
+        return '';
     }
 }
 
@@ -333,11 +329,8 @@ if (! function_exists('ad_custom_code')) {
      */
     function ad_custom_code(): array
     {
-        try {
-            return app(\App\Services\Advertisement\AdvertisementService::class)->frontendCustomCode();
-        } catch (\Throwable) {
-            return ['header_code' => '', 'footer_code' => ''];
-        }
+        // Frontend custom ad code is disabled while the public UI is being redesigned.
+        return ['header_code' => '', 'footer_code' => ''];
     }
 }
 

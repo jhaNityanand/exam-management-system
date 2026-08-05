@@ -34,8 +34,7 @@
 @endpush
 
 @section('content')
-<x-ad-layout page="cms_page">
-    @if ($viewKey === 'about')
+@if ($viewKey === 'about')
         @include('frontend.pages.about', ['page' => $page, 'eyebrow' => $eyebrow])
     @elseif ($viewKey === 'contact')
         @include('frontend.pages.contact', ['page' => $page, 'eyebrow' => $eyebrow, 'banner' => $banner])
@@ -57,8 +56,7 @@
                 @endif
             </div>
         </section>
-        <x-ad-slot page="cms_page" position="below_title" />
-        <div class="et-container et-page-body">
+<div class="et-container et-page-body">
             @if ($banner)
                 @include('frontend.partials.article-banner', [
                     'images' => [$banner],
@@ -68,11 +66,8 @@
             <article class="et-panel et-panel--article et-cms-article">
                 <div class="et-prose">{!! $page->content !!}</div>
             </article>
-            <x-ad-slot page="cms_page" position="after_content" />
-        </div>
+</div>
     @endif
     @if (in_array($viewKey, ['about', 'contact', 'privacy', 'terms'], true))
-        <x-ad-slot page="cms_page" position="after_content" />
-    @endif
-</x-ad-layout>
+@endif
 @endsection

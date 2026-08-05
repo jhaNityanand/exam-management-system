@@ -1,15 +1,6 @@
+{{-- Frontend ads disabled during UI redesign. Component kept as a no-op for Blade compatibility. --}}
 @props([
     'page' => null,
     'position' => null,
     'placement' => null,
 ])
-
-@php
-    $html = $placement
-        ? ad_slot((string) $placement)
-        : ad_slot((string) $page, $position !== null ? (string) $position : null);
-@endphp
-
-@if($html !== '')
-    {!! $html !!}
-@endif

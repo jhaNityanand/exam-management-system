@@ -13,7 +13,6 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="sitemap">
 <section class="et-page-hero">
     <div class="et-container et-page-hero__inner">
         @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $seo['breadcrumbs']])
@@ -22,8 +21,6 @@
         <p class="et-page-hero__lead">Jump to any major section of the site.</p>
     </div>
 </section>
-
-<x-ad-slot page="sitemap" position="below_title" />
 
 <section class="et-section">
     <div class="et-container">
@@ -49,6 +46,4 @@
     </div>
 </section>
 
-<x-ad-slot page="sitemap" position="after_content" />
-</x-ad-layout>
 @endsection

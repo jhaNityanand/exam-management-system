@@ -1,38 +1,38 @@
 /* Premium static pages: About, Contact, Privacy, Terms */
 
 .et-sp-hero {
-  padding: 1.75rem 0 2.25rem;
+  padding: 1.05rem 0 1.15rem;
   border-bottom: 1px solid var(--et-border);
   background:
-    radial-gradient(640px 240px at 100% 0%, color-mix(in srgb, var(--et-accent) 18%, transparent), transparent 58%),
-    linear-gradient(180deg, color-mix(in srgb, var(--et-accent-soft) 80%, transparent), transparent);
+    radial-gradient(640px 210px at 7% 0%, color-mix(in srgb, var(--et-accent) 12%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--et-accent-soft) 52%, var(--et-surface)), var(--et-surface));
 }
 .et-sp-hero h1 {
-  margin: 0.35rem 0 0.65rem;
-  font-size: clamp(1.85rem, 4.4vw, 2.85rem);
-  line-height: 1.12;
-  letter-spacing: -0.035em;
-  max-width: 18ch;
+  margin: 0.28rem 0 0.38rem;
+  font-size: clamp(1.65rem, 3.4vw, 2.35rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  max-width: 26ch;
 }
 .et-sp-hero--about h1 {
-  font-size: clamp(1.35rem, 2.6vw, 1.85rem);
-  line-height: 1.25;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  line-height: 1.18;
+  letter-spacing: -0.03em;
   max-width: 28ch;
 }
 .et-sp-hero--contact h1 { max-width: 22ch; }
 .et-sp-hero__lead {
   margin: 0;
   color: var(--et-text-muted);
-  font-size: 1.05rem;
-  line-height: 1.6;
+  font-size: 0.96rem;
+  line-height: 1.5;
   max-width: 44rem;
 }
 .et-sp-hero__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
-  margin-top: 1.25rem;
+  margin-top: 0.8rem;
 }
 .et-sp-updated {
   margin: 0.85rem 0 0;
@@ -42,18 +42,18 @@
 }
 .et-sp-hero__grid {
   display: grid;
-  gap: 1.75rem;
+  gap: 1rem;
   align-items: center;
 }
 @media (min-width: 960px) {
   .et-sp-hero__grid {
     grid-template-columns: 1.2fr 0.8fr;
-    gap: 2.5rem;
+    gap: 1.5rem;
   }
 }
 .et-sp-hero__visual {
   position: relative;
-  min-height: 240px;
+  min-height: 150px;
   display: grid;
   place-items: center;
 }
@@ -85,8 +85,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.65rem;
-  width: min(100%, 340px);
-  padding: 1.1rem;
+  width: min(100%, 320px);
+  padding: 0.8rem;
   border-radius: 18px;
   border: 1px solid var(--et-border);
   background: color-mix(in srgb, var(--et-surface) 92%, transparent);
@@ -96,8 +96,8 @@
 .et-sp-hero-card span {
   display: grid;
   place-items: center;
-  min-height: 3.1rem;
-  padding: 0.55rem;
+  min-height: 2.5rem;
+  padding: 0.45rem;
   border-radius: 12px;
   background: var(--et-accent-soft);
   color: var(--et-accent);

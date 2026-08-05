@@ -31,8 +31,7 @@
 @endphp
 
 @section('content')
-<x-ad-layout page="news_list">
-    <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.news.index') }}">
+<div class="et-listing et-listing--stack" data-listing data-endpoint="{{ route('frontend.news.index') }}">
         <div class="et-page-hero et-page-hero--listing">
             <div class="et-container">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
@@ -161,17 +160,14 @@
                     @endforeach
                 </div>
 
-                <x-ad-slot page="news_list" position="below_items" />
-
-                <div data-load-more-slot>
+<div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $newsItems,
                         'endpoint' => route('frontend.news.index', request()->query()),
                     ])
                 </div>
 
-                <x-ad-slot page="news_list" position="after_content" />
-            </div>
+</div>
 
             @if(! empty($categoryNav['roots'] ?? null))
                 <div class="et-listing__aside">
@@ -185,5 +181,4 @@
             </div>
         </div>
     </div>
-</x-ad-layout>
 @endsection

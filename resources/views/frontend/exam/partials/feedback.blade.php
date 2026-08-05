@@ -11,14 +11,24 @@
 <section class="et-card fb-section" id="exam-feedback" aria-labelledby="exam-feedback-title">
     <div class="fb-section__head">
         <div>
-            <h2 id="exam-feedback-title">Candidate feedback</h2>
+            <h2 id="exam-feedback-title">Candidate reviews</h2>
             <p class="fb-section__lead">Ratings and reviews from candidates who completed this exam.</p>
         </div>
         @auth
             @if($canLeave)
-                <button type="button" class="et-btn et-btn--primary" data-fb-open-panel>Add feedback</button>
+                <button
+                    type="button"
+                    class="et-btn et-btn--primary"
+                    data-fb-open-exam-modal
+                    aria-haspopup="dialog"
+                    aria-controls="fb-exam-modal"
+                >
+                    Add review
+                </button>
             @elseif($mine)
-                <span class="et-badge et-badge--success">You already left feedback</span>
+                <span class="et-badge et-badge--success">You already left a review</span>
+            @else
+                <span class="et-badge et-badge--slate">Available after you submit an attempt</span>
             @endif
         @else
             <a href="{{ route('login', ['redirect' => url()->current().'#exam-feedback']) }}" class="et-btn et-btn--ghost">Login to review</a>
@@ -50,15 +60,6 @@
         </div>
     </div>
 
-    @auth
-        @if($canLeave)
-            <div class="fb-panel" id="fb-exam-panel" hidden>
-                <h3>Share your experience</h3>
-                <x-feedback-form :exam="$exam" source="exam_show" />
-            </div>
-        @endif
-    @endauth
-
     <div class="fb-list">
         @forelse($items as $item)
             <x-feedback-card :feedback="$item" />
@@ -75,3 +76,27 @@
         </div>
     @endif
 </section>
+
+@auth
+    @if($canLeave)
+        <div
+            class="fb-modal"
+            id="fb-exam-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fb-exam-modal-title"
+            hidden
+        >
+            <div class="fb-modal__backdrop" data-fb-close-exam-modal></div>
+            <div class="fb-modal__card">
+                <h2 id="fb-exam-modal-title">Add your review</h2>
+                <p class="fb-modal__lead">Share how this exam felt after your attempt. Your review helps other candidates.</p>
+                <x-feedback-form :exam="$exam" source="exam_show">
+                    <x-slot:actions>
+                        <button type="button" class="et-btn et-btn--ghost" data-fb-close-exam-modal>Cancel</button>
+                    </x-slot:actions>
+                </x-feedback-form>
+            </div>
+        </div>
+    @endif
+@endauth

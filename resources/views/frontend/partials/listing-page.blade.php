@@ -6,7 +6,6 @@
     $listingResetUrl, $listingBreadcrumbs (optional), $listingHeroExtra (optional HTML)
     $listingFilters (callable/closure not possible) — include extra fields via $listingExtraFields view
     $activeFilterCount
-    $adPage (optional catalog page key for advertisement rails/slots)
     $categoryNav (optional CategoryTreeService payload — enables 75/25 listing + sidebar layout)
     $categoryNavTitle / $categoryNavDescription (optional overrides)
 --}}
@@ -14,13 +13,9 @@
     $activeFilterCount = $activeFilterCount ?? 0;
     $listingGridClass = $listingGridClass ?? 'et-grid et-grid--3';
     $listingSkeletonCount = $listingSkeletonCount ?? 6;
-    $adPage = $adPage ?? null;
     $hasCategoryNav = ! empty($categoryNav['roots'] ?? null);
 @endphp
 
-@if($adPage)
-<x-ad-layout :page="$adPage">
-@endif
 <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ $listingEndpoint }}">
     <div class="et-page-hero et-page-hero--listing">
         <div class="et-container">
@@ -50,10 +45,6 @@
             </div>
         </div>
     </div>
-
-    @if($adPage)
-        <x-ad-slot :page="$adPage" position="after_filters" />
-    @endif
 
     <div class="et-container et-section">
         <div class="et-filter-modal" id="{{ $listingModalId }}" data-filter-modal hidden>
@@ -135,20 +126,12 @@
                     @endforeach
                 </div>
 
-                @if($adPage)
-                    <x-ad-slot :page="$adPage" position="below_items" />
-                @endif
-
                 <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $listingItems,
                         'endpoint' => $listingLoadMoreEndpoint ?? ($listingEndpoint.(request()->getQueryString() ? '?'.request()->getQueryString() : '')),
                     ])
                 </div>
-
-                @if($adPage)
-                    <x-ad-slot :page="$adPage" position="after_content" />
-                @endif
             </div>
 
             @if($hasCategoryNav)
@@ -163,6 +146,3 @@
         </div>
     </div>
 </div>
-@if($adPage)
-</x-ad-layout>
-@endif

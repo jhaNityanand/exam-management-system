@@ -15,7 +15,6 @@
 
 @section('content')
     @include('frontend.partials.listing-page', [
-        'adPage' => 'blog_list',
         'listingEndpoint' => route('frontend.blogs.category', $category->slug),
         'listingLoadMoreEndpoint' => route('frontend.blogs.category', $category->slug).(request()->getQueryString() ? '?'.request()->getQueryString() : ''),
         'listingModalId' => 'et-blog-category-filter-modal',
