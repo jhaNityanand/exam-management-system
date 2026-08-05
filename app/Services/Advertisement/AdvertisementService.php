@@ -294,11 +294,7 @@ class AdvertisementService
     {
         $this->seedGoogleAdUnits($orgId);
         $this->seedGlobalCustomCode($orgId);
-
-        $hasPlacements = AdPlacement::query()->forOrg($orgId)->exists();
-        if ($forcePlacements || ! $hasPlacements) {
-            $this->seedDefaultPlacements($orgId, $forcePlacements);
-        }
+        $this->seedDefaultPlacements($orgId, $forcePlacements);
 
         $this->forgetCache($orgId);
     }
@@ -315,7 +311,7 @@ class AdvertisementService
                 'name' => 'Display Ad (Horizontal)',
                 'ad_slot' => '8279166266',
                 'ad_format' => 'horizontal',
-                'notes' => 'Display ad Horizontal — above-footer and wide content bands.',
+                'notes' => 'Display ad Horizontal — default for every main-content section placement.',
                 'code' => <<<'HTML'
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3495821309562824"
 crossorigin="anonymous"></script>
@@ -337,7 +333,7 @@ HTML,
                 'name' => 'Display Ad (Vertical)',
                 'ad_slot' => '9013663436',
                 'ad_format' => 'vertical',
-                'notes' => 'Display ad Vertical — left/right sidebar placements.',
+                'notes' => 'Display ad Vertical — default for every left/right sidebar section placement.',
                 'code' => <<<'HTML'
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3495821309562824"
 crossorigin="anonymous"></script>
@@ -430,6 +426,13 @@ HTML;
      */
     public function seedDefaultPlacements(int $orgId, bool $replaceExisting = false): void
     {
+        // Retire placements that are no longer represented in the preview.
+        // Right-sidebar ads now belong directly after a named sidebar section.
+        AdPlacement::query()
+            ->forOrg($orgId)
+            ->whereIn('position_key', ['right_top', 'left_sidebar', 'right_sidebar'])
+            ->delete();
+
         $vertical = GoogleAdvertisement::query()
             ->forOrg($orgId)
             ->where('ad_slot', '9013663436')
@@ -438,23 +441,34 @@ HTML;
             ->forOrg($orgId)
             ->where('ad_slot', '8279166266')
             ->first();
-        $inArticle = GoogleAdvertisement::query()
-            ->forOrg($orgId)
-            ->where('ad_slot', '5461431234')
-            ->first();
 
-        if (! $vertical || ! $horizontal || ! $inArticle) {
+        if (! $vertical || ! $horizontal) {
             return;
         }
 
         // Seed placements for every catalog page (attempt, result, rules, FAQs, account, CMS, errors, etc.).
         $pageKeys = AdvertisementCatalog::pageKeys();
 
+        if (! $replaceExisting) {
+            foreach ($pageKeys as $pageKey) {
+                $validPositions = AdvertisementCatalog::positionKeysForPage($pageKey);
+                $stale = AdPlacement::query()
+                    ->forOrg($orgId)
+                    ->where('page_key', $pageKey);
+
+                if ($validPositions === []) {
+                    $stale->delete();
+                } else {
+                    $stale->whereNotIn('position_key', $validPositions)->delete();
+                }
+            }
+        }
+
         if ($replaceExisting) {
             AdPlacement::query()
                 ->forOrg($orgId)
                 ->whereIn('page_key', $pageKeys)
-                ->delete();
+                ->forceDelete();
         }
 
         $rows = [];
@@ -467,38 +481,24 @@ HTML;
 
             $positions = $page['positions'] ?? [];
 
-            // Sidebars: 3× vertical (never horizontal / in-article)
-            foreach (['left_sidebar', 'right_sidebar'] as $side) {
-                if (! in_array($side, $positions, true)) {
-                    continue;
-                }
-                for ($i = 1; $i <= 3; $i++) {
-                    $rows[] = $this->placementRow($orgId, $pageKey, $side, $vertical->id, $i);
-                }
+            // Sidebar sections: one vertical Google unit after each side section.
+            $sidebarSlots = array_values(array_filter(
+                $positions,
+                fn (string $key) => AdvertisementCatalog::isSidePlacementSlot($key)
+            ));
+            foreach ($sidebarSlots as $positionKey) {
+                $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $vertical->id, 1);
             }
 
-            // Above footer: horizontal display
-            if (in_array('above_footer', $positions, true)) {
-                $rows[] = $this->placementRow($orgId, $pageKey, 'above_footer', $horizontal->id, 1);
-            }
-
-            // Content / listing inserts: in-article only.
-            // Skip sidebars, above_footer, reserved after_header, and title-adjacent slots (keep spacing natural).
-            $skip = [
-                'left_sidebar',
-                'right_sidebar',
-                'above_footer',
-                'after_header',
-                'above_title',
-                'below_title',
-            ];
+            // Every main-content section slot gets a default horizontal Google unit
+            // (after navbar, below title, filters, before H2, above footer, etc.).
             $contentPositions = array_values(array_filter(
                 $positions,
-                fn (string $key) => ! in_array($key, $skip, true)
+                fn (string $key) => ! AdvertisementCatalog::isSidePlacementSlot($key)
             ));
 
             foreach ($contentPositions as $index => $positionKey) {
-                $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $inArticle->id, $index + 1);
+                $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $horizontal->id, $index + 1);
             }
         }
 
@@ -610,7 +610,7 @@ HTML;
         }
 
         $variant = match (true) {
-            in_array($position, ['left_sidebar', 'right_sidebar'], true) => 'rail',
+            AdvertisementCatalog::isSidePlacementSlot($position) => 'rail',
             $position === 'above_footer' => 'footer',
             default => 'inline',
         };
@@ -689,22 +689,24 @@ HTML;
         }
 
         $legacy = [
-            'blog_detail_above_h1' => ['blog_detail', 'above_title'],
+            'blog_detail_above_h1' => ['blog_detail', 'after_header'],
+            'blog_detail_before_h2' => ['blog_detail', 'before_h2'],
             'blog_detail_sidebar_top' => ['blog_detail', 'before_content'],
             'blog_detail_sidebar_middle' => ['blog_detail', 'between_sections'],
             'blog_detail_before_comments' => ['blog_detail', 'after_related'],
             'blog_detail_sidebar_bottom' => ['blog_detail', 'after_content'],
-            'news_detail_above_h1' => ['news_detail', 'above_title'],
+            'news_detail_above_h1' => ['news_detail', 'after_header'],
+            'news_detail_before_h2' => ['news_detail', 'before_h2'],
             'news_detail_sidebar_top' => ['news_detail', 'before_content'],
             'news_detail_sidebar_middle' => ['news_detail', 'between_sections'],
             'news_detail_before_comments' => ['news_detail', 'after_content'],
             'news_detail_sidebar_bottom' => ['news_detail', 'after_content'],
-            'exam_attempt_left' => ['exam_attempt', 'left_sidebar'],
-            'exam_attempt_right' => ['exam_attempt', 'right_sidebar'],
+            'exam_attempt_left' => ['exam_attempt', 'right_after_overview'],
+            'exam_attempt_right' => ['exam_attempt', 'right_after_palette'],
             'exam_attempt_bottom' => ['exam_attempt', 'below_content'],
             'exam_result' => ['exam_result', 'below_title'],
             'question_list_inline' => ['question_list', 'below_items'],
-            'home_sidebar' => ['home', 'left_sidebar'],
+            'home_sidebar' => ['home', 'after_header'],
             'exam_list' => ['exam_list', 'below_items'],
             'blog_list' => ['blog_list', 'below_items'],
             'news_list' => ['news_list', 'below_items'],

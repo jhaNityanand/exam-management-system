@@ -42,9 +42,10 @@ class FrontendCmsSeeder extends Seeder
         $this->seedSocial($orgId);
         $this->seedAnnouncements($orgId);
 
-        // Active banner ads with images are created by DemoMediaSeeder.
+        // Refresh canonical Google units and place one default ad at every
+        // catalog position (horizontal content, vertical sidebar).
         if ($orgId) {
-            app(AdvertisementService::class)->seedDefaults($orgId);
+            app(AdvertisementService::class)->seedDefaults($orgId, true);
         }
     }
 

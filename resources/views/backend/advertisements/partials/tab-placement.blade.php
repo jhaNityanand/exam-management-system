@@ -45,8 +45,12 @@
     </div>
 
     <p class="text-xs text-slate-500 dark:text-slate-400">
-        Each page preview mirrors the real layout (navbar → sections → footer) with the same insert pattern as Home.
-        Click the centered <strong>+</strong> after any section — or in the Left/Right ads panels — to place an ad.
-        Dashed boxes show placed ads; a new <strong>+</strong> stays below. Left/Right panels map to the empty desktop gutters beside the centered content column (as on Exam List).
+        Each page preview mirrors the live frontend layout for that page.
+        Click the centered <strong>+</strong> after any main section — or after each real sidebar section — to place an ad.
+        Only one placement action appears between the navbar and page title.
+        Side columns appear only when the real page has them (for example, Categories on list pages; left tools on FAQs/legal/account).
+        Blog and News detail previews also show insert lines <strong>before each H2</strong>.
+        Dashed boxes show placed ads; a new <strong>+</strong> stays below. All placements are inside the same centered page container.
+        Frontend rendering is paused for now — configure placements here, then enable slots later.
     </p>
 </div>

@@ -227,6 +227,15 @@
                         </div>
                         <span class="hp-skel__section-label">${label}</span>
                     </div>`;
+            case 'heading_h2':
+                return `
+                    <div class="hp-skel hp-skel--heading-h2" data-section="${escapeHtml(block.id)}">
+                        <div class="hp-skel__container">
+                            <span class="hp-skel__h2 hp-skel__h2--wide"></span>
+                            <span class="hp-skel__text hp-skel__text--short"></span>
+                        </div>
+                        <span class="hp-skel__section-label">${label}</span>
+                    </div>`;
             case 'banner':
                 return `
                     <div class="hp-skel hp-skel--section" data-section="${escapeHtml(block.id)}">
@@ -442,19 +451,42 @@
         }
     };
 
-    const adsPanelHtml = (side, positionKey) => `
-        <aside class="hp-side hp-side--${side}" aria-label="${side === 'left' ? 'Left' : 'Right'} sidebar ads">
-            <div class="hp-ads-panel">
-                <div class="hp-ads-panel__head">
-                    <span class="hp-ads-panel__title">${side === 'left' ? 'Left ads' : 'Right ads'}</span>
-                    <span class="hp-ads-panel__badge">Sidebar</span>
-                </div>
-                <div class="hp-ads-panel__body">
-                    ${insertHtml(positionKey, { side: true })}
-                </div>
+    const sidebarContextHtml = (side = 'right') => {
+        const prefix = side === 'left' ? 'left_' : 'right_';
+        const blocks = (Array.isArray(pageMeta().sidebar_blocks) ? pageMeta().sidebar_blocks : [])
+            .filter((block) => String(block.after || '').startsWith(prefix));
+        if (blocks.length === 0) {
+            return '';
+        }
+
+        return `
+            <div class="hp-sidebar-context" aria-label="${escapeHtml(side)} sidebar preview">
+                ${blocks.map((block) => `
+                    <div class="hp-sidebar-section" data-sidebar-section="${escapeHtml(block.id)}">
+                        <div class="hp-context-card">
+                            <span class="hp-context-card__title">${escapeHtml(block.label)}</span>
+                            <span class="hp-context-card__line"></span>
+                            <span class="hp-context-card__line hp-context-card__line--short"></span>
+                        </div>
+                        ${insertHtml(block.after, { side: true })}
+                    </div>
+                `).join('')}
             </div>
-        </aside>
-    `;
+        `;
+    };
+
+    const sideColumnHtml = (side) => {
+        const html = sidebarContextHtml(side);
+        if (!html) {
+            return '';
+        }
+
+        return `
+            <aside class="hp-side hp-side--${escapeHtml(side)}" aria-label="${escapeHtml(side)} sidebar">
+                ${html}
+            </aside>
+        `;
+    };
 
     const renderBlockFlow = (blocks) => {
         let html = '';
@@ -487,51 +519,56 @@
             headerHtml = pageSkeleton(header);
         }
 
-        let mainHtml = '';
+        let leadingHtml = '';
         if (header?.after) {
-            mainHtml += insertHtml(header.after);
+            leadingHtml += insertHtml(header.after);
         }
-        // Remaining chrome afters already handled; process middle with before/after
-        middleBlocks.forEach((block) => {
-            if (block.before) {
-                mainHtml += insertHtml(block.before);
-            }
-            mainHtml += pageSkeleton(block);
-            if (block.after) {
-                mainHtml += insertHtml(block.after);
-            }
-        });
+
+        // Live page heroes/titles span the centered container; columns start below.
+        const leadingIds = ['hero', 'title', 'top', 'toolbar', 'error'];
+        const firstMiddle = middleBlocks[0];
+        const hasLeadingBlock = firstMiddle && leadingIds.includes(firstMiddle.id);
+        const leadingBlocks = hasLeadingBlock ? [firstMiddle] : [];
+        const contentBlocks = hasLeadingBlock ? middleBlocks.slice(1) : middleBlocks;
+        const visibleLeadingBlocks = leadingBlocks.map((block) => (
+            header?.after && block.before === 'above_title'
+                ? { ...block, before: null }
+                : block
+        ));
+        leadingHtml += renderBlockFlow(visibleLeadingBlocks);
+        const mainHtml = renderBlockFlow(contentBlocks);
 
         let footerHtml = '';
         if (footer) {
             if (footer.before) {
-                // above_footer sits just above footer chrome (outside main card when shell used)
-                footerHtml += `<div class="hp-pre-footer">${insertHtml(footer.before)}</div>`;
+                footerHtml += `<div class="hp-container-flow hp-pre-footer">${insertHtml(footer.before)}</div>`;
             }
             footerHtml += pageSkeleton(footer);
         }
 
-        const leftHtml = hasLeft ? adsPanelHtml('left', 'left_sidebar') : '';
-        const rightHtml = hasRight ? adsPanelHtml('right', 'right_sidebar') : '';
+        const leftHtml = hasLeft ? sideColumnHtml('left') : '';
+        const rightHtml = hasRight ? sideColumnHtml('right') : '';
         const shellClass = [
             'hp-shell',
             !hasLeft && !hasRight ? 'hp-shell--single' : '',
+            hasLeft && hasRight ? 'hp-shell--both' : '',
             hasLeft && !hasRight ? 'hp-shell--left-only' : '',
             !hasLeft && hasRight ? 'hp-shell--right-only' : '',
             isExamAttempt ? 'hp-shell--exam' : '',
         ].filter(Boolean).join(' ');
 
-        const bodyHtml = (hasLeft || hasRight || !isExamAttempt)
-            ? `
+        const bodyHtml = `
+            <div class="hp-container-flow">
+                ${leadingHtml}
                 <div class="${shellClass}">
                     ${leftHtml}
                     <div class="hp-main ${isExamAttempt ? 'hp-main--exam' : ''}">${mainHtml}</div>
                     ${rightHtml}
                 </div>
-            `
-            : `<div class="hp-main hp-main--solo">${mainHtml}</div>`;
+            </div>
+        `;
 
-        // Exam attempt: no site header/footer; side panels wrap question
+        // Exam attempt: no site header/footer; topbar spans the centered container.
         if (isExamAttempt) {
             const topbar = middleBlocks[0];
             const rest = middleBlocks.slice(1);
@@ -545,13 +582,15 @@
             els.preview.innerHTML = `
                 <div class="ads-preview__frame ads-preview__frame--page">
                     <div class="hp-page hp-page--exam">
-                        ${topHtml}
-                        <div class="${shellClass}">
-                            ${leftHtml}
-                            <div class="hp-main hp-main--exam">
-                                ${renderBlockFlow(rest)}
+                        <div class="hp-container-flow">
+                            ${topHtml}
+                            <div class="${shellClass}">
+                                ${leftHtml}
+                                <div class="hp-main hp-main--exam">
+                                    ${renderBlockFlow(rest)}
+                                </div>
+                                ${rightHtml}
                             </div>
-                            ${rightHtml}
                         </div>
                     </div>
                 </div>

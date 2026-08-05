@@ -37,11 +37,15 @@
             <section>
                 <h4 class="ads-help-title">Recommended placement positions</h4>
                 <ul class="ads-help-list">
-                    <li><strong>Above / below title</strong> — High visibility without interrupting reading flow too early.</li>
-                    <li><strong>Between sections</strong> — Natural break points in long articles; multiple ads allowed.</li>
-                    <li><strong>Sidebars</strong> — Persistent visibility on desktop detail pages; stack multiple units carefully.</li>
+                    <li><strong>After navbar</strong> — The single placement action between navigation and the page heading.</li>
+                    <li><strong>Before each H2</strong> — Blog and news detail pages inject this slot before every in-article H2 (multiple ads allowed).</li>
+                    <li><strong>Between sections</strong> — Natural break points in long pages; multiple ads allowed.</li>
+                    <li><strong>Left side</strong> — Only on pages that really have a left rail (FAQs, Privacy, Terms, Account). Each section has an ad action underneath.</li>
+                    <li><strong>Right side</strong> — Only on pages that really have a right rail (list Categories, exam/blog/news/question detail, contact). Each section has an ad action underneath.</li>
+                    <li><strong>No invented side rails</strong> — Home, About, Search, Sitemap, and other full-width pages have no left/right ad columns.</li>
                     <li><strong>Below every list item</strong> — Use sparingly on listing pages to avoid clutter.</li>
                     <li><strong>Above footer</strong> — Safe full-width strip on most layouts.</li>
+                    <li><strong>Static pages</strong> — About Us, Contact Us, FAQs, Privacy Policy, Terms, Help Center, and Author detail each have dedicated previews.</li>
                 </ul>
             </section>
 
