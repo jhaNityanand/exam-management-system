@@ -556,7 +556,7 @@ npm run dev</code></pre>
                     <div class="card"><h3>Frontend CMS</h3><p>Site pages, menus, settings, hero banners, FAQs, testimonials, ads, contact and newsletter data models.</p></div>
                     <div class="card"><h3>Backend Settings</h3><p>Maintenance, SEO files, organization branding, cache tools, advertisements, email/SMTP, analytics/GTM/Pixel, cookie consent, reCAPTCHA and feature flags.</p></div>
                     <div class="card"><h3>Public site</h3><p>Home, exams, categories, blogs, news, global search, clean CMS slugs and authenticated account pages.</p></div>
-                    <div class="card"><h3>Profile</h3><p>Identity, contact details, social links, password, cropped avatar and account deletion.</p></div>
+                    <div class="card"><h3>Legacy Migration</h3><p>Automated importer service for legacy Examtube database dump + media files via <code>php artisan legacy:import-examtube</code> or <code>legacy/examtube</code> branch.</p></div>
                 </div>
             </section>
 
@@ -595,6 +595,33 @@ npm run dev</code></pre>
                     </table>
                 </div>
                 <p>Nested category paths use <code>Parent &gt; Child &gt; Leaf</code>. Existing nodes are reused within the organization and missing nodes are created.</p>
+            </section>
+
+            <section id="legacy-migration" data-searchable>
+                <h2>Legacy Examtube Data &amp; Media Migration</h2>
+                <p>An automated data and media importer service pipeline (<code>ExamtubeMigrationService</code>) imports legacy Examtube application backups into the new Laravel 11 platform.</p>
+                <h3>Git branch workflow</h3>
+                <ul>
+                    <li><strong><code>legacy/examtube</code> branch:</strong> Contains the full legacy directory <code>public/old-application/</code> including the database SQL dump <code>u967843851_examtube.sql</code> and legacy image uploads.</li>
+                    <li><strong><code>main</code> branch:</strong> Contains the complete migration importer code (<code>App\Services\Migration\*</code>, <code>php artisan legacy:import-examtube</code>, and <code>ExamtubeLegacyDataSeeder</code>).</li>
+                </ul>
+                <h3>Execution commands</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Command</th><th>Purpose</th><th>Options</th></tr></thead>
+                        <tbody>
+                        <tr><td><code>php artisan legacy:import-examtube</code></td><td>Runs full legacy data and media import pipeline</td><td><code>--file=path/to/backup.sql</code>, <code>--org=1</code></td></tr>
+                        <tr><td><code>php artisan db:seed --class=ExamtubeLegacyDataSeeder</code></td><td>Runs migration via database seeder</td><td>Standard Artisan seeder flags</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <h3>Imported modules &amp; features</h3>
+                <ul>
+                    <li><strong>Users &amp; Profiles:</strong> Imports legacy admin and candidate accounts (e.g. <code>vidyanand.in3@gmail.com</code>, <code>nityanandjha2020@gmail.com</code>) with default password <code>password</code>, organization role mapping, bios, social links, and uploaded profile avatars.</li>
+                    <li><strong>Blog Categories &amp; Blogs:</strong> Imports 28 categories and 123 blog posts with clean HTML formatting, excerpt generation, and length-clamped SEO fields for <code>VARCHAR(191)</code> compatibility.</li>
+                    <li><strong>Comments &amp; Subscribers:</strong> Imports 13 blog comments and 163 newsletter subscriber emails.</li>
+                    <li><strong>Media &amp; Deduplication:</strong> Imports 260+ media files into <code>galleries</code> storage with SHA-256 content deduplication and automatic HTML <code>&lt;img&gt;</code> <code>src</code> URL rewriting.</li>
+                </ul>
             </section>
 
             <section id="exams" data-searchable>

@@ -18,6 +18,7 @@
 - [x] **Settings** — email/SMTP, SEO, security (plus existing maintenance/branding/analytics surfaces)
 - [x] **Notification placeholders** — admin notifications index shell (no real delivery yet)
 - [x] **Policies / RBAC foundations** — capabilities (`content`, `organization`, `platform`), middleware, and model policies. Today **admin** and **org_admin** share full access; privilege split is deferred.
+- [x] **Legacy Examtube Data & Media Migration** — complete importer service pipeline (`php artisan legacy:import-examtube` or `ExamtubeLegacyDataSeeder`) importing Categories, Blogs, Users & Profiles, Comments, Newsletter Subscribers, and SHA-256 deduplicated media assets from `legacy/examtube` branch / `public/old-application/`.
 - [x] Earlier foundations: questions/exams/categories, blog/news, imports, public frontend, docs
 
 ---

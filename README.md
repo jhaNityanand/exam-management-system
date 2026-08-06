@@ -265,6 +265,48 @@ If gallery images 404, re-run `php artisan storage:link` and confirm `APP_URL` m
 
 ---
 
+## Legacy Examtube Data & Media Migration
+
+The application includes an automated data and media migration service to import legacy Examtube application backups (SQL database dump + uploaded images) into the new platform.
+
+### How to Run the Migration
+
+#### Option A: Using the `legacy/examtube` Branch (Recommended)
+1. Switch to or pull from the dedicated legacy data branch:
+   ```bash
+   git checkout legacy/examtube
+   ```
+   *(This branch includes the complete `public/old-application/` directory containing `u967843851_examtube.sql` and `public/old-application/images/` assets).*
+
+2. Run the migration importer command:
+   ```bash
+   php artisan legacy:import-examtube
+   ```
+
+#### Option B: On `main` Branch (Local File Import)
+1. Ensure your legacy backup files exist under `public/old-application/` (or `public/old-examtube/`):
+   ```
+   public/old-application/
+     ├── u967843851_examtube.sql
+     └── images/
+   ```
+2. Execute the importer command or seeder:
+   ```bash
+   php artisan legacy:import-examtube
+   # OR
+   php artisan db:seed --class=ExamtubeLegacyDataSeeder
+   ```
+
+### Imported Entities & Features
+- **Users & Profiles**: Imports legacy user accounts (`vidyanand.in3@gmail.com`, `nityanandjha2020@gmail.com`, etc.) with default password `password`, organization membership, bios, social links, and uploaded profile avatars.
+- **Blog Categories & Blogs**: Imports 28 categories and 123 blog posts with clean HTML formatting, excerpt generation, and string-length clamped SEO fields.
+- **Comments & Newsletter Subscribers**: Imports 13 blog comments and 163 newsletter subscriber emails.
+- **Media Gallery & Deduplication**: Imports 260+ content and cover images into `galleries` storage with SHA-256 content deduplication and automatic inline HTML `<img>` `src` URL rewriting.
+
+Detailed technical architecture and service documentation: [`docs/legacy_migration.md`](docs/legacy_migration.md).
+
+---
+
 ## Testing
 
 ```bash
