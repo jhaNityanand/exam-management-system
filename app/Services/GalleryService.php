@@ -1130,6 +1130,9 @@ class GalleryService
             return null;
         }
 
+        $src = null;
+        $thumb = null;
+
         try {
             $absolute = Storage::disk($disk)->path($sourcePath);
             if (! is_file($absolute)) {
@@ -1175,12 +1178,17 @@ class GalleryService
             Storage::disk($disk)->makeDirectory($relativeDir);
             $dest = Storage::disk($disk)->path($relativePath);
             imagejpeg($thumb, $dest, 82);
-            imagedestroy($src);
-            imagedestroy($thumb);
 
             return Storage::disk($disk)->exists($relativePath) ? $relativePath : null;
         } catch (\Throwable) {
             return null;
+        } finally {
+            if ($src && (is_resource($src) || $src instanceof \GdImage)) {
+                @imagedestroy($src);
+            }
+            if ($thumb && (is_resource($thumb) || $thumb instanceof \GdImage)) {
+                @imagedestroy($thumb);
+            }
         }
     }
 

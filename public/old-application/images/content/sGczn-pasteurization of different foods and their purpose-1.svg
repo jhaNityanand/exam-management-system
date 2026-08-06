@@ -1,0 +1,302 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="750pt" height="450pt" viewBox="0 0 750 450">
+<defs>
+<clipPath id="clip_0">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M0 0H3125V1906.25H0Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_1">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M0 0H3125V1875H0Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_2">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M0 0H3125V1875H0Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_3">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M3.125 1.8237305H256.25V195.57373H3.125Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_4">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M260.59065 1.8237304H719.96566V195.57373H260.59065Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_5">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M721.5347 1.8237304H1609.0347V195.57373H721.5347Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_6">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M1612.0443 1.8237304H2387.0445V195.57373H1612.0443Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_7">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M2389.5106 1.8237304H3120.7606V195.57373H2389.5106Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_8">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M3.125 198.893H256.25V552.018H3.125Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_9">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M260.59065 198.893H719.96566V552.018H260.59065Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_10">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M721.5347 198.893H1609.0347V552.018H721.5347Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_11">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M1612.0443 198.893H2387.0445V552.018H1612.0443Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_12">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M2389.5106 198.893H3120.7606V552.018H2389.5106Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_13">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M3.125 555.3686H256.25V961.6186H3.125Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_14">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M260.59065 555.3686H719.96566V961.6186H260.59065Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_15">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M721.5347 555.3686H1609.0347V961.6186H721.5347Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_16">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M1612.0443 555.3686H2387.0445V961.6186H1612.0443Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_17">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M2389.5106 555.3686H3120.7606V961.6186H2389.5106Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_18">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M3.125 964.97958H256.25V1318.1045H3.125Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_19">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M260.59065 964.97958H719.96566V1318.1045H260.59065Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_20">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M721.5347 964.97958H1609.0347V1318.1045H721.5347Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_21">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M1612.0443 964.97958H2387.0445V1318.1045H1612.0443Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_22">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M2389.5106 964.97958H3120.7606V1318.1045H2389.5106Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_23">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M3.125 1321.4551H256.25V1568.3301H3.125Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_24">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M260.59065 1321.4551H719.96566V1568.3301H260.59065Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_25">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M721.5347 1321.4551H1609.0347V1568.3301H721.5347Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_26">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M1612.0443 1321.4551H2387.0445V1568.3301H1612.0443Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_27">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M2389.5106 1321.4551H3120.7606V1568.3301H2389.5106Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_28">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M3.125 1571.6599H256.25V1871.6599H3.125Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_29">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M260.59065 1571.6599H719.96566V1871.6599H260.59065Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_30">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M721.5347 1571.6599H1609.0347V1871.6599H721.5347Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_31">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M1612.0443 1571.6599H2387.0445V1871.6599H1612.0443Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_32">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M2389.5106 1571.6599H3120.7606V1871.6599H2389.5106Z" fill-rule="evenodd"/>
+</clipPath>
+<clipPath id="clip_33">
+<path transform="matrix(.24,0,0,.24,0,0)" d="M0 0H3125V1875H0Z" fill-rule="evenodd"/>
+</clipPath>
+</defs>
+<g clip-path="url(#clip_0)">
+<path transform="matrix(.75,0,0,.75,0,0)" d="M0 0H1000V1210H0Z" fill="#ffffff"/>
+</g>
+<g clip-path="url(#clip_1)">
+<path transform="matrix(.75,0,0,.75,0,0)" d="M0 0H1000V600H0Z" fill="#ffffff"/>
+</g>
+<g clip-path="url(#clip_2)">
+<path transform="matrix(.75,0,0,.75,0,0)" d="M0 0H1000V600H0Z" fill="#ffffff"/>
+</g>
+<g clip-path="url(#clip_3)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="6.234375 13.158375 16.626376 26.634377">S.N.</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="47" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_4)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="6.234375 12.702375 20.346375 27.990376">Food</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="47" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_5)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="6.234375 17.838376 25.314375 29.214375 37.254377 40.374376 47.958375 55.998376 61.626375 69.34238 76.986377 83.19038">Main Purpose</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="47" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_6)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="6.234375 13.158375 21.198376 28.914376 32.730379 40.446378 48.486379 54.11438 61.83038 69.47438 75.67838">Sub-purpose</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="47" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_7)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="31" x="6.234375 14.022375 21.666375 29.706376 37.422376 41.322378 46.842378 50.74238 58.38638 66.42638 72.63038 75.75038 83.39438 88.35038 91.47038 99.186389 104.814388 112.45838 118.926387 126.342388 132.54639 138.75038 142.65038 150.69037">Conditions of processing</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 3.4376953)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="47" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_8)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="6.234375">1</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_9)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="6.234375 12.702375 18.330376 26.370377 30.270377 35.790376 38.910375 42.798376 50.838376 54.738378 61.206377 68.622379 71.74238 76.05038 83.76638 92.95838 96.078388 103.11038 106.230388 113.26238 116.730388 123.76238">Fruit juice (pH &#x003c; 4.5)</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_10)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="6.234375 12.822375 20.862376 26.946377 34.266378 46.266378 53.682378 56.802377 60.702379 68.74238 76.218379 82.68638 88.206378 92.10638 99.43838 106.914379 112.43437 116.33437 123.97837 132.01837 135.13837 139.44637 147.16237 154.57837 161.04637 166.56638 170.46637 178.50637 185.92237 192.12636 197.64636 205.06237 210.69037 218.16637 224.37036 231.78636">Enzyme inactivation (pectinesterase,</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="6.234375 13.950375 21.594376 25.470376 32.790376 40.062376 47.538377 51.414377 58.890378 65.358379 70.87837 78.91837 84.54637 92.19037 100.23037 107.70637 113.91037 121.32637 125.63437">polygalacturonase)&#x00a0;</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_11)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="41" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="41" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 104.46639 112.182399 119.82639 123.726398 127.602397 135.0784 142.3504 149.7664 153.5824 160.0504 167.5264 175.56639 181.77039 185.67038 193.71038">Destruction of spoilage-causing</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="0 12 15.9 22.368 27.996 35.64 43.284 48.912004 56.184003 63.660005 71.700008 75.600009 81.80401 93.80401 100.00801 103.12801 107.43601 114.360019 121.83601 125.71201 137.712 145.356 153.396 160.812 164.688 168.56401">microorganisms (Salmonella</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="6.234375 13.650375 21.690377 27.210377 34.626379 40.25438 44.15438 50.622385 58.098386 61.806386 64.926387 72.714389 78.342388 85.662387 93.37839 98.898387 106.54238 112.74638 120.46239 128.10639 133.73439 137.63439 145.35039 149.25038 157.29038 169.29038 172.41037 180.12638 187.60237 193.23038 200.56238 208.60237 220.60237">enterica, Cryptosporidium parvum)</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="89" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_12)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="6.234375 13.266376 20.298377 25.362378 33.15038 36.27038 41.22638 48.87038 54.498384 57.61838 64.65038 71.68238 74.80238 86.80238 90.702388 98.742389">65&#x00b0;C for 30 min;</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="6.234375 13.266376 20.298377 25.362378 33.15038 36.27038 41.22638 48.87038 54.498384 57.61838 64.65038 67.770389 79.770389 83.67039 91.71039 95.27439 98.394397 105.42639 112.45839 117.52239 125.310398 128.43039 133.38639 141.03038 146.65839 149.77838 156.81038 163.84238 166.96237">77&#x00b0;C for 1 min; 88&#x00b0;C for 15 s</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 50.73432)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_13)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="6.234375 13.266376">2.</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_14)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="6.234375 14.322375 21.738377 29.154377 34.78238 37.902379 42.21038 49.92638 59.11838 62.23838 69.27038 72.39038 79.42238 82.89038 89.92238">Beer&#x00a0;(pH &#x003c; 4.5)</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_15)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="33" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="33" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 104.46639 112.182399 119.82639 123.726398 127.602397 135.0784 142.3504 149.7664 153.5824 160.0504 167.5264 175.56639 181.77039 185.67038 193.71038">Destruction of spoilage-causing</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="0 12 15.9 22.368 27.996 35.64 43.284 48.912004 56.184003 63.660005 71.700008 75.600009 81.80401 93.80401 100.00801 103.12801 107.43601 118.35601 122.25601 126.13201">microorganisms (wild</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="6.234375 13.554375 20.970376 28.446375 34.650377 40.170377 46.374376 50.082376 53.202375 60.186376 67.66238 74.13038 79.650379 87.29437 95.010379 102.486377 108.95438 112.85438 116.73038 120.60638 128.64638 134.85037 137.97037 144.17436 151.89037 159.30637 165.77437 169.67436 177.09037 183.29436 187.60236 190.72235 198.19835 206.23834 213.95435 217.07434 221.38234 227.01035 234.42635 240.63034 244.53034 252.24634 260.28636 267.76237">yeasts,&#x00a0;Lactobacillus&#x00a0;species) and (residual</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 7.32 14.736 22.212 28.416 33.936 40.14">yeasts,</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="97" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="97" x="6.234375 13.158375 20.634375 27.102375 33.570375 41.610376 49.086378 54.71438 62.35838 74.35838 81.67838 88.146389 95.562389 101.76639 104.88639 111.09039 118.8064 126.2224 132.6904 136.5904 144.0064 150.21039">Saccharomyces species)</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="113" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_16)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="0 8.808001 16.224 22.428002 27.948002 33.576005 41.616006 48.084009 53.604009 57.50401 65.14801 73.18801 76.308017 83.95201 88.90801 92.028018 98.23202 105.94802 113.59202 117.49202 121.36802 128.84403 136.11603 143.53203 147.34803 153.81603 161.29203 169.33202 175.53601 179.436 187.476">Destruction of spoilage-causing</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 12 15.9 22.368 27.996 35.64 43.284 48.912004 56.184003 63.660005 71.700008 75.600009 81.80401 93.80401">microorganisms</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_17)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="41" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="41" x="6.234375 13.266376 20.298377 25.362378 33.15038 39.15038 46.18238 53.214384 58.27838 66.06638 69.186389 74.14239 81.786388 87.41438 90.534389 97.56638 104.59838 107.71838 119.71838 123.618389 131.65839 134.77838 139.08638 142.98638 151.02637 154.14636 161.86237 169.50637 175.02637 180.54637 184.42238 191.83838 196.14638">65&#x00b0;C&#x2013;68&#x00b0;C for 20 min (in bottle);</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="6.234375 13.266376 20.298377 25.362378 33.15038 39.15038 46.18238 53.214384 58.27838 66.06638 71.022388 78.66638 84.29438 87.41438 94.44638 100.44638 107.47838 110.59838 122.59838 126.49838 134.53838 137.65837 145.13437 150.65438 153.77437 160.80637 167.83837 174.87036 180.87036 187.90236 194.93436 201.96636">72&#x00b0;C&#x2013;75&#x00b0;Cfor 1&#x2013;4 min at 900&#x2013;1000</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="0 7.9080007 15.492001">kPa</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 136.28845)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="89" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_18)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="6.234375 13.266376">3.</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_19)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="6.234375 17.838376 21.738375 25.614375 33.522375 36.642374 40.95037 48.66637 57.85837 60.97837 68.01037 71.13037 78.16237 81.63037 88.66237">Milk&#x00a0;(pH &#x003e; 4.5)</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_20)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="41" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="41" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 105.97839 113.45439 118.97439 127.01439 134.65839 141.93039 149.34639 157.38639 163.59038 167.05838 175.14638 180.77439 188.81438 195.28238 202.69838 206.57439 210.4504">Destruction of pathogens:Brucella</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="57" x="0 7.4760005 15.192 22.836 28.464 33.984 42.024003 48.228006 51.936006 55.056005 66.66 73.98 80.448009 88.092 95.80801 103.284008 109.75201 115.272 122.688 128.31601 132.216 140.256">abortus,&#x00a0;Mycobacterium</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="73" x="6.234375 11.754375 19.794377 27.510376 34.926378 40.554376 47.022378 55.062379 58.938379 66.582378 72.78638 76.68638 82.89038 86.59838 89.71838 97.506389 105.15038 112.71038 116.61038 124.02638 127.90238 131.77838 139.25438 142.37438 150.09038 158.13037 163.75838 171.79837 179.21437 184.73438 190.25438">tuberculosis,&#x00a0;Coxiella burnetti</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="89" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_21)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="33" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="33" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 104.46639 112.182399 119.82639 123.726398 127.602397 135.0784 142.3504 149.7664 153.5824 160.0504 167.5264 175.56639 181.77039 185.67038 193.71038">Destruction of spoilage-causing</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="0 12 15.9 22.368 27.996 35.64 43.284 48.912004 56.184003 63.660005 71.700008 75.600009 81.80401 93.80401 100.00801 103.12801 107.43601 114.360019 119.88001 125.50801 132.92401 140.64002 146.16002 153.80402 160.27202 167.91602 174.38402 180.85202 188.89202">microorganisms (Streptococcus</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="6.234375 10.110375 17.586377 25.302376 30.822377 34.722379 40.926378 44.634378 47.754377 54.678377 60.198377 65.82638 73.24238 80.95838 86.47838 94.122379 100.59038 108.234378 114.70238 121.17038 129.21038 135.41437 138.53437 145.00237 150.63037 158.04637 170.04637 177.69037 183.31838 187.21837 193.42237 197.73036 200.85036 208.32636 216.36635">laptis,&#x00a0;Streptococcus cremoris) and</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 7.4160006 15.456 21.54 28.86 40.86 48.276">enzymes</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="97" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_22)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="49" x="6.234375 13.266376 20.298377 25.362378 33.15038 36.27038 41.22638 48.87038 54.498384 57.61838 64.65038 71.68238 74.80238 86.80238 90.702388 98.742389">63&#x00b0;C for 30 min;</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="65" x="6.234375 13.266376 20.298377 23.766377 30.798378 35.862379 43.65038 46.77038 51.72638 59.37038 64.99838 68.118389 75.15038 82.18238 85.30238 91.506389 98.53838 105.57038 109.03838 116.07038 121.134387">71.5&#x00b0;C for 15 s64.4&#x00b0;C</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 234.5951)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="81" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_23)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="40" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="40" x="6.234375 13.266376">4.</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="56" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_24)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="40" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="40" x="6.234375 13.218375 17.118376 24.834376 32.874376 36.774377 44.490377 47.610376 55.026376 62.298376">Liquid egg</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="56" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_25)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 105.97839 113.45439 118.97439 127.01439 134.65839 141.93039 149.34639 157.38639 163.59038 166.71038 171.01837 177.94237 185.41837 189.29438 201.29438 208.93837 216.97837 224.39437 228.27037 232.14638">Destruction of pathogens (Salmonella</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 6.2040007 13.620001 18.576 24.096 31.512001 39.552003 47.268 55.308004 60.936006 68.20801">seftenburg)</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_26)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 104.46639 112.182399 119.82639 123.726398 127.602397 135.0784 142.3504">Destruction of spoilage</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 12 15.9 22.368 27.996 35.64 43.284 48.912004 56.184003 63.660005 71.700008 75.600009 81.80401 93.80401">microorganisms</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_27)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="6.234375 13.266376 20.298377 23.766377 30.798378 35.862379 43.65038 46.77038 51.72638 59.37038 64.99838 68.118389 75.15038 78.618389 85.65038 88.770389 100.770389 104.67039 112.71039">64.4&#x00b0;C for 2.5 min;</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="6.234375 13.266376 20.298377 25.362378 33.15038 36.27038 41.22638 48.87038 54.498384 57.61838 64.65038 68.118389 75.15038 78.270389 90.270389 94.17039">60&#x00b0;C for 3.5 min</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 320.1492)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_28)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="6.234375 13.266376">5.</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 3.75 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_29)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="6.234375 10.410376 16.878376 24.294377 27.414378 33.882379 39.510377 46.926378 54.402379">Ice cream</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 65.54175 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_30)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 104.46639 112.182399 119.82639 123.726398 127.602397 135.0784 142.3504 149.7664 152.8864 164.8864 168.78639 175.2544 180.8824 188.5264 196.1704 201.7984 209.0704 216.5464 224.5864 228.48639 234.69039 246.69039 252.89438">Destruction of spoilage microorganisms.</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 176.16834 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_31)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="6.234375 15.042376 22.458376 28.662377 34.182378 39.81038 47.85038 54.318384 59.838384 63.738386 71.382389 79.422389 82.54239 90.186389 95.14239 98.26239 105.97839 113.45439 118.97439 127.01439 134.65839 141.93039 149.34639 157.38639">Destruction of pathogens</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 389.89064 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_32)">
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="32" x="6.234375 13.266376 20.298377 25.362378 33.15038 36.27038 41.22638 48.87038 54.498384 57.61838 64.65038 71.68238 74.80238 86.80238 90.702388 98.742389">65&#x00b0;C for 30 min;</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="48" x="6.234375 13.266376 20.298377 25.362378 33.15038 36.27038 41.22638 48.87038 54.498384 57.61838 64.65038 71.68238 74.80238 86.80238 90.702388 98.742389">71&#x00b0;C for 10 min;</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="0 3.1200004">  </tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="64" x="6.234375 13.266376 20.298377 25.362378 33.15038 36.27038 41.22638 48.87038 54.498384 57.61838 64.65038 71.68238 74.80238">80&#x00b0;C for 25 s</tspan></text>
+<text xml:space="preserve" transform="matrix(.75 0 0 .75 576.4825 380.19837)" font-size="12" font-family="OpenSans" font-weight="bold"><tspan y="80" x="0 3.1200004">  </tspan></text>
+</g>
+<g clip-path="url(#clip_33)">
+<path transform="matrix(.75,0,0,.75,0,-.31230469)" d="M.5 1V599.4164M82.88901 1V599.4164M230.39112 1V599.4164M515.3542 1V599.4164M764.1434 1V599.4164M999.5 1V599.4164M0 .5H1000M0 63.562166H1000M0 177.63436H1000M0 308.70988H1000M0 422.78205H1000M0 502.84757H1000M0 599.9164H1000"/>
+<path transform="matrix(.75,0,0,.75,0,-.31230469)" stroke-width="1" stroke-linecap="butt" stroke-miterlimit="4" stroke-linejoin="miter" fill="none" stroke="#000000" d="M.5 1V599.4164M82.88901 1V599.4164M230.39112 1V599.4164M515.3542 1V599.4164M764.1434 1V599.4164M999.5 1V599.4164M0 .5H1000M0 63.562166H1000M0 177.63436H1000M0 308.70988H1000M0 422.78205H1000M0 502.84757H1000M0 599.9164H1000"/>
+</g>
+</svg>
