@@ -87,6 +87,7 @@
                         'publishedLabel' => $publishedLabel ? 'Published '.$publishedLabel : null,
                         'publishedDatetime' => optional($publishedAt)?->toIso8601String(),
                     ])
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'below_title'])
                 </div>
             </div>
         </header>
@@ -112,6 +113,7 @@
                             @endif
                         </div>
                     </section>
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'after_about'])
 
 <section class="et-exam-show__section" aria-labelledby="exam-details-heading">
                         <div class="et-exam-show__section-head">
@@ -150,6 +152,7 @@
                             </div>
                         </dl>
                     </section>
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'after_details'])
 
                     @auth
                         @include('frontend.exam.partials.previous-attempts', [
@@ -157,6 +160,7 @@
                             'previousAttempts' => $previousAttempts,
                         ])
                     @endauth
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'after_attempts'])
 
                     @include('frontend.exam.partials.feedback', [
                         'exam' => $exam,
@@ -164,6 +168,7 @@
                         'userFeedback' => $userFeedback ?? null,
                         'canLeaveFeedback' => $canLeaveFeedback ?? false,
                     ])
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'after_feedback'])
 
                     <div class="et-article__footer-panel et-exam-show__share-panel">
                         @include('frontend.partials.article-share', [
@@ -173,6 +178,7 @@
                             'shareLabel' => 'Share this exam',
                         ])
                     </div>
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'after_share'])
                 </main>
 
                 <aside class="et-exam-show__aside" aria-label="Exam actions and quick information">
@@ -231,6 +237,7 @@
                             @endif
                         @endauth
                     </section>
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'right_after_actions'])
 
                     <section class="et-exam-show__aside-card">
                         <div class="et-exam-show__aside-head">
@@ -248,6 +255,7 @@
                             <div><dt>Availability</dt><dd>{{ $scheduleLabel }}</dd></div>
                         </dl>
                     </section>
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'right_after_facts'])
 
                     @if($examTags->isNotEmpty())
                         <section class="et-exam-show__aside-card">
@@ -261,6 +269,7 @@
                                 @endforeach
                             </div>
                         </section>
+                        @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'right_after_tags'])
                     @endif
 
                     <section class="et-exam-show__notice" role="note">
@@ -276,6 +285,7 @@
                             @endif
                         </div>
                     </section>
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'right_after_monitoring'])
                 </aside>
             </div>
 

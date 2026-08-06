@@ -77,5 +77,6 @@
             </div>
         </div>
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'home', 'position' => 'after_testimonials'])
 </section>
 @endif

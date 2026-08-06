@@ -48,6 +48,7 @@
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $breadcrumbs])
                 <h1>Practice question</h1>
                 <p>Review the question, correct answer, and explanation.</p>
+                @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'below_title'])
             </div>
         </div>
 
@@ -64,6 +65,7 @@
                     @endif
                 </h3>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'before_content'])
 
 @if(! empty($payload['show_options']))
                         <section class="et-qd__panel et-qd__options" aria-label="Answer options">
@@ -91,6 +93,7 @@
                                 @endforeach
                             </div>
                         </section>
+                        @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'after_options'])
                     @endif
 
                     @if(! empty($payload['explanation']))
@@ -100,6 +103,7 @@
                             </div>
                             <div class="et-prose et-qd__explain-body">{!! $payload['explanation'] !!}</div>
                         </section>
+                        @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'after_explanation'])
                     @endif
 
                     <div class="et-article__footer-panel et-qd__share-panel">
@@ -110,6 +114,7 @@
                             'shareLabel' => 'Share this question',
                         ])
                     </div>
+                    @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'after_share'])
 
                     @if(($relatedBlogs ?? collect())->isNotEmpty())
                         <section class="et-qd__related">
@@ -123,6 +128,7 @@
                                 @endforeach
                             </div>
                         </section>
+                        @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'after_related'])
                     @endif
 
             </main>

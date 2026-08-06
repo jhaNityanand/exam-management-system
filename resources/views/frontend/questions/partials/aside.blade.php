@@ -23,6 +23,7 @@
         </dl>
         <p class="et-qd__aside-note">Review the correct answer and explanation, then continue with related practice.</p>
     </section>
+    @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'right_after_overview'])
 
     @if($publicTags->isNotEmpty())
         <section class="et-article-aside__card">
@@ -35,6 +36,7 @@
                 @endforeach
             </div>
         </section>
+        @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'right_after_tags'])
     @endif
 
     @if(($relatedQuestions ?? collect())->isNotEmpty())
@@ -61,6 +63,7 @@
                 @endforeach
             </ul>
         </section>
+        @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'right_after_related_questions'])
     @endif
 
     @if(($questionCategories ?? collect())->isNotEmpty())
@@ -91,5 +94,6 @@
                 @endforeach
             </ul>
         </section>
+        @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'right_after_categories'])
     @endif
 </aside>

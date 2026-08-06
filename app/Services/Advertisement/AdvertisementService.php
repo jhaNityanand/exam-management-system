@@ -598,10 +598,14 @@ HTML;
         }
 
         $parts = [];
+        $sources = [];
         foreach ($placements as $placement) {
             $html = $this->renderPlacementUnit($placement);
             if ($html !== '') {
                 $parts[] = $html;
+                $sources[] = $placement->isGoogle()
+                    ? AdvertisementCatalog::SOURCE_GOOGLE
+                    : AdvertisementCatalog::SOURCE_CUSTOM;
             }
         }
 
@@ -615,11 +619,21 @@ HTML;
             default => 'inline',
         };
 
+        $uniqueSources = array_values(array_unique($sources));
+        $previewLabel = match (true) {
+            $uniqueSources === [AdvertisementCatalog::SOURCE_GOOGLE] => 'Google Ad',
+            $uniqueSources === [AdvertisementCatalog::SOURCE_CUSTOM] => 'Custom Ad',
+            default => 'Ads',
+        };
+
         return view('frontend.partials.ad-slot', [
             'pageKey' => $pageKey,
             'positionKey' => $position,
             'variant' => $variant,
             'unitsHtml' => implode("\n", $parts),
+            'isPreview' => ads_preview_mode(),
+            'previewLabel' => $previewLabel,
+            'previewSource' => count($uniqueSources) === 1 ? $uniqueSources[0] : 'mixed',
         ])->render();
     }
 
@@ -639,12 +653,28 @@ HTML;
     }
 
     /**
-     * Legacy content injection — between-paragraph inserts stay unused;
-     * section-level slots are preferred for layout control.
+     * Inject section-level ads into article HTML (before each H2).
      */
     public function injectIntoContent(string $html, string $context, ?int $orgId = null): string
     {
-        return $html;
+        if ($html === '') {
+            return $html;
+        }
+
+        $pageKey = match ($context) {
+            'news', 'news_detail' => 'news_detail',
+            'blog', 'blog_detail' => 'blog_detail',
+            default => $context,
+        };
+
+        $slot = $this->renderSlot($pageKey, 'before_h2', $orgId);
+        if ($slot === '') {
+            return $html;
+        }
+
+        $injected = preg_replace('/(<h2\b[^>]*>)/i', $slot.'$1', $html);
+
+        return is_string($injected) ? $injected : $html;
     }
 
     public function forgetCache(?int $orgId = null): void

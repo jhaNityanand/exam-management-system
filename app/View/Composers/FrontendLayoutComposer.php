@@ -43,6 +43,10 @@ class FrontendLayoutComposer
             'socialLinks' => $this->cms->socialLinks(),
             'siteSettings' => $settings,
             'announcements' => $this->cms->announcements(),
+            'frontendAdPageKey' => \App\Support\AdvertisementCatalog::pageKeyFromRoute(
+                optional(request()->route())->getName()
+            ),
+            'adsPreviewMode' => function_exists('ads_preview_mode') ? ads_preview_mode() : false,
             'siteBrand' => [
                 'name' => $settings['brand.site_name'] ?? $settings['site_name'] ?? 'Examtube.in',
                 'logo_text' => $settings['brand.logo_text'] ?? $settings['logo_text'] ?? 'Examtube',

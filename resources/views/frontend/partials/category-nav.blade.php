@@ -55,4 +55,8 @@
             </div>
         </div>
     </aside>
+
+    @if($adPage ?? null)
+        @include('frontend.partials.ad-placement', ['page' => $adPage, 'position' => 'right_after_categories'])
+    @endif
 @endif

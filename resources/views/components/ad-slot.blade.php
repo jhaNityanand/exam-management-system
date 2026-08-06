@@ -1,6 +1,14 @@
-{{-- Frontend ads disabled during UI redesign. Component kept as a no-op for Blade compatibility. --}}
 @props([
     'page' => null,
     'position' => null,
     'placement' => null,
 ])
+
+@php
+    $pageKey = $page ?: frontend_ad_page_key();
+    $positionKey = $position ?: $placement;
+@endphp
+
+@if($pageKey && $positionKey)
+    {!! ad_slot($pageKey, $positionKey) !!}
+@endif

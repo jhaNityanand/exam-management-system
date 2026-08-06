@@ -822,6 +822,64 @@ final class AdvertisementCatalog
             || self::isSidePlacementSlot($positionKey);
     }
 
+    /**
+     * Map a frontend route name to an advertisement catalog page key.
+     */
+    public static function pageKeyFromRoute(?string $routeName): ?string
+    {
+        if (! is_string($routeName) || $routeName === '') {
+            return null;
+        }
+
+        return match (true) {
+            $routeName === 'home' => 'home',
+            $routeName === 'frontend.exams.index' => 'exam_list',
+            $routeName === 'frontend.exams.show' => 'exam_detail',
+            $routeName === 'frontend.exams.rules' => 'exam_rules',
+            $routeName === 'frontend.exams.prepare' => 'exam_prepare',
+            $routeName === 'frontend.exams.started' => 'exam_attempt',
+            $routeName === 'frontend.attempts.result' => 'exam_result',
+            $routeName === 'frontend.questions.index',
+            $routeName === 'frontend.questions.category' => 'question_list',
+            $routeName === 'frontend.questions.categories' => 'question_categories',
+            $routeName === 'frontend.questions.show' => 'question_detail',
+            $routeName === 'frontend.blogs.index',
+            $routeName === 'frontend.blogs.category',
+            $routeName === 'frontend.blogs.tag' => 'blog_list',
+            $routeName === 'frontend.blogs.show' => 'blog_detail',
+            $routeName === 'frontend.news.index',
+            $routeName === 'frontend.news.trending',
+            $routeName === 'frontend.news.category',
+            $routeName === 'frontend.news.tag' => 'news_list',
+            $routeName === 'frontend.news.show' => 'news_detail',
+            $routeName === 'frontend.categories.index' => 'categories',
+            $routeName === 'frontend.categories.show' => 'category_detail',
+            $routeName === 'frontend.authors.index' => 'authors',
+            $routeName === 'frontend.authors.show' => 'author_detail',
+            $routeName === 'frontend.faqs.index' => 'faqs',
+            $routeName === 'frontend.search' => 'search',
+            $routeName === 'frontend.sitemap' => 'sitemap',
+            str_starts_with($routeName, 'frontend.account.') => 'account',
+            $routeName === 'frontend.pages.show' => null, // resolved from page slug in the view
+            default => null,
+        };
+    }
+
+    /**
+     * Map a CMS page slug/template to a catalog page key.
+     */
+    public static function pageKeyFromCms(?string $slug, ?string $template = null): string
+    {
+        return match (true) {
+            $template === 'about' || $slug === 'about-us' => 'about_us',
+            $template === 'contact' || $slug === 'contact-us' => 'contact_us',
+            $template === 'privacy' || $slug === 'privacy-policy' => 'privacy_policy',
+            $template === 'terms' || $slug === 'terms-and-conditions' => 'terms',
+            $slug === 'help-center' => 'help_center',
+            default => 'cms_page',
+        };
+    }
+
     public static function isRightSidebarSlot(string $positionKey): bool
     {
         return $positionKey === 'right_top'

@@ -31,4 +31,5 @@
             </div>
         @endif
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'home', 'position' => 'after_featured_exams'])
 </section>

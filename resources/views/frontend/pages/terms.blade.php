@@ -71,6 +71,7 @@
             The rules that govern accounts, exams, content usage, and fair use of {{ $brand }} as a learning and assessment platform.
         </p>
         <p class="et-sp-updated">Last updated: {{ now()->format('F j, Y') }}</p>
+        @include('frontend.partials.ad-placement', ['page' => 'terms', 'position' => 'below_title'])
     </div>
 </section>
 
@@ -87,6 +88,8 @@
                 <p>Read how we handle personal data.</p>
                 <a href="{{ url('/privacy-policy') }}" class="et-btn et-btn--soft et-btn--sm">Privacy Policy</a>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'terms', 'position' => 'left_after_toc'])
+            @include('frontend.partials.ad-placement', ['page' => 'terms', 'position' => 'left_after_privacy'])
         </aside>
 
         <div class="et-legal-main" data-legal-accordion>
@@ -96,6 +99,7 @@
                     features on {{ $brand }}. Please read them carefully before creating an account or starting an attempt.
                 </p>
             </article>
+            @include('frontend.partials.ad-placement', ['page' => 'terms', 'position' => 'before_content'])
 
             @foreach ($sections as $index => $section)
                 <section class="et-legal-card" id="terms-{{ $section['id'] }}" data-legal-item @if($index === 0) data-open @endif>
@@ -118,6 +122,7 @@
                     </div>
                 </section>
             @endforeach
+            @include('frontend.partials.ad-placement', ['page' => 'terms', 'position' => 'after_legal_sections'])
         </div>
     </div>
 </section>

@@ -6457,7 +6457,87 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
 .et-contact__form-head { margin-bottom: 0.35rem; }
 .et-contact__help .et-panel__title { margin-bottom: 0.65rem; }
 
-/* -- Advertisement slots (layout only — no decorative empty boxes) -- */
+/* -- Advertisement slots --
+   Production: no decorative chrome (avoid empty boxes when ads fail to load).
+   Preview (non-examtube.in hosts): dotted outline + centered label for local/staging. */
+.et-ad {
+  width: 100%;
+  margin: 0;
+  min-width: 0;
+}
+.et-ad--inline,
+.et-ad--rail,
+.et-ad--footer {
+  display: block;
+}
+.et-ad-unit {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+}
+.et-ad-unit__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.et-ad-unit ins.adsbygoogle {
+  max-width: 100%;
+}
+
+.et-ad--preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 5.5rem;
+  margin: 0.75rem 0;
+  padding: 0.85rem 0.65rem;
+  border: 1.5px dashed color-mix(in srgb, var(--et-border, #cbd5e1) 85%, var(--et-accent, #0d9488));
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--et-surface, #f8fafc) 88%, var(--et-accent-soft, #ccfbf1));
+  box-sizing: border-box;
+  overflow: hidden;
+  line-height: normal;
+}
+.et-ad--preview.et-ad--rail {
+  min-height: 7.5rem;
+  margin: 0.65rem 0 0.85rem;
+}
+.et-ad--preview.et-ad--footer {
+  width: min(100% - 2rem, var(--et-max, 72rem));
+  margin: 1rem auto 1.25rem;
+  min-height: 5rem;
+}
+.et-ad__preview-label {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--et-text-muted, #64748b) 80%, var(--et-accent, #0f766e));
+}
+.et-ad--preview .et-ad-unit {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  opacity: 0.22;
+  filter: grayscale(0.35);
+}
+html.dark .et-ad--preview,
+.et-body[data-theme="dark"] .et-ad--preview {
+  border-color: color-mix(in srgb, var(--et-border, #334155) 70%, var(--et-accent, #2dd4bf));
+  background: color-mix(in srgb, var(--et-surface, #0f172a) 82%, #134e4a);
+}
+html.dark .et-ad__preview-label,
+.et-body[data-theme="dark"] .et-ad__preview-label {
+  color: color-mix(in srgb, var(--et-text-muted, #94a3b8) 75%, var(--et-accent, #5eead4));
+}
+
 .et-ad-layout {
   --et-ad-rail: 10.5rem;
   display: grid;
@@ -6489,34 +6569,6 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
 }
 .et-ad-layout__main { min-width: 0; }
 .et-ad-layout__rail { min-width: 0; }
-.et-ad {
-  width: 100%;
-  margin: 0;
-}
-.et-ad--inline {
-  margin: 0.85rem 0;
-}
-.et-ad--rail {
-  margin: 1.25rem 0 0.75rem;
-}
-.et-ad--footer {
-  width: min(100% - 2rem, var(--et-max));
-  margin: 1rem auto 1.25rem;
-}
-.et-ad-unit {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-}
-.et-ad-unit__img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-.et-ad-unit ins.adsbygoogle {
-  max-width: 100%;
-}
 
 /* -- Header notifications placeholder -- */
 .et-notif {
