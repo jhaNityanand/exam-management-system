@@ -4250,6 +4250,24 @@ html.dark .et-logo__img {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--et-border) 80%, transparent) transparent;
+}
+.et-article-aside__tags::-webkit-scrollbar {
+  width: 5px;
+}
+.et-article-aside__tags::-webkit-scrollbar-track {
+  background: transparent;
+}
+.et-article-aside__tags::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--et-border) 80%, transparent);
+  border-radius: 999px;
+}
+.et-article-aside__tags::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--et-accent) 50%, var(--et-border));
 }
 .et-article-aside__tag {
   display: inline-flex;

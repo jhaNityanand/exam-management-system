@@ -36,6 +36,39 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if (empty($user->slug)) {
+                $user->slug = static::generateUniqueSlug($user->name);
+            }
+        });
+
+        static::updating(function (User $user) {
+            if (empty($user->slug)) {
+                $user->slug = static::generateUniqueSlug($user->name, $user->id);
+            }
+        });
+    }
+
+    public static function generateUniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $base = \Illuminate\Support\Str::slug($name);
+        if ($base === '') {
+            $base = 'user-' . \Illuminate\Support\Str::random(5);
+        }
+
+        $slug = $base;
+        $count = 1;
+
+        while (static::query()->where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
+            $slug = "{$base}-{$count}";
+            $count++;
+        }
+
+        return $slug;
+    }
+
     public function profile()
     {
         return $this->hasOne(Profile::class, 'id', 'id');
