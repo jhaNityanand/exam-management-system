@@ -155,25 +155,27 @@ Still unfinished (see `TODO.md`): organization switching UI, real notifications/
 
 ---
 
-## LLM / AI SEO
+## LLM / AI SEO Management
 
-Provider-based architecture (`config/llm.php`). The app talks only to `App\Services\Llm\LlmService` — never to Groq/OpenRouter/Gemini directly.
+LLM configuration is managed completely through the database via **Admin Panel → Settings → LLM Management** (`/admin/settings/llm`).
 
-### Switch providers (no code changes)
+### Supported Providers & Priority Cascading
 
-```env
-LLM_PROVIDER=groq          # groq | openrouter | gemini
-GROQ_API_KEY=...
-GROQ_MODEL=llama-3.3-70b-versatile
-# or
-OPENROUTER_API_KEY=...
-OPENROUTER_MODEL=openai/gpt-4o-mini
-# or
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-2.0-flash
-```
+1. **Mistral AI** (Default Priority 1)
+2. **Groq** (Priority 2)
+3. **Google Gemini** (Priority 3)
+4. **OpenRouter** (Priority 4)
 
-Shared knobs: `LLM_BATCH_SIZE` (default 6), `LLM_TIMEOUT`, `LLM_RETRY`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`.
+Within each provider, administrators can add multiple accounts. The application automatically routes LLM calls to the highest-priority active account.
+
+### Automatic Failover & 24h Cooldown
+
+- **Automatic Failover**: If an API request encounters a rate limit (HTTP 429), quota exhaustion, auth error, timeout, or provider failure, the account is placed in a **24-hour cooldown state**, and the system instantly cascades to the next available account without breaking the queue.
+- **Scheduler Auto-Reactivation**: The scheduler automatically reactivates accounts after the 24-hour cooldown expires and resets daily request/token counters at midnight.
+- **Seeder**: Seed predefined free LLM accounts with:
+  ```bash
+  php artisan db:seed --class=LlmAccountSeeder
+  ```
 
 ### How SEO generation works
 

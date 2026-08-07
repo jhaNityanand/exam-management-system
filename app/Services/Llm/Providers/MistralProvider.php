@@ -5,19 +5,25 @@ namespace App\Services\Llm\Providers;
 use App\Services\Llm\DTOs\LlmResponse;
 use App\Services\Llm\Exceptions\LlmException;
 
-class GroqProvider extends AbstractProvider
+class MistralProvider extends AbstractProvider
 {
     public function name(): string
     {
-        return 'groq';
+        return 'mistral';
     }
 
     protected function sendChat(string $system, string $user, array $options = []): LlmResponse
     {
-        $baseUrl = filled($this->baseUrl()) ? $this->baseUrl() : 'https://api.groq.com/openai/v1';
+        $headers = [];
+        if (filled($this->organizationId())) {
+            $headers['Mistral-Organization'] = $this->organizationId();
+        }
+
+        $baseUrl = filled($this->baseUrl()) ? $this->baseUrl() : 'https://api.mistral.ai/v1';
 
         $response = $this->http()
             ->withToken($this->apiKey())
+            ->withHeaders($headers)
             ->post($baseUrl.'/chat/completions', [
                 'model' => $this->model(),
                 'temperature' => $this->temperature(),

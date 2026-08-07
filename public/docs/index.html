@@ -517,15 +517,13 @@ npm run dev</code></pre>
                         <tr><td><code>GALLERY_MAX_IMAGE_KB</code></td><td><code>5120</code></td><td>Gallery image upload limit.</td></tr>
                         <tr><td><code>GALLERY_MAX_VIDEO_KB</code></td><td><code>51200</code></td><td>Gallery video upload limit.</td></tr>
                         <tr><td><code>GALLERY_MAX_FILE_KB</code></td><td><code>20480</code></td><td>Gallery document upload limit.</td></tr>
-                        <tr><td><code>LLM_PROVIDER</code></td><td><code>groq</code></td><td>Active LLM provider: <code>groq</code>, <code>openrouter</code>, or <code>gemini</code>.</td></tr>
-                        <tr><td><code>GROQ_API_KEY</code> / <code>OPENROUTER_API_KEY</code> / <code>GEMINI_API_KEY</code></td><td>—</td><td>Provider API keys (set the one matching <code>LLM_PROVIDER</code>).</td></tr>
-                        <tr><td><code>GROQ_MODEL</code> / <code>OPENROUTER_MODEL</code> / <code>GEMINI_MODEL</code></td><td>provider default</td><td>Model id for the selected provider.</td></tr>
+                        <tr><td><code>LLM_PROVIDER</code> / Database UI</td><td><code>mistral</code></td><td>LLM providers managed in database UI (Mistral AI, Groq, Gemini, OpenRouter).</td></tr>
                         <tr><td><code>LLM_BATCH_SIZE</code></td><td><code>6</code></td><td>Records per SEO batch request (cost control).</td></tr>
                         <tr><td><code>LLM_SEO_EVERY_MINUTES</code></td><td><code>5</code></td><td>Scheduler interval for <code>llm:process-seo</code>.</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="callout">Set <code>APP_DEBUG=false</code>, configure a real mail transport, and use production-safe cache/session/queue settings before deployment. Switch LLM providers by changing <code>LLM_PROVIDER</code> only — no code deploy required.</div>
+                <div class="callout">Set <code>APP_DEBUG=false</code>, configure a real mail transport, and use production-safe cache/session/queue settings before deployment. Configure LLM provider accounts under <strong>Admin → Settings → LLM Management</strong> with multi-account failover & automatic 24h cooldown handling.</div>
             </section>
 
             <section id="accounts" data-searchable>

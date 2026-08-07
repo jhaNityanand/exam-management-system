@@ -166,7 +166,20 @@ php artisan seo:generate
 
 ---
 
-## Cron (scheduler)
+## LLM Management & AI SEO Setup
+
+LLM configurations are managed in the database via **Admin Panel → Settings → LLM Management**.
+
+- **Supported Providers**: Mistral AI (Default Priority 1), Groq (Priority 2), Google Gemini (Priority 3), OpenRouter (Priority 4).
+- **Multi-Account & Priority Cascading**: Administrators can register multiple accounts for each provider. The system automatically routes requests to the highest priority active account.
+- **Automatic Failover & Cooldown**: If an API request encounters a rate limit, quota error, timeout, or authentication error, the account is temporarily placed in a 24-hour cooldown state, and the queue seamlessly fails over to the next available account.
+- **Scheduler Auto-Reactivation**: The scheduler automatically reactivates accounts once their 24-hour cooldown expires and resets daily request counters at midnight.
+
+---
+
+## Queue & Scheduler Setup
+
+### 1. Cron (Scheduler)
 
 In Hostinger → Cron Jobs (or SSH crontab), run every minute:
 
@@ -176,15 +189,20 @@ In Hostinger → Cron Jobs (or SSH crontab), run every minute:
 
 Replace `/path/to/exam-management-system` with the real app root (the folder that contains `artisan`).
 
-Scheduled work includes daily `seo:generate` (see `routes/console.php`). Without this cron, scheduled tasks will not run.
+Scheduled work includes:
+- Daily sitemap generation (`seo:generate`)
+- Asynchronous SEO batch processing (`llm:process-seo`)
+- LLM Account cooldown auto-reactivation and daily usage counter resets.
 
----
+### 2. Queue Worker
 
-## Queue / Supervisor
+For async SEO queue processing in production:
 
-With `QUEUE_CONNECTION=sync` (recommended on shared hosting), **Supervisor is not required**. Mail and other queued work execute immediately in-process.
+```bash
+php artisan queue:work --queue=llm-seo,default --tries=3 --timeout=120
+```
 
-If you later switch to `database`/`redis` queues on a VPS, run a persistent worker (`php artisan queue:work`) under Supervisor and keep the cron above for the scheduler.
+With `QUEUE_CONNECTION=sync` on shared hosting, jobs execute inline in-process.
 
 ---
 

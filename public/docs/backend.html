@@ -552,6 +552,31 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 });</code></pre>
             </section>
 
+            <section id="llm-management" data-searchable>
+                <h2>LLM Management Module</h2>
+                <p class="lead">Database-driven configuration and multi-account failover for LLM providers (Mistral AI, Groq, Google Gemini, OpenRouter).</p>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3>Supported Providers</h3>
+                        <ul>
+                            <li><strong>Mistral AI</strong> (Default Priority 1)</li>
+                            <li><strong>Groq</strong> (Priority 2)</li>
+                            <li><strong>Google Gemini</strong> (Priority 3)</li>
+                            <li><strong>OpenRouter</strong> (Priority 4)</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Key Features</h3>
+                        <ul>
+                            <li>Multi-account priority cascading per provider</li>
+                            <li>Automatic failover on rate limits (HTTP 429), quota errors, or timeouts</li>
+                            <li>Automatic 24-hour cooldown state & scheduler reactivation</li>
+                            <li>Transparent SEO Queue integration & dedicated processing logs</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
             <section id="placeholders" data-searchable>
                 <h2>Placeholder modules</h2>
                 <p class="lead">These routes exist under <code>/admin</code> but render Coming Soon shells — not production workflows.</p>
