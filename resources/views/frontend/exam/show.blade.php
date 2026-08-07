@@ -80,6 +80,7 @@
                 ]])
 
                 <div class="et-exam-show__hero-copy">
+                    @include('frontend.partials.ad-placement', ['page' => 'exam_detail', 'position' => 'above_title'])
                     <h1>{{ $exam->title }}</h1>
                     @include('frontend.partials.detail-header-meta', [
                         'categoryTrail' => $categoryTrail,

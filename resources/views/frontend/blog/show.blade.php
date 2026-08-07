@@ -53,7 +53,6 @@
                     'publishedLabel' => $publishedLabel ? 'Published '.$publishedLabel : null,
                     'publishedDatetime' => optional($blog->published_at)?->toIso8601String(),
                 ])
-                @include('frontend.partials.ad-placement', ['page' => 'blog_detail', 'position' => 'below_title'])
             </div>
         </header>
 
@@ -85,7 +84,6 @@
                     <div class="et-prose et-article__prose">
                         {!! $processedContent !!}
                     </div>
-                    @include('frontend.partials.ad-placement', ['page' => 'blog_detail', 'position' => 'between_sections'])
 
 <div class="et-article__footer-panel">
                         @include('frontend.partials.article-share', [

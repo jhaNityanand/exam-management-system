@@ -105,6 +105,7 @@
                     </form>
                 </div>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'categories', 'position' => 'after_filters'])
 
             <div class="et-listing__main" data-listing-main>
                 <div class="et-listing__skeleton et-grid et-grid--3 et-catalog-grid" data-listing-skeleton hidden aria-hidden="true">
@@ -123,19 +124,25 @@
                 </div>
 
                 <div class="et-grid et-grid--3 et-catalog-grid" data-load-more-list @if(($categories ?? collect())->isEmpty()) hidden @endif>
-                    @foreach($categories ?? [] as $item)
+                    @foreach($categories ?? [] as $index => $item)
                         @include('frontend.components.catalog-category-card', ['item' => $item])
+                        @if(($index + 1) % 3 === 0 && ! $loop->last)
+                            </div>
+                            @include('frontend.partials.ad-placement', ['page' => 'categories', 'position' => 'between_sections'])
+                            <div class="et-grid et-grid--3 et-catalog-grid">
+                        @endif
                     @endforeach
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'categories', 'position' => 'below_items'])
 
-<div data-load-more-slot>
+                <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $categories,
                         'endpoint' => route('frontend.categories.index', request()->query()),
                     ])
                 </div>
-
-</div>
+                @include('frontend.partials.ad-placement', ['page' => 'categories', 'position' => 'after_content'])
+            </div>
         </div>
     </div>
 @endsection

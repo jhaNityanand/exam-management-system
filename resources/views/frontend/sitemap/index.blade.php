@@ -17,8 +17,10 @@
     <div class="et-container et-page-hero__inner">
         @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $seo['breadcrumbs']])
         <p class="et-eyebrow">Explore</p>
+        @include('frontend.partials.ad-placement', ['page' => 'sitemap', 'position' => 'above_title'])
         <h1>Sitemap</h1>
         <p class="et-page-hero__lead">Jump to any major section of the site.</p>
+        @include('frontend.partials.ad-placement', ['page' => 'sitemap', 'position' => 'below_title'])
     </div>
 </section>
 
@@ -43,6 +45,7 @@
                 </li>
             @endforelse
         </ul>
+        @include('frontend.partials.ad-placement', ['page' => 'sitemap', 'position' => 'after_content'])
     </div>
 </section>
 

@@ -31,9 +31,6 @@
                         <p>{{ $listingLead }}</p>
                     @endif
                     {!! $listingHeroSuffix ?? '' !!}
-                    @if($listingAdPage)
-                        @include('frontend.partials.ad-placement', ['page' => $listingAdPage, 'position' => 'below_title'])
-                    @endif
                 </div>
                 <div class="et-filter-toolbar">
                     {!! $listingToolbarExtra ?? '' !!}
@@ -128,9 +125,15 @@
                     ])
                 </div>
 
+                @php($itemsPerRow = str_contains($listingGridClass, 'et-grid--4') ? 4 : 3)
                 <div class="{{ $listingGridClass }}" data-load-more-list @if(($listingItems ?? collect())->isEmpty()) hidden @endif>
-                    @foreach($listingItems ?? [] as $item)
+                    @foreach($listingItems ?? [] as $index => $item)
                         @include($listingCard, [$listingCardKey => $item])
+                        @if($listingAdPage && ($index + 1) % $itemsPerRow === 0 && ! $loop->last)
+                            </div>
+                            @include('frontend.partials.ad-placement', ['page' => $listingAdPage, 'position' => 'between_sections'])
+                            <div class="{{ $listingGridClass }}">
+                        @endif
                     @endforeach
                 </div>
 

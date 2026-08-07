@@ -66,6 +66,7 @@
             ['label' => 'Terms & Conditions'],
         ]])
         <p class="et-eyebrow">{{ $eyebrow }}</p>
+        @include('frontend.partials.ad-placement', ['page' => 'terms', 'position' => 'above_title'])
         <h1>Terms &amp; Conditions</h1>
         <p class="et-sp-hero__lead">
             The rules that govern accounts, exams, content usage, and fair use of {{ $brand }} as a learning and assessment platform.

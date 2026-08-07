@@ -136,6 +136,7 @@
                     </form>
                 </div>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'news_list', 'position' => 'after_filters'])
 
             <div class="et-listing__layout{{ ! empty($categoryNav['roots'] ?? null) ? ' et-listing__layout--with-nav' : '' }}">
             <div class="et-listing__main" data-listing-main>
@@ -155,19 +156,25 @@
                 </div>
 
                 <div class="et-grid et-grid--3" data-load-more-list @if($newsItems->isEmpty()) hidden @endif>
-                    @foreach($newsItems as $item)
+                    @foreach($newsItems as $index => $item)
                         @include('frontend.components.news-card', ['news' => $item])
+                        @if(($index + 1) % 3 === 0 && ! $loop->last)
+                            </div>
+                            @include('frontend.partials.ad-placement', ['page' => 'news_list', 'position' => 'between_sections'])
+                            <div class="et-grid et-grid--3">
+                        @endif
                     @endforeach
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'news_list', 'position' => 'below_items'])
 
-<div data-load-more-slot>
+                <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $newsItems,
                         'endpoint' => route('frontend.news.index', request()->query()),
                     ])
                 </div>
-
-</div>
+                @include('frontend.partials.ad-placement', ['page' => 'news_list', 'position' => 'after_content'])
+            </div>
 
             @if(! empty($categoryNav['roots'] ?? null))
                 <div class="et-listing__aside">
@@ -175,6 +182,7 @@
                         'categoryNav' => $categoryNav,
                         'categoryNavTitle' => 'Categories',
                         'categoryNavDescription' => 'Browse news topics and jump into related updates.',
+                        'adPage' => 'news_list',
                     ])
                 </div>
             @endif

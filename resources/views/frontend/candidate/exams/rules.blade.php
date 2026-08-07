@@ -33,8 +33,10 @@
             ['label' => 'Rules'],
         ]])
         <span class="et-exam-rules-hero__eyebrow">Before you begin</span>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'above_title'])
         <h1>{{ $exam->title }}</h1>
         <p>Review the exam rules, monitoring requirements, and assessment details before verification.</p>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'below_title'])
     </div>
 </div>
 
@@ -52,6 +54,7 @@
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->total_marks }}</span><span class="et-stat__label">Total marks</span></div>
         <div class="et-stat"><span class="et-stat__value">{{ (int) $exam->passing_marks }}</span><span class="et-stat__label">Passing marks</span></div>
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'after_stats'])
 
 @if($isPaidExam && ! $canContinueAttempt)
         <ol class="et-rules-steps" aria-label="Before you start">
@@ -76,6 +79,7 @@
             <p>You may receive up to <strong>{{ $warningLimit }}</strong> monitored warning{{ $warningLimit === 1 ? '' : 's' }} (tab switch, focus loss, etc.). Reaching this limit auto-submits your exam.</p>
         @endif
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'after_about'])
 
 <div class="et-card et-card--padded et-exam-rules-card">
         <h2 class="et-heading-flush">Assessment summary</h2>
@@ -110,6 +114,7 @@
             @endif
         </ul>
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'after_details'])
 
 <div class="et-card et-card--padded et-exam-rules-card">
         <h2 class="et-heading-flush">Instructions for candidates</h2>
@@ -121,8 +126,10 @@
             @endif
         </div>
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'between_sections'])
 
 @include('frontend.partials.exam-rules', ['rules' => $rules])
+    @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'after_content'])
 
     </main>
 
@@ -148,6 +155,7 @@
                 <div><dt>Warnings</dt><dd>{{ $warningLimit }}</dd></div>
             </dl>
         </section>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'right_after_next_step'])
 
         @if($showAgree)
             <section class="et-card et-exam-rules-consent">
@@ -156,6 +164,7 @@
                     <span>I have read and agree to the exam rules, instructions, and monitoring policies above.</span>
                 </label>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'right_after_consent'])
         @endif
 
         @if($needsPayment)
@@ -187,10 +196,12 @@
                 </a>
             </section>
         @endif
+        @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'right_after_start'])
 
         <section class="et-exam-rules-action et-exam-rules-action--secondary">
             <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Back to exam details</a>
         </section>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_rules', 'position' => 'right_after_back'])
     </div>
     </aside>
     </div>

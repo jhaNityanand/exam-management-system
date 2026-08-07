@@ -88,6 +88,7 @@
                     </form>
                 </div>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'authors', 'position' => 'after_filters'])
 
             <div class="et-listing__main" data-listing-main>
                 <div class="et-listing__skeleton et-authors-grid" data-listing-skeleton hidden aria-hidden="true">
@@ -113,17 +114,25 @@
                 </div>
 
                 <div class="et-authors-grid" data-load-more-list @if(($authors ?? collect())->isEmpty()) hidden @endif>
-                    @foreach($authors ?? [] as $author)
+                    @foreach($authors ?? [] as $index => $author)
                         @include('frontend.components.author-card', ['author' => $author])
+                        @if(($index + 1) % 3 === 0 && ! $loop->last)
+                            </div>
+                            @include('frontend.partials.ad-placement', ['page' => 'authors', 'position' => 'between_sections'])
+                            <div class="et-authors-grid">
+                        @endif
                     @endforeach
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'authors', 'position' => 'below_items'])
 
-<div data-load-more-slot>
+                <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $authors,
                         'endpoint' => route('frontend.authors.index', request()->query()),
                     ])
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'authors', 'position' => 'after_content'])
+            </div>
             </div>
         </div>
     </div>

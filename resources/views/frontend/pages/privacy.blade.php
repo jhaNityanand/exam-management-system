@@ -51,6 +51,7 @@
             ['label' => 'Privacy Policy'],
         ]])
         <p class="et-eyebrow">{{ $eyebrow }}</p>
+        @include('frontend.partials.ad-placement', ['page' => 'privacy_policy', 'position' => 'above_title'])
         <h1>Privacy Policy</h1>
         <p class="et-sp-hero__lead">
             How {{ $brand }} collects, uses, stores, and protects your information across exams, learning content, and account services.

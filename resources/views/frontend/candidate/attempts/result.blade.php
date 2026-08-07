@@ -24,6 +24,7 @@
         <header class="rs-hero">
             <div class="rs-hero__copy">
                 <p class="rs-eyebrow">Attempt result</p>
+                @include('frontend.partials.ad-placement', ['page' => 'exam_result', 'position' => 'above_title'])
                 <h1>Exam result</h1>
                 <p class="rs-hero__sub">{{ $exam->title }}</p>
             </div>
@@ -32,6 +33,7 @@
                 <a href="{{ route('frontend.account.results') }}" class="et-btn et-btn--ghost">All results</a>
             </div>
         </header>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_result', 'position' => 'below_title'])
 
 <div id="rs-error" class="rs-error" hidden role="alert"></div>
 
@@ -58,8 +60,10 @@
                 <div class="rs-skel rs-skel--bar"></div>
                 <div class="rs-skel rs-skel--actions"></div>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_result', 'position' => 'after_stats'])
 
             <section id="rs-content" class="rs-content" hidden></section>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_result', 'position' => 'after_content'])
         @endif
     </div>
 

@@ -237,6 +237,7 @@ class CandidateAttemptController extends Controller
             'exam_url' => $attempt->exam
                 ? route('frontend.exams.show', $attempt->exam)
                 : route('frontend.account.results'),
+            'ad_html' => app(\App\Services\Advertisement\AdvertisementService::class)->renderSlot('exam_attempt_review', 'below_items'),
             ...$this->reviewPresenter->present($attempt),
         ]);
     }

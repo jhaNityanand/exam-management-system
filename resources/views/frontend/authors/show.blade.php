@@ -51,6 +51,7 @@
 
                     <div class="et-author-hero__copy">
                         <p class="et-author-hero__eyebrow">Author profile</p>
+                        @include('frontend.partials.ad-placement', ['page' => 'author_detail', 'position' => 'above_title'])
                         <h1>{{ $author->name }}</h1>
 
                         @if($bio !== '')
@@ -77,6 +78,7 @@
                                 @endforeach
                             </ul>
                         @endif
+                        @include('frontend.partials.ad-placement', ['page' => 'author_detail', 'position' => 'below_title'])
                     </div>
                 </div>
             </div>
@@ -103,6 +105,7 @@
                     </div>
                 @endif
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'author_detail', 'position' => 'between_sections'])
 
 <section class="et-author-work__block">
                 <div class="et-author-work__head">
@@ -124,6 +127,7 @@
                     </div>
                 @endif
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'author_detail', 'position' => 'after_blogs'])
 
 <section class="et-author-work__block">
                 <div class="et-author-work__head">
@@ -145,6 +149,7 @@
                     </div>
                 @endif
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'author_detail', 'position' => 'after_news'])
 
 <section class="et-author-work__block">
                 <div class="et-author-work__head">
@@ -166,6 +171,7 @@
                     </div>
                 @endif
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'author_detail', 'position' => 'after_content'])
 
             <div class="et-article__footer-panel et-author-share-panel">
                 @include('frontend.partials.article-share', [

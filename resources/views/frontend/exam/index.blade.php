@@ -176,6 +176,7 @@
                 </form>
             </div>
         </div>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_list', 'position' => 'after_filters'])
 
         <div class="et-listing__layout{{ ! empty($categoryNav['roots'] ?? null) ? ' et-listing__layout--with-nav' : '' }}">
         <div class="et-listing__main" data-listing-main>
@@ -195,19 +196,25 @@
             </div>
 
             <div class="et-grid et-grid--3" data-load-more-list @if(($exams ?? collect())->isEmpty()) hidden @endif>
-                @foreach($exams ?? [] as $exam)
+                @foreach($exams ?? [] as $index => $exam)
                     @include('frontend.components.exam-card', ['exam' => $exam])
+                    @if(($index + 1) % 3 === 0 && ! $loop->last)
+                        </div>
+                        @include('frontend.partials.ad-placement', ['page' => 'exam_list', 'position' => 'between_sections'])
+                        <div class="et-grid et-grid--3">
+                    @endif
                 @endforeach
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_list', 'position' => 'below_items'])
 
-<div data-load-more-slot>
+            <div data-load-more-slot>
                 @include('frontend.partials.load-more', [
                     'paginator' => $exams,
                     'endpoint' => route('frontend.exams.index', request()->query()),
                 ])
             </div>
-
-</div>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_list', 'position' => 'after_content'])
+        </div>
 
         @if(! empty($categoryNav['roots'] ?? null))
             <div class="et-listing__aside">
@@ -215,6 +222,7 @@
                     'categoryNav' => $categoryNav,
                     'categoryNavTitle' => 'Categories',
                     'categoryNavDescription' => 'Browse exam topics and jump into related assessments.',
+                    'adPage' => 'exam_list',
                 ])
             </div>
         @endif

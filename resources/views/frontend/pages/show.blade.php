@@ -43,6 +43,7 @@
     @elseif ($viewKey === 'terms')
         @include('frontend.pages.terms', ['page' => $page, 'eyebrow' => $eyebrow])
     @else
+        @php($cmsAdPageKey = \App\Support\AdvertisementCatalog::pageKeyFromCms($page->slug, $page->template))
         <section class="et-sp-hero">
             <div class="et-container">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => [
@@ -50,10 +51,12 @@
                     ['label' => $page->title],
                 ]])
                 <p class="et-eyebrow">{{ $eyebrow }}</p>
+                @include('frontend.partials.ad-placement', ['page' => $cmsAdPageKey, 'position' => 'above_title'])
                 <h1>{{ $page->title }}</h1>
                 @if ($page->excerpt)
                     <p class="et-sp-hero__lead">{{ $page->excerpt }}</p>
                 @endif
+                @include('frontend.partials.ad-placement', ['page' => $cmsAdPageKey, 'position' => 'below_title'])
             </div>
         </section>
 <div class="et-container et-page-body">
@@ -66,6 +69,7 @@
             <article class="et-panel et-panel--article et-cms-article">
                 <div class="et-prose">{!! $page->content !!}</div>
             </article>
+            @include('frontend.partials.ad-placement', ['page' => $cmsAdPageKey, 'position' => 'after_content'])
 </div>
     @endif
     @if (in_array($viewKey, ['about', 'contact', 'privacy', 'terms'], true))

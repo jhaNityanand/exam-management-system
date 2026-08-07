@@ -17,6 +17,7 @@
     <div class="et-container et-page-hero__inner">
         @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $seo['breadcrumbs']])
         <p class="et-eyebrow">Help Center</p>
+        @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'above_title'])
         <h1>Frequently Asked Questions</h1>
         <p class="et-page-hero__lead">Quick answers to help you prepare, attempt exams, and manage your account.</p>
         @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'below_title'])

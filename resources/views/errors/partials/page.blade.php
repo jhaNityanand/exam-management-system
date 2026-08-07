@@ -20,14 +20,17 @@
 @endphp
 
 <section class="et-err et-err--{{ $tone }}" aria-labelledby="et-err-title">
+    @php($errAdPageKey = 'error_'.$code)
     <div class="et-container et-err__inner">
         <div class="et-err__art" aria-hidden="true">
             @include('errors.partials.illustration', ['code' => $code])
         </div>
 
         <p class="et-err__badge">{{ $code }}</p>
+        @include('frontend.partials.ad-placement', ['page' => $errAdPageKey, 'position' => 'above_title'])
         <h1 id="et-err-title" class="et-err__title">{{ $title }}</h1>
         <p class="et-err__message">{{ $message }}</p>
+        @include('frontend.partials.ad-placement', ['page' => $errAdPageKey, 'position' => 'below_title'])
 
 <div class="et-err__actions">
             @if($showHome)
@@ -73,6 +76,7 @@
                 </a>
             @endif
         </div>
+        @include('frontend.partials.ad-placement', ['page' => $errAdPageKey, 'position' => 'after_content'])
 
 <p class="et-err__brand">{{ $brandName }}</p>
     </div>

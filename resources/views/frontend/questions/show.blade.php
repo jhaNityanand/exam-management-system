@@ -46,6 +46,7 @@
         <div class="et-qd__top">
             <div class="et-container et-qd__wrap">
                 @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $breadcrumbs])
+                @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'above_title'])
                 <h1>Practice question</h1>
                 <p>Review the question, correct answer, and explanation.</p>
                 @include('frontend.partials.ad-placement', ['page' => 'question_detail', 'position' => 'below_title'])

@@ -2833,6 +2833,10 @@ html.dark .et-exam-show__tag,
   cursor: wait;
 }
 
+.et-ad + .et-ad {
+  margin-top: 0.85rem;
+}
+
 .et-prose {
   font-size: 1.05rem;
   line-height: 1.75;

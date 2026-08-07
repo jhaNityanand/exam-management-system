@@ -124,6 +124,7 @@
                     </form>
                 </div>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'question_list', 'position' => 'after_filters'])
 
             <div class="et-listing__layout{{ ! empty($categoryNav['roots'] ?? null) ? ' et-listing__layout--with-nav' : '' }}">
             <div class="et-listing__main" data-listing-main>
@@ -143,19 +144,25 @@
                 </div>
 
                 <div class="et-grid et-grid--3" data-load-more-list @if(($questions ?? collect())->isEmpty()) hidden @endif>
-                    @foreach($questions ?? [] as $question)
+                    @foreach($questions ?? [] as $index => $question)
                         @include('frontend.components.question-card', ['question' => $question])
+                        @if(($index + 1) % 3 === 0 && ! $loop->last)
+                            </div>
+                            @include('frontend.partials.ad-placement', ['page' => 'question_list', 'position' => 'between_sections'])
+                            <div class="et-grid et-grid--3">
+                        @endif
                     @endforeach
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'question_list', 'position' => 'below_items'])
 
-<div data-load-more-slot>
+                <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
                         'paginator' => $questions,
                         'endpoint' => route('frontend.questions.index', request()->query()),
                     ])
                 </div>
-
-</div>
+                @include('frontend.partials.ad-placement', ['page' => 'question_list', 'position' => 'after_content'])
+            </div>
 
             @if(! empty($categoryNav['roots'] ?? null))
                 <div class="et-listing__aside">
@@ -163,6 +170,7 @@
                         'categoryNav' => $categoryNav,
                         'categoryNavTitle' => 'Categories',
                         'categoryNavDescription' => 'Browse question topics and jump into related practice sets.',
+                        'adPage' => 'question_list',
                     ])
                 </div>
             @endif

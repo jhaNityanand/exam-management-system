@@ -57,6 +57,7 @@
             </button>
         </div>
     </header>
+    @include('frontend.partials.ad-placement', ['page' => 'exam_attempt', 'position' => 'after_header'])
 
     <div class="cx-exam__body">
         <main class="cx-main" id="cx-main">
@@ -68,6 +69,7 @@
                 <button type="button" class="cx-btn cx-btn--primary" id="cx-submit">Save &amp; next</button>
                 <button type="button" class="cx-btn cx-btn--review" id="cx-mark-review-next">Mark for review &amp; next</button>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_attempt', 'position' => 'below_content'])
         </main>
 
         <div class="cx-drawer-backdrop" id="cx-drawer-backdrop" hidden></div>
@@ -123,6 +125,7 @@
                 </ul>
             </section>
 
+            @include('frontend.partials.ad-placement', ['page' => 'exam_attempt', 'position' => 'before_final_submit'])
             <button type="button" class="cx-btn cx-btn--danger cx-final-submit" id="cx-final-submit" data-cx-final-submit>
                 Final submit
             </button>

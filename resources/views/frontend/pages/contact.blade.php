@@ -55,6 +55,7 @@
             ['label' => 'Contact Us'],
         ]])
         <p class="et-eyebrow">{{ $eyebrow ?? 'Support' }}</p>
+        @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'above_title'])
         <h1>Contact {{ $brand }}</h1>
         <p class="et-sp-hero__lead">
             Questions about exams, accounts, partnerships, or institute onboarding? Reach the team — we are here to help learners and organizations succeed.
