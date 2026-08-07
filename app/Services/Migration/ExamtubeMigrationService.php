@@ -35,7 +35,8 @@ class ExamtubeMigrationService
         protected SeoEnhancer $seoEnhancer,
         protected LegacyImageImporter $imageImporter,
         protected ImportLogger $logger
-    ) {}
+    ) {
+    }
 
     /**
      * Run the full Examtube migration pipeline.
@@ -49,7 +50,7 @@ class ExamtubeMigrationService
 
         // Ensure target organization exists
         $org = Organization::query()->find($organizationId) ?: Organization::query()->first();
-        if (! $org) {
+        if (!$org) {
             throw new \RuntimeException("No Organization found in database to attach imported records.");
         }
         $organizationId = $org->id;
@@ -118,7 +119,7 @@ class ExamtubeMigrationService
         foreach ($users as $oldUser) {
             $oldId = (int) ($oldUser['id'] ?? 0);
             $email = strtolower(trim((string) ($oldUser['email'] ?? '')));
-            if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $this->logger->recordSkipped('users', "Invalid email for user ID {$oldId}: '{$email}'");
                 continue;
             }
@@ -135,8 +136,9 @@ class ExamtubeMigrationService
                     ['email' => $email],
                     [
                         'name' => $name,
+                        'slug' => User::generateUniqueSlug($name, User::query()->where('email', $email)->value('id')),
                         'password' => Hash::make('password'),
-                        'email_verified_at' => ! empty($oldUser['email_verified_at']) ? $oldUser['email_verified_at'] : now(),
+                        'email_verified_at' => !empty($oldUser['email_verified_at']) ? $oldUser['email_verified_at'] : now(),
                     ]
                 );
 
@@ -161,7 +163,7 @@ class ExamtubeMigrationService
                 $bio = $profData ? $this->contentEnhancer->enhanceHtml((string) ($profData['message'] ?? '')) : null;
 
                 $avatarGallery = null;
-                if ($profData && ! empty($profData['image'])) {
+                if ($profData && !empty($profData['image'])) {
                     $avatarGallery = $this->imageImporter->importImage((string) $profData['image'], $organizationId, [
                         'source' => 'import',
                         'module' => 'profile',
@@ -174,7 +176,7 @@ class ExamtubeMigrationService
                 if ($profData) {
                     foreach (['facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'gmail', 'telegram'] as $key) {
                         $actualKey = $key === 'linkedin' ? 'linkdin' : $key;
-                        if (! empty($profData[$actualKey])) {
+                        if (!empty($profData[$actualKey])) {
                             $socialLinks[$key] = trim((string) $profData[$actualKey]);
                         }
                     }
@@ -187,7 +189,7 @@ class ExamtubeMigrationService
                         'bio' => $bio ? mb_substr(strip_tags($bio), 0, 1000) : null,
                         'avatar' => $avatarGallery?->file_path ?: $avatarGallery?->file_url,
                         'default_organization_id' => $organizationId,
-                        'social_links' => ! empty($socialLinks) ? $socialLinks : null,
+                        'social_links' => !empty($socialLinks) ? $socialLinks : null,
                     ]
                 );
 
@@ -219,7 +221,7 @@ class ExamtubeMigrationService
 
             try {
                 $name = mb_substr($this->contentEnhancer->enhanceTitle($rawName), 0, 185);
-                $rawSlug = ! empty($oldCat['url']) ? Str::slug($oldCat['url']) : Str::slug($name);
+                $rawSlug = !empty($oldCat['url']) ? Str::slug($oldCat['url']) : Str::slug($name);
 
                 $existingCat = BlogCategory::query()
                     ->where('organization_id', $organizationId)
@@ -240,7 +242,7 @@ class ExamtubeMigrationService
                 ], config('app.url', 'https://examtube.in'));
 
                 $coverGallery = null;
-                if (! empty($oldCat['image'])) {
+                if (!empty($oldCat['image'])) {
                     $coverGallery = $this->imageImporter->importImage((string) $oldCat['image'], $organizationId, [
                         'source' => 'import',
                         'module' => 'blog',
@@ -300,7 +302,7 @@ class ExamtubeMigrationService
 
             try {
                 $title = mb_substr($this->contentEnhancer->enhanceTitle($rawTitle), 0, 185);
-                $rawSlug = ! empty($oldBlog['url']) ? Str::slug($oldBlog['url']) : Str::slug($title);
+                $rawSlug = !empty($oldBlog['url']) ? Str::slug($oldBlog['url']) : Str::slug($title);
                 $rawSlug = mb_substr($rawSlug, 0, 180);
 
                 // Check existing by exact title or slug
@@ -326,7 +328,7 @@ class ExamtubeMigrationService
 
                 // Import cover/banner image
                 $bannerGallery = null;
-                if (! empty($oldBlog['image'])) {
+                if (!empty($oldBlog['image'])) {
                     $bannerGallery = $this->imageImporter->importImage((string) $oldBlog['image'], $organizationId, [
                         'source' => 'import',
                         'module' => 'blog',
@@ -345,10 +347,10 @@ class ExamtubeMigrationService
                     'tags' => $oldBlog['tags'] ?? '',
                 ], config('app.url', 'https://examtube.in'));
 
-                $createdAt = ! empty($oldBlog['created_at']) ? $oldBlog['created_at'] : now();
-                $updatedAt = ! empty($oldBlog['updated_at']) ? $oldBlog['updated_at'] : now();
+                $createdAt = !empty($oldBlog['created_at']) ? $oldBlog['created_at'] : now();
+                $updatedAt = !empty($oldBlog['updated_at']) ? $oldBlog['updated_at'] : now();
 
-                $authorName = ! empty($oldBlog['author']) ? mb_substr(trim((string) $oldBlog['author']), 0, 185) : 'Examtube Team';
+                $authorName = !empty($oldBlog['author']) ? mb_substr(trim((string) $oldBlog['author']), 0, 185) : 'Examtube Team';
                 $resolvedAuthorId = $this->userMapByName[strtolower($authorName)] ?? $authorId;
 
                 $blog = Blog::query()->updateOrCreate(
@@ -386,7 +388,7 @@ class ExamtubeMigrationService
                 $this->blogMap[$oldId] = $blog->id;
 
                 // Sync tags
-                if (! empty($oldBlog['tags'])) {
+                if (!empty($oldBlog['tags'])) {
                     $this->syncBlogTags($blog, (string) $oldBlog['tags'], $organizationId);
                 }
 
@@ -427,7 +429,7 @@ class ExamtubeMigrationService
             $tagIds[] = $tag->id;
         }
 
-        if (! empty($tagIds)) {
+        if (!empty($tagIds)) {
             $blog->tags()->syncWithoutDetaching($tagIds);
         }
     }
@@ -454,18 +456,18 @@ class ExamtubeMigrationService
                 $oldBlogId = (int) ($oldComment['reply_to'] ?? $oldComment['parent_id'] ?? 0);
                 $newBlogId = $this->blogMap[$oldBlogId] ?? null;
 
-                if (! $newBlogId) {
+                if (!$newBlogId) {
                     // Fallback to first available blog
                     $newBlogId = Blog::query()->where('organization_id', $organizationId)->value('id');
                 }
 
-                if (! $newBlogId) {
+                if (!$newBlogId) {
                     $this->logger->recordSkipped('blog_comments', "No blog found to attach comment ID {$oldId}.");
                     continue;
                 }
 
-                $authorName = ! empty($oldComment['name']) ? mb_substr(trim((string) $oldComment['name']), 0, 185) : 'Anonymous Reader';
-                $authorEmail = ! empty($oldComment['email']) ? mb_substr(trim((string) $oldComment['email']), 0, 185) : 'reader@examtube.in';
+                $authorName = !empty($oldComment['name']) ? mb_substr(trim((string) $oldComment['name']), 0, 185) : 'Anonymous Reader';
+                $authorEmail = !empty($oldComment['email']) ? mb_substr(trim((string) $oldComment['email']), 0, 185) : 'reader@examtube.in';
                 $status = strtolower((string) ($oldComment['status'] ?? 'Active')) === 'active' ? 'approved' : 'pending';
 
                 BlogComment::query()->firstOrCreate(
@@ -478,8 +480,8 @@ class ExamtubeMigrationService
                     [
                         'author_name' => $authorName,
                         'status' => $status,
-                        'created_at' => ! empty($oldComment['created_at']) ? $oldComment['created_at'] : now(),
-                        'updated_at' => ! empty($oldComment['updated_at']) ? $oldComment['updated_at'] : now(),
+                        'created_at' => !empty($oldComment['created_at']) ? $oldComment['created_at'] : now(),
+                        'updated_at' => !empty($oldComment['updated_at']) ? $oldComment['updated_at'] : now(),
                     ]
                 );
 
@@ -503,14 +505,14 @@ class ExamtubeMigrationService
 
         foreach ($emails as $oldEmail) {
             $email = strtolower(trim((string) ($oldEmail['email'] ?? '')));
-            if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $this->logger->recordSkipped('newsletter_subscribers', "Invalid email: '{$email}'");
                 continue;
             }
 
             try {
                 $status = strtolower((string) ($oldEmail['status'] ?? 'Active')) === 'active' ? 'subscribed' : 'unsubscribed';
-                $subAt = ! empty($oldEmail['subscribed_at']) ? $oldEmail['subscribed_at'] : (! empty($oldEmail['created_at']) ? $oldEmail['created_at'] : now());
+                $subAt = !empty($oldEmail['subscribed_at']) ? $oldEmail['subscribed_at'] : (!empty($oldEmail['created_at']) ? $oldEmail['created_at'] : now());
 
                 NewsletterSubscriber::query()->updateOrCreate(
                     [

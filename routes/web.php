@@ -31,6 +31,7 @@ use App\Http\Controllers\Backend\Settings\OrganizationFaqController;
 use App\Http\Controllers\Backend\Settings\OrganizationMemberController;
 use App\Http\Controllers\Backend\Settings\SecuritySettingController;
 use App\Http\Controllers\Backend\Settings\SeoSettingController;
+use App\Http\Controllers\Backend\Settings\LlmManagementController;
 use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Backend\SlugController;
 use App\Http\Controllers\Frontend\AccountController;
@@ -330,6 +331,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             Route::get('seo', [SeoSettingController::class, 'edit'])->name('seo');
             Route::put('seo', [SeoSettingController::class, 'update'])->name('seo.update');
             Route::post('seo/regenerate', [SeoSettingController::class, 'regenerate'])->name('seo.regenerate');
+            Route::get('llm', [LlmManagementController::class, 'index'])->name('llm.index');
+            Route::post('llm/accounts', [LlmManagementController::class, 'store'])->name('llm.accounts.store');
+            Route::put('llm/accounts/{account}', [LlmManagementController::class, 'update'])->name('llm.accounts.update')->whereNumber('account');
+            Route::delete('llm/accounts/{account}', [LlmManagementController::class, 'destroy'])->name('llm.accounts.destroy')->whereNumber('account');
+            Route::patch('llm/accounts/{account}/toggle-status', [LlmManagementController::class, 'toggleStatus'])->name('llm.accounts.toggle-status')->whereNumber('account');
+            Route::patch('llm/accounts/{account}/reset-cooldown', [LlmManagementController::class, 'resetCooldown'])->name('llm.accounts.reset-cooldown')->whereNumber('account');
+            Route::post('llm/accounts/{account}/test', [LlmManagementController::class, 'testConnection'])->name('llm.accounts.test')->whereNumber('account');
         });
     });
 

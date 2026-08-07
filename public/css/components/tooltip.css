@@ -1,0 +1,64 @@
+/* Bootstrap Tooltip Component Styles */
+.ems-tooltip {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+    max-width: 260px;
+}
+
+.ems-tooltip.is-active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.ems-tooltip__inner {
+    background-color: #0f172a;
+    color: #ffffff;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    font-weight: 600;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    word-wrap: break-word;
+}
+
+.dark .ems-tooltip__inner {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.ems-tooltip__arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.ems-tooltip--top .ems-tooltip__arrow {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px 5px 0 5px;
+    border-color: #0f172a transparent transparent transparent;
+}
+.dark .ems-tooltip--top .ems-tooltip__arrow {
+    border-color: #1e293b transparent transparent transparent;
+}
+
+.ems-tooltip--bottom .ems-tooltip__arrow {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 5px 5px 5px;
+    border-color: transparent transparent #0f172a transparent;
+}
+.dark .ems-tooltip--bottom .ems-tooltip__arrow {
+    border-color: transparent transparent #1e293b transparent;
+}

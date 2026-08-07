@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             DemoMediaSeeder::class,
             DemoEngagementSeeder::class,
             ExamAttemptSeeder::class,
+            LlmAccountSeeder::class,
         ]);
 
         $this->command->info('Seeded accounts (password: password):');
