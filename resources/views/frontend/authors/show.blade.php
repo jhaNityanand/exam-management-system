@@ -78,15 +78,6 @@
                             </ul>
                         @endif
                     </div>
-
-                    <div class="et-author-hero__share">
-                        @include('frontend.partials.article-share', [
-                            'shareUrl' => $shareUrl,
-                            'shareText' => $shareText,
-                            'shareRawUrl' => $shareRawUrl,
-                            'shareLabel' => 'Share profile',
-                        ])
-                    </div>
                 </div>
             </div>
         </header>
@@ -176,6 +167,14 @@
                 @endif
             </section>
 
-</div>
+            <div class="et-article__footer-panel et-author-share-panel">
+                @include('frontend.partials.article-share', [
+                    'shareUrl' => $shareUrl,
+                    'shareText' => $shareText,
+                    'shareRawUrl' => $shareRawUrl,
+                    'shareLabel' => 'Share profile',
+                ])
+            </div>
+        </div>
     </article>
 @endsection

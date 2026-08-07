@@ -6176,7 +6176,7 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
 }
 @media (min-width: 900px) {
   .et-author-hero__panel {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 1.5rem 1.75rem;
   }
 }
@@ -6240,35 +6240,6 @@ html.dark .et-author-card__role--org_admin { color: #7dd3fc; }
   border-color: color-mix(in srgb, var(--et-accent) 40%, var(--et-border));
   color: var(--et-accent);
   box-shadow: var(--et-shadow);
-}
-.et-author-hero__share {
-  justify-self: end;
-}
-.et-author-hero__share .et-article__share {
-  margin: 0;
-  justify-items: end;
-}
-.et-author-hero__share .et-article__share-label {
-  width: 100%;
-  text-align: right;
-}
-@media (min-width: 900px) {
-  .et-author-hero__share {
-    justify-self: end;
-    align-self: center;
-  }
-  .et-author-hero__share .et-article__share {
-    justify-items: end;
-  }
-  .et-author-hero__share .et-article__share-label {
-    text-align: right;
-    width: 100%;
-  }
-}
-@media (max-width: 899px) {
-  .et-author-hero__share {
-    grid-column: 1 / -1;
-  }
 }
 .et-author-work {
   display: grid;
@@ -7601,7 +7572,6 @@ html.dark .et-article-aside__meta-item--warn { color: #fcd34d; }
   .et-page-hero--listing .et-filter-toolbar { margin-left: 0; }
   .et-qd__wrap { width: min(100% - 1.25rem, 1280px); }
   .et-author-hero__panel { grid-template-columns: auto minmax(0, 1fr); gap: 0.8rem; }
-  .et-author-hero__share { grid-column: 1 / -1; }
 }
 
 /* Question detail — article-style content with a complete resource rail */
