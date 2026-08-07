@@ -117,8 +117,12 @@ Route::get('/news/category/{slug}', [FrontendNewsController::class, 'category'])
 Route::get('/news/tag/{slug}', [FrontendNewsController::class, 'tag'])->name('frontend.news.tag');
 Route::get('/news/{news:slug}', [FrontendNewsController::class, 'show'])->name('frontend.news.show');
 
-Route::get('/categories', [CategoryController::class, 'index'])->name('frontend.categories.index');
-Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('frontend.categories.show');
+Route::get('/exams/categories', [CategoryController::class, 'index'])->name('frontend.categories.index');
+Route::get('/exams/category/{category:slug}', [CategoryController::class, 'show'])->name('frontend.categories.show');
+Route::redirect('/categories', '/exams/categories', 301);
+Route::get('/categories/{slug}', function (string $slug) {
+    return redirect()->to('/exams/category/'.$slug, 301);
+});
 
 Route::get('/authors', [AuthorController::class, 'index'])->name('frontend.authors.index');
 Route::get('/authors/{author:slug}', [AuthorController::class, 'show'])->name('frontend.authors.show');
