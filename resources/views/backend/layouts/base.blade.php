@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="{{ versioned_asset('vendor/tom-select/tom-select.default.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/searchable-select.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/backend/tom-select-theme.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/components/tooltip.css') }}">
     @stack('styles')
 </head>
 <body class="font-sans antialiased">
@@ -50,6 +51,7 @@
     <script src="{{ versioned_asset('vendor/tom-select/tom-select.complete.min.js') }}"></script>
     <script src="{{ versioned_asset('js/components/select-config.js') }}"></script>
     <script src="{{ versioned_asset('js/components/searchable-select.js') }}" defer></script>
+    <script src="{{ versioned_asset('js/components/tooltip.js') }}" defer></script>
     <script src="{{ versioned_asset('js/backend/back-to-top.js') }}" defer></script>
     @stack('scripts')
     <script src="{{ versioned_asset('js/core/page-progress.js') }}" defer></script>
