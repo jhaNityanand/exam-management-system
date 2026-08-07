@@ -304,8 +304,35 @@ async function resetAccountCooldown(id) {
 async function testAccountConnection(id) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+    const showSwal = (options) => {
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            return window.Swal.fire(options);
+        }
+
+        const message = options.text || options.title || '';
+        if (options.icon === 'success') {
+            alert(message);
+        } else {
+            alert((options.title ? options.title + '\n\n' : '') + message);
+        }
+
+        return Promise.resolve();
+    };
+
+    showSwal({
+        title: 'Testing API connection',
+        text: 'Please wait while we verify the provider credentials.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            if (window.Swal) {
+                window.Swal.showLoading();
+            }
+        },
+    });
+
     try {
-        alert('Testing API connection... Please wait.');
         const response = await fetch(`/admin/settings/llm/accounts/${id}/test`, {
             method: 'POST',
             headers: {
@@ -316,12 +343,32 @@ async function testAccountConnection(id) {
 
         const data = await response.json();
         if (response.ok && data.success) {
-            alert(`SUCCESS! 🎉\n\nProvider: ${data.provider}\nModel: ${data.model}\nMessage: ${data.message}\nTokens Used: ${data.tokens || 'N/A'}`);
+            await showSwal({
+                icon: 'success',
+                title: 'Connection successful',
+                html: `
+                    <div class="text-left text-sm space-y-1">
+                        <p><strong>Provider:</strong> ${data.provider || '—'}</p>
+                        <p><strong>Model:</strong> ${data.model || '—'}</p>
+                        <p><strong>Message:</strong> ${data.message || 'API connection verified.'}</p>
+                        <p><strong>Tokens used:</strong> ${data.tokens ?? 'N/A'}</p>
+                    </div>
+                `,
+                confirmButtonText: 'Done',
+            });
         } else {
-            alert(`CONNECTION FAILED ❌\n\n${data.message || 'Could not connect to provider.'}`);
+            await showSwal({
+                icon: 'error',
+                title: 'Connection failed',
+                text: data.message || 'Could not connect to the provider.',
+            });
         }
     } catch (err) {
-        alert('Connection test failed: ' + err.message);
+        await showSwal({
+            icon: 'error',
+            title: 'Connection test failed',
+            text: err.message || 'An unexpected error occurred.',
+        });
     }
 }
 
