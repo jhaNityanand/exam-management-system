@@ -17,8 +17,10 @@
     <div class="et-container et-page-hero__inner">
         @include('frontend.partials.breadcrumbs', ['breadcrumbs' => $seo['breadcrumbs']])
         <p class="et-eyebrow">Help Center</p>
+        @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'above_title'])
         <h1>Frequently Asked Questions</h1>
         <p class="et-page-hero__lead">Quick answers to help you prepare, attempt exams, and manage your account.</p>
+        @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'below_title'])
     </div>
 </section>
 
@@ -41,6 +43,7 @@
                         <input type="search" data-faq-search placeholder="Type a keyword…" autocomplete="off">
                     </span>
                 </label>
+                @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'left_after_search'])
 
                 @if(($groupedFaqs ?? collect())->count() > 1)
                     <nav class="et-faq-toc" aria-label="FAQ categories">
@@ -56,12 +59,14 @@
                             @endforeach
                         </ul>
                     </nav>
+                    @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'left_after_categories'])
                 @endif
 
                 <div class="et-faq-page__cta">
                     <p>Still stuck?</p>
                     <a href="{{ url('/contact-us') }}" class="et-btn et-btn--primary et-btn--sm">Contact support</a>
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'left_after_support'])
             </aside>
 
             <div class="et-faq-page__main" data-faq-root>
@@ -73,6 +78,7 @@
                 @endforeach
                 <p class="et-faq-page__empty" data-faq-empty hidden>No questions match your search.</p>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'faqs', 'position' => 'after_faqs'])
         @endif
     </div>
 </section>

@@ -26,6 +26,7 @@
                 ['label' => 'Home', 'url' => route('home')],
                 ['label' => 'Search'],
             ]])
+            @include('frontend.partials.ad-placement', ['page' => 'search', 'position' => 'above_title'])
             <h1>Search</h1>
             <p>Find exams, questions, blogs, news, and categories.</p>
             <form class="et-hero__search et-search-page__form" method="get" action="{{ route('frontend.search') }}" role="search">
@@ -33,6 +34,7 @@
                 <input id="et-search-q" type="search" name="q" value="{{ $q }}" placeholder="What are you preparing for?" autofocus autocomplete="off">
                 <button type="submit" class="et-btn et-btn--primary et-btn--sm">Search</button>
             </form>
+            @include('frontend.partials.ad-placement', ['page' => 'search', 'position' => 'below_title'])
         </div>
     </div>
 
@@ -64,7 +66,8 @@
                             @endforeach
                         </div>
                     </section>
-@endif
+                    @include('frontend.partials.ad-placement', ['page' => 'search', 'position' => 'after_results'])
+                @endif
 
                 @if(count($questions))
                     <section>
@@ -109,6 +112,7 @@
                         </div>
                     </section>
                 @endif
+                @include('frontend.partials.ad-placement', ['page' => 'search', 'position' => 'after_content'])
 
 @endunless
         @endif

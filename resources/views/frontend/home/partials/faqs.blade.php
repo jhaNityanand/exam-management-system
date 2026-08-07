@@ -11,4 +11,5 @@
             @include('frontend.components.faq-accordion', ['faqs' => $faqs])
         @endif
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'home', 'position' => 'after_faqs'])
 </section>

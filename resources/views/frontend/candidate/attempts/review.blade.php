@@ -24,6 +24,7 @@
                 <a href="{{ route('frontend.exams.show', $exam) }}" class="et-btn et-btn--ghost">Exam page</a>
             </div>
         </header>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_attempt_review', 'position' => 'after_header'])
 
         <div id="rv-error" class="rv-error" hidden role="alert"></div>
 
@@ -38,7 +39,9 @@
         </section>
 
         <section id="rv-summary" class="rv-summary" hidden></section>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_attempt_review', 'position' => 'after_stats'])
 
+        @include('frontend.partials.ad-placement', ['page' => 'exam_attempt_review', 'position' => 'between_sections'])
         <section class="rv-list-head">
             <h2>Questions</h2>
             <p id="rv-list-meta" class="rv-list-meta">Loading review…</p>
@@ -56,6 +59,7 @@
         </div>
 
         <div id="rv-questions" class="rv-list" hidden></div>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_attempt_review', 'position' => 'after_content'])
     </div>
 </div>
 @endsection

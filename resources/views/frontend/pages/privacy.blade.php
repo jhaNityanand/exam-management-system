@@ -51,11 +51,13 @@
             ['label' => 'Privacy Policy'],
         ]])
         <p class="et-eyebrow">{{ $eyebrow }}</p>
+        @include('frontend.partials.ad-placement', ['page' => 'privacy_policy', 'position' => 'above_title'])
         <h1>Privacy Policy</h1>
         <p class="et-sp-hero__lead">
             How {{ $brand }} collects, uses, stores, and protects your information across exams, learning content, and account services.
         </p>
         <p class="et-sp-updated">Last updated: {{ now()->format('F j, Y') }}</p>
+        @include('frontend.partials.ad-placement', ['page' => 'privacy_policy', 'position' => 'below_title'])
     </div>
 </section>
 
@@ -72,6 +74,8 @@
                 <p>Questions about your data?</p>
                 <a href="{{ url('/contact-us') }}" class="et-btn et-btn--primary et-btn--sm">Contact support</a>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'privacy_policy', 'position' => 'left_after_toc'])
+            @include('frontend.partials.ad-placement', ['page' => 'privacy_policy', 'position' => 'left_after_support'])
         </aside>
 
         <div class="et-legal-main" data-legal-accordion>
@@ -81,6 +85,7 @@
                     why we collect it, and the choices available to you. By using the platform, you acknowledge this policy.
                 </p>
             </article>
+            @include('frontend.partials.ad-placement', ['page' => 'privacy_policy', 'position' => 'before_content'])
 
             @foreach ($sections as $index => $section)
                 <section class="et-legal-card" id="privacy-{{ $section['id'] }}" data-legal-item @if($index === 0) data-open @endif>
@@ -103,6 +108,7 @@
                     </div>
                 </section>
             @endforeach
+            @include('frontend.partials.ad-placement', ['page' => 'privacy_policy', 'position' => 'after_legal_sections'])
         </div>
     </div>
 </section>

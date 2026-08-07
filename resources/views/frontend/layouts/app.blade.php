@@ -17,6 +17,10 @@
     <link rel="stylesheet" href="{{ versioned_asset('css/components/searchable-select.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/tooltip.css') }}">
     @include('frontend.partials.integrations-head')
+    @php($adCustomCode = ad_custom_code())
+    @if(! empty($adCustomCode['header_code']))
+        {!! $adCustomCode['header_code'] !!}
+    @endif
     @stack('styles')
 </head>
 <body class="et-body">
@@ -26,9 +30,18 @@
     @include('frontend.partials.announcement-bar')
     @include('frontend.layouts.header')
 
+    @php($adPageKey = frontend_ad_page_key())
+    @if($adPageKey)
+        {!! ad_slot($adPageKey, 'after_header') !!}
+    @endif
+
     <main id="main-content" class="et-main" tabindex="-1">
         @yield('content')
     </main>
+
+    @if($adPageKey)
+        {!! ad_slot($adPageKey, 'above_footer') !!}
+    @endif
 
     @include('frontend.layouts.footer')
 
@@ -78,5 +91,8 @@
     <script src="{{ versioned_asset('js/frontend/load-more.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/recaptcha.js') }}" defer></script>
     @stack('scripts')
+    @if(! empty($adCustomCode['footer_code']))
+        {!! $adCustomCode['footer_code'] !!}
+    @endif
 </body>
 </html>

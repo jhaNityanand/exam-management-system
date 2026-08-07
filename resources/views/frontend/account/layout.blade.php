@@ -13,6 +13,7 @@
             </button>
             <div class="ca-toolbar__copy">
                 <p class="ca-eyebrow">@yield('account-eyebrow', 'Candidate account')</p>
+                @include('frontend.partials.ad-placement', ['page' => 'account', 'position' => 'above_title'])
                 <h1>@yield('account-title', 'Account')</h1>
                 @hasSection('account-lead')
                     <p class="ca-lead">@yield('account-lead')</p>
@@ -22,12 +23,14 @@
                 @yield('account-actions')
             </div>
         </div>
+        @include('frontend.partials.ad-placement', ['page' => 'account', 'position' => 'below_title'])
 
 <div class="ca-layout">
             <div class="ca-sidebar-backdrop" data-ca-sidebar-close hidden></div>
             @include('frontend.layouts.sidebar')
             <div class="ca-main" id="account-content" role="region" aria-label="Account content">
                 @yield('account-content')
+                @include('frontend.partials.ad-placement', ['page' => 'account', 'position' => 'after_content'])
 </div>
         </div>
     </div>

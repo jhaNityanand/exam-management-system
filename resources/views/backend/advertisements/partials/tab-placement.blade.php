@@ -51,6 +51,6 @@
         Side columns appear only when the real page has them (for example, Categories on list pages; left tools on FAQs/legal/account).
         Blog and News detail previews also show insert lines <strong>before each H2</strong>.
         Dashed boxes show placed ads; a new <strong>+</strong> stays below. All placements are inside the same centered page container.
-        Frontend rendering is paused for now — configure placements here, then enable slots later.
+        Frontend rendering is live and dynamic — configure and manage your advertisement placements here to control live ads across the site instantly.
     </p>
 </div>

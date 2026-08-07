@@ -55,10 +55,12 @@
             ['label' => 'Contact Us'],
         ]])
         <p class="et-eyebrow">{{ $eyebrow ?? 'Support' }}</p>
+        @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'above_title'])
         <h1>Contact {{ $brand }}</h1>
         <p class="et-sp-hero__lead">
             Questions about exams, accounts, partnerships, or institute onboarding? Reach the team — we are here to help learners and organizations succeed.
         </p>
+        @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'below_title'])
     </div>
 </section>
 
@@ -158,6 +160,7 @@
                 @include('frontend.partials.recaptcha', ['context' => 'contact'])
             </form>
         </div>
+        @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'after_form'])
 
         <aside class="et-contact-premium__side">
             <div class="et-panel">
@@ -182,6 +185,7 @@
                     <p class="et-contact-premium__note">Monday to Friday, standard business hours.</p>
                 @endif
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'right_after_hours'])
 
             @if(($socialLinks ?? collect())->isNotEmpty())
                 <div class="et-panel">
@@ -199,6 +203,7 @@
                         @endforeach
                     </div>
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'right_after_social'])
             @endif
 
             <div class="et-panel">
@@ -209,6 +214,7 @@
                     <li><a href="{{ route('frontend.authors.index') }}">Meet authors</a></li>
                 </ul>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'right_after_links'])
         </aside>
     </div>
 </section>
@@ -245,6 +251,7 @@
             @endif
         </div>
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'after_map'])
 </section>
 
 <section class="et-sp-section et-sp-section--soft">
@@ -266,6 +273,7 @@
             @endforeach
         </div>
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'after_faqs'])
 </section>
 
 <section class="et-sp-cta">
@@ -279,4 +287,5 @@
             <a href="{{ route('frontend.exams.index') }}" class="et-btn et-btn--soft">Explore exams</a>
         </div>
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'contact_us', 'position' => 'after_cta'])
 </section>

@@ -14,6 +14,7 @@
     $listingGridClass = $listingGridClass ?? 'et-grid et-grid--3';
     $listingSkeletonCount = $listingSkeletonCount ?? 6;
     $hasCategoryNav = ! empty($categoryNav['roots'] ?? null);
+    $listingAdPage = $adPage ?? ($listingAdPage ?? frontend_ad_page_key());
 @endphp
 
 <div class="et-listing et-listing--stack" data-listing data-endpoint="{{ $listingEndpoint }}">
@@ -103,6 +104,10 @@
             </div>
         </div>
 
+        @if($listingAdPage)
+            @include('frontend.partials.ad-placement', ['page' => $listingAdPage, 'position' => 'after_filters'])
+        @endif
+
         <div class="et-listing__layout{{ $hasCategoryNav ? ' et-listing__layout--with-nav' : '' }}">
             <div class="et-listing__main" data-listing-main>
                 <div class="et-listing__skeleton {{ $listingGridClass }}" data-listing-skeleton hidden aria-hidden="true">
@@ -120,11 +125,21 @@
                     ])
                 </div>
 
+                @php($itemsPerRow = str_contains($listingGridClass, 'et-grid--4') ? 4 : 3)
                 <div class="{{ $listingGridClass }}" data-load-more-list @if(($listingItems ?? collect())->isEmpty()) hidden @endif>
-                    @foreach($listingItems ?? [] as $item)
+                    @foreach($listingItems ?? [] as $index => $item)
                         @include($listingCard, [$listingCardKey => $item])
+                        @if($listingAdPage && ($index + 1) % $itemsPerRow === 0 && ! $loop->last)
+                            </div>
+                            @include('frontend.partials.ad-placement', ['page' => $listingAdPage, 'position' => 'between_sections'])
+                            <div class="{{ $listingGridClass }}">
+                        @endif
                     @endforeach
                 </div>
+
+                @if($listingAdPage)
+                    @include('frontend.partials.ad-placement', ['page' => $listingAdPage, 'position' => 'below_items'])
+                @endif
 
                 <div data-load-more-slot>
                     @include('frontend.partials.load-more', [
@@ -132,6 +147,10 @@
                         'endpoint' => $listingLoadMoreEndpoint ?? ($listingEndpoint.(request()->getQueryString() ? '?'.request()->getQueryString() : '')),
                     ])
                 </div>
+
+                @if($listingAdPage)
+                    @include('frontend.partials.ad-placement', ['page' => $listingAdPage, 'position' => 'after_content'])
+                @endif
             </div>
 
             @if($hasCategoryNav)
@@ -140,6 +159,7 @@
                         'categoryNav' => $categoryNav,
                         'categoryNavTitle' => $categoryNavTitle ?? null,
                         'categoryNavDescription' => $categoryNavDescription ?? null,
+                        'adPage' => $listingAdPage,
                     ])
                 </div>
             @endif

@@ -428,9 +428,10 @@ HTML;
     {
         // Retire placements that are no longer represented in the preview.
         // Right-sidebar ads now belong directly after a named sidebar section.
+        // Hero inner header ads (above_title / below_title) are retired in favor of after_header.
         AdPlacement::query()
             ->forOrg($orgId)
-            ->whereIn('position_key', ['right_top', 'left_sidebar', 'right_sidebar'])
+            ->whereIn('position_key', ['right_top', 'left_sidebar', 'right_sidebar', 'above_title', 'below_title', 'right_after_overview', 'right_after_webcam', 'right_after_palette'])
             ->delete();
 
         $vertical = GoogleAdvertisement::query()
@@ -453,19 +454,21 @@ HTML;
             foreach ($pageKeys as $pageKey) {
                 $validPositions = AdvertisementCatalog::positionKeysForPage($pageKey);
                 $stale = AdPlacement::query()
+                    ->withTrashed()
                     ->forOrg($orgId)
                     ->where('page_key', $pageKey);
 
                 if ($validPositions === []) {
-                    $stale->delete();
+                    $stale->forceDelete();
                 } else {
-                    $stale->whereNotIn('position_key', $validPositions)->delete();
+                    $stale->whereNotIn('position_key', $validPositions)->forceDelete();
                 }
             }
         }
 
         if ($replaceExisting) {
             AdPlacement::query()
+                ->withTrashed()
                 ->forOrg($orgId)
                 ->whereIn('page_key', $pageKeys)
                 ->forceDelete();
@@ -497,27 +500,40 @@ HTML;
                 fn (string $key) => ! AdvertisementCatalog::isSidePlacementSlot($key)
             ));
 
+            // Prevent redundant double header placements (e.g. both after_header/above_title and below_title).
+            if (in_array('below_title', $contentPositions, true) && in_array('above_title', $contentPositions, true)) {
+                $contentPositions = array_values(array_diff($contentPositions, ['above_title']));
+            }
+            if (in_array('below_title', $contentPositions, true) && in_array('after_header', $contentPositions, true)) {
+                $contentPositions = array_values(array_diff($contentPositions, ['after_header']));
+            }
+
             foreach ($contentPositions as $index => $positionKey) {
                 $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $horizontal->id, $index + 1);
+                if ($pageKey === 'exam_attempt' && $positionKey === 'below_content') {
+                    $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $horizontal->id, $index + 2);
+                    $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $horizontal->id, $index + 3);
+                }
             }
         }
 
         foreach ($rows as $row) {
-            $exists = AdPlacement::query()
+            $slotTaken = AdPlacement::query()
+                ->withTrashed()
                 ->forOrg($orgId)
                 ->where('page_key', $row['page_key'])
                 ->where('position_key', $row['position_key'])
-                ->where('google_advertisement_id', $row['google_advertisement_id'])
                 ->where('sort_order', $row['sort_order'])
                 ->exists();
 
-            if ($exists) {
+            if ($slotTaken) {
                 continue;
             }
 
             // Multi-slot: allow stacking; single-slot: skip if any placement already exists
             if (! AdvertisementCatalog::allowsMultiple($row['position_key'])) {
                 $taken = AdPlacement::query()
+                    ->withTrashed()
                     ->forOrg($orgId)
                     ->where('page_key', $row['page_key'])
                     ->where('position_key', $row['position_key'])
@@ -597,30 +613,36 @@ HTML;
             return '';
         }
 
-        $parts = [];
-        foreach ($placements as $placement) {
-            $html = $this->renderPlacementUnit($placement);
-            if ($html !== '') {
-                $parts[] = $html;
-            }
-        }
-
-        if ($parts === []) {
-            return '';
-        }
-
         $variant = match (true) {
             AdvertisementCatalog::isSidePlacementSlot($position) => 'rail',
             $position === 'above_footer' => 'footer',
             default => 'inline',
         };
 
-        return view('frontend.partials.ad-slot', [
-            'pageKey' => $pageKey,
-            'positionKey' => $position,
-            'variant' => $variant,
-            'unitsHtml' => implode("\n", $parts),
-        ])->render();
+        $renderedSlots = [];
+        foreach ($placements as $placement) {
+            $html = $this->renderPlacementUnit($placement);
+            if ($html === '') {
+                continue;
+            }
+
+            $source = $placement->isGoogle()
+                ? AdvertisementCatalog::SOURCE_GOOGLE
+                : AdvertisementCatalog::SOURCE_CUSTOM;
+            $previewLabel = $source === AdvertisementCatalog::SOURCE_GOOGLE ? 'Google Ad' : 'Custom Ad';
+
+            $renderedSlots[] = view('frontend.partials.ad-slot', [
+                'pageKey' => $pageKey,
+                'positionKey' => $position,
+                'variant' => $variant,
+                'unitsHtml' => $html,
+                'isPreview' => ads_preview_mode(),
+                'previewLabel' => $previewLabel,
+                'previewSource' => $source,
+            ])->render();
+        }
+
+        return implode("\n", $renderedSlots);
     }
 
     /**
@@ -639,12 +661,28 @@ HTML;
     }
 
     /**
-     * Legacy content injection — between-paragraph inserts stay unused;
-     * section-level slots are preferred for layout control.
+     * Inject section-level ads into article HTML (before each H2).
      */
     public function injectIntoContent(string $html, string $context, ?int $orgId = null): string
     {
-        return $html;
+        if ($html === '') {
+            return $html;
+        }
+
+        $pageKey = match ($context) {
+            'news', 'news_detail' => 'news_detail',
+            'blog', 'blog_detail' => 'blog_detail',
+            default => $context,
+        };
+
+        $slot = $this->renderSlot($pageKey, 'before_h2', $orgId);
+        if ($slot === '') {
+            return $html;
+        }
+
+        $injected = preg_replace('/(<h2\b[^>]*>)/i', $slot.'$1', $html);
+
+        return is_string($injected) ? $injected : $html;
     }
 
     public function forgetCache(?int $orgId = null): void

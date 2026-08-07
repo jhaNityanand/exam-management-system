@@ -64,6 +64,7 @@
                             'images' => $bannerImages,
                             'alt' => $blog->title,
                         ])
+                        @include('frontend.partials.ad-placement', ['page' => 'blog_detail', 'position' => 'before_content'])
                     @endif
 
 @if($blog->excerpt)
@@ -74,6 +75,8 @@
                         $tocData = build_article_toc($processedContent ?? $blog->content);
                         $processedContent = $tocData['html'];
                         $tocItems = $tocData['items'];
+                        $processedContent = app(\App\Services\Advertisement\AdvertisementService::class)
+                            ->injectIntoContent($processedContent, 'blog_detail');
                     @endphp
 
                     @include('frontend.partials.article-toc', ['tocItems' => $tocItems])
@@ -90,6 +93,7 @@
                             'shareLabel' => 'Share this article',
                         ])
                     </div>
+                    @include('frontend.partials.ad-placement', ['page' => 'blog_detail', 'position' => 'after_share'])
 
                     @php $relatedItems = $relatedBlogs ?? $related ?? collect(); @endphp
                     @if($relatedItems->isNotEmpty())
@@ -104,6 +108,7 @@
                                 @endforeach
                             </div>
                         </section>
+                        @include('frontend.partials.ad-placement', ['page' => 'blog_detail', 'position' => 'after_related'])
                     @endif
 
                 </div>

@@ -84,4 +84,5 @@
             </div>
         @endif
     </div>
+    @include('frontend.partials.ad-placement', ['page' => 'home', 'position' => 'after_categories'])
 </section>

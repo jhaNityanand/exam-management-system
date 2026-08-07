@@ -41,6 +41,7 @@
         <div class="et-sp-hero__grid">
             <div class="et-sp-hero__copy">
                 <p class="et-eyebrow">{{ $eyebrow }}</p>
+                @include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'above_title'])
                 <h1>A complete learning platform for exams, knowledge, and career prep</h1>
                 <p class="et-sp-hero__lead">
                     {{ $brand }} is more than an online exam management system. It is a unified space for practice papers,
@@ -50,6 +51,7 @@
                     <a href="{{ route('frontend.exams.index') }}" class="et-btn et-btn--primary">Explore exams</a>
                     <a href="{{ route('frontend.questions.index') }}" class="et-btn et-btn--soft">Browse questions</a>
                 </div>
+                @include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'below_title'])
             </div>
             <div class="et-sp-hero__visual" aria-hidden="true">
                 <div class="et-sp-orb et-sp-orb--1"></div>
@@ -87,6 +89,7 @@
         </article>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_stats'])
 
 <section class="et-sp-section">
     <div class="et-container et-sp-split">
@@ -107,6 +110,7 @@
         </div>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_about'])
 
 <section class="et-sp-section et-sp-section--soft">
     <div class="et-container">
@@ -130,6 +134,7 @@
         </div>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_mission'])
 
 <section class="et-sp-section" id="what-we-offer">
     <div class="et-container">
@@ -151,6 +156,7 @@
         </div>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_offers'])
 
 <section class="et-sp-section et-sp-section--soft">
     <div class="et-container">
@@ -168,6 +174,7 @@
         </div>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_why'])
 
 <section class="et-sp-section">
     <div class="et-container et-sp-help">
@@ -199,6 +206,7 @@
         </ol>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_timeline'])
 
 <section class="et-sp-section et-sp-section--soft">
     <div class="et-container">
@@ -216,6 +224,7 @@
         </div>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_values'])
 
 <section class="et-sp-section">
     <div class="et-container et-sp-faq-wrap">
@@ -237,6 +246,7 @@
         </div>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_faqs'])
 
 <section class="et-sp-cta">
     <div class="et-container et-sp-cta__inner">
@@ -250,3 +260,4 @@
         </div>
     </div>
 </section>
+@include('frontend.partials.ad-placement', ['page' => 'about_us', 'position' => 'after_cta'])

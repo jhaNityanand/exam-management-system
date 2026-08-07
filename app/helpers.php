@@ -4,6 +4,7 @@ use App\Models\Organization;
 use App\Models\UserOrganization;
 use App\Support\OrganizationRoles;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\View;
 
 if (! function_exists('current_organization_id')) {
     /**
@@ -318,8 +319,8 @@ if (! function_exists('ad_slot')) {
      */
     function ad_slot(string $pageOrLegacy, ?string $positionKey = null): string
     {
-        // Frontend ad slots are disabled while the public UI is being redesigned.
-        return '';
+        return app(\App\Services\Advertisement\AdvertisementService::class)
+            ->renderSlot($pageOrLegacy, $positionKey);
     }
 }
 
@@ -329,8 +330,41 @@ if (! function_exists('ad_custom_code')) {
      */
     function ad_custom_code(): array
     {
-        // Frontend custom ad code is disabled while the public UI is being redesigned.
-        return ['header_code' => '', 'footer_code' => ''];
+        return app(\App\Services\Advertisement\AdvertisementService::class)->frontendCustomCode();
+    }
+}
+
+if (! function_exists('ads_preview_mode')) {
+    /**
+     * Local/staging visual markers for ad slots (not on examtube.in production host).
+     */
+    function ads_preview_mode(): bool
+    {
+        $host = strtolower((string) request()->getHost());
+        $host = preg_replace('/^www\./', '', $host) ?: $host;
+
+        return $host !== 'examtube.in';
+    }
+}
+
+if (! function_exists('frontend_ad_page_key')) {
+    /**
+     * Resolve the advertisement catalog page key for the current frontend request.
+     */
+    function frontend_ad_page_key(?string $override = null): ?string
+    {
+        if (is_string($override) && $override !== '') {
+            return $override;
+        }
+
+        $fromView = View::shared('frontendAdPageKey');
+        if (is_string($fromView) && $fromView !== '') {
+            return $fromView;
+        }
+
+        return \App\Support\AdvertisementCatalog::pageKeyFromRoute(
+            optional(request()->route())->getName()
+        );
     }
 }
 

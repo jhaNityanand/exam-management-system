@@ -79,6 +79,7 @@
                             'images' => $bannerImages,
                             'alt' => $article->title,
                         ])
+                        @include('frontend.partials.ad-placement', ['page' => 'news_detail', 'position' => 'before_content'])
                     @endif
 
 @if($summary)
@@ -89,6 +90,8 @@
                         $tocData = build_article_toc($processedContent ?? $article->content);
                         $processedContent = $tocData['html'];
                         $tocItems = $tocData['items'];
+                        $processedContent = app(\App\Services\Advertisement\AdvertisementService::class)
+                            ->injectIntoContent($processedContent, 'news_detail');
                     @endphp
 
                     @include('frontend.partials.article-toc', ['tocItems' => $tocItems])
@@ -105,6 +108,7 @@
                             'shareLabel' => 'Share this story',
                         ])
                     </div>
+                    @include('frontend.partials.ad-placement', ['page' => 'news_detail', 'position' => 'after_share'])
 
 @php $relatedItems = $relatedNews ?? $related ?? collect(); @endphp
                     @if($relatedItems->isNotEmpty())
@@ -119,6 +123,7 @@
                                 @endforeach
                             </div>
                         </section>
+                        @include('frontend.partials.ad-placement', ['page' => 'news_detail', 'position' => 'after_related'])
                     @endif
                 </div>
 

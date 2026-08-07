@@ -62,8 +62,10 @@
     <div class="cx-prepare__hero">
         <div class="cx-prepare__hero-inner">
             <p class="cx-eyebrow">Exam readiness</p>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'above_title'])
             <h1>{{ $exam->title }}</h1>
             <p>Complete the required checks below. Verification is driven only by enabled exam rules.</p>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'below_title'])
         </div>
     </div>
 
@@ -92,6 +94,7 @@
                     <span class="cx-visually-hidden">Instructions</span>
                 </button>
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'between_sections'])
 
             <div class="cx-help-panel" id="cx-help-panel" hidden>
                 <h3>How to complete checks</h3>
@@ -139,6 +142,7 @@
                     <button type="button" class="et-btn et-btn--ghost" id="cx-retake-photo" hidden>Retake selfie</button>
                 @endif
             </div>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'after_details'])
 
             <div class="cx-prepare__media{{ ($requireWebcam || $requireSelfie) ? ' is-visible' : '' }}" id="cx-prepare-media" @if(!($requireWebcam || $requireSelfie)) hidden @endif>
                 <figure class="cx-prepare__media-slot" data-slot="live">
@@ -173,6 +177,7 @@
                 <p class="cx-prepare__hint">Tip: Selfies must be captured live from your webcam. File uploads are not accepted.</p>
             @endif
         </section>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'after_content'])
         </main>
 
         <aside class="cx-prepare__aside" aria-label="Exam readiness summary">
@@ -196,6 +201,7 @@
                 </dl>
                 <p class="cx-prepare-summary__note">Your answers save automatically after the exam begins. Keep this window active and your connection stable.</p>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'right_after_summary'])
 
             <section class="cx-card cx-prepare-consent" aria-label="Exam agreement">
                 <label class="et-agree cx-prepare-agree">
@@ -203,6 +209,7 @@
                     <span>I agree to the exam rules and monitoring policies, including the warning limit of <strong>{{ (int) ($policy?->focus_violation_limit ?? 3) }}</strong>.</span>
                 </label>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'right_after_consent'])
 
 <div class="cx-prepare__footer">
             <a href="{{ route('frontend.exams.rules', $exam) }}" class="et-btn et-btn--ghost">Back to rules</a>
@@ -215,6 +222,7 @@
                 {{ $canContinue ? 'Continue exam' : 'Start exam' }}
             </button>
         </div>
+        @include('frontend.partials.ad-placement', ['page' => 'exam_prepare', 'position' => 'right_after_start'])
         <p id="cx-prepare-error" class="cx-error" hidden role="alert"></p>
         </aside>
 

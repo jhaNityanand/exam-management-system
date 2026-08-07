@@ -332,6 +332,7 @@
             }
 
             var questions = data.questions || [];
+            var adHtml = data.ad_html || '';
             if (listMeta) {
                 listMeta.textContent = questions.length
                     ? questions.length + ' question' + (questions.length === 1 ? '' : 's')
@@ -344,7 +345,13 @@
                 if (!questions.length) {
                     listEl.innerHTML = '<div class="rv-empty">No reviewable questions were found for this attempt.</div>';
                 } else {
-                    listEl.innerHTML = questions.map(renderQuestion).join('');
+                    listEl.innerHTML = questions.map(function (q) {
+                        var cardHtml = renderQuestion(q);
+                        if (adHtml) {
+                            return cardHtml + adHtml;
+                        }
+                        return cardHtml;
+                    }).join('');
                     bindExplanations(listEl);
                 }
             }

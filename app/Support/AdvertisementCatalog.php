@@ -166,9 +166,10 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => $heroLabel, 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => $heroLabel, 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'filters', 'label' => 'Filter toolbar', 'skeleton' => 'filters', 'after' => 'after_filters'],
-            ['id' => 'items', 'label' => 'Results grid', 'skeleton' => 'cards3', 'after' => 'below_items'],
+            ['id' => 'items', 'label' => 'Results grid', 'skeleton' => 'cards3', 'after' => 'between_sections'],
+            ['id' => 'below_items', 'label' => 'Below results', 'skeleton' => 'section', 'after' => 'below_items'],
             ['id' => 'load_more', 'label' => 'Load more', 'skeleton' => 'load_more', 'after' => 'after_content'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
         ];
@@ -184,7 +185,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'title', 'label' => $title.' (H1)', 'skeleton' => 'article_title', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'title', 'label' => $title.' (H1)', 'skeleton' => 'article_title', 'after' => null],
             ['id' => 'banner', 'label' => 'Featured image', 'skeleton' => 'banner', 'after' => 'before_content'],
             ['id' => 'lead', 'label' => 'Lead / excerpt', 'skeleton' => 'section', 'after' => null],
             ['id' => 'toc', 'label' => 'Table of contents', 'skeleton' => 'faq', 'after' => null],
@@ -223,7 +224,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'Exam title (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Exam title (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'about', 'label' => 'About this exam', 'skeleton' => 'prose', 'after' => 'after_about'],
             ['id' => 'details', 'label' => 'Exam details', 'skeleton' => 'stats', 'after' => 'after_details'],
             ['id' => 'attempts', 'label' => 'Previous attempts', 'skeleton' => 'section', 'after' => 'after_attempts'],
@@ -242,7 +243,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'top', 'label' => 'Practice header (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'top', 'label' => 'Practice header (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'panel', 'label' => 'Question panel', 'skeleton' => 'prose', 'after' => 'before_content'],
             ['id' => 'options', 'label' => 'Options', 'skeleton' => 'faq', 'after' => 'after_options'],
             ['id' => 'explain', 'label' => 'Explanation', 'skeleton' => 'section', 'after' => 'after_explanation'],
@@ -259,7 +260,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'Category (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Category (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'exams', 'label' => 'Exams', 'skeleton' => 'cards4', 'after' => 'between_sections'],
             ['id' => 'blogs', 'label' => 'Related blogs', 'skeleton' => 'cards3', 'after' => 'after_blogs'],
             ['id' => 'news', 'label' => 'Related news', 'skeleton' => 'cards3', 'after' => 'after_content'],
@@ -274,7 +275,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'Author profile (H1)', 'skeleton' => 'author_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Author profile (H1)', 'skeleton' => 'author_hero', 'after' => null],
             ['id' => 'exams', 'label' => 'Latest exams', 'skeleton' => 'cards3', 'after' => 'between_sections'],
             ['id' => 'blogs', 'label' => 'Latest blogs', 'skeleton' => 'cards3', 'after' => 'after_blogs'],
             ['id' => 'news', 'label' => 'Latest news', 'skeleton' => 'cards3', 'after' => 'after_news'],
@@ -289,20 +290,38 @@ final class AdvertisementCatalog
     public static function examAttemptLayout(): array
     {
         return [
-            ['id' => 'topbar', 'label' => 'Exam top bar', 'skeleton' => 'exam_topbar', 'after' => 'above_title'],
+            ['id' => 'topbar', 'label' => 'Exam top bar', 'skeleton' => 'exam_topbar', 'after' => 'after_header'],
             ['id' => 'question', 'label' => 'Question area', 'skeleton' => 'exam_question', 'after' => 'below_content'],
             ['id' => 'rail', 'label' => 'Exam panel (before Final submit)', 'skeleton' => 'exam_rail', 'after' => 'before_final_submit'],
         ];
     }
 
     /**
-     * @return list<array{id: string, label: string, skeleton: string, after: ?string, before?: ?string, chrome?: bool}>
+     * @return list<array{id: string, label: string, skeleton: string, after?: ?string, before?: ?string, chrome?: bool}>
+     */
+    public static function examAttemptReviewLayout(): array
+    {
+        return [
+            ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
+            ['id' => 'hero', 'label' => 'Review header (H1)', 'skeleton' => 'page_hero', 'after' => null],
+            ['id' => 'summary', 'label' => 'Attempt summary & stats', 'skeleton' => 'stats', 'after' => 'after_stats'],
+            ['id' => 'violations', 'label' => 'Rule violations', 'skeleton' => 'section', 'after' => 'between_sections'],
+            ['id' => 'items', 'label' => 'Question cards', 'skeleton' => 'prose', 'after' => 'below_items'],
+            ['id' => 'questions', 'label' => 'Questions review list', 'skeleton' => 'prose', 'after' => 'after_content'],
+            ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
+        ];
+    }
+
+    /**
+     * Exam result — score summary & performance breakdown.
+     *
+     * @return list<array{id: string, label: string, skeleton: string, after?: ?string, before?: ?string, chrome?: bool}>
      */
     public static function examResultLayout(): array
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'Exam result (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Exam result (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'summary', 'label' => 'Score summary', 'skeleton' => 'stats', 'after' => 'after_stats'],
             ['id' => 'details', 'label' => 'Result details', 'skeleton' => 'section', 'after' => 'after_content'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
@@ -316,7 +335,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'Exam rules & verification', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Exam rules & verification', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'stats', 'label' => 'Exam stats', 'skeleton' => 'stats', 'after' => 'after_stats'],
             ['id' => 'warning', 'label' => 'Warnings callout', 'skeleton' => 'section', 'after' => 'after_about'],
             ['id' => 'summary', 'label' => 'Assessment summary', 'skeleton' => 'section', 'after' => 'after_details'],
@@ -332,7 +351,7 @@ final class AdvertisementCatalog
     public static function examPrepareLayout(): array
     {
         return [
-            ['id' => 'hero', 'label' => 'Exam readiness', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Exam readiness', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'checklist', 'label' => 'Verification checklist', 'skeleton' => 'faq', 'after' => 'between_sections'],
             ['id' => 'permissions', 'label' => 'Device permissions', 'skeleton' => 'section', 'after' => 'after_details'],
             ['id' => 'media', 'label' => 'Camera / mic checks', 'skeleton' => 'section', 'after' => 'after_content'],
@@ -346,7 +365,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'FAQs (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'FAQs (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'groups', 'label' => 'FAQ groups', 'skeleton' => 'faq', 'after' => 'after_faqs'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
         ];
@@ -361,7 +380,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'About hero (H1)', 'skeleton' => 'hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'About hero (H1)', 'skeleton' => 'hero', 'after' => null],
             ['id' => 'stats', 'label' => 'Stats strip', 'skeleton' => 'stats', 'after' => 'after_stats'],
             ['id' => 'who', 'label' => 'Who we are', 'skeleton' => 'section', 'after' => 'after_about'],
             ['id' => 'mission', 'label' => 'Mission & vision', 'skeleton' => 'cards3', 'after' => 'after_mission'],
@@ -384,7 +403,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'Contact hero (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Contact hero (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'details', 'label' => 'Contact details', 'skeleton' => 'cards4', 'after' => 'after_details'],
             ['id' => 'form', 'label' => 'Contact form', 'skeleton' => 'section', 'after' => 'after_form'],
             ['id' => 'map', 'label' => 'Office location', 'skeleton' => 'banner', 'after' => 'after_map'],
@@ -403,7 +422,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => $title.' (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => $title.' (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'intro', 'label' => 'Policy intro', 'skeleton' => 'section', 'after' => 'before_content'],
             ['id' => 'sections', 'label' => 'Legal sections', 'skeleton' => 'faq', 'after' => 'after_legal_sections'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
@@ -417,7 +436,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => 'Search (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => 'Search (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'results', 'label' => 'Search results', 'skeleton' => 'cards3', 'after' => 'after_results'],
             ['id' => 'more', 'label' => 'More results', 'skeleton' => 'cards3', 'after' => 'after_content'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
@@ -433,7 +452,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'hero', 'label' => $title.' (H1)', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'hero', 'label' => $title.' (H1)', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'body', 'label' => 'Page content', 'skeleton' => 'prose', 'after' => 'after_content'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
         ];
@@ -446,7 +465,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'toolbar', 'label' => 'Account toolbar', 'skeleton' => 'page_hero', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'toolbar', 'label' => 'Account toolbar', 'skeleton' => 'page_hero', 'after' => null],
             ['id' => 'content', 'label' => 'Account content', 'skeleton' => 'section', 'after' => 'after_content'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
         ];
@@ -459,7 +478,7 @@ final class AdvertisementCatalog
     {
         return [
             ['id' => 'header', 'label' => 'Navbar', 'skeleton' => 'header', 'after' => 'after_header', 'chrome' => true],
-            ['id' => 'error', 'label' => 'Error '.$code, 'skeleton' => 'error', 'before' => 'above_title', 'after' => 'below_title'],
+            ['id' => 'error', 'label' => 'Error '.$code, 'skeleton' => 'error', 'after' => null],
             ['id' => 'actions', 'label' => 'Actions', 'skeleton' => 'cta', 'after' => 'after_content'],
             ['id' => 'footer', 'label' => 'Footer', 'skeleton' => 'footer', 'before' => 'above_footer', 'chrome' => true],
         ];
@@ -540,9 +559,6 @@ final class AdvertisementCatalog
                 $right('start', 'Start exam'),
             ],
             'exam_attempt' => [
-                $right('overview', 'Exam details'),
-                $right('webcam', 'Webcam'),
-                $right('palette', 'Questions'),
                 $right('final_submit', 'Final submit'),
             ],
             'question_detail' => [
@@ -679,6 +695,7 @@ final class AdvertisementCatalog
             'exam_rules' => self::definePage('exam_rules', 'Exams — Rules', 'Exams', 'detail', 'Exam rules with a right start-exam sidebar.', self::examRulesLayout(), $right),
             'exam_prepare' => self::definePage('exam_prepare', 'Exams — Prepare', 'Exams', 'detail', 'Candidate readiness with a right summary sidebar.', self::examPrepareLayout(), $right),
             'exam_attempt' => self::definePage('exam_attempt', 'Exams — Live Attempt', 'Exams', 'exam_attempt', 'In-progress exam runner with the right exam panel.', self::examAttemptLayout(), $right),
+            'exam_attempt_review' => self::definePage('exam_attempt_review', 'Exams — Question Review', 'Exams', 'detail', 'Candidate attempt & question review with summary stats and violations.', self::examAttemptReviewLayout(), $none),
             'exam_result' => self::definePage('exam_result', 'Exams — Result', 'Exams', 'detail', 'Exam result page with no content sidebar.', self::examResultLayout(), $none),
             'question_list' => self::definePage('question_list', 'Questions — List', 'Questions', 'listing', 'Question listing with main results and one right Categories sidebar.', self::listingLayout('Questions'), $right),
             'question_categories' => self::definePage('question_categories', 'Questions — Categories', 'Questions', 'listing', 'Question categories grid with no content sidebar.', self::listingLayout('Question categories'), $none),
@@ -820,6 +837,64 @@ final class AdvertisementCatalog
     {
         return in_array($positionKey, self::MULTI_POSITIONS, true)
             || self::isSidePlacementSlot($positionKey);
+    }
+
+    /**
+     * Map a frontend route name to an advertisement catalog page key.
+     */
+    public static function pageKeyFromRoute(?string $routeName): ?string
+    {
+        if (! is_string($routeName) || $routeName === '') {
+            return null;
+        }
+
+        return match (true) {
+            $routeName === 'home' => 'home',
+            $routeName === 'frontend.exams.index' => 'exam_list',
+            $routeName === 'frontend.exams.show' => 'exam_detail',
+            $routeName === 'frontend.exams.rules' => 'exam_rules',
+            $routeName === 'frontend.exams.prepare' => 'exam_prepare',
+            $routeName === 'frontend.exams.started' => 'exam_attempt',
+            $routeName === 'frontend.attempts.result' => 'exam_result',
+            $routeName === 'frontend.questions.index',
+            $routeName === 'frontend.questions.category' => 'question_list',
+            $routeName === 'frontend.questions.categories' => 'question_categories',
+            $routeName === 'frontend.questions.show' => 'question_detail',
+            $routeName === 'frontend.blogs.index',
+            $routeName === 'frontend.blogs.category',
+            $routeName === 'frontend.blogs.tag' => 'blog_list',
+            $routeName === 'frontend.blogs.show' => 'blog_detail',
+            $routeName === 'frontend.news.index',
+            $routeName === 'frontend.news.trending',
+            $routeName === 'frontend.news.category',
+            $routeName === 'frontend.news.tag' => 'news_list',
+            $routeName === 'frontend.news.show' => 'news_detail',
+            $routeName === 'frontend.categories.index' => 'categories',
+            $routeName === 'frontend.categories.show' => 'category_detail',
+            $routeName === 'frontend.authors.index' => 'authors',
+            $routeName === 'frontend.authors.show' => 'author_detail',
+            $routeName === 'frontend.faqs.index' => 'faqs',
+            $routeName === 'frontend.search' => 'search',
+            $routeName === 'frontend.sitemap' => 'sitemap',
+            str_starts_with($routeName, 'frontend.account.') => 'account',
+            $routeName === 'frontend.pages.show' => null, // resolved from page slug in the view
+            default => null,
+        };
+    }
+
+    /**
+     * Map a CMS page slug/template to a catalog page key.
+     */
+    public static function pageKeyFromCms(?string $slug, ?string $template = null): string
+    {
+        return match (true) {
+            $template === 'about' || $slug === 'about-us' => 'about_us',
+            $template === 'contact' || $slug === 'contact-us' => 'contact_us',
+            $template === 'privacy' || $slug === 'privacy-policy' => 'privacy_policy',
+            $template === 'terms' || $slug === 'terms-and-conditions' => 'terms',
+            $slug === 'help-center' => 'help_center',
+            default => 'cms_page',
+        };
     }
 
     public static function isRightSidebarSlot(string $positionKey): bool

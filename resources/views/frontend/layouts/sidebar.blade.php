@@ -55,6 +55,7 @@
             <span>Activity Tracking</span>
         </a>
     </nav>
+    @include('frontend.partials.ad-placement', ['page' => 'account', 'position' => 'left_after_nav'])
 
     <form method="POST" action="{{ route('logout') }}" class="ca-sidebar__logout">
         @csrf

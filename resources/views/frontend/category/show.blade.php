@@ -24,10 +24,12 @@
                 ['label' => 'Categories', 'url' => route('frontend.categories.index')],
                 ['label' => $category->name],
             ]])
+            @include('frontend.partials.ad-placement', ['page' => 'category_detail', 'position' => 'above_title'])
             <h1>{{ $category->name }}</h1>
             @if($category->description)
                 <p>{{ $category->description }}</p>
             @endif
+            @include('frontend.partials.ad-placement', ['page' => 'category_detail', 'position' => 'below_title'])
         </div>
     </div>
 
@@ -60,6 +62,7 @@
                         ])
                     @endif
                 </section>
+                @include('frontend.partials.ad-placement', ['page' => 'category_detail', 'position' => 'between_sections'])
 
                 @if($relatedBlogs->isNotEmpty())
                     <section>
@@ -70,6 +73,7 @@
                             @endforeach
                         </div>
                     </section>
+                    @include('frontend.partials.ad-placement', ['page' => 'category_detail', 'position' => 'after_blogs'])
                 @endif
 
                 @if($relatedNews->isNotEmpty())
@@ -81,6 +85,7 @@
                             @endforeach
                         </div>
                     </section>
+                    @include('frontend.partials.ad-placement', ['page' => 'category_detail', 'position' => 'after_content'])
                 @endif
             </div>
 
@@ -90,6 +95,7 @@
                         'categoryNav' => $categoryNav,
                         'categoryNavTitle' => 'Subcategories',
                         'categoryNavDescription' => 'Jump into nested topics under this category.',
+                        'adPage' => 'category_detail',
                     ])
                 </div>
             @endif

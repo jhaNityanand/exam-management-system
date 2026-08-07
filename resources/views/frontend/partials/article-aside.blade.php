@@ -13,6 +13,7 @@
     $viewAllUrl = $type === 'news' ? route('frontend.news.index') : route('frontend.blogs.index');
     $viewAllLabel = $type === 'news' ? 'View all' : 'View all';
     $articleMeta = collect($articleHeaderMeta ?? []);
+    $asideAdPage = $adPage ?? ($type === 'news' ? 'news_detail' : 'blog_detail');
 @endphp
 
 @if($aside || $articleMeta->isNotEmpty())
@@ -40,6 +41,7 @@
                     @endforeach
                 </div>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => $asideAdPage, 'position' => 'right_after_details'])
         @endif
 
         @if($author)
@@ -75,6 +77,7 @@
                     </a>
                 @endif
             </section>
+            @include('frontend.partials.ad-placement', ['page' => $asideAdPage, 'position' => 'right_after_author'])
         @endif
 
         @if($tags->isNotEmpty())
@@ -88,6 +91,7 @@
                     @endforeach
                 </div>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => $asideAdPage, 'position' => 'right_after_tags'])
         @endif
 
         @if($categories->isNotEmpty())
@@ -119,6 +123,7 @@
                     @endforeach
                 </ul>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => $asideAdPage, 'position' => 'right_after_categories'])
         @endif
 
         @if($latest->isNotEmpty())
@@ -156,6 +161,7 @@
                     @endforeach
                 </ul>
             </section>
+            @include('frontend.partials.ad-placement', ['page' => $asideAdPage, 'position' => 'right_after_latest'])
         @endif
     </aside>
 @endif
