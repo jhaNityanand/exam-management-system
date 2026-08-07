@@ -14,6 +14,7 @@ use App\Models\NewsCategory;
 use App\Models\NewsTag;
 use App\Models\Question;
 use App\Models\QuestionCategory;
+use App\Models\SitemapLog;
 use App\Models\User;
 use App\Models\UserOrganization;
 use App\Services\Frontend\SiteCmsService;
@@ -39,6 +40,7 @@ class SeoSiteGenerator
      */
     public function generate(?int $orgId = null): array
     {
+        $startTime = microtime(true);
         $orgId ??= current_organization_id();
         $chunk = max(100, min(50000, (int) $this->setting('chunk_size', self::DEFAULT_CHUNK, $orgId)));
         $baseUrl = rtrim((string) config('app.url'), '/');
@@ -146,11 +148,29 @@ class SeoSiteGenerator
         $this->siteCms->clearCache($orgId);
         $this->markSitemapFlags($orgId);
 
+        $generatedFiles = array_merge(
+            ['sitemap.xml', 'robots.txt', 'humans.txt', '.well-known/security.txt', 'feeds/rss.xml', 'feeds/atom.xml', 'manifest.json'],
+            array_map(fn ($s) => str_replace($baseUrl.'/', '', $s['loc']), $childSitemaps)
+        );
+
+        $totalUrls = (int) array_sum($urlCounts);
+
+        try {
+            SitemapLog::create([
+                'run_at' => now(),
+                'total_records_processed' => $totalUrls,
+                'total_urls_generated' => $totalUrls,
+                'processing_time_ms' => round((microtime(true) - ($startTime ?? microtime(true))) * 1000, 2),
+                'generated_urls' => $generatedFiles,
+                'status' => 'success',
+                'notes' => 'Sitemap generation completed successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            // Log warning, do not block generator return
+        }
+
         return [
-            'files' => array_merge(
-                ['sitemap.xml', 'robots.txt', 'humans.txt', '.well-known/security.txt', 'feeds/rss.xml', 'feeds/atom.xml', 'manifest.json'],
-                array_map(fn ($s) => str_replace($baseUrl.'/', '', $s['loc']), $childSitemaps)
-            ),
+            'files' => $generatedFiles,
             'generated_at' => $generatedAt,
             'url_counts' => $urlCounts,
         ];

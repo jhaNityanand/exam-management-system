@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ versioned_asset('vendor/tom-select/tom-select.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('vendor/tom-select/tom-select.default.css') }}">
     <link rel="stylesheet" href="{{ versioned_asset('css/components/searchable-select.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/components/tooltip.css') }}">
     @include('frontend.partials.integrations-head')
     @php($adCustomCode = ad_custom_code())
     @if(! empty($adCustomCode['header_code']))
@@ -84,6 +85,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
     <script src="{{ versioned_asset('vendor/tom-select/tom-select.complete.min.js') }}" defer></script>
     <script src="{{ versioned_asset('js/components/searchable-select.js') }}" defer></script>
+    <script src="{{ versioned_asset('js/components/tooltip.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/utils.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/app.js') }}" defer></script>
     <script src="{{ versioned_asset('js/frontend/load-more.js') }}" defer></script>

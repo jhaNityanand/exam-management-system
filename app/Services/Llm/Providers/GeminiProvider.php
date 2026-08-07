@@ -14,8 +14,9 @@ class GeminiProvider extends AbstractProvider
 
     protected function sendChat(string $system, string $user, array $options = []): LlmResponse
     {
+        $baseUrl = filled($this->baseUrl()) ? $this->baseUrl() : 'https://generativelanguage.googleapis.com/v1beta';
         $model = rawurlencode($this->model());
-        $url = $this->baseUrl().'/models/'.$model.':generateContent?key='.urlencode($this->apiKey());
+        $url = $baseUrl.'/models/'.$model.':generateContent?key='.urlencode($this->apiKey());
 
         $response = $this->http()->post($url, [
             'systemInstruction' => [

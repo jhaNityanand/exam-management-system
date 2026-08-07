@@ -3,6 +3,7 @@
 namespace App\Services\Llm;
 
 use App\Jobs\ProcessSeoBatchJob;
+use App\Models\SeoProcessingLog;
 use App\Services\Llm\Exceptions\LlmException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -127,6 +128,9 @@ class SeoBatchProcessor
             return ['processed' => 0, 'failed' => 0];
         }
 
+        $start = microtime(true);
+        $batchErrorSummary = null;
+
         try {
             $records = $class::query()
                 ->whereIn('id', $ids)
@@ -149,16 +153,16 @@ class SeoBatchProcessor
                 ];
             }
 
+            $results = [];
             try {
                 $results = $this->llm->generateSEOBatch($items);
             } catch (Throwable $e) {
+                $batchErrorSummary = $e->getMessage();
                 Log::channel('llm')->error('SEO batch LLM call failed', [
                     'type' => $type,
                     'ids' => $ids,
                     'error' => $e->getMessage(),
                 ]);
-
-                return ['processed' => 0, 'failed' => $records->count()];
             }
 
             $processed = 0;
@@ -168,7 +172,6 @@ class SeoBatchProcessor
                 $seo = $results[(string) $record->getKey()] ?? null;
                 if (! $seo) {
                     $failed++;
-
                     continue;
                 }
 
@@ -197,6 +200,22 @@ class SeoBatchProcessor
                     ]);
                 }
             }
+
+            $lastUsed = $this->llm->getLastUsedAccount();
+            $executionMs = round((microtime(true) - $start) * 1000, 2);
+
+            SeoProcessingLog::create([
+                'run_at' => now(),
+                'seo_type' => $type,
+                'processed_records_count' => count($ids),
+                'successful_count' => $processed,
+                'failed_count' => $failed,
+                'provider_used' => $lastUsed?->provider ?? 'Default',
+                'account_used' => $lastUsed?->account_name ?? 'Default Account',
+                'execution_time_ms' => $executionMs,
+                'error_summary' => $batchErrorSummary ?? ($failed > 0 ? "{$failed} records failed update" : null),
+                'processed_record_ids' => array_values($ids),
+            ]);
 
             return ['processed' => $processed, 'failed' => $failed];
         } finally {

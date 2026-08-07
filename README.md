@@ -155,25 +155,27 @@ Still unfinished (see `TODO.md`): organization switching UI, real notifications/
 
 ---
 
-## LLM / AI SEO
+## LLM / AI SEO Management
 
-Provider-based architecture (`config/llm.php`). The app talks only to `App\Services\Llm\LlmService` — never to Groq/OpenRouter/Gemini directly.
+LLM configuration is managed completely through the database via **Admin Panel → Settings → LLM Management** (`/admin/settings/llm`).
 
-### Switch providers (no code changes)
+### Supported Providers & Priority Cascading
 
-```env
-LLM_PROVIDER=groq          # groq | openrouter | gemini
-GROQ_API_KEY=...
-GROQ_MODEL=llama-3.3-70b-versatile
-# or
-OPENROUTER_API_KEY=...
-OPENROUTER_MODEL=openai/gpt-4o-mini
-# or
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-2.0-flash
-```
+1. **Mistral AI** (Default Priority 1)
+2. **Groq** (Priority 2)
+3. **Google Gemini** (Priority 3)
+4. **OpenRouter** (Priority 4)
 
-Shared knobs: `LLM_BATCH_SIZE` (default 6), `LLM_TIMEOUT`, `LLM_RETRY`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`.
+Within each provider, administrators can add multiple accounts. The application automatically routes LLM calls to the highest-priority active account.
+
+### Automatic Failover & 24h Cooldown
+
+- **Automatic Failover**: If an API request encounters a rate limit (HTTP 429), quota exhaustion, auth error, timeout, or provider failure, the account is placed in a **24-hour cooldown state**, and the system instantly cascades to the next available account without breaking the queue.
+- **Scheduler Auto-Reactivation**: The scheduler automatically reactivates accounts after the 24-hour cooldown expires and resets daily request/token counters at midnight.
+- **Seeder**: Seed predefined free LLM accounts with:
+  ```bash
+  php artisan db:seed --class=LlmAccountSeeder
+  ```
 
 ### How SEO generation works
 
@@ -262,6 +264,48 @@ php artisan optimize          # after production .env is set
 | Default SEO images | `public/frontend/images/seo/*.png` | Deploy with the app; used when content has no image |
 
 If gallery images 404, re-run `php artisan storage:link` and confirm `APP_URL` matches the URL you browse.
+
+---
+
+## Legacy Examtube Data & Media Migration
+
+The application includes an automated data and media migration service to import legacy Examtube application backups (SQL database dump + uploaded images) into the new platform.
+
+### How to Run the Migration
+
+#### Option A: Using the `legacy/examtube` Branch (Recommended)
+1. Switch to or pull from the dedicated legacy data branch:
+   ```bash
+   git checkout legacy/examtube
+   ```
+   *(This branch includes the complete `public/old-application/` directory containing `u967843851_examtube.sql` and `public/old-application/images/` assets).*
+
+2. Run the migration importer command:
+   ```bash
+   php artisan legacy:import-examtube
+   ```
+
+#### Option B: On `main` Branch (Local File Import)
+1. Ensure your legacy backup files exist under `public/old-application/` (or `public/old-examtube/`):
+   ```
+   public/old-application/
+     ├── u967843851_examtube.sql
+     └── images/
+   ```
+2. Execute the importer command or seeder:
+   ```bash
+   php artisan legacy:import-examtube
+   # OR
+   php artisan db:seed --class=ExamtubeLegacyDataSeeder
+   ```
+
+### Imported Entities & Features
+- **Users & Profiles**: Imports legacy user accounts (`vidyanand.in3@gmail.com`, `nityanandjha2020@gmail.com`, etc.) with default password `password`, organization membership, bios, social links, and uploaded profile avatars.
+- **Blog Categories & Blogs**: Imports 28 categories and 123 blog posts with clean HTML formatting, excerpt generation, and string-length clamped SEO fields.
+- **Comments & Newsletter Subscribers**: Imports 13 blog comments and 163 newsletter subscriber emails.
+- **Media Gallery & Deduplication**: Imports 260+ content and cover images into `galleries` storage with SHA-256 content deduplication and automatic inline HTML `<img>` `src` URL rewriting.
+
+Detailed technical architecture and service documentation: [`docs/legacy_migration.md`](docs/legacy_migration.md).
 
 ---
 

@@ -188,11 +188,22 @@ abstract class AbstractProvider implements LlmProviderInterface
         return rtrim((string) ($this->config['base_url'] ?? ''), '/');
     }
 
+    protected function organizationId(): string
+    {
+        return (string) ($this->config['organization_id'] ?? '');
+    }
+
     protected function http(): PendingRequest
     {
-        return Http::timeout((int) config('llm.timeout', 60))
+        $request = Http::timeout((int) config('llm.timeout', 60))
             ->acceptJson()
             ->asJson();
+
+        if (config('app.env') === 'local' || (bool) env('LLM_HTTP_VERIFY', true) === false) {
+            $request->withoutVerifying();
+        }
+
+        return $request;
     }
 
     protected function temperature(): float

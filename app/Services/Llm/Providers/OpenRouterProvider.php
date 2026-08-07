@@ -19,10 +19,12 @@ class OpenRouterProvider extends AbstractProvider
             'X-Title' => (string) ($this->config['site_name'] ?? config('app.name')),
         ];
 
+        $baseUrl = filled($this->baseUrl()) ? $this->baseUrl() : 'https://openrouter.ai/api/v1';
+
         $response = $this->http()
             ->withToken($this->apiKey())
             ->withHeaders($headers)
-            ->post($this->baseUrl().'/chat/completions', [
+            ->post($baseUrl.'/chat/completions', [
                 'model' => $this->model(),
                 'temperature' => $this->temperature(),
                 'max_tokens' => $this->maxTokens(),

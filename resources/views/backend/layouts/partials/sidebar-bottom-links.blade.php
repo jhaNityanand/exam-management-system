@@ -4,6 +4,7 @@
     $settingsChildren = [
         ['route' => 'admin.settings.organization', 'label' => 'Organization', 'capability' => AdminCapabilities::ORGANIZATION],
         ['route' => 'admin.settings.seo', 'label' => 'SEO & Search', 'capability' => AdminCapabilities::ORGANIZATION],
+        ['route' => 'admin.settings.llm.index', 'label' => 'LLM Management', 'capability' => AdminCapabilities::ORGANIZATION],
         ['route' => 'admin.advertisements.index', 'label' => 'Advertisements', 'match' => 'admin.advertisements.*', 'capability' => AdminCapabilities::ORGANIZATION],
         ['route' => 'admin.settings.index', 'label' => 'Cache & Optimization', 'capability' => AdminCapabilities::PLATFORM],
         ['route' => 'admin.settings.email', 'label' => 'Email Configuration', 'capability' => AdminCapabilities::PLATFORM],
