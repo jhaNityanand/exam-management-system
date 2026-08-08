@@ -33,7 +33,9 @@ class QuestionImportService
     /** @var array<string, true> */
     protected array $seenBodies = [];
 
-    public function __construct(protected QuestionService $questions) {}
+    public function __construct(protected QuestionService $questions)
+    {
+    }
 
     /**
      * @param  list<array{row: int, errors: list<string>}>  $initialErrors
@@ -49,10 +51,10 @@ class QuestionImportService
         $extension = strtolower($file->getClientOriginalExtension());
         $disk = 'local';
         $directory = sprintf('question-imports/%d/%s', $orgId, now()->format('Y/m'));
-        $storedName = Str::uuid().'_'.(Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'questions').'.'.$extension;
+        $storedName = Str::uuid() . '_' . (Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'questions') . '.' . $extension;
         $path = $file->storeAs($directory, $storedName, $disk);
 
-        if (! is_string($path) || ! Storage::disk($disk)->exists($path)) {
+        if (!is_string($path) || !Storage::disk($disk)->exists($path)) {
             throw new \RuntimeException('The import file could not be stored.');
         }
 
@@ -61,7 +63,7 @@ class QuestionImportService
                 'organization_id' => $orgId,
                 'original_file_name' => $file->getClientOriginalName(),
                 'file_path' => $path,
-                'file_type' => '.'.$extension,
+                'file_type' => '.' . $extension,
                 'mime_type' => $file->getMimeType(),
                 'disk' => $disk,
                 'file_size' => (int) ($file->getSize() ?: 0),
@@ -69,11 +71,13 @@ class QuestionImportService
                 'total_rows' => $totalRows,
                 'successful_rows' => 0,
                 'failed_rows' => $failedRows,
-                'import_logs' => [[
-                    'event' => 'started',
-                    'message' => 'Import file uploaded and validated in the browser.',
-                    'at' => now()->toIso8601String(),
-                ]],
+                'import_logs' => [
+                    [
+                        'event' => 'started',
+                        'message' => 'Import file uploaded and validated in the browser.',
+                        'at' => now()->toIso8601String(),
+                    ]
+                ],
                 'errors' => $initialErrors ?: null,
                 'created_by' => $actorId,
                 'imported_at' => now(),
@@ -117,6 +121,8 @@ class QuestionImportService
                     $validated = $validator->validate();
                     $validated['organization_id'] = $orgId;
                     $validated['import_question_id'] = $import->id;
+                    $validated['ai_generated'] = true;
+                    $validated['is_ai_generated'] = false;
 
                     $created = $this->questions->create($validated, $actorId);
                     $this->rememberBody($payload['body']);
@@ -237,19 +243,19 @@ class QuestionImportService
     {
         $type = $this->normalizeType((string) ($row['type'] ?? $row['question_type'] ?? ''));
         $difficulty = strtolower(trim((string) ($row['difficulty'] ?? '')));
-        if (! in_array($difficulty, ['easy', 'medium', 'hard', 'very_hard'], true)) {
+        if (!in_array($difficulty, ['easy', 'medium', 'hard', 'very_hard'], true)) {
             $difficulty = self::DEFAULT_DIFFICULTY;
         }
 
         $status = strtolower(trim((string) ($row['status'] ?? '')));
-        if (! in_array($status, ['active', 'inactive', 'suspended'], true)) {
+        if (!in_array($status, ['active', 'inactive', 'suspended'], true)) {
             $status = self::DEFAULT_STATUS;
         }
 
         $marksRaw = trim((string) ($row['marks'] ?? ''));
         $marksList = $this->integerList($marksRaw);
         $marksType = strtolower(trim((string) ($row['marks_type'] ?? '')));
-        if (! in_array($marksType, ['single', 'multiple'], true)) {
+        if (!in_array($marksType, ['single', 'multiple'], true)) {
             $marksType = count($marksList) > 1 ? 'multiple' : self::DEFAULT_MARKS_TYPE;
         }
 
@@ -259,7 +265,7 @@ class QuestionImportService
 
         $options = [];
         foreach (range('a', 'f') as $letter) {
-            $text = trim((string) ($row['option_'.$letter] ?? ''));
+            $text = trim((string) ($row['option_' . $letter] ?? ''));
             if ($text !== '') {
                 $options[strtoupper($letter)] = $text;
             }
@@ -285,7 +291,7 @@ class QuestionImportService
             'marks_list' => $marksType === 'multiple' ? $marksList : null,
             'allows_multiple' => $allowsMultiple,
             'options' => $type === 'mcq'
-                ? array_map(static fn (string $text) => ['text' => $text], array_values($options))
+                ? array_map(static fn(string $text) => ['text' => $text], array_values($options))
                 : null,
             'correct_answer' => $correctAnswer,
             'correct_answers' => $correctAnswers,
@@ -294,7 +300,7 @@ class QuestionImportService
             'status' => $status,
             'ai_generated' => true,
             'ai_improve' => false,
-            'is_ai_generated' => false,
+            'is_ai_generated' => true,
             'is_sitemap_url_created' => false,
         ];
     }
@@ -397,6 +403,8 @@ class QuestionImportService
             'correct_answers' => ['nullable', 'array', 'min:1'],
             'correct_answers.*' => ['string', 'max:2000'],
             'explanation' => ['nullable', 'string', 'max:20000'],
+            'ai_generated' => ['nullable', 'boolean'],
+            'is_ai_generated' => ['nullable', 'boolean'],
         ];
     }
 
@@ -404,18 +412,18 @@ class QuestionImportService
     {
         $type = $payload['type'] ?? '';
 
-        if ($type === 'true_false' && ! in_array($payload['correct_answer'] ?? '', ['True', 'False'], true)) {
+        if ($type === 'true_false' && !in_array($payload['correct_answer'] ?? '', ['True', 'False'], true)) {
             $validator->errors()->add('correct_answer', 'True/False answers must be True or False.');
         }
 
         if ($type === 'mcq') {
             $options = collect($payload['options'] ?? [])->pluck('text')->all();
-            $answers = ! empty($payload['allows_multiple'])
+            $answers = !empty($payload['allows_multiple'])
                 ? ($payload['correct_answers'] ?? [])
                 : array_filter([$payload['correct_answer'] ?? null]);
 
             foreach ($answers as $answer) {
-                if (! in_array($answer, $options, true)) {
+                if (!in_array($answer, $options, true)) {
                     $validator->errors()->add(
                         'correct_answer',
                         'Each correct option must match an option label (for example A or A,C).',
@@ -441,8 +449,8 @@ class QuestionImportService
         $resolvedPath = '';
 
         foreach ($segments as $segment) {
-            $resolvedPath = $resolvedPath === '' ? $segment : $resolvedPath.' > '.$segment;
-            $cacheKey = $orgId.'|'.mb_strtolower($resolvedPath);
+            $resolvedPath = $resolvedPath === '' ? $segment : $resolvedPath . ' > ' . $segment;
+            $cacheKey = $orgId . '|' . mb_strtolower($resolvedPath);
 
             if (isset($this->categoryCache[$cacheKey])) {
                 $parentId = $this->categoryCache[$cacheKey];
@@ -454,9 +462,9 @@ class QuestionImportService
                 ->forOrg($orgId)
                 ->where('parent_id', $parentId)
                 ->get()
-                ->first(static fn (QuestionCategory $item) => strcasecmp($item->name, $segment) === 0);
+                ->first(static fn(QuestionCategory $item) => strcasecmp($item->name, $segment) === 0);
 
-            if (! $category) {
+            if (!$category) {
                 $category = QuestionCategory::create([
                     'organization_id' => $orgId,
                     'parent_id' => $parentId,
@@ -495,7 +503,7 @@ class QuestionImportService
     {
         return collect(preg_split('/[\s,;|]+/', strtoupper(trim($value))) ?: [])
             ->filter()
-            ->map(fn (string $label) => $options[$label] ?? $label)
+            ->map(fn(string $label) => $options[$label] ?? $label)
             ->unique()
             ->values()
             ->all();
@@ -505,9 +513,9 @@ class QuestionImportService
     protected function integerList(string $value): array
     {
         return collect(preg_split('/[\s,;|]+/', trim($value)) ?: [])
-            ->filter(static fn ($item) => is_numeric($item))
-            ->map(static fn ($item) => (int) $item)
-            ->filter(static fn (int $item) => $item >= 1 && $item <= 10)
+            ->filter(static fn($item) => is_numeric($item))
+            ->map(static fn($item) => (int) $item)
+            ->filter(static fn(int $item) => $item >= 1 && $item <= 10)
             ->unique()
             ->values()
             ->all();

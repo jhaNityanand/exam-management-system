@@ -7,6 +7,7 @@ use App\Models\Cms\SitePage;
 use App\Models\Exam;
 use App\Models\Gallery;
 use App\Models\News;
+use App\Models\Question;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -20,12 +21,35 @@ class SitemapImageBuilder
     /**
      * @return list<SitemapImage>
      */
+    public function forQuestion(Question $question): array
+    {
+        $title = $this->contentTitle($question);
+        $caption = $this->contentCaption($question->meta_description ?? $question->body ?? null, $title);
+
+        $images = [
+            $this->fromGallery($question->ogImage, $title, $caption),
+        ];
+
+        foreach ([$question->body, $question->explanation] as $field) {
+            if ($field && preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', (string) $field, $matches)) {
+                foreach ($matches[1] as $src) {
+                    $images[] = $this->fromUrl((string) $src, $title, $caption);
+                }
+            }
+        }
+
+        return $this->unique($images);
+    }
+
+    /**
+     * @return list<SitemapImage>
+     */
     public function forBlog(Blog $blog): array
     {
         $title = $this->contentTitle($blog);
         $caption = $this->contentCaption($blog->excerpt ?? null, $title);
 
-        return $this->unique([
+        $images = [
             $this->fromGallery($blog->ogImage, $title, $caption),
             $this->fromGallery($blog->bannerImage, $title, $caption),
             ...$blog->banners->map(fn (Gallery $gallery) => $this->fromGallery($gallery, $title, $caption))->all(),
@@ -33,7 +57,15 @@ class SitemapImageBuilder
                 ->filter(fn (Gallery $gallery) => $this->isIndexableImage($gallery))
                 ->map(fn (Gallery $gallery) => $this->fromGallery($gallery, $title, $caption))
                 ->all(),
-        ]);
+        ];
+
+        if ($blog->content && preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', (string) $blog->content, $matches)) {
+            foreach ($matches[1] as $src) {
+                $images[] = $this->fromUrl((string) $src, $title, $caption);
+            }
+        }
+
+        return $this->unique($images);
     }
 
     /**
@@ -44,7 +76,7 @@ class SitemapImageBuilder
         $title = $this->contentTitle($news);
         $caption = $this->contentCaption($news->excerpt ?? null, $title);
 
-        return $this->unique([
+        $images = [
             $this->fromGallery($news->ogImage, $title, $caption),
             $this->fromGallery($news->featuredImage, $title, $caption),
             $this->fromGallery($news->bannerImage, $title, $caption),
@@ -53,7 +85,15 @@ class SitemapImageBuilder
                 ->filter(fn (Gallery $gallery) => $this->isIndexableImage($gallery))
                 ->map(fn (Gallery $gallery) => $this->fromGallery($gallery, $title, $caption))
                 ->all(),
-        ]);
+        ];
+
+        if ($news->content && preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', (string) $news->content, $matches)) {
+            foreach ($matches[1] as $src) {
+                $images[] = $this->fromUrl((string) $src, $title, $caption);
+            }
+        }
+
+        return $this->unique($images);
     }
 
     /**
@@ -64,10 +104,18 @@ class SitemapImageBuilder
         $title = $this->contentTitle($exam);
         $caption = $this->contentCaption($exam->meta_description ?? $exam->description ?? null, $title);
 
-        return $this->unique([
+        $images = [
             $this->fromGallery($exam->ogImage, $title, $caption),
             $this->fromGallery($exam->bannerImage, $title, $caption),
-        ]);
+        ];
+
+        if ($exam->description && preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', (string) $exam->description, $matches)) {
+            foreach ($matches[1] as $src) {
+                $images[] = $this->fromUrl((string) $src, $title, $caption);
+            }
+        }
+
+        return $this->unique($images);
     }
 
     /**
@@ -92,9 +140,61 @@ class SitemapImageBuilder
         $title = $this->contentTitle($page);
         $caption = $this->contentCaption($page->excerpt ?? $page->seo_description ?? null, $title);
 
-        return $this->unique([
+        $images = [
             $this->fromGallery($page->bannerImage, $title, $caption),
-        ]);
+        ];
+
+        if ($page->content && preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', (string) $page->content, $matches)) {
+            foreach ($matches[1] as $src) {
+                $images[] = $this->fromUrl((string) $src, $title, $caption);
+            }
+        }
+
+        return $this->unique($images);
+    }
+
+    /**
+     * @return SitemapImage|null
+     */
+    public function forGallery(Gallery $gallery, ?string $fallbackTitle = null): ?array
+    {
+        $title = filled($gallery->alt_text)
+            ? (string) $gallery->alt_text
+            : (filled($gallery->original_name) ? pathinfo((string) $gallery->original_name, PATHINFO_FILENAME) : ($fallbackTitle ?: 'Media asset'));
+
+        $caption = filled($gallery->description)
+            ? (string) $gallery->description
+            : (filled($gallery->alt_text) ? (string) $gallery->alt_text : $title);
+
+        return $this->fromGallery($gallery, $title, $caption);
+    }
+
+    /**
+     * @return SitemapImage|null
+     */
+    public function fromUrl(string $url, string $fallbackTitle, ?string $fallbackCaption = null): ?array
+    {
+        $loc = trim($url);
+        if ($loc === '') {
+            return null;
+        }
+        if (str_starts_with($loc, '//')) {
+            $loc = 'https:'.$loc;
+        } elseif (str_starts_with($loc, '/')) {
+            $loc = rtrim((string) config('app.url'), '/').$loc;
+        }
+        if (! str_starts_with($loc, 'http://') && ! str_starts_with($loc, 'https://')) {
+            return null;
+        }
+
+        $title = $this->clip($fallbackTitle, 200);
+        $caption = $this->clip($fallbackCaption ?: $fallbackTitle, 512);
+
+        return [
+            'loc' => $loc,
+            'title' => $title !== '' ? $title : null,
+            'caption' => $caption !== '' ? $caption : null,
+        ];
     }
 
     /**

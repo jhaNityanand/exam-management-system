@@ -139,7 +139,8 @@ test('question import creates supported types and nested categories', function (
         ->and($single->marks_type)->toBe('single')
         ->and($single->marks)->toBe(1)
         ->and($single->allows_multiple)->toBeFalse()
-        ->and($single->correct_answer)->toBe('PHP');
+        ->and($single->correct_answer)->toBe('PHP')
+        ->and($single->ai_generated)->toBeTrue();
 
     $multiple = Question::query()->where('body', 'Select JavaScript libraries.')->firstOrFail();
     expect($multiple->allows_multiple)->toBeTrue()
