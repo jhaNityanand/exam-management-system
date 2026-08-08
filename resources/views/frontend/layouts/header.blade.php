@@ -110,11 +110,11 @@
         </nav>
 
         <div class="et-header__actions">
-            <button type="button" class="et-icon-btn" data-search-open aria-label="Open search" aria-expanded="false" aria-controls="et-search-dialog">
+            <button type="button" class="et-icon-btn et-header__search-btn" data-search-open aria-label="Open search" aria-expanded="false" aria-controls="et-search-dialog">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
             </button>
 
-            <button type="button" class="et-icon-btn et-theme-toggle" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
+            <button type="button" class="et-icon-btn et-theme-toggle et-header__theme-btn" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">
                 <svg class="et-theme-icon et-theme-icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1110.5 3 7 7 0 0021 14.5z"/></svg>
                 <svg class="et-theme-icon et-theme-icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
             </button>
@@ -123,7 +123,7 @@
                 @php($headerAvatar = user_avatar(auth()->user()))
                 <a
                     href="{{ route('frontend.account.dashboard') }}"
-                    class="et-profile-link"
+                    class="et-profile-link et-header__profile-btn"
                     aria-label="Go to dashboard"
                     title="Dashboard"
                 >
@@ -182,6 +182,39 @@
         </a>
         <button type="button" class="et-icon-btn" data-mobile-nav-close aria-label="Close menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+
+    @auth
+        @php($drawerAvatar = user_avatar(auth()->user()))
+        <div class="et-drawer__user">
+            <div class="et-drawer__user-info">
+                <span class="et-profile__avatar" style="--ua-bg: {{ $drawerAvatar['color'] }}">
+                    @if($drawerAvatar['url'])
+                        <img src="{{ $drawerAvatar['url'] }}" alt="">
+                    @else
+                        {{ $drawerAvatar['initials'] }}
+                    @endif
+                </span>
+                <div class="et-drawer__user-text">
+                    <div class="et-drawer__user-name">{{ auth()->user()->name }}</div>
+                    <div class="et-drawer__user-email">{{ auth()->user()->email }}</div>
+                </div>
+            </div>
+            <a href="{{ route('frontend.account.dashboard') }}" class="et-drawer__user-link">My Dashboard &rarr;</a>
+        </div>
+    @endauth
+
+    <div class="et-drawer__quick-actions">
+        <button type="button" class="et-drawer__action-btn et-theme-toggle" data-theme-toggle aria-label="Switch theme">
+            <svg class="et-theme-icon et-theme-icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1110.5 3 7 7 0 0021 14.5z"/></svg>
+            <svg class="et-theme-icon et-theme-icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <span class="et-drawer__theme-label">Switch Theme</span>
+        </button>
+
+        <button type="button" class="et-drawer__action-btn" data-search-open>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <span>Search</span>
         </button>
     </div>
 

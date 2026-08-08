@@ -574,6 +574,77 @@ html.dark .et-theme-toggle .et-theme-icon--sun { display: block !important; }
   border-top: 1px solid var(--et-border);
 }
 
+.et-drawer__user {
+  padding: 0.95rem 1.1rem;
+  border-bottom: 1px solid var(--et-border);
+  background: var(--et-surface-2);
+}
+.et-drawer__user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.et-drawer__user-text {
+  min-width: 0;
+  flex: 1;
+}
+.et-drawer__user-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--et-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.et-drawer__user-email {
+  font-size: 0.8rem;
+  color: var(--et-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.et-drawer__user-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--et-accent);
+}
+.et-drawer__quick-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border-bottom: 1px solid var(--et-border);
+}
+.et-drawer__action-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--et-radius-sm);
+  border: 1px solid var(--et-border);
+  background: var(--et-surface);
+  color: var(--et-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--et-transition), color var(--et-transition);
+}
+.et-drawer__action-btn:hover {
+  border-color: var(--et-accent);
+  color: var(--et-accent);
+}
+
+@media (max-width: 639px) {
+  .et-header__profile-btn,
+  .et-header__logout-form,
+  .et-header__theme-btn {
+    display: none !important;
+  }
+}
+
 body.et-drawer-open { overflow: hidden; }
 
 @media (min-width: 1024px) {
@@ -1066,10 +1137,11 @@ html.dark .et-hero__dot { background: var(--et-slate-600); }
 }
 .et-grid--2 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
 .et-grid--3 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-.et-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 640px) {
+.et-grid--4 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+@media (min-width: 540px) {
   .et-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .et-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .et-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 960px) {
   .et-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }

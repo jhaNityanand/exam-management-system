@@ -29,8 +29,7 @@
     try {
       stored = localStorage.getItem(THEME_KEY) || localStorage.getItem('ems.theme');
     } catch (e) {}
-    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    applyTheme(stored || (prefersDark ? 'dark' : 'light'));
+    applyTheme(stored || 'light');
 
     document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
       if (btn.dataset.themeBound === '1') return;

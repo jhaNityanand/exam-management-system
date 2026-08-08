@@ -29,8 +29,7 @@
   /* Theme */
   function initTheme() {
     const stored = localStorage.getItem(THEME_KEY);
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = stored || (prefersDark ? 'dark' : 'light');
+    const theme = stored || 'light';
     applyTheme(theme);
 
     qsa('[data-theme-toggle]').forEach(function (btn) {

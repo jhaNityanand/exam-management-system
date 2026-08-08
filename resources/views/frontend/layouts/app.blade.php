@@ -31,9 +31,6 @@
     @include('frontend.layouts.header')
 
     @php($adPageKey = frontend_ad_page_key())
-    @if($adPageKey)
-        {!! ad_slot($adPageKey, 'after_header') !!}
-    @endif
 
     <main id="main-content" class="et-main" tabindex="-1">
         @yield('content')

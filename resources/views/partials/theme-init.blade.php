@@ -18,17 +18,12 @@
         try { stored = localStorage.getItem(ALT); } catch (e) {}
     }
 
-    var preference = stored || document.documentElement.dataset.themeDefault || 'system';
-    if (preference !== 'light' && preference !== 'dark' && preference !== 'system') {
-        preference = 'system';
+    var preference = stored || document.documentElement.dataset.themeDefault || 'light';
+    if (preference !== 'light' && preference !== 'dark') {
+        preference = 'light';
     }
 
-    var prefersDark = false;
-    try {
-        prefersDark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    } catch (e) {}
-
-    var actual = preference === 'system' ? (prefersDark ? 'dark' : 'light') : preference;
+    var actual = preference;
     var root = document.documentElement;
 
     root.classList.toggle('dark', actual === 'dark');

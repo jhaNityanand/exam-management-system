@@ -477,6 +477,11 @@ HTML;
         $rows = [];
 
         foreach ($pageKeys as $pageKey) {
+            // Do not seed any ads for the home/landing page
+            if ($pageKey === 'home') {
+                continue;
+            }
+
             $page = AdvertisementCatalog::page($pageKey);
             if (! $page) {
                 continue;
@@ -484,36 +489,32 @@ HTML;
 
             $positions = $page['positions'] ?? [];
 
-            // Sidebar sections: one vertical Google unit after each side section.
+            // Sidebar sections: maximum 1 vertical Google unit after the primary sidebar section.
             $sidebarSlots = array_values(array_filter(
                 $positions,
                 fn (string $key) => AdvertisementCatalog::isSidePlacementSlot($key)
             ));
-            foreach ($sidebarSlots as $positionKey) {
-                $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $vertical->id, 1);
+            if (! empty($sidebarSlots)) {
+                $rows[] = $this->placementRow($orgId, $pageKey, $sidebarSlots[0], $vertical->id, 1);
             }
 
-            // Every main-content section slot gets a default horizontal Google unit
-            // (after navbar, below title, filters, before H2, above footer, etc.).
+            // Main-content section slots: pick 1 primary content slot (excluding after_header & above_title).
             $contentPositions = array_values(array_filter(
                 $positions,
                 fn (string $key) => ! AdvertisementCatalog::isSidePlacementSlot($key)
+                    && $key !== 'after_header'
+                    && $key !== 'above_title'
             ));
 
-            // Prevent redundant double header placements (e.g. both after_header/above_title and below_title).
-            if (in_array('below_title', $contentPositions, true) && in_array('above_title', $contentPositions, true)) {
-                $contentPositions = array_values(array_diff($contentPositions, ['above_title']));
-            }
-            if (in_array('below_title', $contentPositions, true) && in_array('after_header', $contentPositions, true)) {
-                $contentPositions = array_values(array_diff($contentPositions, ['after_header']));
-            }
+            if (! empty($contentPositions)) {
+                // Select 1 primary non-intrusive content position (e.g., after_content, below_items, or between_sections)
+                $chosenPosition = in_array('after_content', $contentPositions, true)
+                    ? 'after_content'
+                    : (in_array('below_items', $contentPositions, true)
+                        ? 'below_items'
+                        : $contentPositions[0]);
 
-            foreach ($contentPositions as $index => $positionKey) {
-                $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $horizontal->id, $index + 1);
-                if ($pageKey === 'exam_attempt' && $positionKey === 'below_content') {
-                    $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $horizontal->id, $index + 2);
-                    $rows[] = $this->placementRow($orgId, $pageKey, $positionKey, $horizontal->id, $index + 3);
-                }
+                $rows[] = $this->placementRow($orgId, $pageKey, $chosenPosition, $horizontal->id, 1);
             }
         }
 
@@ -604,7 +605,7 @@ HTML;
     public function renderSlot(string $pageOrLegacy, ?string $positionKey = null, ?int $orgId = null): string
     {
         [$pageKey, $position] = $this->resolveSlotKeys($pageOrLegacy, $positionKey);
-        if ($pageKey === '' || $position === '') {
+        if ($pageKey === '' || $position === '' || $pageKey === 'home' || $position === 'after_header') {
             return '';
         }
 
