@@ -153,3 +153,36 @@ test('error pages render without crashing', function () {
     $this->get('/this-route-should-404-examtube')
         ->assertNotFound();
 });
+
+test('exam category route follows exam/category/slug pattern and legacy urls redirect', function () {
+    $cat = \App\Models\ExamCategory::create([
+        'organization_id' => $this->organization->id,
+        'name' => 'Engineering Exams',
+        'slug' => 'engineering-exams-test',
+        'status' => 'active',
+    ]);
+
+    // Categories index format: /categories
+    expect(route('frontend.categories.index'))->toContain('/categories');
+
+    $this->get(route('frontend.categories.index'))
+        ->assertOk();
+
+    // Category dropdown filter urls work
+    $this->get(route('frontend.categories.index', ['type' => 'blogs']))->assertOk();
+    $this->get(route('frontend.categories.index', ['type' => 'news']))->assertOk();
+    $this->get(route('frontend.categories.index', ['type' => 'exams']))->assertOk();
+
+    // Category show route format: /exam/category/{slug}
+    expect(route('frontend.categories.show', $cat))->toContain('/exam/category/engineering-exams-test');
+
+    $this->get('/exam/category/'.$cat->slug)
+        ->assertOk();
+
+    // Legacy redirects
+    $this->get('/exams/categories')->assertRedirect('/categories');
+    $this->get('/categories/'.$cat->slug)->assertRedirect('/exam/category/'.$cat->slug);
+    $this->get('/category/'.$cat->slug)->assertRedirect('/exam/category/'.$cat->slug);
+    $this->get('/exams/category/'.$cat->slug)->assertRedirect('/exam/category/'.$cat->slug);
+});
+

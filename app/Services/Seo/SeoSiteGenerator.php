@@ -90,7 +90,7 @@ class SeoSiteGenerator
             $this->url($baseUrl.'/blogs', now(), 'daily', '0.8'),
             $this->url($baseUrl.'/news', now(), 'daily', '0.8'),
             $this->url($baseUrl.'/news/trending', now(), 'daily', '0.7'),
-            $this->url($baseUrl.'/exams/categories', now(), 'weekly', '0.7'),
+            $this->url($baseUrl.'/categories', now(), 'weekly', '0.7'),
             $this->url($baseUrl.'/authors', now(), 'weekly', '0.6'),
         ]);
 
