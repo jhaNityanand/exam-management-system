@@ -168,12 +168,13 @@ php artisan seo:generate
 
 ## LLM Management & AI SEO Setup
 
-LLM configurations are managed in the database via **Admin Panel → Settings → LLM Management**.
+LLM configurations are managed securely via **Admin Panel → Settings → LLM Management**.
 
+- **API Key Encryption**: All API keys are automatically encrypted at rest in the database using Laravel's built-in AES-256 encryption (`'api_key' => 'encrypted'`). Keys are never exposed in API responses, logs, or Blade templates.
 - **Supported Providers**: Mistral AI (Default Priority 1), Groq (Priority 2), Google Gemini (Priority 3), OpenRouter (Priority 4).
 - **Multi-Account & Priority Cascading**: Administrators can register multiple accounts for each provider. The system automatically routes requests to the highest priority active account.
-- **Automatic Failover & Cooldown**: If an API request encounters a rate limit, quota error, timeout, or authentication error, the account is temporarily placed in a 24-hour cooldown state, and the queue seamlessly fails over to the next available account.
-- **Scheduler Auto-Reactivation**: The scheduler automatically reactivates accounts once their 24-hour cooldown expires and resets daily request counters at midnight.
+- **Automatic Failover & Cooldown**: If an API request encounters a rate limit, quota error, timeout, or authentication error, the account is placed in a 24-hour cooldown state, and the system fails over to the next available account.
+- **Dynamic 24-Hour Reset**: Daily request and token counters automatically reset every 24 hours (via midnight cron and dynamic `last_used_at` date checks).
 
 ---
 

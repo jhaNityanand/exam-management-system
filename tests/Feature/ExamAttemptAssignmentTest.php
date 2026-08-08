@@ -56,7 +56,10 @@ function makePublishedExam(int $orgId, array $overrides = []): Exam
 {
     $suffix = uniqid();
 
-    return Exam::create(array_merge([
+    $category = QuestionCategory::where('organization_id', $orgId)->first();
+    $categoryId = $category?->id;
+
+    $exam = Exam::create(array_merge([
         'organization_id' => $orgId,
         'title' => 'Published Attempt Exam '.$suffix,
         'slug' => 'published-attempt-exam-'.$suffix,
@@ -72,11 +75,21 @@ function makePublishedExam(int $orgId, array $overrides = []): Exam
         'schedule_type' => 'any_time',
         'attempt_limit_type' => 'unlimited',
         'max_attempts' => 0,
-        'fixed_questions' => false,
-        'use_question_pool' => false,
-        'selected_categories' => [],
-        'question_marks_filter' => [1],
     ], $overrides));
+
+    $exam->parts()->create([
+        'name' => 'Part A',
+        'is_default' => true,
+        'total_questions' => $overrides['total_questions'] ?? 2,
+        'total_marks' => $overrides['total_marks'] ?? 2,
+        'selected_categories' => $overrides['selected_categories'] ?? ($categoryId ? [$categoryId] : []),
+        'question_marks_filter' => $overrides['question_marks_filter'] ?? [1],
+        'fixed_questions' => (bool) ($overrides['fixed_questions'] ?? false),
+        'use_question_pool' => (bool) ($overrides['use_question_pool'] ?? false),
+        'maximum_questions' => $overrides['maximum_questions'] ?? null,
+    ]);
+
+    return $exam->fresh(['parts']);
 }
 
 test('fixed mode assigns the same question set to every candidate', function () {
@@ -86,7 +99,7 @@ test('fixed mode assigns the same question set to every candidate', function () 
         'fixed_questions' => true,
         'selected_categories' => [$this->category->id],
     ]);
-    $exam->questions()->sync([
+    $exam->parts->first()->questions()->sync([
         $q1->id => ['sort_order' => 0, 'status' => 'active'],
         $q2->id => ['sort_order' => 1, 'status' => 'active'],
     ]);
@@ -117,7 +130,7 @@ test('pool mode assigns a stable subset and resume does not re-randomize', funct
     foreach ($questionIds as $i => $id) {
         $sync[$id] = ['sort_order' => $i, 'status' => 'active'];
     }
-    $exam->questions()->sync($sync);
+    $exam->parts->first()->questions()->sync($sync);
 
     $service = app(ExamAttemptService::class);
     $first = $service->start($exam, $this->candidateA);
@@ -172,7 +185,7 @@ test('start endpoint withholds correct answers and is idempotent', function () {
         'fixed_questions' => true,
         'selected_categories' => [$this->category->id],
     ]);
-    $exam->questions()->sync([
+    $exam->parts->first()->questions()->sync([
         $q1->id => ['sort_order' => 0, 'status' => 'active'],
         $q2->id => ['sort_order' => 1, 'status' => 'active'],
     ]);
@@ -197,6 +210,7 @@ test('start endpoint withholds correct answers and is idempotent', function () {
                 'microphone' => true,
                 'fullscreen' => true,
                 'selfie' => true,
+                'rules_agreed' => true,
             ],
             'device' => [
                 'browser' => 'phpunit',
@@ -238,6 +252,7 @@ test('start endpoint withholds correct answers and is idempotent', function () {
                 'microphone' => true,
                 'fullscreen' => true,
                 'selfie' => true,
+                'rules_agreed' => true,
             ],
             'device' => [
                 'browser' => 'phpunit',
@@ -261,7 +276,7 @@ test('snapshots remain immutable after source question edits', function () {
         'fixed_questions' => true,
         'selected_categories' => [$this->category->id],
     ]);
-    $exam->questions()->sync([
+    $exam->parts->first()->questions()->sync([
         $question->id => ['sort_order' => 0, 'status' => 'active'],
         $other->id => ['sort_order' => 1, 'status' => 'active'],
     ]);

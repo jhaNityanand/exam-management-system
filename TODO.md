@@ -18,6 +18,7 @@
 - [x] **Settings** — email/SMTP, SEO, security (plus existing maintenance/branding/analytics surfaces)
 - [x] **Notification placeholders** — admin notifications index shell (no real delivery yet)
 - [x] **Policies / RBAC foundations** — capabilities (`content`, `organization`, `platform`), middleware, and model policies. Today **admin** and **org_admin** share full access; privilege split is deferred.
+- [x] **Milestone 1 Final Production Audit & Hardening** — LLM API Key AES-256 encryption at rest, hidden API key serialization, dynamic 24-hour LLM limit reset, standalone Advertisement seeders (`AdvertisementSeeder` & `AdvertisementPlacementSeeder`), daily production log rotation, Hostinger root `.htaccess` setup, test suite alignment.
 - [x] **Legacy Examtube Data & Media Migration** — complete importer service pipeline (`php artisan legacy:import-examtube` or `ExamtubeLegacyDataSeeder`) importing Categories, Blogs, Users & Profiles, Comments, Newsletter Subscribers, and SHA-256 deduplicated media assets from `legacy/examtube` branch / `public/old-application/`.
 - [x] **LLM Management Module** — Database-driven provider management (Mistral AI, Groq, Google Gemini, OpenRouter), priority routing, multi-account failover, automatic 24h cooldown handling, transparent SEO queue integration, processing/sitemap/error logs, admin UI (`/admin/settings/llm`), and `LlmAccountSeeder`.
 - [x] Earlier foundations: questions/exams/categories, blog/news, imports, public frontend, docs

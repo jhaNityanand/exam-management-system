@@ -262,7 +262,7 @@ class UpdateExamRequest extends FormRequest
             }
         }
 
-        if ($this->exists('parts')) {
+        if ($this->exists('parts') || $this->has('selected_categories') || $this->has('question_ids')) {
             $payload['parts'] = $this->normalizeParts($this->input('parts', []));
         }
 
@@ -420,6 +420,37 @@ class UpdateExamRequest extends FormRequest
     protected function normalizeParts(mixed $parts): array
     {
         $parts = $this->decodeJsonValue($parts);
+
+        if ((! is_array($parts) || $parts === []) && ($this->has('total_questions') || $this->has('selected_categories') || $this->has('question_ids'))) {
+            $parts = [
+                [
+                    'name' => 'Part 1',
+                    'is_default' => true,
+                    'total_questions' => (int) $this->input('total_questions', 10),
+                    'total_marks' => (int) $this->input('total_marks', 10),
+                    'use_question_pool' => $this->boolean('use_question_pool', false),
+                    'maximum_questions' => $this->input('maximum_questions'),
+                    'fixed_questions' => $this->boolean('fixed_questions', false),
+                    'fixed_paper_set' => $this->boolean('fixed_paper_set', false),
+                    'paper_sets' => $this->input('paper_sets'),
+                    'fix_category_questions' => $this->boolean('fix_category_questions', false),
+                    'fix_category_marks' => $this->boolean('fix_category_marks', false),
+                    'distribution_type' => $this->input('distribution_type', 'mixed'),
+                    'selected_categories' => $this->input('selected_categories', []),
+                    'extra_questions_categories' => $this->input('extra_questions_categories'),
+                    'extra_questions_allocations' => $this->input('extra_questions_allocations'),
+                    'extra_marks_allocations' => $this->input('extra_marks_allocations'),
+                    'question_ids' => $this->input('question_ids', []),
+                    'fix_marks_each_question' => $this->boolean('fix_marks_each_question', false),
+                    'question_marks_filter' => $this->input('question_marks_filter', [1]),
+                    'shuffle_questions' => $this->boolean('shuffle_questions', false),
+                    'shuffle_categories' => $this->boolean('shuffle_categories', false),
+                    'shuffle_options' => $this->boolean('shuffle_options', false),
+                    'category_question_rules' => $this->input('category_question_rules', []),
+                ],
+            ];
+        }
+
         if (! is_array($parts)) {
             return [];
         }
