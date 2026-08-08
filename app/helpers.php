@@ -343,6 +343,7 @@ if (! function_exists('ads_preview_mode')) {
         $host = strtolower((string) request()->getHost());
         $host = preg_replace('/^www\./', '', $host) ?: $host;
 
+        return false;
         return $host !== 'examtube.in';
     }
 }

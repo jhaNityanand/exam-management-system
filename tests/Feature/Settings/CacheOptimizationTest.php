@@ -49,7 +49,10 @@ class CacheOptimizationTest extends TestCase
             ->assertOk()
             ->assertSee('Cache & Optimization')
             ->assertSee('Clear Application Cache')
-            ->assertSee('Regenerate Sitemap');
+            ->assertSee('Regenerate Sitemap')
+            ->assertSee('Import Legacy Examtube Data')
+            ->assertSee('Fresh Migration &amp; Seed', false)
+            ->assertSee('Run Database Seeders');
     }
 
     public function test_admin_can_run_cache_clear_action(): void
@@ -59,6 +62,15 @@ class CacheOptimizationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('result.action', 'clear_app_cache');
+    }
+
+    public function test_admin_can_run_import_legacy_examtube_action(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.settings.cache.run'), ['action' => 'import_legacy_examtube'])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('result.action', 'import_legacy_examtube');
     }
 
     public function test_admin_can_clear_logs(): void

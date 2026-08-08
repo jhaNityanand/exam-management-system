@@ -63,6 +63,22 @@ class CacheOptimizationService
             'label' => 'Regenerate Sitemap',
             'description' => 'Rebuild sitemap index, robots.txt, feeds, and related SEO files (seo:generate).',
         ],
+        'import_legacy_examtube' => [
+            'label' => 'Import Legacy Examtube Data',
+            'description' => 'Import legacy database records (blogs, categories, images, newsletter emails, comments) into the current database.',
+            'confirm' => 'This will run the legacy Examtube database & media migration process into the current database. Continue?',
+        ],
+        'migrate_fresh_seed' => [
+            'label' => 'Fresh Migration & Seed',
+            'description' => 'Drop all database tables, re-run all migrations, and seed initial database & media files (migrate:fresh --seed).',
+            'confirm' => 'DANGER: THIS WILL DROP ALL DATABASE TABLES AND RE-SEED DEFAULT DATA! All existing custom database data will be lost. Are you sure you want to continue?',
+            'danger' => true,
+        ],
+        'db_seed' => [
+            'label' => 'Run Database Seeders',
+            'description' => 'Run database seeders to populate default demo data and media files (db:seed).',
+            'confirm' => 'This will run database seeders to populate default records and media. Continue?',
+        ],
     ];
 
     /**
@@ -97,6 +113,9 @@ class CacheOptimizationService
                 'clear_temp' => $this->clearTemporaryFiles(),
                 'clear_logs' => $this->clearLogs(),
                 'regenerate_sitemap' => $this->regenerateSitemap(),
+                'import_legacy_examtube' => $this->artisan('legacy:import-examtube'),
+                'migrate_fresh_seed' => $this->migrateFreshSeed(),
+                'db_seed' => $this->artisan('db:seed', ['--force' => true]),
                 default => ['exit_code' => 1, 'output' => 'Unhandled action.', 'meta' => []],
             };
         } catch (Throwable $e) {
@@ -318,5 +337,19 @@ class CacheOptimizationService
         }
 
         return round($bytes / 1048576, 2).' MB';
+    }
+
+    /**
+     * @return array{exit_code: int, output: string, meta: array<string, mixed>}
+     */
+    protected function migrateFreshSeed(): array
+    {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', '0');
+
+        return $this->artisan('migrate:fresh', [
+            '--seed' => true,
+            '--force' => true,
+        ]);
     }
 }

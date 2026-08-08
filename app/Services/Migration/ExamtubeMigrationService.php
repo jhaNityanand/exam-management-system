@@ -44,6 +44,8 @@ class ExamtubeMigrationService
     public function migrate(?string $customSqlPath = null, ?Command $command = null, int $organizationId = 1): ImportLogger
     {
         @ini_set('memory_limit', '512M');
+        @set_time_limit(0);
+        @ini_set('max_execution_time', '0');
 
         $sqlPath = $this->parser->findSqlFilePath($customSqlPath);
         $this->logger->writeLog("Starting legacy migration using SQL file: {$sqlPath}");
