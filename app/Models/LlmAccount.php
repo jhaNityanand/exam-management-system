@@ -31,7 +31,16 @@ class LlmAccount extends Model
         'notes',
     ];
 
+    protected $hidden = [
+        'api_key',
+    ];
+
+    protected $appends = [
+        'masked_api_key',
+    ];
+
     protected $casts = [
+        'api_key' => 'encrypted',
         'is_active' => 'boolean',
         'priority' => 'integer',
         'daily_request_limit' => 'integer',
@@ -62,10 +71,14 @@ class LlmAccount extends Model
             })
             ->where(function (Builder $q) {
                 $q->whereNull('daily_request_limit')
+                    ->orWhereNull('last_used_at')
+                    ->orWhere('last_used_at', '<', now()->startOfDay())
                     ->orWhereColumn('requests_today', '<', 'daily_request_limit');
             })
             ->where(function (Builder $q) {
                 $q->whereNull('daily_token_limit')
+                    ->orWhereNull('last_used_at')
+                    ->orWhere('last_used_at', '<', now()->startOfDay())
                     ->orWhereColumn('tokens_today', '<', 'daily_token_limit');
             });
     }
@@ -90,6 +103,10 @@ class LlmAccount extends Model
 
     public function isLimitReached(): bool
     {
+        if ($this->last_used_at !== null && $this->last_used_at->isBefore(now()->startOfDay())) {
+            return false;
+        }
+
         if ($this->daily_request_limit !== null && $this->requests_today >= $this->daily_request_limit) {
             return true;
         }

@@ -918,6 +918,57 @@ textarea.cx-field { resize: vertical; min-height: 7rem; line-height: 1.55; }
 }
 .cx-final-submit { width: 100%; margin-top: auto; flex: 0 0 auto; }
 .cx-final-submit-dock { display: none; }
+
+.cx-main-submit-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1.75rem;
+    margin-bottom: 2.25rem;
+    width: 100%;
+}
+
+.cx-final-submit-main {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 15rem;
+    min-height: 2.85rem;
+    padding: 0.7rem 2.25rem;
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 9999px;
+    background: #dc2626;
+    border: 1px solid #b91c1c;
+    color: #ffffff !important;
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.38);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.cx-final-submit-main:hover {
+    background: #b91c1c;
+    border-color: #991b1b;
+    color: #ffffff !important;
+    box-shadow: 0 6px 22px rgba(220, 38, 38, 0.52);
+    transform: translateY(-1px);
+}
+
+.cx-body[data-theme="dark"] .cx-final-submit-main,
+html.dark .cx-final-submit-main {
+    background: #dc2626;
+    border-color: #ef4444;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px rgba(220, 38, 38, 0.5);
+}
+
+.cx-body[data-theme="dark"] .cx-final-submit-main:hover,
+html.dark .cx-final-submit-main:hover {
+    background: #b91c1c;
+    border-color: #f87171;
+    color: #ffffff !important;
+}
 .cx-rail {
     display: flex;
     flex-direction: column;
@@ -1634,26 +1685,8 @@ html.dark .cx-question-wrap.is-review .cx-choice:has(input:checked) .cx-choice__
     }
     .cx-final-submit { min-height: 2.45rem; }
 
-    /* Dock Final submit at bottom-center when the drawer is closed */
-    .cx-exam:not(.is-drawer-open) .cx-final-submit-dock {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        position: fixed;
-        left: 50%;
-        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-        transform: translateX(-50%);
-        z-index: 55;
-        width: auto;
-        min-width: 11rem;
-        min-height: 2.55rem;
-        padding-inline: 1.35rem;
-        margin: 0;
-        border-radius: 999px;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.28);
-    }
-    .cx-exam.is-drawer-open .cx-final-submit-dock {
-        display: none;
+    .cx-final-submit-dock {
+        display: none !important;
     }
 
     .cx-footer-actions {

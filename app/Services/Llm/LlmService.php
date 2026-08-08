@@ -117,10 +117,14 @@ class LlmService
                     $tokensUsed = (int) ($result->totalTokens ?? 0);
                 }
 
+                $isNewDay = $account->last_used_at === null || $account->last_used_at->isBefore(now()->startOfDay());
+                $currentRequests = $isNewDay ? 0 : $account->requests_today;
+                $currentTokens = $isNewDay ? 0 : $account->tokens_today;
+
                 $account->update([
                     'last_used_at' => now(),
-                    'requests_today' => $account->requests_today + 1,
-                    'tokens_today' => $account->tokens_today + $tokensUsed,
+                    'requests_today' => $currentRequests + 1,
+                    'tokens_today' => $currentTokens + $tokensUsed,
                     'error_count' => 0,
                 ]);
 

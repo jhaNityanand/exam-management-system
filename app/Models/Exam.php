@@ -129,6 +129,64 @@ class Exam extends Model
         return $this->hasMany(ExamPart::class)->orderBy('sort_order');
     }
 
+    public function getFixedQuestionsAttribute(): bool
+    {
+        return (bool) ($this->parts->first()?->fixed_questions ?? false);
+    }
+
+    public function getUseQuestionPoolAttribute(): bool
+    {
+        return (bool) ($this->parts->first()?->use_question_pool ?? false);
+    }
+
+    public function getFixedPaperSetAttribute(): bool
+    {
+        return (bool) ($this->parts->first()?->fixed_paper_set ?? false);
+    }
+
+    public function getPaperSetsAttribute(): int
+    {
+        return (int) ($this->parts->first()?->paper_sets ?? 1);
+    }
+
+    public function getShuffleQuestionsAttribute(): bool
+    {
+        return (bool) ($this->parts->first()?->shuffle_questions ?? false);
+    }
+
+    public function getShuffleCategoriesAttribute(): bool
+    {
+        return (bool) ($this->parts->first()?->shuffle_categories ?? false);
+    }
+
+    public function getFixCategoryMarksAttribute(): bool
+    {
+        return (bool) ($this->parts->first()?->fix_category_marks ?? false);
+    }
+
+    public function getExtraMarksAllocationsAttribute(): ?array
+    {
+        return $this->parts->first()?->extra_marks_allocations;
+    }
+
+    public function questions()
+    {
+        $defaultPart = $this->parts()->first();
+
+        if ($defaultPart) {
+            return $defaultPart->questions();
+        }
+
+        return $this->hasManyThrough(
+            Question::class,
+            ExamPart::class,
+            'exam_id',
+            'id',
+            'id',
+            'id'
+        );
+    }
+
     public function organization()
     {
         return $this->belongsTo(Organization::class);

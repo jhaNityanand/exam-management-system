@@ -44,7 +44,7 @@ test('authenticated user can view blog list page', function () {
         ->assertSee('name="filters[date_from]"', false)
         ->assertSee('name="filters[created_from]"', false)
         ->assertSee('data-date-preset-select', false)
-        ->assertSee('Last Year', false);
+        ->assertSee('This Year', false);
 });
 
 test('authenticated user can view blog categories page', function () {

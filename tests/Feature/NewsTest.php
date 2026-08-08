@@ -43,7 +43,7 @@ test('authenticated user can view news list page', function () {
         ->assertSee('name="filters[is_featured][]"', false)
         ->assertSee('name="filters[created_from]"', false)
         ->assertSee('data-date-preset-select', false)
-        ->assertSee('This Quarter', false);
+        ->assertSee('This Month', false);
 });
 
 test('authenticated user can view news categories page', function () {

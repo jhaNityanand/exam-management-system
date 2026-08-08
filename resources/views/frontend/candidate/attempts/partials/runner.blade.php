@@ -70,6 +70,16 @@
                 <button type="button" class="cx-btn cx-btn--review" id="cx-mark-review-next">Mark for review &amp; next</button>
             </div>
             @include('frontend.partials.ad-placement', ['page' => 'exam_attempt', 'position' => 'below_content'])
+
+            <div class="cx-main-submit-wrap">
+                <button type="button"
+                        class="cx-btn cx-btn--danger cx-final-submit-main"
+                        id="cx-final-submit-main"
+                        data-cx-final-submit
+                        title="Submit entire exam">
+                    Final Submit
+                </button>
+            </div>
         </main>
 
         <div class="cx-drawer-backdrop" id="cx-drawer-backdrop" hidden></div>
@@ -130,14 +140,6 @@
                 Final submit
             </button>
         </aside>
-
-        <button type="button"
-                class="cx-btn cx-btn--danger cx-final-submit-dock"
-                id="cx-final-submit-dock"
-                data-cx-final-submit
-                aria-label="Final submit">
-            Final submit
-        </button>
     </div>
 
     <div id="cx-toast" class="cx-toast" hidden role="status" aria-live="polite"></div>

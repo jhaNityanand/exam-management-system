@@ -52,7 +52,7 @@ function baseExamStorePayload(int $orgId, array $overrides = []): array
 {
     $category = makeQuestionCategory($orgId);
 
-    return array_merge([
+    $merged = array_merge([
         'title' => 'Base Exam '.uniqid(),
         'status' => 'draft',
         'exam_mode' => 'standard',
@@ -61,15 +61,69 @@ function baseExamStorePayload(int $orgId, array $overrides = []): array
         'exam_duration_minutes' => 60,
         'schedule_type' => 'any_time',
         'attempt_limit_type' => 'once',
+        'passing_marks' => 10,
+        'focus_violation_limit' => 3,
         'total_questions' => 10,
         'total_marks' => 20,
-        'passing_marks' => 10,
         'selected_categories' => [$category->id],
         'question_marks_filter' => [1, 2],
-        'fixed_questions' => 0,
-        'use_question_pool' => 0,
+        'fixed_questions' => false,
+        'use_question_pool' => false,
         'paper_sets' => 1,
     ], $overrides);
+
+    if (! isset($overrides['parts'])) {
+        $part = [
+            'name' => 'Part A',
+            'is_default' => true,
+            'total_questions' => $merged['total_questions'] ?? 10,
+            'total_marks' => $merged['total_marks'] ?? 20,
+            'selected_categories' => $merged['selected_categories'] ?? [$category->id],
+            'question_marks_filter' => $merged['question_marks_filter'] ?? [1, 2],
+            'fixed_questions' => (bool) ($merged['fixed_questions'] ?? false),
+            'use_question_pool' => (bool) ($merged['use_question_pool'] ?? false),
+            'paper_sets' => $merged['paper_sets'] ?? 1,
+            'fixed_paper_set' => (bool) ($merged['fixed_paper_set'] ?? false),
+            'shuffle_questions' => (bool) ($merged['shuffle_questions'] ?? false),
+            'shuffle_categories' => (bool) ($merged['shuffle_categories'] ?? false),
+        ];
+
+        if (array_key_exists('maximum_questions', $merged)) {
+            $part['maximum_questions'] = $merged['maximum_questions'];
+        }
+        if (array_key_exists('fix_category_questions', $merged)) {
+            $part['fix_category_questions'] = (bool) $merged['fix_category_questions'];
+        }
+        if (array_key_exists('fix_category_marks', $merged)) {
+            $part['fix_category_marks'] = (bool) $merged['fix_category_marks'];
+        }
+        if (array_key_exists('extra_marks_allocations', $merged)) {
+            $part['extra_marks_allocations'] = $merged['extra_marks_allocations'];
+        }
+        if (array_key_exists('extra_questions_allocations', $merged)) {
+            $part['extra_questions_allocations'] = $merged['extra_questions_allocations'];
+        }
+        if (array_key_exists('question_ids', $merged)) {
+            $part['question_ids'] = $merged['question_ids'];
+        }
+
+        $merged['parts'] = [$part];
+    } else {
+        if (array_key_exists('question_ids', $overrides)) {
+            $merged['parts'][0]['question_ids'] = $overrides['question_ids'];
+        }
+        if (array_key_exists('extra_marks_allocations', $overrides)) {
+            $merged['parts'][0]['extra_marks_allocations'] = $overrides['extra_marks_allocations'];
+        }
+        if (array_key_exists('extra_questions_allocations', $overrides)) {
+            $merged['parts'][0]['extra_questions_allocations'] = $overrides['extra_questions_allocations'];
+        }
+        if (array_key_exists('maximum_questions', $overrides)) {
+            $merged['parts'][0]['maximum_questions'] = $overrides['maximum_questions'];
+        }
+    }
+
+    return $merged;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -89,7 +143,7 @@ test('authenticated user can view exams list page', function () {
         ->assertSee('name="filters[exam_mode][]"', false)
         ->assertSee('name="filters[created_from]"', false)
         ->assertSee('data-date-preset-select', false)
-        ->assertSee('This Quarter', false)
+        ->assertSee('This Month', false)
         ->assertSee('Custom Range', false);
 });
 
@@ -192,6 +246,9 @@ test('user can store a new exam', function () {
         'duration'        => 90,
         'organization_id' => $this->organization->id,
         'category_id'     => $examCategory->id,
+    ]);
+
+    $this->assertDatabaseHas('exam_parts', [
         'fixed_questions' => false,
         'fixed_paper_set' => true,
         'paper_sets' => 3,
@@ -238,8 +295,7 @@ test('question pool requires a larger maximum and disables fixed questions', fun
         ->post(route('admin.exams.store'), $payload)
         ->assertSessionHasNoErrors();
 
-    $this->assertDatabaseHas('exams', [
-        'title' => 'Question Pool Exam',
+    $this->assertDatabaseHas('exam_parts', [
         'use_question_pool' => true,
         'maximum_questions' => 3,
         'fixed_questions' => false,
@@ -249,11 +305,11 @@ test('question pool requires a larger maximum and disables fixed questions', fun
     expect($exam->questions()->count())->toBe(3);
 
     $payload['title'] = 'Invalid Question Pool Exam';
-    $payload['maximum_questions'] = 2;
+    $payload['parts'][0]['maximum_questions'] = 2;
 
     $this->actingAs($this->user)
         ->post(route('admin.exams.store'), $payload)
-        ->assertSessionHasErrors('maximum_questions');
+        ->assertSessionHasErrors(['parts.0.maximum_questions']);
 });
 
 test('fixed questions mode requires exact selected question count', function () {
@@ -290,7 +346,7 @@ test('fixed questions mode requires exact selected question count', function () 
             'title' => 'Fixed Questions Incomplete',
             'question_ids' => [$questionIds[0]],
         ]))
-        ->assertSessionHasErrors('question_ids');
+        ->assertSessionHasErrors(['parts.0.question_ids']);
 
     $this->actingAs($this->user)
         ->post(route('admin.exams.store'), array_merge($base, [
@@ -328,7 +384,7 @@ test('fixed category marks requires exact total allocation', function () {
             'title' => 'Invalid Category Marks Exam',
             'extra_marks_allocations' => [],
         ]))
-        ->assertSessionHasErrors('extra_marks_allocations');
+        ->assertSessionHasErrors(['parts.0.extra_marks_allocations']);
 
     // 10 marks / 3 categories => 3 base + 1 leftover on the first category.
     $allocation = [
@@ -439,7 +495,7 @@ test('dynamic mode clears exam_question and rejects selected question ids', func
             'use_question_pool' => 0,
             'question_ids' => [$questionId],
         ]))
-        ->assertSessionHasErrors('question_ids');
+        ->assertSessionHasErrors(['parts.0.question_ids']);
 
     $this->actingAs($this->user)
         ->post(route('admin.exams.store'), baseExamStorePayload($this->organization->id, [
@@ -513,6 +569,7 @@ test('mode transition from fixed to dynamic clears attached questions', function
             'total_questions' => 2,
             'total_marks' => 2,
             'passing_marks' => 1,
+            'focus_violation_limit' => 3,
             'schedule_type' => 'any_time',
             'attempt_limit_type' => 'once',
             'selected_categories' => [$category->id],
@@ -561,6 +618,7 @@ test('user can update an exam', function () {
         'fixed_questions' => 0,
         'use_question_pool' => 0,
         'question_ids' => [],
+        'focus_violation_limit' => 3,
     ];
 
     $this->actingAs($this->user)
@@ -584,7 +642,7 @@ test('edit page hydrates shared create form and examFormConfig', function () {
         'selected_categories' => [$category->id],
         'question_marks_filter' => [1, 2],
         'total_questions' => 2,
-        'total_marks' => 4,
+        'total_marks' => 2,
         'passing_marks' => 2,
         'shuffle_questions' => true,
     ]);
@@ -646,7 +704,16 @@ test('edit round trip preserves configuration sections and mode transitions', fu
         'shuffle_questions' => true,
         'enable_negative_marking' => false,
     ]);
-    $exam->questions()->sync([
+    $part = $exam->parts()->create([
+        'name' => 'Part A',
+        'is_default' => true,
+        'total_questions' => 2,
+        'total_marks' => 2,
+        'selected_categories' => [$category->id],
+        'question_marks_filter' => [1],
+        'fixed_questions' => true,
+    ]);
+    $part->questions()->sync([
         $q1->id => ['sort_order' => 0, 'status' => 'active'],
         $q2->id => ['sort_order' => 1, 'status' => 'active'],
     ]);
@@ -663,6 +730,7 @@ test('edit round trip preserves configuration sections and mode transitions', fu
             'total_questions' => 2,
             'total_marks' => 2,
             'passing_marks' => 1,
+            'focus_violation_limit' => 3,
             'schedule_type' => 'any_time',
             'attempt_limit_type' => 'once',
             'selected_categories' => [$category->id],
@@ -694,6 +762,7 @@ test('edit round trip preserves configuration sections and mode transitions', fu
             'total_questions' => 2,
             'total_marks' => 2,
             'passing_marks' => 1,
+            'focus_violation_limit' => 3,
             'schedule_type' => 'any_time',
             'attempt_limit_type' => 'once',
             'selected_categories' => [$category->id],

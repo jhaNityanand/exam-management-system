@@ -108,6 +108,27 @@ class LlmAccountSeeder extends Seeder
         ];
 
         foreach ($accounts as $data) {
+            $existing = LlmAccount::query()
+                ->where('provider', $data['provider'])
+                ->where('account_name', $data['account_name'])
+                ->first();
+
+            $envKey = match ($data['provider']) {
+                'mistral' => env('MISTRAL_API_KEY_'.$data['priority'], env('MISTRAL_API_KEY', '')),
+                'groq' => env('GROQ_API_KEY_'.$data['priority'], env('GROQ_API_KEY', '')),
+                'gemini' => env('GEMINI_API_KEY_'.$data['priority'], env('GEMINI_API_KEY', '')),
+                'openrouter' => env('OPENROUTER_API_KEY_'.$data['priority'], env('OPENROUTER_API_KEY', '')),
+                default => '',
+            };
+
+            if (empty($data['api_key'])) {
+                if (! empty($envKey)) {
+                    $data['api_key'] = (string) $envKey;
+                } elseif ($existing && ! empty($existing->api_key)) {
+                    unset($data['api_key']);
+                }
+            }
+
             LlmAccount::updateOrCreate(
                 [
                     'provider' => $data['provider'],
