@@ -40,7 +40,13 @@ class SeoEnhancer
         if ($aiSeo !== null) {
             $seoTitle = $aiSeo->metaTitle ?: $this->buildMetaTitle($title, $existingMetaTitle);
             $seoDesc = $aiSeo->metaDescription ?: $this->buildMetaDescription($content, $existingMetaDesc);
-            $keywords = ! empty($aiSeo->keywords) ? implode(', ', $aiSeo->keywords) : $this->buildKeywords($title, $tags);
+            if (is_array($aiSeo->keywords)) {
+                $keywords = implode(', ', $aiSeo->keywords);
+            } elseif (is_string($aiSeo->keywords) && trim($aiSeo->keywords) !== '') {
+                $keywords = trim($aiSeo->keywords);
+            } else {
+                $keywords = $this->buildKeywords($title, $tags);
+            }
             $ogTitle = $aiSeo->ogTitle ?: $title;
             $ogDesc = $aiSeo->ogDescription ?: $seoDesc;
             $isAi = true;
