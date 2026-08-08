@@ -101,18 +101,62 @@ class SeoSiteGenerator
         ];
         $urlCounts['static'] = $static->count();
 
-        $imageEntries = collect($sections)
-            ->only(['pages', 'blogs', 'news', 'exams', 'categories'])
+        $contentImageEntries = collect($sections)
             ->flatten(1)
             ->filter(fn ($entry) => is_array($entry) && ! empty($entry['images']))
-            ->values()
-            ->map(fn (array $entry) => [
-                'loc' => $entry['loc'],
-                'lastmod' => $entry['lastmod'] ?? null,
-                'changefreq' => $entry['changefreq'] ?? 'weekly',
-                'priority' => $entry['priority'] ?? '0.5',
-                'images' => $entry['images'],
+            ->values();
+
+        $seenImageLocs = [];
+        foreach ($contentImageEntries as $entry) {
+            foreach ($entry['images'] ?? [] as $img) {
+                if (! empty($img['loc'])) {
+                    $seenImageLocs[strtolower(trim((string) $img['loc']))] = true;
+                }
+            }
+        }
+
+        $standaloneGalleryImages = [];
+        $activeGalleries = \App\Models\Gallery::query()
+            ->when($orgId, fn ($q) => $q->where(function ($inner) use ($orgId) {
+                $inner->where('organization_id', $orgId)->orWhereNull('organization_id');
+            }))
+            ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('kind')->orWhere('kind', 'image');
+            })
+            ->where(function ($q) {
+                $q->whereNull('mime_type')->orWhere('mime_type', 'LIKE', 'image/%');
+            })
+            ->get();
+
+        foreach ($activeGalleries as $gallery) {
+            $img = $this->images->forGallery($gallery);
+            if ($img && ! empty($img['loc'])) {
+                $key = strtolower(trim((string) $img['loc']));
+                if (! isset($seenImageLocs[$key])) {
+                    $seenImageLocs[$key] = true;
+                    $standaloneGalleryImages[] = $img;
+                }
+            }
+        }
+
+        $imageEntries = $contentImageEntries->map(fn (array $entry) => [
+            'loc' => $entry['loc'],
+            'lastmod' => $entry['lastmod'] ?? null,
+            'changefreq' => $entry['changefreq'] ?? 'weekly',
+            'priority' => $entry['priority'] ?? '0.5',
+            'images' => $entry['images'],
+        ]);
+
+        foreach ($standaloneGalleryImages as $img) {
+            $imageEntries->push([
+                'loc' => $img['loc'],
+                'lastmod' => now()->toAtomString(),
+                'changefreq' => 'weekly',
+                'priority' => '0.5',
+                'images' => [$img],
             ]);
+        }
 
         $imageCount = $imageEntries->sum(fn (array $entry) => count($entry['images'] ?? []));
         $imageXml = $this->renderUrlset($imageEntries);
@@ -679,19 +723,21 @@ class SeoSiteGenerator
     }
 
     /**
-     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string}>
+     * @return Collection<int, array{loc: string, lastmod: ?string, changefreq: string, priority: string, images?: list<array{loc: string, title: ?string, caption: ?string}>}>
      */
     protected function questionUrls(?int $orgId): Collection
     {
         return Question::query()
             ->publiclyVisible()
+            ->with(['ogImage'])
             ->when($orgId, fn ($q) => $q->forOrg($orgId))
-            ->get(['slug', 'updated_at'])
+            ->get(['id', 'slug', 'title', 'body', 'explanation', 'og_image_id', 'updated_at'])
             ->map(fn ($question) => $this->url(
                 route('frontend.questions.show', $question->slug),
                 $question->updated_at,
                 'weekly',
-                '0.6'
+                '0.6',
+                $this->images->forQuestion($question)
             ));
     }
 
