@@ -51,7 +51,7 @@ class ExamAttemptService
                     return $active->load(['attemptQuestions' => fn ($q) => $q->orderBy('position')]);
                 }
 
-                $this->assignQuestions($active, $exam);
+                $this->assignQuestions($active, $exam, $user);
 
                 return $active->load(['attemptQuestions' => fn ($q) => $q->orderBy('position')]);
             }
@@ -71,14 +71,15 @@ class ExamAttemptService
                 'created_by' => $user->id,
             ]);
 
-            $this->assignQuestions($attempt, $exam);
+            $this->assignQuestions($attempt, $exam, $user);
 
             return $attempt->load(['attemptQuestions' => fn ($q) => $q->orderBy('position')]);
         }, 3);
     }
 
-    protected function assignQuestions(ExamAttempt $attempt, Exam $exam): void
+    protected function assignQuestions(ExamAttempt $attempt, Exam $exam, ?User $user = null): void
     {
+        $user ??= $attempt->user;
         $exam->loadMissing('parts.questions', 'parts.selectedQuestionCategories');
         $parts = $exam->parts->sortBy('sort_order')->values();
 
@@ -95,7 +96,7 @@ class ExamAttemptService
 
         foreach ($parts as $part) {
             $mode = $this->selector->resolveMode($part);
-            $questions = $this->selector->selectForPart($exam, $part);
+            $questions = $this->selector->selectForPart($exam, $part, $user);
 
             $shufflePart = (bool) ($part->shuffle_questions || $exam->shuffle_questions);
             if ($shufflePart) {
@@ -110,6 +111,14 @@ class ExamAttemptService
                 if ($exam->shuffle_options || $part->shuffle_options) {
                     shuffle($optionKeys);
                 }
+
+                $meta = array_merge([
+                    'mode' => $mode,
+                    'source_question_id' => $question->id,
+                    'part_id' => (int) $part->id,
+                    'part_name' => (string) ($part->name ?: 'Part'),
+                    'part_sort_order' => (int) $part->sort_order,
+                ], $question->_selection_meta ?? []);
 
                 $rows[] = [
                     'exam_attempt_id' => $attempt->id,
@@ -130,13 +139,7 @@ class ExamAttemptService
                         'marks' => $question->marks,
                     ], JSON_THROW_ON_ERROR),
                     'option_order' => json_encode(array_values($optionKeys), JSON_THROW_ON_ERROR),
-                    'selection_meta' => json_encode([
-                        'mode' => $mode,
-                        'source_question_id' => $question->id,
-                        'part_id' => (int) $part->id,
-                        'part_name' => (string) ($part->name ?: 'Part'),
-                        'part_sort_order' => (int) $part->sort_order,
-                    ], JSON_THROW_ON_ERROR),
+                    'selection_meta' => json_encode($meta, JSON_THROW_ON_ERROR),
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];

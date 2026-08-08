@@ -36,12 +36,12 @@ class ExamAttemptQuestion extends Model
 
     public function question(): BelongsTo
     {
-        return $this->belongsTo(Question::class);
+        return $this->belongsTo(Question::class)->withTrashed();
     }
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(QuestionCategory::class, 'category_id');
+        return $this->belongsTo(QuestionCategory::class, 'category_id')->withTrashed();
     }
 
     /**

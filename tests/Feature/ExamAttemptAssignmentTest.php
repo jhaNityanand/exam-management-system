@@ -292,8 +292,7 @@ test('snapshots remain immutable after source question edits', function () {
     expect($snapshot->question_snapshot['body'])->toBe('Original body');
 });
 
-test('shortage rolls back attempt creation in dynamic mode', function () {
-    makeAttemptQuestion($this->organization->id, $this->category->id);
+test('shortage rolls back attempt creation when zero questions exist in selected categories', function () {
     $exam = makePublishedExam($this->organization->id, [
         'fixed_questions' => false,
         'use_question_pool' => false,
@@ -312,3 +311,19 @@ test('shortage rolls back attempt creation in dynamic mode', function () {
 
     expect(ExamAttempt::where('exam_id', $exam->id)->count())->toBe(0);
 });
+
+test('controlled repetition fills remaining question slots when unique pool is smaller than required', function () {
+    makeAttemptQuestion($this->organization->id, $this->category->id);
+    $exam = makePublishedExam($this->organization->id, [
+        'fixed_questions' => false,
+        'use_question_pool' => false,
+        'total_questions' => 5,
+        'selected_categories' => [$this->category->id],
+        'question_marks_filter' => [1],
+        'exam_format' => ['true_false'],
+    ]);
+
+    $attempt = app(ExamAttemptService::class)->start($exam, $this->candidateA);
+    expect($attempt->attemptQuestions)->toHaveCount(5);
+});
+
