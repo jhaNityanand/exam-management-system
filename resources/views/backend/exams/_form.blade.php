@@ -50,11 +50,13 @@
     };
 @endphp
 
-<form action="{{ $formAction }}" method="POST" id="exam-create-form" class="exam-create-form exam-form" novalidate>
+<form action="{{ $formAction }}" method="POST" id="exam-create-form" class="exam-create-form exam-form" data-auto-draft="{{ $exam ? 'exam_edit_' . $exam->id . '_form' : 'exam_create_form' }}" novalidate>
     @csrf
     @if(strtoupper($httpMethod) !== 'POST')
         @method($httpMethod)
     @endif
+
+    @include('partials.form-draft-banner')
 
     <header class="exam-page-header">
         <div>

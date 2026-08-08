@@ -188,7 +188,6 @@ test('retakes prioritize unattempted questions over previously answered question
 test('retakes prioritize previously incorrect questions over previously correct questions', function () {
     $q1 = createTestQuestion($this->organization->id, $this->categoryA->id, ['body' => 'Q1']);
     $q2 = createTestQuestion($this->organization->id, $this->categoryA->id, ['body' => 'Q2']);
-    $q3 = createTestQuestion($this->organization->id, $this->categoryA->id, ['body' => 'Q3']);
 
     $exam = createTestExam($this->organization->id, [
         'total_questions' => 2,
@@ -197,7 +196,7 @@ test('retakes prioritize previously incorrect questions over previously correct 
 
     $service = app(ExamAttemptService::class);
 
-    // Attempt 1: candidate gets 2 questions
+    // Attempt 1: candidate gets q1 & q2
     $attempt1 = $service->start($exam, $this->candidate);
     $attempt1Questions = $attempt1->attemptQuestions->sortBy('position')->values();
     $aqCorrect = $attempt1Questions[0];
@@ -220,11 +219,14 @@ test('retakes prioritize previously incorrect questions over previously correct 
 
     $attempt1->update(['status' => 'submitted']);
 
+    // Create a new question q3 (guaranteed unattempted)
+    $q3 = createTestQuestion($this->organization->id, $this->categoryA->id, ['body' => 'Q3']);
+
     // Attempt 2 requires 2 questions.
-    // Unattempted: 1 question ($q3)
-    // Previously incorrect: 1 question ($aqIncorrect->question_id)
-    // Previously correct: 1 question ($aqCorrect->question_id)
-    // Expect attempt 2 to select $q3 (unattempted) and $aqIncorrect->question_id (previously incorrect)
+    // Unattempted: q3
+    // Previously incorrect: $aqIncorrect->question_id
+    // Previously correct: $aqCorrect->question_id
+    // Expect attempt 2 to select q3 (unattempted) and $aqIncorrect->question_id (previously incorrect)
     $attempt2 = $service->start($exam, $this->candidate);
     $attempt2Ids = $attempt2->attemptQuestions->pluck('question_id')->all();
 

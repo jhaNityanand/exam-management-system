@@ -15,9 +15,11 @@
 @section('content')
 <div class="w-full relative">
     <x-page-card class="category-builder-card overflow-visible relative z-10 w-full">
-        <form action="{{ route('admin.questions.update', $question) }}" method="POST" id="question-form" enctype="multipart/form-data" class="category-builder">
+        <form action="{{ route('admin.questions.update', $question) }}" method="POST" id="question-form" enctype="multipart/form-data" class="category-builder" data-auto-draft="question_edit_{{ $question->id }}">
             @csrf
             @method('PUT')
+
+            @include('partials.form-draft-banner')
 
             <div class="category-builder__header px-4 py-6 sm:px-6">
                 <div>

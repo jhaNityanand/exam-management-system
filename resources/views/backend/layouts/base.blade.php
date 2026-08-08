@@ -52,6 +52,7 @@
     <script src="{{ versioned_asset('js/components/select-config.js') }}"></script>
     <script src="{{ versioned_asset('js/components/searchable-select.js') }}" defer></script>
     <script src="{{ versioned_asset('js/components/tooltip.js') }}" defer></script>
+    <script src="{{ versioned_asset('js/core/form-utils.js') }}"></script>
     <script src="{{ versioned_asset('js/backend/back-to-top.js') }}" defer></script>
     @stack('scripts')
     <script src="{{ versioned_asset('js/core/page-progress.js') }}" defer></script>
