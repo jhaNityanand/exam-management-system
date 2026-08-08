@@ -59,6 +59,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/exams', [FrontendExamController::class, 'index'])->name('frontend.exams.index');
+Route::redirect('/exams/categories', '/categories', 301);
 Route::get('/exams/{exam:slug}', [FrontendExamController::class, 'show'])->name('frontend.exams.show');
 
 Route::get('/questions', [\App\Http\Controllers\Frontend\QuestionController::class, 'index'])->name('frontend.questions.index');
@@ -117,11 +118,17 @@ Route::get('/news/category/{slug}', [FrontendNewsController::class, 'category'])
 Route::get('/news/tag/{slug}', [FrontendNewsController::class, 'tag'])->name('frontend.news.tag');
 Route::get('/news/{news:slug}', [FrontendNewsController::class, 'show'])->name('frontend.news.show');
 
-Route::get('/exams/categories', [CategoryController::class, 'index'])->name('frontend.categories.index');
-Route::get('/exams/category/{category:slug}', [CategoryController::class, 'show'])->name('frontend.categories.show');
-Route::redirect('/categories', '/exams/categories', 301);
+Route::get('/categories', [CategoryController::class, 'index'])->name('frontend.categories.index');
+Route::get('/exam/category/{category:slug}', [CategoryController::class, 'show'])->name('frontend.categories.show');
+Route::redirect('/exams/categories', '/categories', 301);
 Route::get('/categories/{slug}', function (string $slug) {
-    return redirect()->to('/exams/category/'.$slug, 301);
+    return redirect()->to('/exam/category/'.$slug, 301);
+});
+Route::get('/category/{slug}', function (string $slug) {
+    return redirect()->to('/exam/category/'.$slug, 301);
+});
+Route::get('/exams/category/{slug}', function (string $slug) {
+    return redirect()->to('/exam/category/'.$slug, 301);
 });
 
 Route::get('/authors', [AuthorController::class, 'index'])->name('frontend.authors.index');
