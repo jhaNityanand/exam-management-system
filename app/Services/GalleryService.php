@@ -934,12 +934,15 @@ class GalleryService
             $prefix = '/'.trim((string) $prefixes[$diskKey], '/');
             $relative = $prefix.'/'.$path;
 
-            // Prefer APP_URL from .env so URLs stay stable across CLI seeding and HTTP.
-            if ($base !== '') {
-                return $base.$relative;
+            if (app()->runningInConsole()) {
+                if ($base !== '') {
+                    return $base.$relative;
+                }
+
+                return $relative;
             }
 
-            return $relative;
+            return asset(ltrim($relative, '/'));
         }
 
         $url = Storage::disk($diskKey)->url($path);
@@ -997,12 +1000,21 @@ class GalleryService
 
     protected function findByContentHash(int $organizationId, string $hash): ?Gallery
     {
-        return Gallery::withTrashed()
+        $gallery = Gallery::withTrashed()
             ->where('organization_id', $organizationId)
             ->where('content_hash', $hash)
             ->orderByRaw('CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END')
             ->orderByDesc('id')
             ->first();
+
+        if ($gallery) {
+            $disk = $gallery->disk ?: (string) config('gallery.disk', 'public');
+            if (! Storage::disk($disk)->exists($gallery->file_path)) {
+                return null;
+            }
+        }
+
+        return $gallery;
     }
 
     /**
