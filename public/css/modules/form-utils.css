@@ -21,6 +21,22 @@ html.dark .form-required {
     display: block;
 }
 
+.dark .form-field-error,
+html.dark .form-field-error {
+    color: #f87171;
+}
+
+.panel-input::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+.dark .panel-input::placeholder,
+html.dark .panel-input::placeholder {
+    color: #64748b;
+    opacity: 1;
+}
+
 .panel-input.is-invalid {
     border-color: rgb(220 38 38);
     box-shadow: 0 0 0 3px rgb(248 113 113 / 0.16);
